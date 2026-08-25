@@ -99,7 +99,7 @@ The project is being modularized **incrementally**. We do not plan a big-bang re
 
 ## Release status
 
-The v1.0.0 production package is a dependency-free static build with an explicit file allowlist, deterministic module order and an immutable-release Nginx template. The release gates cover the public entry contract, all 100 floors and the historical regression suite.
+The v1.0.0 production package is a dependency-free static build with an explicit file allowlist, deterministic module order and a site-overlay deployment bundle. The release gates cover the public entry contract, all 100 floors and the historical regression suite.
 
 The first release intentionally leaves deeper skill evolution, further boss presentation work and extended real-player balance telemetry as post-launch improvements. See [`RELEASE_NOTES_v1.0.0.md`](RELEASE_NOTES_v1.0.0.md), [`PRODUCTION_ROADMAP.md`](PRODUCTION_ROADMAP.md) and [`BALANCE_NOTES.md`](BALANCE_NOTES.md).
 
@@ -117,7 +117,7 @@ A few project rules matter more than code style:
 
 ## Deployment target
 
-Dungeon Echo is intentionally backend-free. The production allowlist can be staged as an immutable static release behind Nginx/CDN without Node, PHP, an API or a database.
+Dungeon Echo is intentionally backend-free. The production allowlist is packaged as `public/dungeon-echo/` and overlaid onto the existing immutable `/srv/91hwl-play` release tree. Deployment preserves the live `/moyu/` files, atomically switches the shared `current` symlink and rolls back if origin or public checks fail. It does not add a second Nginx route or a parallel release root.
 
 The planned public mount is `https://play.91hwl.cn/dungeon-echo/`; the main `91hwl.cn` Web Toys page will link to it. This becomes a verified Play link only after the live TLS/cache/content checks pass.
 
