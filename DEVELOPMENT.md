@@ -63,15 +63,23 @@ Do not optimize only for bot clear rate.
 
 ## Tests
 
-The repository currently includes:
+The release-oriented command set is:
 
 ```bash
-node test/smoke.cjs
+node test/production.cjs
 node test/descent100.cjs
-node test/sim.cjs
+node test/smoke.cjs
 ```
 
-These harnesses predate the final production decision to expose only the 1→100 route. Some assertions still describe the older multi-profile production model, so they are diagnostic rather than a clean CI contract until the test-modernization issue is completed.
+- `production.cjs` boots the exact script list declared by `index.html` and verifies the
+  `classic-100` route, production modules, human-play tuning and guardian content.
+- `descent100.cjs` drives the deterministic 1→100 content/descent contract.
+- `smoke.cjs` preserves the broad historical feature coverage on the `classic-30`
+  development fixture. It is useful regression evidence, but it is not the public-route
+  default contract.
+
+`node test/sim.cjs` remains the optional balance diagnostic. It is intentionally excluded
+from the fast release gate because bot win rate is not a human-play acceptance criterion.
 
 For a focused JavaScript change, syntax checking is cheap and useful:
 

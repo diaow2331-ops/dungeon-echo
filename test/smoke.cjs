@@ -1,5 +1,7 @@
-/* 地牢回响 Dungeon Echo v6.2 无头确定性冒烟
- * DOM/Canvas stub + vm 加载 6 档 profile 与 game.js，覆盖：
+/* 地牢回响 Dungeon Echo 开发夹具回归
+ * DOM/Canvas stub + vm 加载短档与 game.js。它刻意保留 classic-30 默认值和
+ * 旧开发机制，不能代表 index.html 的 classic-100 游客入口；生产契约见 production.cjs。
+ * 覆盖：
  * 六档位校验 / 四职业 / 游侠远程 / 刺客影袭 / Boss 刷怪与门禁 /
  * 职业武器池 / 存档 version 防护·暂停保存·往返 / 固定种子确定性。
  */
@@ -69,9 +71,9 @@ function ok(cond, name) {
 function section(name) { console.log('\n[' + name + ']'); }
 
 // ---------- 1. Profile ----------
-section('1 六档位校验');
-ok(PROFILE_IDS.every(id => !!window.DE_PROFILES[id]), '6 档 profile 均已注册');
-ok(T.profileId === 'classic-30', '默认档位 classic-30');
+section('1 开发夹具：七档位校验');
+ok(PROFILE_IDS.every(id => !!window.DE_PROFILES[id]), '7 档 profile 均已注册');
+ok(T.profileId === 'classic-30', '开发夹具默认档位 classic-30');
 const depths = { 'classic-10': 10, 'classic-20': 20, 'classic-30': 30, 'classic-40': 40, 'classic-50': 50, 'classic-60': 60, 'classic-100': 100 };
 ok(PROFILE_IDS.every(id => window.DE_PROFILES[id] && window.DE_PROFILES[id].floorRules.maxDepth === depths[id]),
   '各档位 maxDepth 正确');

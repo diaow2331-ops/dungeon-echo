@@ -23,19 +23,6 @@
     e.stopImmediatePropagation();
   }, true);
 
-  function loadProductionModule(src, marker) {
-    if (document.querySelector(`script[${marker}]`)) return;
-    const s = document.createElement('script');
-    s.src = src;
-    s.setAttribute(marker, '1');
-    document.head.appendChild(s);
-  }
-  if (!window.__DE_TOWN_SYSTEM) loadProductionModule('town-system.js', 'data-de-town-system');
-  if (!window.__DE_COMMERCE_SYSTEM) loadProductionModule('commerce-system.js', 'data-de-commerce-system');
-  if (!window.__DE_FORGE_SYSTEM) loadProductionModule('forge-system.js', 'data-de-forge-system');
-  if (!window.__DE_PROGRESSION_SYSTEM) loadProductionModule('progression-system.js', 'data-de-progression-system');
-  if (!window.__DE_CONTENT_SYSTEM) loadProductionModule('content-system.js', 'data-de-content-system');
-
   if (window.__DE_BALANCE_PATCH) return;
   const C = api.CLASSES;
 
