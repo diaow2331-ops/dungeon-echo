@@ -33,8 +33,8 @@ const localRefs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
 ok(localRefs.every(ref => fs.existsSync(path.join(root, ref))), '生产 HTML 的本地资源引用全部可解析');
 ok(localRefs.every(ref => manifest.includes(ref)), '生产 HTML 的本地资源全部进入发布白名单');
 
-ok(/location \/dungeon-echo\//.test(nginx) && /__DUNGEON_ECHO_RELEASE_DIR__/.test(nginx),
-  'Nginx 模板固定公开路径并绑定不可变发布目录');
+ok(/location \^~ \/dungeon-echo\//.test(nginx) && /__DUNGEON_ECHO_RELEASE_DIR__/.test(nginx),
+  'Nginx 模板用强前缀固定公开路径并绑定不可变发布目录');
 ok(/play\.91hwl\.cn/.test(nginx), 'Nginx 模板明确挂载到 Web Toys 游戏子域名');
 ok(/autoindex off/.test(nginx) && /Cache-Control "no-store"/.test(nginx),
   'Nginx 禁止目录索引并防止跨版本缓存混用');
