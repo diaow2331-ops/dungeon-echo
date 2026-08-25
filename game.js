@@ -1157,8 +1157,22 @@ const FORGE_MAIN = {
   weapon: ['atk', 2], armor: ['def', 2], ring: ['hp', 4],
   helmet: ['def', 2], boots: ['hp', 4], amulet: ['crit', 3],
 };
-const forgeCost = it => 30 + Math.round((eqScoreOf(it.stats || {}) || 0) * 1.2) * ((it.forge || 0) + 1);
-const sellPrice = it => Math.max(4, Math.round((it.score || 0) * .45) + (it.forge || 0) * 15);
+// 经济价值与战斗适配评分分离：score/fitScore 继续回答“这件装备适不适合当前职业”，
+// itemValueScore 回答“这件物品本身值多少”。机制词缀进入后者，但不会吞掉属性维度。
+function mechanicValueBonus(it, statScore = eqScoreOf((it && it.stats) || {})) {
+  if (!it || !it.mechanic || !MECHANIC_TRAITS[it.mechanic]) return 0;
+  const power = Math.max(1, Math.min(2, Number(it.mechanicPower) || 1));
+  const ratio = power >= 2 ? 0.30 : 0.18;
+  const floor = power >= 2 ? 22 : 12;
+  return Math.max(floor, Math.round(Math.max(0, statScore) * ratio));
+}
+function itemValueScore(it) {
+  if (!it || typeof it !== 'object') return 0;
+  const statScore = Math.max(0, eqScoreOf(it.stats || {}));
+  return statScore + mechanicValueBonus(it, statScore);
+}
+const forgeCost = it => 30 + Math.round(itemValueScore(it) * 1.2) * ((it.forge || 0) + 1);
+const sellPrice = it => Math.max(4, Math.round(itemValueScore(it) * .45) + (it.forge || 0) * 15);
 function genEquip(d, minRarity = 0) {
   const roll = rng();
   // 六栏位分布：武器 .30 护甲 .25 头盔 .15 靴 .15 戒指 .10 项链 .05
@@ -1573,7 +1587,7 @@ function spawnShop(rooms) {
   );
   const eq = shopStock[shopStock.length - 1];
   eq.name = eq.item.name;
-  eq.price = Math.max(18, eq.item.score * (SHOP.equipMult || 3));
+  eq.price = Math.max(18, itemValueScore(eq.item) * (SHOP.equipMult || 3));
   msg(fmtText(RUN_PROFILE.texts.shopArrive || '商人在此等候。'), 'gold');
 }
 
@@ -2566,16 +2580,24 @@ function tooltipHtml(it, compareSlot) {
   }
   const mechanicText = mechanicDescription(it);
   if (mechanicText) html += `<div class="affix">${esc(mechanicText)}</div>`;
-  html += `<div style="color:${r.color}">评分 ${it.score}</div>`;
+  const fit = Number(it.score) || 0;
+  const value = itemValueScore(it);
+  html += `<div style="color:${r.color}">适配评分 ${fit} · 内在价值 ${value}</div>`;
   if (compareSlot) {
     const cur = player.equip[compareSlot];
     if (cur) {
-      const d = it.score - cur.score;
-      html += d > 0
-        ? `<div class="cmp-up">▲ 比当前装备高 ${d} 分</div>`
-        : d < 0
-          ? `<div class="cmp-down">▼ 比当前装备低 ${-d} 分</div>`
-          : '<div>＝ 与当前装备同评分</div>';
+      const fitDelta = fit - (Number(cur.score) || 0);
+      const valueDelta = value - itemValueScore(cur);
+      html += fitDelta > 0
+        ? `<div class="cmp-up">▲ 适配 +${fitDelta}</div>`
+        : fitDelta < 0
+          ? `<div class="cmp-down">▼ 适配 ${fitDelta}</div>`
+          : '<div>＝ 适配评分持平</div>';
+      html += valueDelta > 0
+        ? `<div class="cmp-up">◆ 价值 +${valueDelta}</div>`
+        : valueDelta < 0
+          ? `<div class="cmp-down">◇ 价值 ${valueDelta}</div>`
+          : '<div>◇ 内在价值持平</div>';
     }
   }
   return html;
@@ -4455,7 +4477,7 @@ if (typeof window !== 'undefined') {
     persistRun, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
-    pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, pierceChanceOf,
+    pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
     canDescendNow, isFinalFloor,
     get greedy() { return greedyMode; },

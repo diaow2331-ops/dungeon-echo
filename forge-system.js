@@ -90,7 +90,8 @@
       const label = row.children && row.children[0];
       if (label) {
         const forgeTag = item.forge ? ` +${item.forge}` : '';
-        label.innerHTML = `${esc(item.name)}${forgeTag}<small>${Number(item.score) || 0} 分</small>`;
+        const value = typeof api.itemValueScore === 'function' ? api.itemValueScore(item) : (Number(item.score) || 0);
+        label.innerHTML = `${esc(item.name)}${forgeTag}<small>适配 ${Number(item.score) || 0} · 价值 ${value}</small>`;
       }
       const sell = row.querySelector ? row.querySelector('[data-sell]') : null;
       if (sell && typeof api.sellPrice === 'function') {

@@ -1145,5 +1145,22 @@ ok(JSON.stringify(mechSeq1) === JSON.stringify(mechSeq2), '机制生成不额外
   ok(T.pCrit() >= 25, `Legendary 危机脉搏低血时提高暴击（实际 ${T.pCrit()}%）`);
 }
 
+// ---------- 22. 装备内在价值：机制与经济统一口径 ----------
+section('22 装备价值：适配评分 / 内在价值 / 经济');
+{
+  const plain = { slot: 'weapon', name: '无机制测试刃', rarity: 2, stats: { atk: 10 }, score: 30, affixes: [] };
+  const epic = { ...plain, name: '史诗测试刃', rarity: 3, mechanic: 'echo_edge', mechanicPower: 1 };
+  const legend = { ...plain, name: '传说测试刃', rarity: 4, mechanic: 'echo_edge', mechanicPower: 2 };
+  const raw = T.eqScoreOf(plain.stats);
+  ok(T.itemValueScore(plain) === raw, '无机制装备的内在价值等于属性价值');
+  ok(T.itemValueScore(epic) > T.itemValueScore(plain), 'Epic 机制进入内在价值但不改写属性评分');
+  ok(T.itemValueScore(legend) > T.itemValueScore(epic), 'Legendary 强化机制拥有更高内在价值');
+  ok(epic.score === plain.score && legend.score === plain.score, '机制价值与适配/属性评分保持双轴，不伪装成纯数值战力');
+  ok(T.sellPrice(epic) > T.sellPrice(plain) && T.sellPrice(legend) > T.sellPrice(epic), '出售价格统一识别机制价值');
+  ok(T.forgeCost(epic) > T.forgeCost(plain) && T.forgeCost(legend) > T.forgeCost(epic), '锻造成本统一识别机制价值');
+  const legacy = { slot: 'armor', name: '旧档甲', rarity: 2, stats: { def: 4, hp: 10 }, score: T.eqScoreOf({ def: 4, hp: 10 }), affixes: [] };
+  ok(T.itemValueScore(legacy) === T.eqScoreOf(legacy.stats), '旧档无机制装备价值稳定，无需迁移字段');
+}
+
 console.log('\nRESULT  ' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
