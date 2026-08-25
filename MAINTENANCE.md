@@ -2,7 +2,7 @@
 
 This document describes the **current `main` production contract** for maintainers and engineering collaborators.
 
-For product-facing information, start with `README.md`. For current priorities, use `PRODUCTION_ROADMAP.md`. Historical implementation transitions remain available through Git history and do not define the current product.
+For product-facing information, start with `README.md`. For current priorities, use `PRODUCTION_ROADMAP.md`. Git history preserves prior development context; current documentation describes the product as it exists now.
 
 ## Current product contract
 
@@ -108,7 +108,7 @@ The v1.0.0 release record established these deterministic gates:
 
 - production-entry contract: **24/24**;
 - deterministic 1→100 descent/victory chain: **13/13**;
-- historical gameplay/save regression suite: **525/525**.
+- broad gameplay/save regression suite: **525/525**.
 
 Common checks:
 
