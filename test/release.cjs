@@ -8,8 +8,8 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const version = read('VERSION').trim();
 const html = read('index.html');
 const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
-const nginx = read('ops/nginx/dungeon-echo.locations.conf');
-const stage = read('ops/release/stage-static-release.sh');
+const builder = read('ops/release/build-site-bundle.sh');
+const deploy = read('ops/site-bundle/deploy.sh');
 
 let pass = 0;
 let fail = 0;
@@ -33,19 +33,14 @@ const localRefs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
 ok(localRefs.every(ref => fs.existsSync(path.join(root, ref))), '生产 HTML 的本地资源引用全部可解析');
 ok(localRefs.every(ref => manifest.includes(ref)), '生产 HTML 的本地资源全部进入发布白名单');
 
-ok(/location \^~ \/dungeon-echo\//.test(nginx) && /__DUNGEON_ECHO_RELEASE_DIR__/.test(nginx),
-  'Nginx 模板用强前缀固定公开路径并绑定不可变发布目录');
-ok(/play\.91hwl\.cn/.test(nginx), 'Nginx 模板明确挂载到 Web Toys 游戏子域名');
-ok(/autoindex off/.test(nginx) && /Cache-Control "no-store"/.test(nginx),
-  'Nginx 禁止目录索引并防止跨版本缓存混用');
-ok(/Content-Security-Policy/.test(nginx) && /frame-ancestors 'self'/.test(nginx),
-  'Nginx 提供同源安全策略');
-
-ok(/branch --show-current\)" = main/.test(stage) && /worktree must be clean/.test(stage),
-  '发布脚本只接受干净 main');
-ok(/cat-file -e "HEAD:\$file"/.test(stage) && /SHA256SUMS/.test(stage),
-  '发布脚本只复制 HEAD 已跟踪文件并生成哈希清单');
-ok(/mv -Tf "\$next_link" "\$current_link"/.test(stage), 'current 指针原子切换');
+ok(/public\/dungeon-echo/.test(builder) && /static-files\.txt/.test(builder),
+  '上传包只从正式白名单生成 Dungeon Echo 子目录');
+ok(/SHA256SUMS/.test(builder) && /git -C "\$repo_root" cat-file -e/.test(builder),
+  '上传包校验 HEAD 跟踪文件并生成哈希清单');
+ok(/SITE_ROOT=\/srv\/91hwl-play/.test(deploy) && /previous_release\/moyu\/index\.html/.test(deploy),
+  '部署复用既有 91hwl-play 发布树并保护摸鱼游戏');
+ok(/mv -Tf "\$next_link" "\$CURRENT_LINK"/.test(deploy) && /ROLLED_BACK/.test(deploy),
+  '整站 current 指针原子切换且失败可回滚');
 
 console.log(`\nRESULT  ${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);
