@@ -55,7 +55,7 @@ The project therefore favors:
 
 OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review and documentation refinement.
 
-The current public-repository documentation/refinement pass was assisted by **GPT-5.6 Sol**.
+The current public-repository documentation/refinement pass was assisted by **GPT-5.6 Sol**. A more detailed and deliberately bounded record of the collaboration is available in [`AI_COLLABORATION.md`](AI_COLLABORATION.md).
 
 The workflow is deliberately human-directed: the repository maintainer defines product goals and acceptance criteria, decides which proposals to keep, controls merges and deployment, and performs the final product judgment. AI output is treated as engineering input to inspect and validate rather than as an authority.
 
@@ -120,6 +120,8 @@ Gamepad support is provided by `desktop-controls.js`; risky fast-skip actions ar
 ├── profiles/                   # production + deterministic regression profiles
 ├── art/                        # current art assets
 ├── test/                       # deterministic/headless regression harnesses
+├── AI_COLLABORATION.md         # transparent human/AI engineering record
+├── HANDOFF.md                  # current maintainer/AI handoff
 ├── BALANCE_NOTES.md            # balance findings and human-play baseline
 ├── PRODUCTION_ROADMAP.md       # current post-launch priorities
 └── RELEASE_NOTES_v1.0.0.md     # first public release record
