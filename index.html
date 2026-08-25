@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#17100b">
+<meta name="description" content="地牢回响 Dungeon Echo——从第 1 层一路深入第 100 层的离线单机网页 Roguelike。四职业、装备构筑、贪婪远征与无尽回响。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317100b'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23e0a73a'%3E%E5%9B%9E%3C/text%3E%3C/svg%3E">
+<title>地牢回响 · Dungeon Echo</title>
+<link rel="preload" href="art/loot-atlas.png" as="image">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>地牢回响 <span class="sub">Dungeon Echo</span></h1>
+    <div id="stats">
+      <span class="stat">楼层 <b id="st-depth">1</b><small id="st-theme"></small></span>
+      <span class="stat hp"><span id="st-hpbar"><i id="st-hpfill"></i></span><b id="st-hptext">30/30</b></span>
+      <span class="stat">等级 <b id="st-lvl">1</b> <small id="st-xp"></small></span>
+      <span class="stat">攻击 <b id="st-atk">3</b></span>
+      <span class="stat">防御 <b id="st-def">0</b></span>
+      <span class="stat">暴击 <b id="st-crit">5%</b></span>
+      <span class="stat">金币 <b id="st-gold">0</b></span>
+      <span class="stat">药水 <b id="st-potion">1</b></span>
+      <span class="stat">卷轴 <b id="st-scroll">0</b></span>
+      <span class="stat">钥匙 <b id="st-key">0</b></span>
+      <span class="stat" id="st-escape-wrap" title="回城卷轴：贪婪远征中按 T 带着战利品平安回镇">回城 <b id="st-escape">—</b></span>
+      <span class="stat">敌人 <b id="st-mobs">0</b></span>
+      <span class="stat skillstat">技能 <b id="st-skill">就绪</b></span>
+      <button id="fullscreen-toggle" type="button" aria-pressed="false" title="进入或退出沉浸式全屏（F）"><span aria-hidden="true">⛶</span> 全屏 <kbd>F</kbd></button>
+    </div>
+    <div id="equipbar">
+      <div class="eqslot" id="eq-weapon" data-slot="weapon"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">武器</span></div>
+      <div class="eqslot" id="eq-armor" data-slot="armor"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">护甲</span></div>
+      <div class="eqslot" id="eq-helmet" data-slot="helmet"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">头盔</span></div>
+      <div class="eqslot" id="eq-boots" data-slot="boots"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">靴子</span></div>
+      <div class="eqslot" id="eq-ring" data-slot="ring"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">戒指</span></div>
+      <div class="eqslot" id="eq-amulet" data-slot="amulet"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">项链</span></div>
+      <div class="eqslot class-chip" id="eq-class"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname" id="st-class">职业</span></div>
+    </div>
+  </header>
+
+  <div id="main">
+    <div id="stage">
+      <canvas id="game" width="1280" height="896" aria-label="地牢地图：使用方向键、WASD 或点击已探索地块移动">当前浏览器不支持 Canvas，无法运行地牢回响。</canvas>
+      <canvas id="minimap" width="160" height="112" aria-hidden="true"></canvas>
+      <button type="button" id="descend-fab" class="hidden" data-act="descend">下潜到下一层 <kbd>Enter</kbd></button>
+      <div id="lowhp-vignette" class="hidden" aria-hidden="true"></div>
+    </div>
+
+    <div id="touch" aria-label="触控操作">
+      <div id="dpad">
+        <button type="button" data-act="up" class="pad pu" aria-label="向上移动">↑</button>
+        <button type="button" data-act="left" class="pad pl" aria-label="向左移动">←</button>
+        <button type="button" data-act="wait" class="pad pw" aria-label="等待一回合">·</button>
+        <button type="button" data-act="right" class="pad pr" aria-label="向右移动">→</button>
+        <button type="button" data-act="down" class="pad pd" aria-label="向下移动">↓</button>
+      </div>
+      <div id="actions">
+        <button type="button" data-act="potion">药水 <span>Q</span></button>
+        <button type="button" data-act="scroll">卷轴 <span>E</span></button>
+        <button type="button" data-act="escape">回城 <span>T</span></button>
+        <button type="button" data-act="skill">技能 <span>C</span></button>
+        <button type="button" data-act="descend">下楼 <span>Enter</span></button>
+        <button type="button" data-act="pause">暂停 <span>Esc</span></button>
+        <button type="button" data-act="mute">音效 <span>M</span></button>
+      </div>
+    </div>
+
+    <aside id="side">
+      <div id="bagbox">
+        <div class="boxtitle">背包 <small id="bagcount">0/12</small></div>
+        <div id="bag"></div>
+        <div id="bagdetail" aria-live="polite">
+          <div id="bagdetail-copy">轻触物品查看属性，再选择装备或丢弃。</div>
+          <div id="bagdetail-actions"><button type="button" data-bag-equip>装备</button><button type="button" data-bag-drop>丢弃</button></div>
+        </div>
+      </div>
+      <div id="logbox"><div class="boxtitle">冒险日志</div><div id="log" aria-live="polite"></div></div>
+      <div id="hint" aria-live="polite">› 站在楼梯上按 Enter 下潜 · 点击已探索地块可移动</div>
+    </aside>
+  </div>
+
+  <div id="tooltip" class="hidden"></div>
+  <footer id="help">移动：方向键 / WASD / 点击地图 · 冲撞攻击 · 空格等待 · Q 药水 · E 卷轴 · C 职业技能 · Enter 下楼 · Esc 暂停 · 点击背包装备 · M 静音 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现）</footer>
+
+  <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">重新开始 (R)</button></div></div>
+
+  <div id="title-screen">
+    <div class="title-card">
+      <p class="kicker">Dungeon Echo</p>
+      <h2>地牢回响</h2>
+      <p class="lede">从第 1 层开始，穿过十个阶段与九位深层守卫，直到第 100 层终局。装备、回城与贪念决定你能走多深。</p>
+      <div class="depth-picker">
+        <p class="kicker" style="margin-bottom:6px">百层远征</p>
+        <p class="lede" style="margin:0">正式旅程固定为 1 → 100 层。不存在开局选择深度，也不能付费跳过未征服区域。</p>
+      </div>
+      <div class="title-actions">
+        <button type="button" id="btn-continue" class="hidden">继续冒险</button>
+        <button type="button" id="btn-new" class="primary">新的冒险</button>
+        <button type="button" id="btn-greedy" aria-pressed="false" title="贪婪远征：死亡失去背包与随身金币；回城卷轴可带着战利品平安回镇，城镇有仓库与商店">贪婪远征：关</button>
+        <button type="button" id="btn-help">玩法说明</button>
+        <button type="button" id="btn-achv">远征录</button>
+      </div>
+      <p class="save-meta" id="save-meta"></p>
+    </div>
+  </div>
+
+  <div id="class-screen" class="hidden"><div class="title-card wide"><p class="kicker">选择回响</p><h2>你是谁</h2><div id="class-grid"></div><button type="button" id="btn-class-back" class="ghost">返回</button></div></div>
+  <div id="pause-screen" class="hidden"><div class="title-card"><h2>暂停</h2><p class="lede" id="pause-copy">进度已自动写入本地。</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">继续</button><button type="button" id="btn-save-quit">保存并回标题</button></div></div></div>
+  <div id="shop-screen" class="hidden"><div class="title-card wide"><p class="kicker">蒙面商人</p><h2>地下市集</h2><p class="lede" id="shop-gold">金币 0</p><div id="shop-list"></div><button type="button" id="btn-shop-leave" class="primary">离开摊位</button></div></div>
+  <div id="talent-screen" class="hidden"><div class="title-card wide"><p class="kicker">回响觉醒</p><h2>选择一项天赋</h2><p class="lede">每三级，地牢会在你体内留下一道新的回响。</p><div id="talent-grid"></div></div></div>
+  <div id="shrine-screen" class="hidden"><div class="title-card"><p class="kicker">无名神龛</p><h2 id="shrine-title">神龛</h2><p class="lede" id="shrine-copy">触碰神龛，接受回响的赌注。</p><div class="title-actions"><button type="button" id="btn-shrine-ok" class="primary">祈祷</button><button type="button" id="btn-shrine-leave" class="ghost">离开</button></div></div></div>
+
+  <div id="echo-screen" class="hidden"><div class="title-card"><p class="kicker">终局抉择</p><h2>地牢之心在掌心跳动</h2><p class="lede">带走它，第 100 层远征完成。也可以把它按回祭坛，让回响无限叠深。</p><div class="title-actions"><button type="button" id="btn-echo-leave" class="primary">带着心离开</button><button type="button" id="btn-echo-stay">踏入无尽回响</button></div></div></div>
+
+  <div id="town-screen" class="hidden">
+    <div class="title-card wide">
+      <p class="kicker">贪婪远征 · 回响小镇</p><h2>营地与市集</h2>
+      <p class="lede" id="town-head">整备一番，再下去。</p>
+      <p class="lede dim-note">死亡会失去背包与随身金币；仓库与金库绝对安全。回城卷轴（T）是保住战利品的关键。</p>
+      <canvas id="town-scene" width="900" height="210"></canvas>
+      <div class="town-cols">
+        <div><p class="kicker">背包（随身·有风险）</p><div id="town-bag"></div></div>
+        <div><p class="kicker">仓库（安全）</p><div id="town-stash"></div></div>
+        <div><p class="kicker">市集</p><div id="town-shop"></div></div>
+        <div><p class="kicker">幸运转盘（金币回收站 · 死亡后重摇）</p><div id="town-wheel"></div></div>
+      </div>
+      <div class="title-actions"><button type="button" id="btn-depart" class="primary">出发下潜（第 1 层）</button><button type="button" id="btn-town-exit" class="ghost" title="回到标题，进度不会丢失">保存并回标题</button><button type="button" id="btn-achv-town">远征录</button></div>
+    </div>
+  </div>
+
+  <div id="achv-screen" class="hidden"><div class="title-card wide"><p class="kicker">贪婪远征 · 远征录</p><h2>你的传奇</h2><div id="achv-stats"></div><h3 style="margin:14px 0 6px">成就</h3><div id="achv-grid"></div><div class="title-actions"><button type="button" id="btn-achv-close" class="primary">关闭</button></div></div></div>
+
+  <div id="help-screen" class="hidden">
+    <div class="title-card wide">
+      <p class="kicker">新手入门 · 百层远征</p><h2>怎么玩</h2>
+      <div class="help-cols">
+        <div>
+          <h3>操作</h3>
+          <p>移动：<b>方向键 / WASD / 点击已探索地块</b><br>等待：<b>空格</b> · 技能：<b>C</b> · 药水：<b>Q</b> · 卷轴：<b>E</b><br>回城：<b>T</b>（贪婪远征）· 下潜：<b>Enter</b>（楼梯上）<br>暂停：<b>Esc</b> · 静音：<b>M</b> · 全屏：<b>F</b></p>
+          <h3>百层旅程</h3>
+          <p>所有角色都从第 1 层出发。每 10 层是一个关键守卫节点，第 100 层是正式终局；短档位只存在于内部测试，不属于游客玩法。</p>
+        </div>
+        <div>
+          <h3>贪婪远征</h3>
+          <p><b>出发 → 搜刮 → 回城落袋为安 → 整备 → 再深入。</b><br>死亡会失去背包物品和随身金币；仓库与金库安全。装备越深越强，但什么时候继续贪、什么时候撤退，是最重要的决定。</p>
+          <h3>战斗</h3>
+          <p>四职业拥有不同的生存与输出节奏。装备不只看总分：攻击、防御、生命、暴击、吸血、反伤、击杀回复和金币收益对不同职业价值不同。</p>
+        </div>
+      </div>
+      <div class="title-actions"><button type="button" id="btn-help-close" class="primary">明白了</button></div>
+    </div>
+  </div>
+</div>
+<script src="production-bootstrap.js"></script>
+<script src="profiles/classic-100.profile.js"></script>
+<script src="game.js"></script>
+<script src="gameplay-tuning.js"></script>
+<script src="equipment-system.js"></script>
+<script src="desktop-controls.js"></script>
+</body>
+</html>
