@@ -1,8 +1,14 @@
-/* Dungeon Echo production content bridge v1.
- * Adds late-game chapter palettes so floors 85-100 do not clamp to one theme, and
- * gives each ten-floor guardian a distinct behavior combination using mechanics the
- * core already understands. Floor 10 now teaches the first telegraphed counterplay rule;
- * later bespoke boss phases can replace the remaining interim combinations.
+/* Dungeon Echo production content bridge v2.
+ * Keeps late-game chapter palettes and guardian content data in one place, then layers
+ * the first bespoke, readable guardian state machines on top of the core turn engine.
+ *
+ * v2 encounter slice:
+ * - floor 20: Frost Ring — radius-2 pulse, one full turn of warning; step out of range.
+ * - floor 30: Ember Mark — marks the player's current tile; move off it before detonation.
+ * - floor 40: Hunter Line — locks a row/column; sidestep or use terrain before the shot.
+ *
+ * These mechanics deliberately keep save schemas unchanged. Encounter telegraph state is
+ * transient and is safely rebuilt after a reload instead of being serialized into saves.
  */
 (() => {
   'use strict';
@@ -10,7 +16,7 @@
   if (window.__DE_CONTENT_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !api.runProfile) return;
-  window.__DE_CONTENT_SYSTEM = 'v1';
+  window.__DE_CONTENT_SYSTEM = 'v2';
 
   const p = api.runProfile;
 
@@ -26,16 +32,15 @@
     );
   }
 
-  // Interim guardian differentiation. These are deliberately combinations of already
-  // tested core traits, so content gets gameplay identity now without coupling this
-  // data module to combat implementation. Bespoke telegraphed phases remain a later P1.
+  // Guardian data keeps the existing tested traits where they still add useful texture.
+  // Floors 20/30/40 now receive their primary identity from the state machines below,
+  // rather than stacking generic slow/enrage/ranged traits and calling that a boss.
   const guardians = Array.isArray(p.midBosses) ? p.midBosses : [];
   const patch = {
-    // 第一位守卫是破甲教学：先亮出蓄力，再给玩家一整回合拉开距离。
     10: { armorBreak: true },
-    20: { slow: true, regen: true },
-    30: { boom: true, enrage: true },
-    40: { ranged: 3 },
+    20: { regen: true },
+    30: { boom: true },
+    40: { ranged: 4 },
     50: { ranged: 2, regen: true },
     60: { leech: 0.20, enrage: true },
     70: { slow: true, regen: true, boom: true },
@@ -55,4 +60,300 @@
       leech: 0.12,
     });
   }
+
+  // Headless release tests intentionally stub requestAnimationFrame without invoking it.
+  // Everything below is therefore browser-only runtime behavior while the data patch
+  // above remains fully testable in the production harness.
+  if (typeof document === 'undefined' || typeof requestAnimationFrame !== 'function') return;
+
+  const game = document.getElementById('game');
+  const stage = document.getElementById('stage');
+  if (!game || !stage) return;
+
+  const overlay = document.createElement('canvas');
+  overlay.id = 'guardian-telegraph';
+  overlay.width = game.width || 1280;
+  overlay.height = game.height || 896;
+  overlay.setAttribute('aria-hidden', 'true');
+  Object.assign(overlay.style, {
+    position: 'absolute',
+    inset: '0',
+    width: '100%',
+    height: 'auto',
+    pointerEvents: 'none',
+    zIndex: '5',
+  });
+  stage.appendChild(overlay);
+  const octx = overlay.getContext && overlay.getContext('2d');
+
+  const badge = document.createElement('div');
+  badge.id = 'guardian-warning';
+  badge.setAttribute('aria-live', 'polite');
+  Object.assign(badge.style, {
+    position: 'absolute',
+    left: '50%',
+    top: '12px',
+    transform: 'translateX(-50%)',
+    maxWidth: 'min(760px, 78%)',
+    padding: '8px 12px',
+    border: '1px solid rgba(242,210,123,.72)',
+    background: 'rgba(10,7,7,.90)',
+    color: '#f2d27b',
+    font: '600 13px/1.45 "Segoe UI","Microsoft YaHei",sans-serif',
+    letterSpacing: '.2px',
+    textAlign: 'center',
+    boxShadow: '0 8px 24px rgba(0,0,0,.38)',
+    pointerEvents: 'none',
+    zIndex: '6',
+    opacity: '0',
+    transition: 'opacity .12s ease',
+  });
+  stage.appendChild(badge);
+
+  const SPECS = {
+    20: {
+      id: 'frost-ring',
+      interval: 4,
+      color: '#7ec8e3',
+      title: '霜环蓄积',
+      warn: '寒气将在下一回合覆盖守卫周围 2 格。离开霜环范围。',
+    },
+    30: {
+      id: 'ember-mark',
+      interval: 4,
+      color: '#ff8a45',
+      title: '爆裂标记',
+      warn: '脚下地块已被点燃。下一回合前离开这个格子。',
+    },
+    40: {
+      id: 'hunter-line',
+      interval: 3,
+      color: '#e7d7a4',
+      title: '猎杀线',
+      warn: '守卫锁定了一条射击线。横向/纵向侧移，或让地形挡住射线。',
+    },
+  };
+
+  let tracked = null;
+  let active = null;
+  let nextSpecialTurn = Infinity;
+  let lastTurn = Number(api.turns) || 0;
+  let noticeUntil = 0;
+  let noticeText = '';
+  let noticeColor = '#f2d27b';
+
+  const nowMs = () => (typeof performance !== 'undefined' && performance.now)
+    ? performance.now() : Date.now();
+
+  function guardianForDepth() {
+    const list = api.monsters;
+    if (!Array.isArray(list)) return null;
+    return list.find(m => m && m.midBoss && m.hp > 0) || null;
+  }
+
+  function restoreReservedTurn() {
+    if (!active || !active.guardian) return;
+    const m = active.guardian;
+    m.slow = active.originalSlow;
+    m.skip = active.originalSkip;
+  }
+
+  function resetEncounter(m) {
+    restoreReservedTurn();
+    active = null;
+    tracked = m || null;
+    nextSpecialTurn = m && SPECS[api.depth] ? (Number(api.turns) || 0) + 2 : Infinity;
+  }
+
+  function showNotice(text, color, ms = 1150) {
+    noticeText = text;
+    noticeColor = color || '#f2d27b';
+    noticeUntil = nowMs() + ms;
+  }
+
+  function startSpecial(m, spec) {
+    const player = api.player;
+    if (!player || !m) return;
+    active = {
+      spec,
+      guardian: m,
+      resolveTurn: (Number(api.turns) || 0) + 1,
+      originalSlow: !!m.slow,
+      originalSkip: Number(m.skip) || 0,
+      targetX: player.x,
+      targetY: player.y,
+      axis: null,
+      line: null,
+    };
+
+    // Reserve the guardian's next normal action for the special. The core slow toggle is
+    // reused for one turn, then restored immediately after resolution.
+    m.slow = true;
+    m.skip = 0;
+
+    if (spec.id === 'hunter-line') {
+      const dx = Math.abs((player.x || 0) - (m.x || 0));
+      const dy = Math.abs((player.y || 0) - (m.y || 0));
+      active.axis = dx >= dy ? 'row' : 'col';
+      active.line = active.axis === 'row' ? player.y : player.x;
+    }
+    showNotice(`${spec.title}：${spec.warn}`, spec.color, 1800);
+  }
+
+  function lineClear(m, player, axis) {
+    const grid = api.mapGrid;
+    if (!Array.isArray(grid) || !grid.length) return true;
+    if (axis === 'row') {
+      if (m.y !== player.y) return false;
+      const a = Math.min(m.x, player.x) + 1;
+      const b = Math.max(m.x, player.x);
+      for (let x = a; x < b; x++) if (grid[m.y] && grid[m.y][x] === 0) return false;
+      return true;
+    }
+    if (m.x !== player.x) return false;
+    const a = Math.min(m.y, player.y) + 1;
+    const b = Math.max(m.y, player.y);
+    for (let y = a; y < b; y++) if (grid[y] && grid[y][m.x] === 0) return false;
+    return true;
+  }
+
+  function syncHpHud() {
+    const player = api.player;
+    if (!player) return;
+    const max = Math.max(1, Number(api.pMaxHp && api.pMaxHp()) || 1);
+    const hp = Math.max(0, Number(player.hp) || 0);
+    const text = document.getElementById('st-hptext');
+    const fill = document.getElementById('st-hpfill');
+    if (text) text.textContent = `${hp}/${max}`;
+    if (fill && fill.style) fill.style.width = `${Math.max(0, Math.min(100, hp / max * 100))}%`;
+  }
+
+  function resolveSpecial() {
+    const a = active;
+    if (!a) return;
+    const m = a.guardian;
+    const player = api.player;
+    restoreReservedTurn();
+    active = null;
+    nextSpecialTurn = (Number(api.turns) || 0) + a.spec.interval;
+    if (!m || !player || m.hp <= 0 || api.state !== 'playing') return;
+
+    let hit = false;
+    if (a.spec.id === 'frost-ring') {
+      const dist = Math.max(Math.abs(player.x - m.x), Math.abs(player.y - m.y));
+      hit = dist <= 2;
+      if (hit) api.monsterAttack(m);
+      showNotice(hit ? '霜环命中：你没能及时离开寒气范围。' : '霜环落空：你成功退出了寒气范围。',
+        hit ? '#ff9d72' : '#86d4a6');
+    } else if (a.spec.id === 'ember-mark') {
+      hit = player.x === a.targetX && player.y === a.targetY;
+      if (hit) api.monsterAttack(m);
+      showNotice(hit ? '爆裂标记引爆：原地贪刀付出了代价。' : '爆裂标记落空：你及时离开了燃烧地块。',
+        hit ? '#ff9d72' : '#86d4a6');
+    } else if (a.spec.id === 'hunter-line') {
+      const aligned = a.axis === 'row' ? player.y === a.line : player.x === a.line;
+      const dist = Math.max(Math.abs(player.x - m.x), Math.abs(player.y - m.y));
+      hit = aligned && dist <= 6 && lineClear(m, player, a.axis);
+      if (hit) api.monsterRangedAttack(m);
+      showNotice(hit ? '猎杀线命中：下一次看见锁线时侧移一格。' : '猎杀线落空：你避开或切断了射线。',
+        hit ? '#ff9d72' : '#86d4a6');
+    }
+    syncHpHud();
+  }
+
+  function processTurn() {
+    const depth = Number(api.depth) || 0;
+    const spec = SPECS[depth];
+    const m = guardianForDepth();
+    if (m !== tracked) resetEncounter(m);
+    if (!spec || !m || api.state !== 'playing') return;
+
+    if (active && (Number(api.turns) || 0) >= active.resolveTurn) {
+      resolveSpecial();
+      return;
+    }
+    if (!active && (Number(api.turns) || 0) >= nextSpecialTurn) startSpecial(m, spec);
+  }
+
+  function drawTelegraph() {
+    if (!octx) return;
+    if (overlay.width !== game.width) overlay.width = game.width;
+    if (overlay.height !== game.height) overlay.height = game.height;
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+    if (!active || !active.guardian || api.state !== 'playing') return;
+
+    const grid = api.mapGrid;
+    const cols = Array.isArray(grid) && grid[0] ? grid[0].length : 40;
+    const rows = Array.isArray(grid) ? grid.length : 28;
+    const tw = overlay.width / Math.max(1, cols);
+    const th = overlay.height / Math.max(1, rows);
+    const m = active.guardian;
+    const color = active.spec.color;
+    octx.save();
+    octx.lineWidth = 3;
+    octx.strokeStyle = color;
+    octx.fillStyle = color;
+    octx.globalAlpha = .18 + .06 * Math.sin(nowMs() / 110);
+
+    if (active.spec.id === 'frost-ring') {
+      const x = (m.x - 2) * tw;
+      const y = (m.y - 2) * th;
+      octx.fillRect(x, y, tw * 5, th * 5);
+      octx.globalAlpha = .9;
+      octx.strokeRect(x + 1.5, y + 1.5, tw * 5 - 3, th * 5 - 3);
+    } else if (active.spec.id === 'ember-mark') {
+      const x = active.targetX * tw;
+      const y = active.targetY * th;
+      octx.fillRect(x, y, tw, th);
+      octx.globalAlpha = .95;
+      octx.strokeRect(x + 2, y + 2, tw - 4, th - 4);
+      octx.beginPath();
+      octx.moveTo(x + 5, y + 5); octx.lineTo(x + tw - 5, y + th - 5);
+      octx.moveTo(x + tw - 5, y + 5); octx.lineTo(x + 5, y + th - 5);
+      octx.stroke();
+    } else if (active.spec.id === 'hunter-line') {
+      if (active.axis === 'row') {
+        const y = active.line * th;
+        octx.fillRect(0, y, overlay.width, th);
+        octx.globalAlpha = .95;
+        octx.strokeRect(1.5, y + 2, overlay.width - 3, th - 4);
+      } else {
+        const x = active.line * tw;
+        octx.fillRect(x, 0, tw, overlay.height);
+        octx.globalAlpha = .95;
+        octx.strokeRect(x + 2, 1.5, tw - 4, overlay.height - 3);
+      }
+    }
+    octx.restore();
+  }
+
+  function frame() {
+    const turn = Number(api.turns) || 0;
+    if (turn !== lastTurn) {
+      lastTurn = turn;
+      processTurn();
+    }
+
+    const currentGuardian = guardianForDepth();
+    if (!currentGuardian && tracked) resetEncounter(null);
+
+    drawTelegraph();
+    const t = nowMs();
+    if (active) {
+      badge.textContent = `${active.spec.title} · ${active.spec.warn}`;
+      badge.style.color = active.spec.color;
+      badge.style.borderColor = active.spec.color;
+      badge.style.opacity = '1';
+    } else if (noticeUntil > t) {
+      badge.textContent = noticeText;
+      badge.style.color = noticeColor;
+      badge.style.borderColor = noticeColor;
+      badge.style.opacity = '1';
+    } else {
+      badge.style.opacity = '0';
+    }
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
 })();
