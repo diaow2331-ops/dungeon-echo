@@ -4,91 +4,54 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.0.0 remains the current public Release. The v1.1.0 mainline is now a release candidate containing the art/town remaster, readable guardian mechanics from floor 10 through the three-phase floor-100 finale, and four-class 20/40/60/80 skill evolution. Deployment remains a separate explicit step; the remaining gate is representative human validation plus release/deployment consistency.
+> **Status:** **v1.1.0 is publicly deployed.** The current mainline includes the art/town remaster, readable guardian mechanics from floor 10 through the three-phase floor-100 finale, four-class 20/40/60/80 skill evolution, and the unified equipment-art pass. Existing browser saves remain compatible.
 
 ## What is Dungeon Echo?
 
-**地牢回响 / Dungeon Echo** is a turn-based browser roguelike built around one continuous journey from **floor 1 to floor 100**.
+Dungeon Echo is a turn-based browser roguelike built around one continuous journey from **floor 1 to floor 100**.
 
-Its central question is not only whether the player can win the next fight, but whether they should keep pushing their luck:
+The core loop is deliberately simple to describe and difficult to optimize:
 
-**How much farther are you willing to descend before taking your loot home?**
+`descend → fight → loot → decide whether to push deeper → return safely → secure/improve the build → descend again`
 
-The Greedy Expedition loop is built around that decision:
+The project stays close to the web platform: vanilla HTML/CSS/JavaScript, local browser saves, deterministic regression tooling and a static deployment path with no runtime backend dependency.
 
-`descend → fight → loot → decide whether to push deeper → return to town → secure and improve your build → descend again`
+## Current game
 
-The game intentionally stays close to the web platform: vanilla HTML, CSS and JavaScript, local browser saves, deterministic regression tooling and a static deployment path with no runtime backend dependency.
-
-## Highlights
-
-- A single production journey from **floor 1 → 100**, with conquered-depth checkpoints rather than player-selectable skips.
-- Four classes with distinct combat identities:
-  - **Warrior** — durable melee pressure, cleave and retaliation-oriented builds.
-  - **Ranger** — positioning, kiting and sustained ranged damage.
-  - **Arcanist** — fragile ranged burst and cooldown management.
-  - **Assassin** — high-risk burst, mobility and execution.
+- One production route: **1 → 100**, with conquered-depth checkpoints rather than player-selectable skips.
+- Four classes: **Warrior, Ranger, Arcanist, Assassin**.
 - Six equipment slots: weapon, armor, helmet, boots, ring and amulet.
-- Class-aware equipment valuation, rarity progression and Epic/Legendary mechanic traits that change combat decisions rather than only increasing numbers.
-- Deterministic +1…+5 forging with a player-selected refinement path at +3 and masterwork completion at +5.
-- Greedy Expedition town loop with safe storage, banked gold, finite supplies, checkpoint departures and an optional fortune wheel designed as a gold sink rather than mandatory progression.
-- Return-scroll risk management: secure your haul before death removes carried loot and gold.
-- Talents and class-oriented long-run progression.
-- Four-class skill evolution at **20 / 40 / 60 / 80**, with two behavior-changing choices per milestone while retaining the single `C` active-skill input.
-- Ten guardian/finale nodes with explicit counterplay: telegraphed armor break, Frost Ring, Ember Mark, Hunter Line, interruptible healing, Blood Tether, Rupture Cross, Arcane Strip, a fixed Echo Trial sequence and a three-phase floor-100 encounter.
-- v1.1 mainline presentation with four in-dungeon hero sprites, equipment rarity accents, sixteen regular monster archetypes, bespoke art for all nine ten-floor guardians, unique floor-100 boss art and a ten-stage evolving town backdrop.
+- Epic/Legendary mechanic traits that change decisions, not only stat totals.
+- Deterministic +1…+5 forging, +3 refinement choice and +5 masterwork completion.
+- Greedy Expedition town loop with safe storage, banked gold, finite supplies, checkpoint departures and an optional fortune wheel.
+- Four-class skill evolution at **20 / 40 / 60 / 80**, while retaining the single `C` active-skill input.
+- Ten guardian/finale nodes with explicit counterplay, including interrupt, movement, distance and multi-phase mechanics.
+- A three-phase floor-100 finale.
+- Four-class hero art, sixteen regular monster archetypes, bespoke guardian/final-boss art, ten-stage town presentation and a unified equipment/loot visual language.
 - Keyboard, mouse/touch and native Gamepad API support.
 - Local saves through `localStorage`; no account or server-side save service is required.
 
-The guardian counterplay contract is documented in [`docs/GUARDIAN_MECHANICS.md`](docs/GUARDIAN_MECHANICS.md), and the skill routes in [`docs/SKILL_EVOLUTION.md`](docs/SKILL_EVOLUTION.md).
+Guardian mechanics are documented in [`docs/GUARDIAN_MECHANICS.md`](docs/GUARDIAN_MECHANICS.md). Skill routes are documented in [`docs/SKILL_EVOLUTION.md`](docs/SKILL_EVOLUTION.md).
 
-## Why build it this way?
+## Design / engineering principles
 
-Dungeon Echo is also an engineering experiment: how far can a small browser game go while staying understandable, testable and deployable as a static project?
+Dungeon Echo intentionally favors:
 
-The project therefore favors:
+- readable counterplay over hidden punishment;
+- build decisions over a single universal item score;
+- real-player evidence over tuning only around bot win rates;
+- incremental modularization over large rewrites;
+- targeted deterministic regression checks for high-risk changes;
+- static, rollback-capable deployment over unnecessary runtime infrastructure;
+- save compatibility whenever practical.
 
-- **player-readable mechanics** over hidden counters;
-- **build choices** over a single universal equipment score;
-- **incremental modularization** over a big-bang rewrite;
-- **deterministic regression checks** for high-risk gameplay changes;
-- **real-player evidence** over tuning exclusively around simulation win rates;
-- **simple deployment** over adding backend infrastructure that the game does not need.
+## Production and development entry points
 
-## AI-assisted development
+- `index.html` — production entry, fixed to the `classic-100` 1→100 journey.
+- `dev.html` — internal development harness for short deterministic profiles and reproduction work.
+- `profiles/classic-10` … `classic-60` — development fixtures, not player-facing production modes.
 
-OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review, documentation refinement, branch-conflict resolution, guardian encounter implementation/testing and milestone skill-evolution review/integration.
-
-The current public-repository refinement and v1.1 mainline integration work was assisted by **GPT-5.6 Sol**.
-
-The workflow is deliberately human-directed: the repository maintainer defines product goals and acceptance criteria, decides which proposals to keep, controls merges and deployment, and performs the final product judgment. AI output is treated as engineering input to inspect and validate rather than as an authority.
-
-A more explicit record of the collaboration model and contribution areas is available in [`AI_COLLABORATION.md`](AI_COLLABORATION.md).
-
-Dungeon Echo is an independent project and is **not an OpenAI product or an OpenAI-endorsed application**.
-
-## Production vs. development entry points
-
-- `index.html` — production entry, fixed to the `classic-100` profile and the 1→100 journey.
-- `dev.html` — internal development entry, retaining short deterministic profiles for regression and balance work.
-
-The short `classic-10` … `classic-60` profiles are **development fixtures**, not player-selectable production modes.
-
-## Run locally
-
-The project is static. A local HTTP server is recommended so browser behavior matches deployment more closely:
-
-```bash
-python3 -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000/
-```
-
-Opening `index.html` directly also works in many desktop browsers, but a local server is the preferred development path.
+The development harness is intentionally excluded from the public release allowlist.
 
 ## Controls
 
@@ -106,80 +69,87 @@ Opening `index.html` directly also works in many desktop browsers, but a local s
 | Fullscreen | `F` |
 | Restart after death/win | `R` |
 
-Gamepad support is provided by `desktop-controls.js`; risky fast-skip actions are intentionally not mapped to an easy controller button.
+## Run locally
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000/`.
 
 ## Repository layout
 
 ```text
 .
 ├── index.html                  # production entry
-├── dev.html                    # internal multi-profile entry
-├── game.js                     # core state/map/turn engine; gradually being reduced
-├── gameplay-tuning.js          # production rules and human-first class tuning
-├── equipment-system.js         # equipment identity/value/deep-floor scaling
+├── dev.html                    # internal multi-profile development harness
+├── game.js                     # core state/map/turn engine
+├── gameplay-tuning.js          # production route and class tuning
+├── equipment-system.js         # equipment generation / fit / intrinsic value
 ├── progression-system.js       # talents + milestone skill evolution
-├── town-system.js              # town progression, checkpoints and wheel policy
-├── commerce-system.js          # finite town stock and chapter-scaled supply economy
-├── forge-system.js             # +3 refinement choices and +5 masterwork paths
+├── town-system.js              # town progression / checkpoints / wheel policy
+├── commerce-system.js          # finite supply stock and chapter pricing
+├── forge-system.js             # +3 refinement and +5 masterwork
 ├── content-system.js           # late-floor themes + guardian/finale state machines
-├── desktop-controls.js         # gamepad and desktop input adapter
+├── desktop-controls.js         # desktop/gamepad input adapter
 ├── profiles/                   # production + deterministic regression profiles
-├── art/                        # production art assets and v1.1 atlases
+├── art/                        # production art assets
 ├── test/                       # deterministic/headless regression harnesses
-├── docs/GUARDIAN_MECHANICS.md  # guardian tells, phases and counterplay contracts
-├── docs/SKILL_EVOLUTION.md     # 20/40/60/80 class skill route contracts
-├── BALANCE_NOTES.md            # current human-play balance baseline
-├── PRODUCTION_ROADMAP.md       # current post-launch priorities
+├── docs/                       # focused gameplay contracts
+├── BALANCE_NOTES.md            # human-play balance baseline
+├── PRODUCTION_ROADMAP.md       # post-v1.1 priorities
 ├── MAINTENANCE.md              # current production/maintenance contract
-├── AI_COLLABORATION.md         # transparent human/AI collaboration record
-├── RELEASE_NOTES_v1.0.0.md     # first public release record
-└── RELEASE_NOTES_v1.1.0.md     # v1.1 release-candidate record
+├── AI_COLLABORATION.md         # human/AI collaboration record
+└── RELEASE_NOTES_v*.md         # historical release records
 ```
 
-The project is modularized **incrementally**. Systems move out of `game.js` when an active gameplay change creates a clear boundary; architecture work is expected to reduce regression risk rather than exist for its own sake.
+## Validation
 
-## Release and validation
+The current high-value checks are:
 
-v1.0.0 established the public 1→100 route and remains the current public Release. The v1.1.0 work on `main` preserves that route and the existing save contract while upgrading hero, monster, guardian, final-boss and town presentation, replacing generic guardian trait piles with readable stateful encounters, and adding four-class milestone skill evolution.
+```bash
+node --check game.js
+node --check content-system.js
+node --check progression-system.js
+node test/production.cjs
+node test/descent100.cjs
+node test/guardian-content.cjs
+node test/skill-evolution.cjs
+node test/smoke.cjs
+node test/release.cjs
+```
 
-The v1.1 art/town change set reported:
+Current recorded contracts include:
 
 - production-entry contract: **29/29**;
-- deterministic floor 1→100 victory chain: **13/13**;
-- broad gameplay/save regression suite: **525/525**;
+- deterministic 1→100 chain: **13/13**;
+- broad gameplay/save suite: **525/525**;
 - release contract: **11/11**;
-- site overlay and homepage mount deployment contracts: **PASS**.
+- focused guardian state-machine contract: **37/37**;
+- focused skill-evolution contract: **9/9**;
+- deployment / public health checks: **PASS** for the v1.1 rollout.
 
-The guardian state-machine work has a focused deterministic contract of **37/37** for warning, evade/hit, interrupt, distance, sequence and floor-100 phase transitions.
+These checks protect engineering contracts; they do not replace human playtesting.
 
-The skill-evolution work adds a focused **9/9** contract for milestone delivery/catch-up, class behavior changes and temporary-stat leak protection.
+## Save compatibility
 
-These automated checks protect engineering contracts; they do not replace real-player validation. The remaining v1.1 quality gate is a representative all-four-class guardian/skill-route/full-run audit plus final deployment consistency; deeper town progression, combat VFX and audio polish can continue after v1.1.
+The game stores progress in browser `localStorage`. v1.1 keeps the existing run/meta save keys and schemas; the art/UI hotfixes do not clear or migrate player data.
 
-For maintainers, [`MAINTENANCE.md`](MAINTENANCE.md) is the concise current-state contract.
+Clearing site data, changing browser profile/device or changing storage origin can make a local save unavailable. Normal static-file updates and hard refreshes do not remove `localStorage`.
 
-## Contributing
+## AI-assisted development
 
-Issues and focused pull requests are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before making a large change.
+OpenAI ChatGPT has been used as an AI engineering collaborator for repository inspection, architecture/systems analysis, debugging, regression strategy, gameplay/economy reasoning, deployment review, documentation, branch-conflict resolution, guardian mechanics and skill-evolution integration.
 
-A few project rules matter more than code style:
+The current public-repository refinement work was assisted by **GPT-5.6 Sol**. Product direction, acceptance decisions, merges, deployment and final quality judgment remain human-controlled.
 
-- Real player experience beats bot win-rate symmetry.
-- Builds should change decisions, not only increase a score.
-- Do not reintroduce player-selectable starting depths into the production route.
-- Avoid large rewrites when a targeted, testable change is possible.
-- Preserve compatible local saves whenever practical.
+See [`AI_COLLABORATION.md`](AI_COLLABORATION.md) for the explicit collaboration record. Dungeon Echo is an independent project and is not an OpenAI product or endorsement.
 
-## Deployment
+## Contributing and maintenance
 
-Dungeon Echo is intentionally backend-free. The current public build is served at:
+Focused issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before large changes and [`MAINTENANCE.md`](MAINTENANCE.md) for the current production contract.
 
-- **Play:** https://play.91hwl.cn/dungeon-echo/
-- **Project page:** https://91hwl.cn/toys/dungeon-echo/
-
-The v1.1.0 mainline is **not described as publicly deployed** until the existing rollback-capable deployment path completes successfully.
-
-The deployment tooling stages an immutable release, verifies expected content, preserves the existing Web Toys tree and supports rollback on failed origin/public checks.
+Historical branches/PRs/releases may preserve development context; current documentation describes the product as it exists now.
 
 ## License
 
