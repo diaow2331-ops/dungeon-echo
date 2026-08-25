@@ -21,4 +21,5 @@ This patch keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta
 
 - Public URLs and the existing shared `/srv/91hwl-play` overlay deployment model are unchanged.
 - The upload package is `91hwl-play-dungeon-echo-v1.1.0.zip`; the homepage version card is updated by the separate `91hwl-home-dungeon-echo-v1.1.0.zip` package.
-- Production-entry, historical save/gameplay, 100-floor descent and release-contract suites must all pass before packaging.
+- Production-entry, broad save/gameplay regression, 100-floor descent and release-contract suites must all pass before packaging.
+- v1.1.0 is considered publicly deployed only after the rollback-capable deployment and public health checks succeed.
