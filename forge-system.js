@@ -45,6 +45,10 @@
     ],
   };
 
+  const esc = value => String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+
   function saveMeta() {
     const meta = api.meta;
     if (!meta) return;
@@ -72,6 +76,35 @@
   function pathFor(item) {
     const rows = PATHS[item && item.slot] || PATHS.armor;
     return rows.find(r => r.id === item.refinePath) || null;
+  }
+
+  function syncTownRows() {
+    if (api.state !== 'town' || !api.meta) return;
+    document.querySelectorAll('[data-forge]').forEach(btn => {
+      const parts = String(btn.dataset.forge || '').split(':');
+      const where = parts[0];
+      const index = Number(parts[1]);
+      const item = itemAt(where, index);
+      const row = btn.closest ? btn.closest('.town-row') : null;
+      if (!item || !row) return;
+      const label = row.children && row.children[0];
+      if (label) {
+        const forgeTag = item.forge ? ` +${item.forge}` : '';
+        label.innerHTML = `${esc(item.name)}${forgeTag}<small>${Number(item.score) || 0} 分</small>`;
+      }
+      const sell = row.querySelector ? row.querySelector('[data-sell]') : null;
+      if (sell && typeof api.sellPrice === 'function') {
+        const price = api.sellPrice(item);
+        sell.textContent = `卖 ${price}G`;
+        sell.title = `出售得 ${price} G`;
+      }
+      if (typeof api.forgeCost === 'function') {
+        const lvl = Number(item.forge) || 0;
+        const maxed = lvl >= 5;
+        const cost = api.forgeCost(item);
+        btn.title = maxed ? '已至 +5 极致' : `强化到 +${lvl + 1}，需 ${cost} G`;
+      }
+    });
   }
 
   function ensureStyle() {
@@ -111,6 +144,7 @@
     item.name = `${item.refineBaseName} · ${path.name}`;
     saveMeta();
     closeRefine();
+    syncTownRows();
   }
 
   function openRefine(item) {
@@ -123,10 +157,10 @@
     el.id = 'de-forge-refine';
     el.innerHTML = `
       <div class="de-forge-card" role="dialog" aria-modal="true" aria-labelledby="de-forge-title">
-        <h3 id="de-forge-title">+3 精炼：为【${String(item.name).replace(/[&<>]/g, '')}】定一个方向</h3>
+        <h3 id="de-forge-title">+3 精炼：为【${esc(item.name)}】定一个方向</h3>
         <p>精炼不会失败，也不会毁坏装备。这个选择会在 +5 时继续淬炼强化。</p>
         <div class="de-forge-grid">${rows.map(r =>
-          `<button type="button" class="de-forge-choice" data-de-refine="${r.id}"><b>${r.name} · ${statText(r.refine)}</b><small>${r.desc}</small></button>`
+          `<button type="button" class="de-forge-choice" data-de-refine="${r.id}"><b>${esc(r.name)} · ${esc(statText(r.refine))}</b><small>${esc(r.desc)}</small></button>`
         ).join('')}</div>
       </div>`;
     document.body.appendChild(el);
@@ -142,6 +176,7 @@
     const base = item.refineBaseName || item.name;
     item.name = `${base} · ${path.name}·淬炼`;
     saveMeta();
+    syncTownRows();
     return true;
   }
 
@@ -187,6 +222,7 @@
 
     if (after === 3 && !item.refinePath) markRefinePending(item);
     if (after === 5 && item.refinePath && !item.masterworked) applyMasterwork(item);
+    syncTownRows();
   }, false);
 
   document.addEventListener('click', e => {
