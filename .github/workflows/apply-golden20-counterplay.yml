@@ -23,7 +23,9 @@ jobs:
           node-version: '22'
 
       - name: Apply focused combat patch
-        run: node scripts/apply-golden20-counterplay.cjs
+        run: |
+          node scripts/apply-golden20-counterplay.cjs
+          node scripts/fix-smoke-portable-paths.cjs
 
       - name: Syntax
         run: |
@@ -42,7 +44,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm scripts/apply-golden20-counterplay.cjs .github/workflows/apply-golden20-counterplay.yml
+          git rm scripts/apply-golden20-counterplay.cjs scripts/fix-smoke-portable-paths.cjs .github/workflows/apply-golden20-counterplay.yml
           git add game.js content-system.js equipment-system.js test/smoke.cjs
           git commit -m 'fix: replace hidden armor pierce with telegraphed counterplay'
           git push origin HEAD:opt/golden20-p0-counterplay
