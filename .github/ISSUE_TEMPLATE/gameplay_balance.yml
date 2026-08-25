@@ -1,0 +1,62 @@
+name: Gameplay / balance feedback
+description: Report a player-experience problem, class imbalance or build/economy issue
+title: "[Gameplay] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dungeon Echo balances around real player decisions, not identical bot win rates. Please describe the decision or play pattern that feels broken.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Combat rules
+        - Warrior
+        - Ranger
+        - Arcanist
+        - Assassin
+        - Equipment / affixes
+        - Talents / progression
+        - Boss / enemy behavior
+        - Town / economy
+        - Greedy Expedition risk/reward
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: floor
+    attributes:
+      label: Approximate floor range
+      placeholder: "1-10, 30-40, 70+, etc."
+    validations:
+      required: true
+  - type: input
+    id: class
+    attributes:
+      label: Class / build
+      placeholder: "Warrior, high-DEF + thorns; Ranger crit/kite..."
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What player behavior does the current system encourage?
+      placeholder: "Example: stacking more defense makes random full-damage hits more frequent, so the correct defensive build feels punished."
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Why is that behavior a problem?
+      description: Focus on choices, risk, resource pressure, repetition or lack of counterplay rather than only a win/loss result.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Play evidence
+      description: Optional but useful — damage taken, potion usage, repeated scenario, seed, equipment assumptions, short recording, etc.
+  - type: textarea
+    id: direction
+    attributes:
+      label: Suggested direction (optional)
+      description: Describe the intended gameplay outcome. Exact numeric values are not required.
