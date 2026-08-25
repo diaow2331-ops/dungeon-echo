@@ -46,6 +46,32 @@ The guardian telegraphs a short cross centered on itself: three tiles horizontal
 
 **Counterplay:** step off both the guardian's row and column before resolution. Regeneration and death burst remain secondary pressure, while the primary mechanic is spatial lane control.
 
-## Remaining encounter work
+### Floor 80 — Arcane Strip
 
-Floors 80 / 90 and the floor-100 finale still use tested trait combinations as their primary behavior. They remain tracked by Issue #5 and should be converted incrementally so each encounter gains explicit telegraphing and class-neutral counterplay without replacing the whole combat engine at once.
+The guardian snapshots the player's current location and lights a five-tile horizontal or vertical strip through it. The strip orientation follows the dominant axis between guardian and player, and the guardian spends its next normal action on the barrage.
+
+**Counterplay:** move one tile perpendicular to the highlighted short line. Passive regeneration was removed so this fight is about reading the strip rather than racing a hidden sustain clock.
+
+### Floor 90 — Echo Trial
+
+The guardian runs a fixed three-step exam using mechanics the player has already learned: a single-tile mark, a long firing line, then a radius-2 blast. The sequence always repeats in that order rather than choosing a surprise pattern.
+
+**Counterplay:** recall the earlier lessons—leave the marked tile, break the line, then leave the close-range blast. The encounter checks recognition under pressure instead of hiding a new rule at floor 90.
+
+### Floor 100 — End-Abyss Sovereign
+
+The final boss is a true three-phase encounter driven by remaining HP rather than a passive pile of generic traits.
+
+- **Phase 1 (>66% HP) — Throne Mark:** marks the player's current tile for next-turn detonation.
+- **Phase 2 (33–66% HP) — Void Line:** locks a full row or column; the shot can be sidestepped or broken by terrain.
+- **Phase 3 (≤33% HP) — Heart Nova:** repeatedly charges a radius-2 close-range blast on a shorter cadence.
+
+The floor-100 runtime copy suppresses passive regeneration and enrage. A small leech component remains as secondary pressure, while every major damage window is telegraphed and consumes the boss's next normal action.
+
+**Counterplay:** phase 1 tests greed, phase 2 tests line/terrain reading, and phase 3 tests disciplined disengagement. The finale deliberately recombines learned movement rules instead of introducing an unavoidable last-minute one-shot.
+
+## Validation contract
+
+`test/guardian-content.cjs` deterministically covers the core state transitions for the guardian system, including warning-turn action reservation, evade/hit paths, healing interruption, distance breaks, fixed floor-90 sequence order and all three floor-100 HP phases.
+
+The focused harness does not replace all-four-class human play. It exists to protect the readable state-machine rules from regressions while human runs continue to evaluate timing, arena geometry and build-specific difficulty.
