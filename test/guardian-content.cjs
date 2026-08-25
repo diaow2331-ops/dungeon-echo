@@ -105,5 +105,13 @@ api.turns = 48; runFrame();
 hunter.skip = 1; api.turns = 49; runFrame();
 ok(rangedCalls === 1 && api.player.hp === 82, 'hunter line fires when player remains aligned and unobstructed');
 
+grid[8][7] = 0;
+api.player.x = 9; api.player.y = 8;
+api.turns = 52; runFrame();
+api.turns = 53; runFrame();
+api.turns = 54; runFrame();
+hunter.skip = 1; api.turns = 55; runFrame();
+ok(rangedCalls === 1, 'hunter line is blocked by intervening wall terrain');
+
 console.log(`\nGuardian content: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
