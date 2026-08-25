@@ -665,6 +665,40 @@ const SPRITE_FNS = {
     ell(g, 18.2, 10.8, 1.1, 1.1, '#9fd8ff');
     ell(g, 16, 4.4, 2.3, 2.5, '#c8452c', '#6a1f14', 1.5);
   },
+  heroRanger(g) {
+    poly(g, [[7, 28], [10, 14], [16, 9], [22, 14], [25, 28]], '#315f45', '#163523', 2);
+    poly(g, [[10, 15], [16, 5], [22, 15], [20, 13], [12, 13]], '#274d38', '#163523', 2);
+    ell(g, 16, 13, 4.6, 4.2, '#c89568', '#40281c', 1.5);
+    ell(g, 14.2, 12.7, .9, .9, '#b9f2c7'); ell(g, 17.8, 12.7, .9, .9, '#b9f2c7');
+    seg(g, 7, 8, 4, 26, '#b8884f', 1.8);
+    g.beginPath(); g.arc(3.8, 17, 7.5, -1.25, 1.25); g.strokeStyle = '#d9bd7a'; g.lineWidth = 1.4; g.stroke();
+    seg(g, 4, 17, 12, 17, '#dfe7d4', 1.2);
+    poly(g, [[12, 17], [9, 15.5], [9, 18.5]], '#dfe7d4');
+    g.fillStyle = '#7c5030'; g.fillRect(23, 9, 3, 14);
+    seg(g, 24.5, 8, 24.5, 3, '#dfe7d4', 1); seg(g, 25.5, 9, 27, 4, '#dfe7d4', 1);
+  },
+  heroMage(g) {
+    poly(g, [[7, 28], [10, 15], [16, 10], [22, 15], [25, 28]], '#324577', '#171d42', 2);
+    poly(g, [[5, 10], [16, 2], [27, 10], [20, 11], [12, 11]], '#465aa2', '#20295a', 2);
+    poly(g, [[12, 11], [16, 5], [21, 17], [11, 17]], '#394c8d', '#20295a', 1.5);
+    ell(g, 16, 15, 4.2, 3.8, '#d0a071', '#4b2d20', 1.3);
+    ell(g, 14.2, 14.7, 1, 1, '#b7ecff'); ell(g, 17.8, 14.7, 1, 1, '#b7ecff');
+    seg(g, 25.5, 28, 26.5, 9, '#8d6040', 2.3);
+    ell(g, 26.8, 7, 3.2, 3.2, '#72d8ff', '#d9f6ff', 1.2);
+    ell(g, 25.8, 6.2, 1, 1, 'rgba(255,255,255,.9)');
+    poly(g, [[10, 25], [16, 21], [22, 25], [19, 28], [13, 28]], '#5f52a4', '#2c255b', 1);
+  },
+  heroAssassin(g) {
+    poly(g, [[7, 28], [9, 14], [16, 8], [23, 14], [25, 28]], '#502335', '#25111b', 2);
+    poly(g, [[8, 13], [12, 5], [20, 5], [24, 13], [20, 18], [12, 18]], '#6d2b41', '#2b111c', 2);
+    g.fillStyle = '#24151d'; g.fillRect(11, 11, 10, 5);
+    ell(g, 13.7, 12.8, 1, .8, '#ff5b5b'); ell(g, 18.3, 12.8, 1, .8, '#ff5b5b');
+    g.fillStyle = '#2d1720'; g.fillRect(10, 19, 12, 4);
+    seg(g, 8, 19, 3.5, 27, '#d6dde8', 2); seg(g, 24, 19, 28.5, 27, '#d6dde8', 2);
+    poly(g, [[3.5, 27], [2, 22.5], [6.5, 25]], '#d6dde8', '#646d7c', 1);
+    poly(g, [[28.5, 27], [30, 22.5], [25.5, 25]], '#d6dde8', '#646d7c', 1);
+    g.fillStyle = '#a77838'; g.fillRect(5, 19, 4, 2); g.fillRect(23, 19, 4, 2);
+  },
   rat(g) {
     g.strokeStyle = '#d898a0'; g.lineWidth = 2;
     g.beginPath(); g.moveTo(6, 24); g.quadraticCurveTo(2, 19, 8, 15); g.stroke();
@@ -1053,6 +1087,13 @@ const ITEM_SPRITE_FNS = {
 };
 
 const SPRITES = {};
+const HERO_SPRITE_KEYS = {
+  warrior: 'hero',
+  ranger: 'heroRanger',
+  mage: 'heroMage',
+  assassin: 'heroAssassin',
+};
+const heroSpriteKeyFor = id => HERO_SPRITE_KEYS[id] || HERO_SPRITE_KEYS.warrior;
 const SPLATS = [];
 const decals = [];
 function buildSprites() {
@@ -2566,6 +2607,12 @@ function renderEquip() {
   }
   const cls = $('st-class');
   if (cls) cls.textContent = classDef().name;
+  const classChip = $('eq-class');
+  if (classChip) {
+    classChip.dataset.class = classId;
+    const icon = classChip.querySelector('.eqicon');
+    if (icon) icon.textContent = ({ warrior: '⚔', ranger: '➶', mage: '✦', assassin: '◆' })[classId] || '◇';
+  }
 }
 
 function tooltipHtml(it, compareSlot) {
@@ -3112,7 +3159,7 @@ function draw(now) {
     }
   }
 
-  drawEntity(player, SPRITES.hero, 30, now);
+  drawEntity(player, SPRITES[heroSpriteKeyFor(classId)] || SPRITES.hero, 30, now);
 
   ctx.strokeStyle = '#f2e3ad';
   ctx.lineWidth = 2;
@@ -3443,9 +3490,12 @@ function showClassSelect() {
   if (!grid) return;
   grid.innerHTML = Object.values(CLASSES).map(c => `
     <button type="button" class="class-card" data-class="${c.id}">
-      <h3>${esc(c.name)}</h3>
-      <p>${esc(c.blurb)}</p>
-      <div class="stats">生命 ${c.hpBase} · 攻击 ${c.atkBase} · 药水 ${c.potions} · 卷轴 ${c.scrolls}<br>技能：${esc(c.skill.name)}（冷却 ${c.skill.cd}）<br>${esc(c.skill.desc)}</div>
+      <span class="class-portrait" aria-hidden="true"></span>
+      <span class="class-card-copy">
+        <h3>${esc(c.name)}</h3>
+        <p>${esc(c.blurb)}</p>
+        <span class="stats">生命 ${c.hpBase} · 攻击 ${c.atkBase} · 药水 ${c.potions} · 卷轴 ${c.scrolls}<br>技能：${esc(c.skill.name)}（冷却 ${c.skill.cd}）<br>${esc(c.skill.desc)}</span>
+      </span>
     </button>`).join('');
 }
 
@@ -4460,7 +4510,7 @@ if (typeof window !== 'undefined') {
     get items() { return items; },
     get npcs() { return npcs; },
     get traps() { return traps; },
-    viewportFor,
+    viewportFor, heroSpriteKeyFor,
     lootIconIds: [...LOOT_ICON_IDS],
     runProfile: { ...RUN_PROFILE },
     get seed() { return RUN_SEED; },

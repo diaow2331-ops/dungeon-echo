@@ -2,7 +2,7 @@
 
 A browser-first 100-floor roguelike built with vanilla HTML, CSS and JavaScript.
 
-> **Project status:** active development / pre-release. The playable core is already in the repository, but combat rules, builds, bosses, economy and final art/UI are still being refined before public deployment.
+> **Project status:** **v1.0.0 release candidate**. The production route, first public art pass and deterministic release gates are complete; public deployment is the remaining launch step.
 
 ## What is Dungeon Echo?
 
@@ -97,19 +97,11 @@ Gamepad support is provided by `desktop-controls.js`; risky fast-skip actions ar
 
 The project is being modularized **incrementally**. We do not plan a big-bang rewrite of `game.js`; systems are moved out when they are actively changed.
 
-## Development priorities
+## Release status
 
-Current order of work:
+The v1.0.0 production package is a dependency-free static build with an explicit file allowlist, deterministic module order and an immutable-release Nginx template. The release gates cover the public entry contract, all 100 floors and the historical regression suite.
 
-1. Replace the old random anti-defense / armor-piercing rule with readable counterplay.
-2. Finish equipment build identity: mechanic affixes, forging choices and controlled rerolls.
-3. Expand class growth without turning the game into a many-hotkey action bar.
-4. Give ten-floor guardians and the floor-100 boss recognizable mechanics rather than only larger numbers.
-5. Audit the full 1→100 economy and real-player difficulty curve.
-6. Modernize regression tests around the production `classic-100` route.
-7. **Only after gameplay stabilizes:** final art, HUD, comparison UI, animation and audio pass.
-
-See [`PRODUCTION_ROADMAP.md`](PRODUCTION_ROADMAP.md) for the detailed production plan and [`BALANCE_NOTES.md`](BALANCE_NOTES.md) for the human-play balance baseline.
+The first release intentionally leaves deeper skill evolution, further boss presentation work and extended real-player balance telemetry as post-launch improvements. See [`RELEASE_NOTES_v1.0.0.md`](RELEASE_NOTES_v1.0.0.md), [`PRODUCTION_ROADMAP.md`](PRODUCTION_ROADMAP.md) and [`BALANCE_NOTES.md`](BALANCE_NOTES.md).
 
 ## Contributing
 
@@ -125,9 +117,9 @@ A few project rules matter more than code style:
 
 ## Deployment target
 
-Dungeon Echo is intentionally backend-free at its core. The production directory can be hosted as static files behind Nginx/CDN and later mounted on a public game site without adding Node/PHP/API dependencies.
+Dungeon Echo is intentionally backend-free. The production allowlist can be staged as an immutable static release behind Nginx/CDN without Node, PHP, an API or a database.
 
-A public playable deployment will be linked here once the production gameplay pass is ready.
+The planned public mount is `https://91hwl.cn/dungeon-echo/`. It will be changed to a verified Play link only after the live TLS/cache/content checks pass.
 
 ## License
 

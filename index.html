@@ -9,6 +9,7 @@
 <title>地牢回响 · Dungeon Echo</title>
 <link rel="preload" href="art/loot-atlas.png" as="image">
 <link rel="preload" href="art/title-backdrop.webp" as="image" fetchpriority="high">
+<link rel="preload" href="art/class-roster.webp" as="image">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -84,7 +85,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">移动：方向键 / WASD / 点击地图 · 冲撞攻击 · 空格等待 · Q 药水 · E 卷轴 · C 职业技能 · Enter 下楼 · Esc 暂停 · 点击背包装备 · M 静音 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现）</footer>
+  <footer id="help">移动：方向键 / WASD / 点击地图 · 冲撞攻击 · 空格等待 · Q 药水 · E 卷轴 · C 职业技能 · Enter 下楼 · Esc 暂停 · 点击背包装备 · M 静音 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现） · 正式版 <b>v1.0.0</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">重新开始 (R)</button></div></div>
 
@@ -108,7 +109,7 @@
     </div>
   </div>
 
-  <div id="class-screen" class="hidden"><div class="title-card wide"><p class="kicker">选择回响</p><h2>你是谁</h2><div id="class-grid"></div><button type="button" id="btn-class-back" class="ghost">返回</button></div></div>
+  <div id="class-screen" class="hidden"><div class="title-card wide"><p class="kicker">选择回响</p><h2>你是谁</h2><p class="lede class-lede">选择你的战斗节奏。每个职业都能抵达第 100 层，但会用完全不同的方式承担风险。</p><div id="class-grid"></div><button type="button" id="btn-class-back" class="ghost">返回</button></div></div>
   <div id="pause-screen" class="hidden"><div class="title-card"><h2>暂停</h2><p class="lede" id="pause-copy">进度已自动写入本地。</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">继续</button><button type="button" id="btn-save-quit">保存并回标题</button></div></div></div>
   <div id="shop-screen" class="hidden"><div class="title-card wide"><p class="kicker">蒙面商人</p><h2>地下市集</h2><p class="lede" id="shop-gold">金币 0</p><div id="shop-list"></div><button type="button" id="btn-shop-leave" class="primary">离开摊位</button></div></div>
   <div id="talent-screen" class="hidden"><div class="title-card wide"><p class="kicker">回响觉醒</p><h2>选择一项天赋</h2><p class="lede">每三级，地牢会在你体内留下一道新的回响。</p><div id="talent-grid"></div></div></div>
@@ -123,10 +124,10 @@
       <p class="lede dim-note">死亡会失去背包与随身金币；仓库与金库绝对安全。回城卷轴（T）是保住战利品的关键。</p>
       <canvas id="town-scene" width="900" height="210"></canvas>
       <div class="town-cols">
-        <div><p class="kicker">背包（随身·有风险）</p><div id="town-bag"></div></div>
-        <div><p class="kicker">仓库（安全）</p><div id="town-stash"></div></div>
-        <div><p class="kicker">市集</p><div id="town-shop"></div></div>
-        <div><p class="kicker">幸运转盘（金币回收站 · 死亡后重摇）</p><div id="town-wheel"></div></div>
+        <div class="town-service" data-service="bag"><p class="kicker">背包 <span>随身·有风险</span></p><div id="town-bag"></div></div>
+        <div class="town-service" data-service="stash"><p class="kicker">仓库 <span>绝对安全</span></p><div id="town-stash"></div></div>
+        <div class="town-service" data-service="market"><p class="kicker">市集 <span>限量补给</span></p><div id="town-shop"></div></div>
+        <div class="town-service" data-service="wheel"><p class="kicker">幸运转盘 <span>自愿的金币回收站</span></p><div id="town-wheel"></div></div>
       </div>
       <div class="title-actions"><button type="button" id="btn-depart" class="primary">出发下潜（第 1 层）</button><button type="button" id="btn-town-exit" class="ghost" title="回到标题，进度不会丢失">保存并回标题</button><button type="button" id="btn-achv-town">远征录</button></div>
     </div>
