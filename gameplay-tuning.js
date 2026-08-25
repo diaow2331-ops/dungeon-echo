@@ -1,5 +1,5 @@
 /* Dungeon Echo production gameplay tuning.
- * Public route policy + human-play class balance only. Equipment/town/commerce/progression/content own modules.
+ * Public route policy + human-play class balance only. Equipment/town/commerce/forge/progression/content own modules.
  */
 (() => {
   'use strict';
@@ -8,7 +8,7 @@
 
   const api = window.DE_TEST;
   if (!api || !api.CLASSES) return;
-  window.__DE_GAMEPLAY_TUNING = 'prod-v7';
+  window.__DE_GAMEPLAY_TUNING = 'prod-v8';
 
   if (api.profileId !== 'classic-100') {
     throw new Error('生产入口必须使用 classic-100 Profile。');
@@ -32,6 +32,7 @@
   }
   if (!window.__DE_TOWN_SYSTEM) loadProductionModule('town-system.js', 'data-de-town-system');
   if (!window.__DE_COMMERCE_SYSTEM) loadProductionModule('commerce-system.js', 'data-de-commerce-system');
+  if (!window.__DE_FORGE_SYSTEM) loadProductionModule('forge-system.js', 'data-de-forge-system');
   if (!window.__DE_PROGRESSION_SYSTEM) loadProductionModule('progression-system.js', 'data-de-progression-system');
   if (!window.__DE_CONTENT_SYSTEM) loadProductionModule('content-system.js', 'data-de-content-system');
 
