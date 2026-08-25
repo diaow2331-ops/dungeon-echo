@@ -1104,5 +1104,46 @@ T.newGame('warrior');
 }
 T.setGreedy(false);
 
+// ---------- 21. Epic / Legendary 机制装备 ----------
+section('21 构筑装备：机制词缀 / 确定性 / 旧档兼容');
+T.newGame('warrior');
+T.setSeed('mechanic-generation');
+{
+  const rows = Array.from({ length: 700 }, () => T.genEquip(80));
+  const high = rows.filter(it => it.rarity >= 3);
+  ok(high.length > 0, `深层样本出现 Epic/Legendary（${high.length}/700）`);
+  ok(high.every(it => !!it.mechanic && !!T.MECHANIC_TRAITS[it.mechanic]), 'Epic/Legendary 全部带合法机制词缀');
+  ok(high.every(it => T.MECHANIC_TRAITS[it.mechanic].slots.includes(it.slot)), '机制词缀严格遵守槽位身份');
+  ok(high.every(it => it.mechanicPower === (it.rarity >= 4 ? 2 : 1)), 'Epic=一级机制、Legendary=强化机制');
+  ok(rows.filter(it => it.rarity < 3).every(it => !it.mechanic), '普通/优秀/稀有装备不混入机制词缀');
+  ok(new Set(high.map(it => it.mechanic)).size >= 8, `样本覆盖至少 8 种机制（实际 ${new Set(high.map(it => it.mechanic)).size}）`);
+}
+T.setSeed('mechanic-sequence');
+const mechSeq1 = Array.from({ length: 120 }, () => { const it = T.genEquip(70); return [it.slot, it.rarity, it.mechanic || '-', it.mechanicPower || 0].join(':'); });
+T.setSeed('mechanic-sequence');
+const mechSeq2 = Array.from({ length: 120 }, () => { const it = T.genEquip(70); return [it.slot, it.rarity, it.mechanic || '-', it.mechanicPower || 0].join(':'); });
+ok(JSON.stringify(mechSeq1) === JSON.stringify(mechSeq2), '机制生成不额外破坏固定种子确定性');
+{
+  const legacyItem = { slot: 'ring', name: '旧档戒指', score: 8, rarity: 2, stats: { hp: 8 }, affixes: [], icon: 'copper-ring', base: { name: '旧档戒指' }, spr: 'ring' };
+  const legacy = T.sanitizeMeta({ v: 1, classId: 'warrior', bag: [legacyItem] });
+  ok(legacy.bag.length === 1 && !legacy.bag[0].mechanic, '旧装备无需 destructive migration 仍可加载');
+}
+{
+  const armor = { slot: 'armor', name: '测试镇守甲', rarity: 3, mechanic: 'brace', mechanicPower: 1, stats: {}, affixes: [] };
+  T.player.equip.armor = armor;
+  T.player.braceTurn = T.turns;
+  ok(T.applyDirectHitMechanic(20) === 13, 'Epic 镇守将 20 点直击压到 13');
+  T.player.equip.armor = null;
+  const boots = { slot: 'boots', name: '测试残影靴', rarity: 4, mechanic: 'afterimage', mechanicPower: 2, stats: {}, affixes: [] };
+  T.player.equip.boots = boots;
+  T.player.afterimageTurn = T.turns;
+  ok(T.applyDirectHitMechanic(20) === 12, 'Legendary 残影将 20 点直击压到 12');
+  T.player.equip.boots = null;
+  const ring = { slot: 'ring', name: '测试危机戒', rarity: 4, mechanic: 'crisis', mechanicPower: 2, stats: {}, affixes: [] };
+  T.player.equip.ring = ring;
+  T.player.hp = Math.max(1, Math.floor(T.pMaxHp() * .4));
+  ok(T.pCrit() >= 25, `Legendary 危机脉搏低血时提高暴击（实际 ${T.pCrit()}%）`);
+}
+
 console.log('\nRESULT  ' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
