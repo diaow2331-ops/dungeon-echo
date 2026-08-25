@@ -22,7 +22,7 @@ AI output is treated as **engineering input that must be inspected and validated
 
 ### 1. Repository and architecture analysis
 
-AI-assisted review has been used to understand the interaction between the large legacy `game.js` core and the gradually extracted production modules.
+AI-assisted review has been used to understand the interaction between the core `game.js` engine and the gradually extracted production modules.
 
 The collaboration has emphasized incremental modularization: move a system only when it has a real responsibility and a stable boundary, rather than rewriting the game to make the architecture look newer.
 
@@ -59,7 +59,7 @@ The workflow favors:
 
 - deterministic reproduction where possible;
 - narrow tests that can actually falsify a proposed fix;
-- preserving old-save compatibility;
+- preserving compatible saves;
 - separating production `classic-100` behavior from short development fixtures;
 - using simulation as diagnostic evidence rather than treating bot win rate as the product goal;
 - avoiding large unrelated test runs when a smaller check is sufficient.
@@ -82,10 +82,11 @@ The resulting public game remains a static browser application.
 
 AI-assisted documentation work has included turning implementation history into clearer public project communication:
 
-- explaining the 1→100 product loop instead of exposing internal iteration history first;
+- explaining the 1→100 product loop before internal engineering detail;
 - separating production behavior from regression fixtures;
 - distinguishing completed v1.0.0 work from post-launch priorities;
-- replacing obsolete handoff descriptions with the current production contract;
+- replacing temporary transition-oriented documentation with a durable maintenance guide;
+- correcting stale balance/security/contribution wording after production behavior changed;
 - documenting known limitations instead of hiding them;
 - recording AI collaboration transparently for reviewers and contributors.
 
@@ -93,17 +94,21 @@ AI-assisted documentation work has included turning implementation history into 
 
 On **2026-08-26**, the public-repository documentation/refinement pass was assisted by **GPT-5.6 Sol**.
 
-That pass updated or introduced:
+That pass updated or introduced the project-facing and maintenance documentation, including:
 
 - `README.md`
 - `PRODUCTION_ROADMAP.md`
 - `RELEASE_NOTES_v1.0.0.md`
 - `DEVELOPMENT.md`
 - `README.txt`
-- `HANDOFF.md`
+- `MAINTENANCE.md`
+- `BALANCE_NOTES.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `.github/ISSUE_TEMPLATE/gameplay_balance.yml`
 - `AI_COLLABORATION.md`
 
-The purpose of the pass was to remove obsolete pre-release/v6.x descriptions, present the actual live product state, document the next engineering priorities, and make the human/AI collaboration model explicit.
+The purpose of the pass was to align documentation with the actual live product, remove stale transition-era framing from current project surfaces, document the next engineering priorities, and make the human/AI collaboration model explicit.
 
 ## What this disclosure does not mean
 
