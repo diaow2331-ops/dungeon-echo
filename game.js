@@ -477,6 +477,46 @@ const AFFIX_LABEL = {
   regen:  v => `击杀回复 +${v}`,
 };
 
+// Epic / Legendary 机制词缀：不增加新按键，只改变现有动作的决策价值。
+// 每个槽位拥有独立池，同一角色无法同时装备两个相同槽位，因此天然避免同机制叠层。
+const MECHANIC_TRAITS = {
+  echo_edge: { name: '锋鸣', slots: ['weapon'], text: ['施放职业技能后，下一回合的下一次普攻伤害 +25%。', '施放职业技能后，下一回合的下一次普攻伤害 +40%。'] },
+  reaper: { name: '收割', slots: ['weapon'], text: ['普攻击杀敌人时额外返还 1 回合技能冷却。', '普攻击杀敌人时额外返还 2 回合技能冷却。'] },
+  brace: { name: '镇守', slots: ['armor'], text: ['等待后，本轮下一次敌人直击伤害降低 35%。', '等待后，本轮下一次敌人直击伤害降低 50%。'] },
+  reprisal: { name: '反击甲', slots: ['armor'], text: ['被敌人直击后，下一回合近战普攻伤害 +30%。', '被敌人直击后，下一回合近战普攻伤害 +50%。'] },
+  clarity: { name: '清创', slots: ['helmet'], text: ['喝药后额外缩短 1 回合重伤。', '喝药后直接清除重伤。'] },
+  skirmish: { name: '游猎', slots: ['boots'], text: ['正常移动后，下一回合远程普攻伤害 +25%。', '正常移动后，下一回合远程普攻伤害 +40%。'] },
+  afterimage: { name: '残影', slots: ['boots'], text: ['施放职业技能后，本轮下一次敌人直击伤害降低 25%。', '施放职业技能后，本轮下一次敌人直击伤害降低 40%。'] },
+  duelist: { name: '决斗', slots: ['ring'], text: ['只与 1 名相邻敌人缠斗时，近战普攻伤害 +20%。', '只与 1 名相邻敌人缠斗时，近战普攻伤害 +35%。'] },
+  crisis: { name: '危机脉搏', slots: ['ring'], text: ['生命不高于 40% 时暴击率 +12%。', '生命不高于 40% 时暴击率 +20%。'] },
+  overclock: { name: '回路超频', slots: ['amulet'], text: ['职业技能造成击杀时额外返还 1 回合冷却。', '职业技能造成击杀时额外返还 2 回合冷却。'] },
+  meditate: { name: '凝息', slots: ['amulet'], text: ['等待时额外恢复 1 回合技能冷却。', '等待时额外恢复 2 回合技能冷却。'] },
+};
+const MECHANIC_POOLS = {
+  weapon: ['echo_edge', 'reaper'],
+  armor: ['brace', 'reprisal'],
+  helmet: ['clarity'],
+  boots: ['skirmish', 'afterimage'],
+  ring: ['duelist', 'crisis'],
+  amulet: ['overclock', 'meditate'],
+};
+function mechanicForFreshItem(slot, rarity, d, base, affixes) {
+  if (rarity < 3) return null;
+  const pool = MECHANIC_POOLS[slot] || [];
+  if (!pool.length) return null;
+  // 使用已有生成结果派生，不额外消耗战斗 RNG，避免高稀有掉落改变后续房间随机序列。
+  const sig = [RUN_SEED, slot, rarity, d, base && base.name,
+    (affixes || []).map(a => `${a.k}:${a.v}`).join(',')].join('|');
+  const id = pool[hashSeed(sig) % pool.length];
+  return { id, power: rarity >= 4 ? 2 : 1 };
+}
+function mechanicDescription(it) {
+  const def = it && MECHANIC_TRAITS[it.mechanic];
+  if (!def) return '';
+  const p = Math.max(1, Math.min(2, Number(it.mechanicPower) || 1));
+  return `◆ ${def.name}：${def.text[p - 1]}`;
+}
+
 // ================= 音效（WebAudio 合成） =================
 let audioCtx = null, muted = false;
 function ensureAudio() {
@@ -1146,11 +1186,58 @@ function genEquip(d, minRarity = 0) {
   const spr = slot === 'weapon'
     ? (WEAPON_SPR_BY_ICON[base.icon] || 'sword')
     : slot === 'armor' ? 'armor' : slot === 'ring' ? 'ring' : 'trinket';
+  const mechanic = mechanicForFreshItem(slot, rarity, d, base, affixes);
+  const mechanicName = mechanic ? ` · ${MECHANIC_TRAITS[mechanic.id].name}` : '';
   return {
     slot, base, rarity, affixes, stats, spr, icon: base.icon,
-    name: `${RARITIES[rarity].name}·${base.name}`,
+    ...(mechanic ? { mechanic: mechanic.id, mechanicPower: mechanic.power } : {}),
+    name: `${RARITIES[rarity].name}·${base.name}${mechanicName}`,
     score: eqScoreOf(stats),
   };
+}
+
+function mechanicPower(id) {
+  if (!player || !player.equip) return 0;
+  let best = 0;
+  for (const it of Object.values(player.equip)) {
+    if (!it || it.mechanic !== id) continue;
+    best = Math.max(best, Math.max(1, Math.min(2, Number(it.mechanicPower) || 1)));
+  }
+  return best;
+}
+function consumeTimedMechanic(field, id) {
+  if (!player || player[field] !== turns) return 0;
+  const p = mechanicPower(id);
+  player[field] = -1;
+  return p;
+}
+function clearMechanicWindows() {
+  if (!player) return;
+  player.echoEdgeTurn = -1;
+  player.reprisalTurn = -1;
+  player.skirmishTurn = -1;
+  player.braceTurn = -1;
+  player.afterimageTurn = -1;
+}
+function applyDirectHitMechanic(dmg) {
+  let out = Math.max(1, Math.round(dmg));
+  const after = player && player.afterimageTurn === turns ? mechanicPower('afterimage') : 0;
+  const brace = player && player.braceTurn === turns ? mechanicPower('brace') : 0;
+  if (after) {
+    player.afterimageTurn = -1;
+    out = Math.max(1, Math.round(out * (after >= 2 ? 0.60 : 0.75)));
+    floater(player, '残影卸力', '#9fd7ff');
+    msg(`【残影】削减了这次直击伤害。`, 'good');
+  } else if (brace) {
+    player.braceTurn = -1;
+    out = Math.max(1, Math.round(out * (brace >= 2 ? 0.50 : 0.65)));
+    floater(player, '镇守', '#f2d27b');
+    msg(`【镇守】挡下了部分直击伤害。`, 'good');
+  }
+  return out;
+}
+function armReprisal() {
+  if (player && player.hp > 0 && mechanicPower('reprisal')) player.reprisalTurn = turns;
 }
 
 const eqStat = k => ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet']
@@ -1160,7 +1247,11 @@ const pAtk   = () => player.atkBase + eqStat('atk');
 // 战士被动「坚甲」：天生扁平减伤，随等级成长（1级+1，每5级+1）——近战换血的生存根基
 const warriorDr = () => (classId === 'warrior' ? 1 + Math.floor((player.lvl - 1) / 5) : 0);
 const pDef   = () => eqStat('def') + (player.flatDr || 0) + warriorDr();
-const pCrit  = () => 5 + (classDef().critBase || 0) + (player.critBase || 0) + eqStat('crit');
+const pCrit  = () => {
+  const crisis = mechanicPower('crisis');
+  const crisisBonus = crisis && player.hp <= pMaxHp() * 0.40 ? (crisis >= 2 ? 20 : 12) : 0;
+  return 5 + (classDef().critBase || 0) + (player.critBase || 0) + eqStat('crit') + crisisBonus;
+};
 const pLeech = () => (player.leechBase || 0) + eqStat('leech');
 const pGoldBonus = () => (player.goldFind || 0) + eqStat('gold');
 const pThorns   = () => (player.thornsBase || 0) + eqStat('thorns');
@@ -1683,9 +1774,29 @@ function applyDamageToMonster(m, dmg, crit) {
 function playerAttack(m) {
   lunge(player, m.x, m.y);
   let dmg = Math.max(1, pAtk() + ri(-1, 1) - m.def);
+  let mult = 1;
+  const echo = consumeTimedMechanic('echoEdgeTurn', 'echo_edge');
+  if (echo) mult *= echo >= 2 ? 1.40 : 1.25;
+  const reprisal = consumeTimedMechanic('reprisalTurn', 'reprisal');
+  if (reprisal) mult *= reprisal >= 2 ? 1.50 : 1.30;
+  const duel = mechanicPower('duelist');
+  if (duel) {
+    const adjacent = monsters.filter(x => Math.abs(x.x - player.x) + Math.abs(x.y - player.y) === 1).length;
+    if (adjacent === 1) mult *= duel >= 2 ? 1.35 : 1.20;
+  }
+  dmg = Math.max(1, Math.round(dmg * mult));
   const crit = rng() * 100 < pCrit();
   if (crit) dmg = Math.round(dmg * pCritMul());
+  const wasAlive = m.hp > 0;
   applyDamageToMonster(m, dmg, crit);
+  if (wasAlive && m.hp <= 0) {
+    const reaper = mechanicPower('reaper');
+    if (reaper && player.skillCd > 0) {
+      const refund = reaper >= 2 ? 2 : 1;
+      player.skillCd = Math.max(0, player.skillCd - refund);
+      msg(`【收割】斩杀返还 ${refund} 回合技能冷却。`, 'good');
+    }
+  }
   if (m.hp > 0) msg(`${crit ? '暴击！' : ''}你击中${m.name}，造成 ${dmg} 点伤害。`);
 }
 // 沿玩家面向方向（dx,dy 为单位步长，四方向）寻找视线内、射程内的敌人，
@@ -1705,9 +1816,24 @@ function findRangedTarget(dx, dy) {
 function playerRangedAttack(m) {
   fireArrow(player.x, player.y, m.x, m.y);
   let dmg = Math.max(1, pAtk() + ri(-1, 1) - m.def);
+  let mult = 1;
+  const echo = consumeTimedMechanic('echoEdgeTurn', 'echo_edge');
+  if (echo) mult *= echo >= 2 ? 1.40 : 1.25;
+  const skirmish = consumeTimedMechanic('skirmishTurn', 'skirmish');
+  if (skirmish) mult *= skirmish >= 2 ? 1.40 : 1.25;
+  dmg = Math.max(1, Math.round(dmg * mult));
   const crit = rng() * 100 < pCrit();
   if (crit) dmg = Math.round(dmg * pCritMul());
+  const wasAlive = m.hp > 0;
   applyDamageToMonster(m, dmg, crit);
+  if (wasAlive && m.hp <= 0) {
+    const reaper = mechanicPower('reaper');
+    if (reaper && player.skillCd > 0) {
+      const refund = reaper >= 2 ? 2 : 1;
+      player.skillCd = Math.max(0, player.skillCd - refund);
+      msg(`【收割】远射斩杀返还 ${refund} 回合技能冷却。`, 'good');
+    }
+  }
   if (m.hp > 0) msg(`${crit ? '暴击！' : ''}你射中${m.name}，造成 ${dmg} 点伤害。`);
 }
 function monsterAttack(m, armorBreak = false) {
@@ -1719,7 +1845,8 @@ function monsterAttack(m, armorBreak = false) {
     return;
   }
   const raw = m.atk + ri(-1, 1);
-  const dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - pDef());
+  let dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - pDef());
+  dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
     floater(player, '破甲重击!', '#e0a73a');
     msg(`${m.name} 的蓄力破甲命中，造成 ${dmg} 点无视护甲伤害！`, 'bad');
@@ -1727,6 +1854,7 @@ function monsterAttack(m, armorBreak = false) {
     msg(`${m.name}击中你，造成 ${dmg} 点伤害！`, 'bad');
   }
   player.hp -= dmg;
+  armReprisal();
   floater(player, `-${dmg}`, '#ff6b6b');
   addTrauma(armorBreak ? 0.48 : 0.35); sfx.hurt();
   if (m.poison) {
@@ -1997,6 +2125,12 @@ function usePotion() {
       * (1 + (player.potionBoost || 0) / 100) * healMult()));
   player.hp += heal;
   player.poison = 0;
+  const clarity = mechanicPower('clarity');
+  if (clarity && player.grievous > 0) {
+    const before = player.grievous;
+    player.grievous = clarity >= 2 ? 0 : Math.max(0, player.grievous - 1);
+    msg(clarity >= 2 ? '【清创】药力洗净了重伤。' : `【清创】重伤缩短 ${before - player.grievous} 回合。`, 'good');
+  }
   floater(player, `+${heal}`, '#7dd87d');
   sfx.potion();
   msg(`你喝下药水，恢复了 ${heal} 点生命。`, 'good');
@@ -2020,6 +2154,7 @@ function useSkill() {
   if (state !== 'playing') return;
   if (player.skillCd > 0) { msg(`技能冷却中（${player.skillCd} 回合）。`); return; }
   const sk = classDef().skill;
+  const mobsBeforeSkill = monsters.length;
   let used = false;
   if (sk.id === 'cleave') {
     const adj = monsters.filter(m => Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1);
@@ -2096,7 +2231,17 @@ function useSkill() {
     used = true;
   }
   if (!used) return;
+  const echo = mechanicPower('echo_edge');
+  if (echo) player.echoEdgeTurn = turns + 1;
+  const afterimage = mechanicPower('afterimage');
+  if (afterimage) player.afterimageTurn = turns + 1;
   player.skillCd = Math.max(2, sk.cd - (player.skillHaste || 0));
+  const overclock = mechanicPower('overclock');
+  if (overclock && monsters.length < mobsBeforeSkill) {
+    const refund = overclock >= 2 ? 2 : 1;
+    player.skillCd = Math.max(0, player.skillCd - refund);
+    msg(`【回路超频】技能击杀返还 ${refund} 回合冷却。`, 'good');
+  }
   if (state !== 'playing') { updateHud(); return; }
   endTurn();
 }
@@ -2343,6 +2488,7 @@ function equipFromBag(i) {
   if (!it || state !== 'playing') return;
   const old = player.equip[it.slot];
   player.equip[it.slot] = it;
+  clearMechanicWindows();
   player.inv.splice(i, 1);
   if (old) player.inv.push(old);
   player.hp = Math.min(player.hp, pMaxHp());
@@ -2359,6 +2505,7 @@ function unequip(slot) {
   if (!it) return;
   if (player.inv.length >= BAG_CAP) { msg('背包已满，无法卸下装备！'); return; }
   player.equip[slot] = null;
+  clearMechanicWindows();
   player.inv.push(it);
   player.hp = Math.min(player.hp, pMaxHp());
   selectedBagIndex = -1;
@@ -2413,7 +2560,12 @@ function tooltipHtml(it, compareSlot) {
   if (it.stats.atk) html += `<div>攻击 +${it.stats.atk}</div>`;
   if (it.stats.def) html += `<div>防御 +${it.stats.def}</div>`;
   if (it.stats.hp)  html += `<div>生命 +${it.stats.hp}</div>`;
-  for (const a of it.affixes) html += `<div class="affix">${esc(AFFIX_LABEL[a.k](a.v))}</div>`;
+  for (const a of (it.affixes || [])) {
+    const label = AFFIX_LABEL[a.k];
+    if (label) html += `<div class="affix">${esc(label(a.v))}</div>`;
+  }
+  const mechanicText = mechanicDescription(it);
+  if (mechanicText) html += `<div class="affix">${esc(mechanicText)}</div>`;
   html += `<div style="color:${r.color}">评分 ${it.score}</div>`;
   if (compareSlot) {
     const cur = player.equip[compareSlot];
@@ -2479,6 +2631,7 @@ function tryMove(dx, dy) {
       if (state !== 'playing') { updateHud(); return; }
     } else if (walkable(nx, ny)) {
       player.x = nx; player.y = ny;
+      if (mechanicPower('skirmish')) player.skirmishTurn = turns + 1;
       triggerTrap(nx, ny);
       pickupHere();
       if (state !== 'playing') { updateHud(); return; }
@@ -2491,6 +2644,17 @@ function tryMove(dx, dy) {
 
 function waitTurn() {
   if (state !== 'playing') return;
+  const brace = mechanicPower('brace');
+  if (brace) {
+    player.braceTurn = turns + 1;
+    msg('【镇守】你稳住架势，准备承受下一次直击。', 'good');
+  }
+  const meditate = mechanicPower('meditate');
+  if (meditate && player.skillCd > 0) {
+    const refund = meditate >= 2 ? 2 : 1;
+    player.skillCd = Math.max(0, player.skillCd - refund);
+    msg(`【凝息】额外恢复 ${refund} 回合技能冷却。`, 'good');
+  }
   msg('你原地观察四周。');
   endTurn();
 }
@@ -2560,7 +2724,8 @@ function monsterRangedAttack(m, armorBreak = false) {
   fireArrow(m.x, m.y, player.x, player.y);
   const raw = Math.round(m.atk * 0.8) + ri(-1, 1);
   const effDef = Math.floor(pDef() / 2);
-  const dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - effDef);
+  let dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - effDef);
+  dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
     floater(player, '破甲重击!', '#e0a73a');
     msg(`${m.name} 的蓄力射击命中，造成 ${dmg} 点无视护甲伤害！`, 'bad');
@@ -2568,6 +2733,7 @@ function monsterRangedAttack(m, armorBreak = false) {
     msg(`${m.name} 远程袭击你，造成 ${dmg} 点伤害！`, 'bad');
   }
   player.hp -= dmg;
+  armReprisal();
   floater(player, `-${dmg}`, '#ff6b6b');
   addTrauma(armorBreak ? 0.45 : 0.32); sfx.hurt();
   if ((m.elite || m.boss || m.midBoss) && player.hp > 0) applyGrievous();
@@ -4289,7 +4455,8 @@ if (typeof window !== 'undefined') {
     persistRun, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
-    pThorns, pKillHeal, pMaxHp, pDef, eqScoreOf, pierceChanceOf,
+    pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, pierceChanceOf,
+    MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
     canDescendNow, isFinalFloor,
     get greedy() { return greedyMode; },
     setGreedy, getMeta: () => meta,
