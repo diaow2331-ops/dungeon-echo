@@ -153,6 +153,10 @@ ok(fs.existsSync(path.join(root, 'art/title-backdrop.webp')) && /art\/title-back
   '标题美术已预载并存在');
 ok(fs.existsSync(path.join(root, 'art/class-roster.webp')) && /rel="preload" href="art\/class-roster\.webp"/.test(html),
   '四职业肖像已预载并存在');
+for (const art of ['hero-atlas-v11.png', 'monster-atlas-v11.png', 'guardian-atlas-v11.png',
+  'final-boss-v11.png', 'town-backdrop-v11.webp']) {
+  ok(fs.existsSync(path.join(root, 'art', art)) && html.includes(`art/${art}`), `${art} 已预载并存在`);
+}
 
 for (const src of scripts) {
   const file = path.join(root, src);

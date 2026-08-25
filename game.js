@@ -227,6 +227,23 @@ const LOOT_ICON_IDS = Object.freeze([
 const LOOT_ICON_INDEX = Object.fromEntries(LOOT_ICON_IDS.map((id, i) => [id, i]));
 const lootAtlas = new Image();
 lootAtlas.src = 'art/loot-atlas.png';
+const heroAtlasV11 = new Image();
+heroAtlasV11.src = 'art/hero-atlas-v11.png';
+const monsterAtlasV11 = new Image();
+monsterAtlasV11.src = 'art/monster-atlas-v11.png';
+const guardianAtlasV11 = new Image();
+guardianAtlasV11.src = 'art/guardian-atlas-v11.png';
+const finalBossV11 = new Image();
+finalBossV11.src = 'art/final-boss-v11.png';
+const townBackdropV11 = new Image();
+townBackdropV11.src = 'art/town-backdrop-v11.webp';
+const imageReady = image => !!image && image.complete && image.naturalWidth > 4;
+const MONSTER_ART_INDEX = Object.fromEntries([
+  'rat', 'bat', 'goblin', 'spider',
+  'skeleton', 'orc', 'ghost', 'cultist',
+  'troll', 'demon', 'wraith', 'frostmage',
+  'golem', 'vampire', 'lich', 'dragonkin',
+].map((id, i) => [id, i]));
 const lootCoord = id => {
   const i = LOOT_ICON_INDEX[id] ?? 0;
   return { x: i % 4, y: Math.floor(i / 4) };
@@ -2957,6 +2974,108 @@ function drawEntity(e, spr, size, now) {
   }
   return [px, py];
 }
+function drawAtlasEntity(e, image, index, cols, rows, width, height, now) {
+  const [lox, loy] = lungeOff(e);
+  const bob = Math.sin(now * 2.6 + e.x * 7 + e.y * 5) * 1.3;
+  const px = e.fx * TILE + TILE / 2 + lox;
+  const py = e.fy * TILE + TILE / 2 + bob + loy;
+  const sw = image.naturalWidth / cols, sh = image.naturalHeight / rows;
+  const sx = (index % cols) * sw, sy = Math.floor(index / cols) * sh;
+  drawShadow(e.fx * TILE + TILE / 2, e.fy * TILE + TILE - 4, width * .3, height * .09);
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(image, sx, sy, sw, sh, px - width / 2, py - height / 2, width, height);
+  if (e.hurtT > 0) {
+    ctx.globalAlpha = Math.min(.75, e.hurtT);
+    ctx.strokeStyle = '#fff3dd';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(px, py, Math.max(width, height) * .43, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+  return [px, py];
+}
+function equippedRarity(slot) {
+  const item = player && player.equip && player.equip[slot];
+  return item ? clamp(Number(item.rarity) || 0, 0, RARITIES.length - 1) : -1;
+}
+function drawEquippedHero(now) {
+  const heroIndex = ['warrior', 'ranger', 'mage', 'assassin'].indexOf(classId);
+  if (!imageReady(heroAtlasV11) || heroIndex < 0) {
+    return drawEntity(player, SPRITES[heroSpriteKeyFor(classId)] || SPRITES.hero, 30, now);
+  }
+  const equipped = ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet']
+    .map(slot => equippedRarity(slot)).filter(r => r >= 0);
+  const best = equipped.length ? Math.max(...equipped) : -1;
+  const cx = player.fx * TILE + TILE / 2, cy = player.fy * TILE + TILE / 2;
+  if (best >= 1) {
+    const color = RARITIES[best].color;
+    ctx.save();
+    ctx.globalAlpha = .2 + best * .045 + .06 * Math.sin(now * 4);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 + best * .35;
+    ctx.beginPath(); ctx.ellipse(cx, cy + TILE * .34, 15 + best, 5 + best * .25, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  const pos = drawAtlasEntity(player, heroAtlasV11, heroIndex, 4, 1, 43, 52, now);
+  const px = pos[0], py = pos[1];
+  ctx.save();
+  ctx.lineCap = 'round';
+  const weaponRarity = equippedRarity('weapon');
+  if (weaponRarity >= 0) {
+    ctx.strokeStyle = RARITIES[weaponRarity].color;
+    ctx.globalAlpha = .72;
+    ctx.lineWidth = 1.5 + weaponRarity * .3;
+    ctx.beginPath();
+    if (classId === 'ranger') ctx.arc(px, py - 2, 18, -.85, .85);
+    else if (classId === 'mage') { ctx.moveTo(px + 12, py - 18); ctx.lineTo(px + 16, py + 15); }
+    else { ctx.moveTo(px + 8, py + 12); ctx.lineTo(px + 19, py - 13); }
+    ctx.stroke();
+  }
+  const armorRarity = equippedRarity('armor');
+  if (armorRarity >= 0) {
+    ctx.fillStyle = RARITIES[armorRarity].color;
+    ctx.globalAlpha = .72;
+    ctx.fillRect(px - 16, py - 7, 3, 7); ctx.fillRect(px + 13, py - 7, 3, 7);
+  }
+  const helmetRarity = equippedRarity('helmet');
+  if (helmetRarity >= 0) {
+    ctx.fillStyle = RARITIES[helmetRarity].color;
+    ctx.globalAlpha = .84;
+    ctx.beginPath(); ctx.moveTo(px - 4, py - 19); ctx.lineTo(px, py - 25); ctx.lineTo(px + 4, py - 19); ctx.fill();
+  }
+  const charmRarity = Math.max(equippedRarity('ring'), equippedRarity('amulet'));
+  if (charmRarity >= 2) {
+    ctx.fillStyle = RARITIES[charmRarity].color;
+    ctx.globalAlpha = .55 + .25 * Math.sin(now * 5);
+    ctx.beginPath(); ctx.arc(px, py - 3, 2 + charmRarity * .35, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  return pos;
+}
+function guardianArtIndex(m) {
+  if (!m || !m.midBoss) return -1;
+  const byName = MID_BOSSES.findIndex(b => b.name === m.name);
+  if (byName >= 0) return byName;
+  const byDepth = MID_BOSSES.findIndex(b => b.depth === depth);
+  return byDepth;
+}
+function drawMonsterV11(m, now) {
+  if (m.boss && imageReady(finalBossV11))
+    return { pos: drawAtlasEntity(m, finalBossV11, 0, 1, 1, 72, 78, now), size: 78, bespoke: true };
+  const guardianIndex = guardianArtIndex(m);
+  if (guardianIndex >= 0 && imageReady(guardianAtlasV11))
+    return { pos: drawAtlasEntity(m, guardianAtlasV11, guardianIndex, 3, 3, 62, 66, now), size: 66, bespoke: true };
+  const monsterIndex = MONSTER_ART_INDEX[m.sprite];
+  if (monsterIndex !== undefined && imageReady(monsterAtlasV11)) {
+    const size = m.elite ? 40 : 35;
+    return { pos: drawAtlasEntity(m, monsterAtlasV11, monsterIndex, 4, 4, size, size + 3, now), size: size + 3, bespoke: true };
+  }
+  const size = (m.boss || m.midBoss) ? 54 : 30;
+  const spr = SPRITES[m.sprite] || SPRITES.demon;
+  return { pos: drawEntity(m, spr, size, now), size, bespoke: false };
+}
 function drawLootIcon(id, px, py, size) {
   if (!id || !lootAtlas.complete || lootAtlas.naturalWidth < 4) return false;
   const p = lootCoord(id);
@@ -3138,18 +3257,18 @@ function draw(now) {
 
   for (const m of monsters) {
     if (!visible[m.y][m.x]) continue;
-    const size = (m.boss || m.midBoss) ? 54 : 30;
-    const spr = SPRITES[m.sprite] || SPRITES.demon;
+    const baseSize = (m.boss || m.midBoss) ? 66 : (m.elite ? 40 : 35);
     if (m.elite || m.boss || m.midBoss) {
       const c = m.boss ? 'rgba(255,90,60,' : 'rgba(224,179,77,';
       ctx.strokeStyle = c + (0.35 + 0.25 * Math.sin(now * 4)).toFixed(2) + ')';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(m.fx * TILE + TILE / 2, m.fy * TILE + TILE - 4, size * .34, size * .12, 0, 0, Math.PI * 2);
+      ctx.ellipse(m.fx * TILE + TILE / 2, m.fy * TILE + TILE - 4, baseSize * .34, baseSize * .12, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    const [px, py] = drawEntity(m, spr, size, now);
-    if (m.elite || m.boss || m.midBoss) drawCrown(px, py - size / 2 - 4, size * .5);
+    const drawn = drawMonsterV11(m, now);
+    const [px, py] = drawn.pos, size = drawn.size;
+    if (m.elite && !m.boss && !m.midBoss) drawCrown(px, py - size / 2 - 3, size * .42);
     if (m.hp < m.maxHp) {
       const bw = (m.boss || m.midBoss) ? TILE + 8 : TILE - 6;
       const bx = px - bw / 2, by = m.fy * TILE + 1;
@@ -3159,7 +3278,7 @@ function draw(now) {
     }
   }
 
-  drawEntity(player, SPRITES[heroSpriteKeyFor(classId)] || SPRITES.hero, 30, now);
+  drawEquippedHero(now);
 
   ctx.strokeStyle = '#f2e3ad';
   ctx.lineWidth = 2;
@@ -3828,12 +3947,69 @@ function startWheelKick() {
 // ---- 城镇场景：夜色小镇横幅（星空/远山/五座功能建筑/灯火/篝火动画） ----
 let townStars = null;
 let townRafId = 0;
+function townTierForArt() {
+  const best = Math.max(1, Number(meta && meta.bestDepth) || 1);
+  return clamp(Math.ceil(best / 10), 1, 10);
+}
+function drawTownGrowthVisual(ctx, now, W, H, G) {
+  const tier = townTierForArt();
+  const glow = .72 + .22 * Math.sin(now / 260);
+  for (let i = 0; i < tier; i++) {
+    const x = 42 + i * ((W - 84) / 9);
+    ctx.strokeStyle = 'rgba(70,52,36,.9)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, 11); ctx.lineTo(x, 25 + (i % 2) * 4); ctx.stroke();
+    ctx.fillStyle = `rgba(255,181,74,${glow.toFixed(2)})`;
+    ctx.fillRect(x - 3, 24 + (i % 2) * 4, 6, 8);
+  }
+  const people = Math.max(1, Math.floor(tier / 2));
+  for (let i = 0; i < people; i++) {
+    const x = W * .25 + i * Math.min(86, W * .1);
+    const y = G + 8 + (i % 2) * 5;
+    ctx.fillStyle = 'rgba(13,10,12,.82)';
+    ctx.beginPath(); ctx.arc(x, y - 9, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(x - 3, y - 6, 6, 12);
+  }
+  if (tier >= 4) {
+    ctx.fillStyle = 'rgba(133,49,42,.9)';
+    ctx.beginPath(); ctx.moveTo(W * .49, 18); ctx.lineTo(W * .56, 25); ctx.lineTo(W * .49, 45); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#d7a640'; ctx.stroke();
+  }
+  if (tier >= 7) {
+    const rg = ctx.createRadialGradient(W * .51, H * .58, 2, W * .51, H * .58, 34);
+    rg.addColorStop(0, `rgba(145,105,255,${(.2 + .08 * Math.sin(now / 420)).toFixed(2)})`);
+    rg.addColorStop(1, 'rgba(90,55,180,0)');
+    ctx.fillStyle = rg; ctx.fillRect(W * .47, H * .38, W * .08, H * .38);
+  }
+  ctx.fillStyle = 'rgba(8,6,8,.72)';
+  ctx.fillRect(10, 10, 128, 25);
+  ctx.strokeStyle = 'rgba(224,167,64,.52)'; ctx.strokeRect(10.5, 10.5, 127, 24);
+  ctx.font = '600 12px "Segoe UI", "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f2d27b';
+  ctx.fillText(`回响小镇 · 阶段 ${tier}`, 20, 23);
+}
 function drawTownScene(now) {
   const cv = $('town-scene');
   if (!cv || !cv.getContext) return;
   const ctx = cv.getContext('2d');
   if (!ctx) return;
   const W = cv.width || 900, H = cv.height || 210;
+  const G = H * .78;
+  if (imageReady(townBackdropV11)) {
+    const iw = townBackdropV11.naturalWidth, ih = townBackdropV11.naturalHeight;
+    const sh = Math.min(ih, iw * H / W);
+    const sy = Math.max(0, Math.min(ih - sh, ih * .31));
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(townBackdropV11, 0, sy, iw, sh, 0, 0, W, H);
+    const shade = ctx.createLinearGradient(0, 0, 0, H);
+    shade.addColorStop(0, 'rgba(5,8,20,.08)'); shade.addColorStop(.7, 'rgba(5,4,8,.03)'); shade.addColorStop(1, 'rgba(5,3,4,.36)');
+    ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
+    drawTownGrowthVisual(ctx, now, W, H, G);
+    drawTownFire(ctx, now, G);
+    ctx.restore();
+    return;
+  }
   if (!townStars) {
     townStars = [];
     for (let i = 0; i < 46; i++) townStars.push({
@@ -3863,11 +4039,11 @@ function drawTownScene(now) {
   ctx.lineTo(W * .74, H * .36); ctx.lineTo(W * .9, H * .58); ctx.lineTo(W, H * .44);
   ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
   // 街道
-  const G = H * .78;
   ctx.fillStyle = '#1a120c'; ctx.fillRect(0, G, W, H - G);
   ctx.fillStyle = 'rgba(255,220,170,.05)';
   for (let x = 8; x < W; x += 26) ctx.fillRect(x, G + 8 + (x % 3) * 4, 12, 3);
   drawTownBuildings(ctx, now, W, H, G);
+  drawTownGrowthVisual(ctx, now, W, H, G);
   drawTownFire(ctx, now, G);
 }
 function drawTownBuildings(ctx, now, W, H, G) {
@@ -3976,6 +4152,17 @@ function renderTown() {
   const clsName = CLASSES[meta.classId] ? CLASSES[meta.classId].name : '冒险者';
   if (head) head.textContent =
     `${clsName} · 等级 ${meta.lvl} · 金库 ${meta.gold} G · 最深 ${meta.bestDepth || 0} 层 · 远征 ${meta.runs || 0} 次`;
+  const growth = $('town-growth');
+  if (growth) {
+    const tier = townTierForArt();
+    const next = tier >= 10 ? '小镇已完成最终扩建' : `再征服第 ${tier * 10} 层守卫，进入阶段 ${tier + 1}`;
+    const ready = (meta.potions || 0) >= 2 && (meta.escapes || 0) >= 1;
+    growth.innerHTML =
+      `<div><b>城镇阶段 ${tier}/10</b><span>${next}</span></div>` +
+      `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? '远征整备完成' : '补给仍有缺口'}</b>` +
+      `<span>药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}</span></div>` +
+      `<div><b>本阶段设施</b><span>安全仓库 · 限量市集 · 锻造强化 · 已征服区出发</span></div>`;
+  }
   const itemTag = it => {
     const f = it.forge || 0;
     const forgeTag = f ? ` +${f}` : '';
