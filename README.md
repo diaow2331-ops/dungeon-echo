@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.0.0 remains the current public Release. The v1.1.0 mainline now includes the art/town remaster **and readable guardian mechanics from floor 10 through the three-phase floor-100 finale**. Deployment remains a separate explicit step; current development focuses on all-four-class human validation, milestone skill evolution and deeper town progression.
+> **Status:** v1.0.0 remains the current public Release. The v1.1.0 mainline is now a release candidate containing the art/town remaster, readable guardian mechanics from floor 10 through the three-phase floor-100 finale, and four-class 20/40/60/80 skill evolution. Deployment remains a separate explicit step; the remaining gate is representative human validation plus release/deployment consistency.
 
 ## What is Dungeon Echo?
 
@@ -34,12 +34,13 @@ The game intentionally stays close to the web platform: vanilla HTML, CSS and Ja
 - Greedy Expedition town loop with safe storage, banked gold, finite supplies, checkpoint departures and an optional fortune wheel designed as a gold sink rather than mandatory progression.
 - Return-scroll risk management: secure your haul before death removes carried loot and gold.
 - Talents and class-oriented long-run progression.
+- Four-class skill evolution at **20 / 40 / 60 / 80**, with two behavior-changing choices per milestone while retaining the single `C` active-skill input.
 - Ten guardian/finale nodes with explicit counterplay: telegraphed armor break, Frost Ring, Ember Mark, Hunter Line, interruptible healing, Blood Tether, Rupture Cross, Arcane Strip, a fixed Echo Trial sequence and a three-phase floor-100 encounter.
 - v1.1 mainline presentation with four in-dungeon hero sprites, equipment rarity accents, sixteen regular monster archetypes, bespoke art for all nine ten-floor guardians, unique floor-100 boss art and a ten-stage evolving town backdrop.
 - Keyboard, mouse/touch and native Gamepad API support.
 - Local saves through `localStorage`; no account or server-side save service is required.
 
-The guardian counterplay contract is documented in [`docs/GUARDIAN_MECHANICS.md`](docs/GUARDIAN_MECHANICS.md).
+The guardian counterplay contract is documented in [`docs/GUARDIAN_MECHANICS.md`](docs/GUARDIAN_MECHANICS.md), and the skill routes in [`docs/SKILL_EVOLUTION.md`](docs/SKILL_EVOLUTION.md).
 
 ## Why build it this way?
 
@@ -56,7 +57,7 @@ The project therefore favors:
 
 ## AI-assisted development
 
-OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review, documentation refinement, branch-conflict resolution and focused guardian encounter implementation/testing.
+OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review, documentation refinement, branch-conflict resolution, guardian encounter implementation/testing and milestone skill-evolution review/integration.
 
 The current public-repository refinement and v1.1 mainline integration work was assisted by **GPT-5.6 Sol**.
 
@@ -116,7 +117,7 @@ Gamepad support is provided by `desktop-controls.js`; risky fast-skip actions ar
 ├── game.js                     # core state/map/turn engine; gradually being reduced
 ├── gameplay-tuning.js          # production rules and human-first class tuning
 ├── equipment-system.js         # equipment identity/value/deep-floor scaling
-├── progression-system.js       # talents and long-run progression
+├── progression-system.js       # talents + milestone skill evolution
 ├── town-system.js              # town progression, checkpoints and wheel policy
 ├── commerce-system.js          # finite town stock and chapter-scaled supply economy
 ├── forge-system.js             # +3 refinement choices and +5 masterwork paths
@@ -126,19 +127,20 @@ Gamepad support is provided by `desktop-controls.js`; risky fast-skip actions ar
 ├── art/                        # production art assets and v1.1 atlases
 ├── test/                       # deterministic/headless regression harnesses
 ├── docs/GUARDIAN_MECHANICS.md  # guardian tells, phases and counterplay contracts
+├── docs/SKILL_EVOLUTION.md     # 20/40/60/80 class skill route contracts
 ├── BALANCE_NOTES.md            # current human-play balance baseline
 ├── PRODUCTION_ROADMAP.md       # current post-launch priorities
 ├── MAINTENANCE.md              # current production/maintenance contract
 ├── AI_COLLABORATION.md         # transparent human/AI collaboration record
 ├── RELEASE_NOTES_v1.0.0.md     # first public release record
-└── RELEASE_NOTES_v1.1.0.md     # art and town remaster record
+└── RELEASE_NOTES_v1.1.0.md     # v1.1 release-candidate record
 ```
 
 The project is modularized **incrementally**. Systems move out of `game.js` when an active gameplay change creates a clear boundary; architecture work is expected to reduce regression risk rather than exist for its own sake.
 
 ## Release and validation
 
-v1.0.0 established the public 1→100 route and remains the current public Release. The v1.1.0 work on `main` preserves that route and the existing save contract while upgrading hero, monster, guardian, final-boss and town presentation and replacing generic guardian trait piles with readable stateful encounter rules.
+v1.0.0 established the public 1→100 route and remains the current public Release. The v1.1.0 work on `main` preserves that route and the existing save contract while upgrading hero, monster, guardian, final-boss and town presentation, replacing generic guardian trait piles with readable stateful encounters, and adding four-class milestone skill evolution.
 
 The v1.1 art/town change set reported:
 
@@ -148,9 +150,11 @@ The v1.1 art/town change set reported:
 - release contract: **11/11**;
 - site overlay and homepage mount deployment contracts: **PASS**.
 
-The subsequent guardian state-machine work has a focused deterministic contract of **37/37** for warning, evade/hit, interrupt, distance, sequence and floor-100 phase transitions.
+The guardian state-machine work has a focused deterministic contract of **37/37** for warning, evade/hit, interrupt, distance, sequence and floor-100 phase transitions.
 
-These automated checks protect engineering contracts; they do not replace real-player validation. The main remaining quality targets are an all-four-class guardian/full-run audit, milestone skill evolution, deeper town progression, combat VFX refinement and audio polish.
+The skill-evolution work adds a focused **9/9** contract for milestone delivery/catch-up, class behavior changes and temporary-stat leak protection.
+
+These automated checks protect engineering contracts; they do not replace real-player validation. The remaining v1.1 quality gate is a representative all-four-class guardian/skill-route/full-run audit plus final deployment consistency; deeper town progression, combat VFX and audio polish can continue after v1.1.
 
 For maintainers, [`MAINTENANCE.md`](MAINTENANCE.md) is the concise current-state contract.
 
