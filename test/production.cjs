@@ -151,6 +151,8 @@ ok(!/data-act="quickdive"|id="quickdive-fab"/.test(html), '游客入口不公开
 ok(expectedScripts.every(src => fs.existsSync(path.join(root, src))), '全部生产脚本资源存在');
 ok(fs.existsSync(path.join(root, 'art/title-backdrop.webp')) && /art\/title-backdrop\.webp/.test(html),
   '标题美术已预载并存在');
+ok(fs.existsSync(path.join(root, 'art/class-roster.webp')) && /rel="preload" href="art\/class-roster\.webp"/.test(html),
+  '四职业肖像已预载并存在');
 
 for (const src of scripts) {
   const file = path.join(root, src);
@@ -179,6 +181,8 @@ ok(T.CLASSES.warrior.hpBase === 40 && T.CLASSES.warrior.skill.cd === 5, '战士 
 ok(T.CLASSES.ranger.rangedRange === 4, '游侠 human-v1 射程生效');
 ok(T.CLASSES.mage.rangedRange === 3, '秘术师直线远程生效');
 ok(T.CLASSES.assassin.hpBase === 26 && T.CLASSES.assassin.skill.cd === 7, '刺客 human-v1 生效');
+ok(new Set(['warrior', 'ranger', 'mage', 'assassin'].map(id => T.heroSpriteKeyFor(id))).size === 4,
+  '四职业拥有独立实战角色轮廓');
 
 const guardians = T.runProfile.midBosses || [];
 const signatures = guardians.map(g => [g.armorBreak, g.slow, g.regen, g.boom, g.enrage, g.ranged, g.leech]
