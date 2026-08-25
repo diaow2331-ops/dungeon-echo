@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible gameplay, save, input or browser bug
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe what actually happened. For balance complaints, use the Gameplay / balance form instead.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / device
+      placeholder: "Chrome 140 on Windows 11; Edge; Firefox; Android..."
+    validations:
+      required: true
+  - type: input
+    id: mode
+    attributes:
+      label: Mode and approximate floor
+      placeholder: "Greedy Expedition, floor 37"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Start...
+        2. Equip...
+        3. Descend...
+        4. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: seed
+    attributes:
+      label: Run seed (if visible/relevant)
+      description: A seed can make map/combat issues much easier to reproduce.
+  - type: textarea
+    id: save
+    attributes:
+      label: Save / regression context
+      description: Mention whether this happened on a fresh run, an older save, after returning to town, after reload, etc.
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshot / recording / console details
+      description: Optional. Do not include private account information.
