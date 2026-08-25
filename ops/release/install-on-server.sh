@@ -7,6 +7,9 @@ SNIPPET=/etc/nginx/snippets/dungeon-echo-static.conf
 TEMPLATE=$REPO_ROOT/ops/nginx/dungeon-echo.locations.conf
 PATCHER=$REPO_ROOT/ops/nginx/patch-play-site.py
 PUBLIC_URL=https://play.91hwl.cn/dungeon-echo/
+ORIGIN_RESOLVE=play.91hwl.cn:443:127.0.0.1
+PUBLIC_PROBE_ATTEMPTS=6
+PUBLIC_PROBE_DELAY=2
 
 fail(){ echo "DUNGEON_ECHO_INSTALL_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
@@ -60,16 +63,37 @@ python3 "$PATCHER" --site "$site_path" --write >/dev/null
 nginx -t
 systemctl reload nginx
 
-body="$(curl --fail --silent --show-error --location "$PUBLIC_URL")"
-grep -Fq '地牢回响' <<<"$body" || fail 'public page title missing'
-grep -Fq 'v1.0.0' <<<"$body" || fail 'public version missing'
-headers="$(curl --fail --silent --show-error --head "$PUBLIC_URL")"
-grep -Eiq '^cache-control:.*no-store' <<<"$headers" || fail 'public no-store header missing'
-grep -Eiq '^content-security-policy:' <<<"$headers" || fail 'public CSP header missing'
+revision="$("${GIT[@]}" rev-parse HEAD)"
+
+verify_release(){
+  label="$1"
+  shift
+  body_file="$backup_dir/$label.body"
+  headers_file="$backup_dir/$label.headers"
+  curl --fail --silent --show-error --location \
+    --dump-header "$headers_file" --output "$body_file" "$@" || return 1
+  grep -Fq '地牢回响' "$body_file" || return 1
+  grep -Fq 'v1.0.0' "$body_file" || return 1
+  grep -Eiq '^cache-control:.*no-store' "$headers_file" || return 1
+  grep -Eiq '^content-security-policy:' "$headers_file" || return 1
+}
+
+verify_release origin --resolve "$ORIGIN_RESOLVE" "$PUBLIC_URL" || fail 'origin release verification failed'
+
+public_probe_url="${PUBLIC_URL}?release=${revision}"
+public_verified=false
+for ((attempt=1; attempt<=PUBLIC_PROBE_ATTEMPTS; attempt++)); do
+  if verify_release public "$public_probe_url"; then
+    public_verified=true
+    break
+  fi
+  if (( attempt < PUBLIC_PROBE_ATTEMPTS )); then sleep "$PUBLIC_PROBE_DELAY"; fi
+done
+test "$public_verified" = true || fail "public release verification failed after $PUBLIC_PROBE_ATTEMPTS attempts"
 
 trap - EXIT
 find "$backup_dir" -depth -delete
-echo "release_revision=$("${GIT[@]}" rev-parse HEAD)"
+echo "release_revision=$revision"
 echo "release_dir=$release_dir"
 echo "public_url=$PUBLIC_URL"
 echo 'dungeon_echo_install=PASS'

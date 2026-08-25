@@ -9,6 +9,7 @@ const { spawnSync } = require('child_process');
 const root = path.resolve(__dirname, '..');
 const patcher = path.join(root, 'ops/nginx/patch-play-site.py');
 const installer = fs.readFileSync(path.join(root, 'ops/release/install-on-server.sh'), 'utf8');
+const locations = fs.readFileSync(path.join(root, 'ops/nginx/dungeon-echo.locations.conf'), 'utf8');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-nginx-'));
 const site = path.join(temp, 'play.conf');
 
@@ -45,13 +46,18 @@ assert.equal((text.match(/dungeon-echo-static\.conf/g) || []).length, 1, 'patch 
 assert.match(installer, /REPO_ROOT=\/opt\/dungeon-echo/);
 assert.match(installer, /RELEASE_ROOT=\/srv\/dungeon-echo/);
 assert.match(installer, /PUBLIC_URL=https:\/\/play\.91hwl\.cn\/dungeon-echo\//);
+assert.match(installer, /ORIGIN_RESOLVE=play\.91hwl\.cn:443:127\.0\.0\.1/);
 assert.match(installer, /test "\$#" -eq 0/);
 assert.match(installer, /merge --ff-only origin\/main/);
 assert.match(installer, /nginx -t/);
 assert.match(installer, /systemctl reload nginx/);
 assert.match(installer, /dungeon_echo_install=ROLLED_BACK/);
 assert.match(installer, /dungeon_echo_install=PASS/);
+assert.match(installer, /verify_release origin --resolve "\$ORIGIN_RESOLVE" "\$PUBLIC_URL"/);
+assert.match(installer, /public_probe_url="\$\{PUBLIC_URL\}\?release=\$\{revision\}"/);
+assert.match(installer, /attempt<=PUBLIC_PROBE_ATTEMPTS/);
 assert.doesNotMatch(installer, /eval\b|bash -c|sh -c/);
+assert.match(locations, /location \^~ \/dungeon-echo\//);
 
 fs.rmSync(temp, { recursive: true, force: true });
 console.log('RESULT  deploy contract PASS');
