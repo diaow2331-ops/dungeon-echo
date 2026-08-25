@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.0.0 remains the current public Release. The v1.1.0 art and town remaster is merged on `main` and is awaiting deployment; current development focuses on deeper guardian/final-boss mechanics, milestone skill evolution and full-run human balance.
+> **Status:** v1.0.0 remains the current public Release. The v1.1.0 mainline now includes the art/town remaster **and readable guardian mechanics from floor 10 through the three-phase floor-100 finale**. Deployment remains a separate explicit step; current development focuses on all-four-class human validation, milestone skill evolution and deeper town progression.
 
 ## What is Dungeon Echo?
 
@@ -34,10 +34,12 @@ The game intentionally stays close to the web platform: vanilla HTML, CSS and Ja
 - Greedy Expedition town loop with safe storage, banked gold, finite supplies, checkpoint departures and an optional fortune wheel designed as a gold sink rather than mandatory progression.
 - Return-scroll risk management: secure your haul before death removes carried loot and gold.
 - Talents and class-oriented long-run progression.
-- Ten-floor chapter / guardian cadence with a floor-100 finale and post-launch work underway on more bespoke boss mechanics.
+- Ten guardian/finale nodes with explicit counterplay: telegraphed armor break, Frost Ring, Ember Mark, Hunter Line, interruptible healing, Blood Tether, Rupture Cross, Arcane Strip, a fixed Echo Trial sequence and a three-phase floor-100 encounter.
 - v1.1 mainline presentation with four in-dungeon hero sprites, equipment rarity accents, sixteen regular monster archetypes, bespoke art for all nine ten-floor guardians, unique floor-100 boss art and a ten-stage evolving town backdrop.
 - Keyboard, mouse/touch and native Gamepad API support.
 - Local saves through `localStorage`; no account or server-side save service is required.
+
+The guardian counterplay contract is documented in [`docs/GUARDIAN_MECHANICS.md`](docs/GUARDIAN_MECHANICS.md).
 
 ## Why build it this way?
 
@@ -54,9 +56,9 @@ The project therefore favors:
 
 ## AI-assisted development
 
-OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review, documentation refinement and mainline integration work.
+OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review, documentation refinement, branch-conflict resolution and focused guardian encounter implementation/testing.
 
-The current public-repository documentation and v1.1 integration/refinement pass was assisted by **GPT-5.6 Sol**.
+The current public-repository refinement and v1.1 mainline integration work was assisted by **GPT-5.6 Sol**.
 
 The workflow is deliberately human-directed: the repository maintainer defines product goals and acceptance criteria, decides which proposals to keep, controls merges and deployment, and performs the final product judgment. AI output is treated as engineering input to inspect and validate rather than as an authority.
 
@@ -118,11 +120,12 @@ Gamepad support is provided by `desktop-controls.js`; risky fast-skip actions ar
 ├── town-system.js              # town progression, checkpoints and wheel policy
 ├── commerce-system.js          # finite town stock and chapter-scaled supply economy
 ├── forge-system.js             # +3 refinement choices and +5 masterwork paths
-├── content-system.js           # late-floor themes and guardian content bridge
+├── content-system.js           # late-floor themes + guardian/finale state machines
 ├── desktop-controls.js         # gamepad and desktop input adapter
 ├── profiles/                   # production + deterministic regression profiles
 ├── art/                        # production art assets and v1.1 atlases
 ├── test/                       # deterministic/headless regression harnesses
+├── docs/GUARDIAN_MECHANICS.md  # guardian tells, phases and counterplay contracts
 ├── BALANCE_NOTES.md            # current human-play balance baseline
 ├── PRODUCTION_ROADMAP.md       # current post-launch priorities
 ├── MAINTENANCE.md              # current production/maintenance contract
@@ -135,9 +138,9 @@ The project is modularized **incrementally**. Systems move out of `game.js` when
 
 ## Release and validation
 
-v1.0.0 established the public 1→100 route and remains the current public Release. The v1.1.0 remaster on `main` preserves that route and the existing save contract while upgrading hero, monster, guardian, final-boss and town presentation.
+v1.0.0 established the public 1→100 route and remains the current public Release. The v1.1.0 work on `main` preserves that route and the existing save contract while upgrading hero, monster, guardian, final-boss and town presentation and replacing generic guardian trait piles with readable stateful encounter rules.
 
-The v1.1 change set reports:
+The v1.1 art/town change set reported:
 
 - production-entry contract: **29/29**;
 - deterministic floor 1→100 victory chain: **13/13**;
@@ -145,9 +148,11 @@ The v1.1 change set reports:
 - release contract: **11/11**;
 - site overlay and homepage mount deployment contracts: **PASS**.
 
-The main remaining quality targets are deeper guardian/final-boss mechanics, milestone skill evolution, full-run human balance evidence, combat telegraph/VFX refinement and audio polish.
+The subsequent guardian state-machine work has a focused deterministic contract of **37/37** for warning, evade/hit, interrupt, distance, sequence and floor-100 phase transitions.
 
-For maintainers, [`MAINTENANCE.md`](MAINTENANCE.md) is the concise current-state contract; it intentionally focuses on present behavior rather than old implementation transitions.
+These automated checks protect engineering contracts; they do not replace real-player validation. The main remaining quality targets are an all-four-class guardian/full-run audit, milestone skill evolution, deeper town progression, combat VFX refinement and audio polish.
+
+For maintainers, [`MAINTENANCE.md`](MAINTENANCE.md) is the concise current-state contract.
 
 ## Contributing
 
@@ -168,7 +173,7 @@ Dungeon Echo is intentionally backend-free. The current public build is served a
 - **Play:** https://play.91hwl.cn/dungeon-echo/
 - **Project page:** https://91hwl.cn/toys/dungeon-echo/
 
-The v1.1.0 remaster is merged on `main` but is not described as publicly deployed until the existing rollback-capable deployment path completes successfully.
+The v1.1.0 mainline is **not described as publicly deployed** until the existing rollback-capable deployment path completes successfully.
 
 The deployment tooling stages an immutable release, verifies expected content, preserves the existing Web Toys tree and supports rollback on failed origin/public checks.
 
