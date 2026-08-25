@@ -119,7 +119,7 @@ A few project rules matter more than code style:
 
 Dungeon Echo is intentionally backend-free. The production allowlist can be staged as an immutable static release behind Nginx/CDN without Node, PHP, an API or a database.
 
-The planned public mount is `https://91hwl.cn/dungeon-echo/`. It will be changed to a verified Play link only after the live TLS/cache/content checks pass.
+The planned public mount is `https://play.91hwl.cn/dungeon-echo/`; the main `91hwl.cn` Web Toys page will link to it. This becomes a verified Play link only after the live TLS/cache/content checks pass.
 
 ## License
 
