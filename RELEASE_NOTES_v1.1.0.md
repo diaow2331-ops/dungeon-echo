@@ -1,4 +1,4 @@
-# Dungeon Echo v1.1.0 — Art, Town & Guardian Remaster
+# Dungeon Echo v1.1.0 — Art, Town, Guardian & Skill Evolution Remaster
 
 Dungeon Echo v1.1.0 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town save intact. No migration or progress reset is required.
 
@@ -36,6 +36,21 @@ Every new special reserves the guardian's next normal action. The encounter syst
 
 Detailed tells and counterplay are documented in `docs/GUARDIAN_MECHANICS.md`.
 
+## Skill evolution
+
+The same four class-skill inputs now develop across the 100-floor journey instead of remaining mechanically static from the opening floors to the finale.
+
+- Floors **20 / 40 / 60 / 80** each unlock a two-choice evolution at the next talent selection.
+- The active-skill hotkey remains **`C`**; no additional combat action bar is introduced.
+- **Warrior / Cleave:** branches alter close-area shape, two-tile reach, cast-turn protection, cooldown rhythm, sustain and late-game clearing behavior.
+- **Ranger / Dash:** branches alter retaliation risk, mobility-vs-kill cooldown cadence, sustain, kill chains and follow-up pressure.
+- **Arcanist / Arcane Bolt:** branches add secondary targets, isolated-target specialization, cast protection, extra push control and kill-loop cooldown return.
+- **Assassin / Shadow Strike:** branches add wounded-target execution pressure, safer entry, kill sustain/cooldown loops and follow-up pressure.
+- Evolution choices are stored in the existing `player.talents` string array, so both classic-run saves and Greedy Expedition meta saves keep their current schema versions.
+- Temporary cast modifiers are restored immediately after the established skill/monster turn, protecting permanent stats and saves from transient-state leakage.
+
+Detailed route intent is documented in `docs/SKILL_EVOLUTION.md`.
+
 ## Validation
 
 The v1.1 art/town change set previously reported:
@@ -47,9 +62,11 @@ The v1.1 art/town change set previously reported:
 - site overlay deploy contract: **PASS**;
 - homepage mount contract: **PASS**.
 
-The later guardian state-machine pass adds a focused deterministic contract of **37/37** covering content rules, warning-turn reservation/restoration, evade/hit paths, healing interruption, distance breaks, floor-90 sequence order and all three floor-100 phase transitions.
+The guardian state-machine pass adds a focused deterministic contract of **37/37** covering content rules, warning-turn reservation/restoration, evade/hit paths, healing interruption, distance breaks, floor-90 sequence order and all three floor-100 phase transitions.
 
-These automated checks are engineering evidence, not a replacement for an all-four-class human-play pass. Boss cadence, arena geometry and build-specific difficulty remain part of the v1.1 release acceptance process.
+The skill-evolution pass adds a focused **9/9** contract covering milestone delivery/catch-up, Warrior area and defense changes, Arcanist secondary targeting, Ranger kill reset, Assassin execution pressure and failed-cast temporary-stat restoration.
+
+These automated checks are engineering evidence, not a replacement for an all-four-class human-play pass. Boss cadence, arena geometry, skill-route balance and build-specific difficulty remain part of the v1.1 release acceptance process.
 
 ## Compatibility and deployment
 
@@ -58,10 +75,9 @@ These automated checks are engineering evidence, not a replacement for an all-fo
 - The intended upload package remains `91hwl-play-dungeon-echo-v1.1.0.zip`; the homepage version card is updated by the separate `91hwl-home-dungeon-echo-v1.1.0.zip` package.
 - v1.1.0 is considered publicly deployed only after the rollback-capable deployment and public health checks succeed.
 
-## Remaining post-v1.1 priorities
+## Remaining v1.1 acceptance priorities
 
-- all-four-class human 1→100 / guardian validation;
-- milestone active-skill evolution;
+- all-four-class human 1→100 / guardian / skill-route validation;
 - deeper town-service progression;
-- Boss/equipment VFX and audio feedback;
+- Boss/equipment/skill VFX and audio feedback;
 - continued economy and long-run balance review from real-player evidence.
