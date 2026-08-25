@@ -1,21 +1,57 @@
 # Security Policy
 
-Dungeon Echo is currently a static, client-side browser game and does not operate a production account/backend service. Security reports are still welcome, especially for issues that could affect future public hosting, saved data, repository automation or supply-chain/deployment configuration.
+Dungeon Echo is a publicly deployed, static client-side browser game. The core game does not operate accounts, a production API, a database or server-side save storage.
+
+Security reports are still important, especially for issues involving hosted visitors, browser storage, repository automation, release packaging or deployment configuration.
+
+## Supported versions
+
+The actively maintained version is the current public `main` line and the latest deployed v1.x release.
+
+Older development snapshots and short regression profiles are not separately supported as public products.
 
 ## Reporting a vulnerability
 
-Please do **not** publish working exploit details in a normal Issue.
+Please do **not** publish working exploit details in a normal public Issue.
 
-If GitHub offers a private vulnerability-reporting option for this repository, use that channel. Otherwise, open a minimal Issue stating that you have a security report and omit sensitive reproduction details until a private channel is established.
+If GitHub offers private vulnerability reporting for this repository, use that channel. Otherwise, open a minimal Issue stating that you have a security report and omit sensitive reproduction details until a private channel is established.
 
 Include, when possible:
 
 - affected file/component;
-- impact;
+- likely impact;
 - browser/runtime assumptions;
 - minimal safe reproduction description;
-- whether the issue affects only local game state or could affect hosted visitors/deployment.
+- whether the issue affects only local game state or can affect hosted visitors/deployment;
+- whether the issue requires a crafted save, URL/query input, repository action or deployment step.
 
-## Supported versions
+## Current security boundaries
 
-Until the first tagged public release, only the current `main` branch is actively maintained. After releases begin, this file will be updated with an explicit support window.
+### Browser game
+
+- Game progress is stored in `localStorage` on the user’s browser.
+- There is no cloud save or account authentication in v1.x.
+- Clearing site data can remove local progress.
+- Malformed/incompatible save data should fail safely rather than become trusted executable state.
+
+### Static hosting
+
+The public game is intended to remain deployable as static files. Changes that introduce remote scripts, third-party runtime dependencies, dynamic HTML injection or new backend calls should be reviewed as security-sensitive architecture changes.
+
+### Release/deployment tooling
+
+Deployment tooling is expected to preserve:
+
+- explicit release content;
+- origin/public health verification;
+- rollback behavior on failed checks;
+- isolation from unrelated Web Toys/site content;
+- no unnecessary runtime service dependency for the game itself.
+
+### Repository automation
+
+Changes to GitHub Actions, deployment scripts, release allowlists or dependency/supply-chain behavior should receive the same scrutiny as application code because they can affect the public artifact even when gameplay code is unchanged.
+
+## Non-security issues
+
+Gameplay balance, local save incompatibility without an exploit path, visual defects and ordinary browser compatibility problems should use the normal Issue templates unless they create a security impact.
