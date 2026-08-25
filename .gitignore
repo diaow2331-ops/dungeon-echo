@@ -1,0 +1,22 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Local logs / scratch
+*.log
+*.tmp
+.tmp/
+tmp/
+
+# Generated release artifacts
+*.zip
+dist/
+release-out/
+
+# Tool caches / optional local dependencies
+node_modules/
+coverage/
