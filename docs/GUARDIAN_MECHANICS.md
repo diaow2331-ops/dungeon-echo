@@ -28,6 +28,24 @@ The guardian locks either the player's current row or column, displays the full 
 
 **Counterplay:** sidestep one tile perpendicular to the line, move out of range, or put a wall between the guardian and the player.
 
+### Floor 50 — Mending Channel
+
+When wounded enough to make the heal meaningful, the guardian begins a one-turn healing channel and gives up its next normal action. The channel records the guardian's HP at the start of the tell.
+
+**Counterplay:** deal any damage during the warning turn. Damage interrupts the heal completely; giving the guardian space allows it to recover 15% of maximum HP.
+
+### Floor 60 — Blood Tether
+
+The guardian periodically forms a visible blood tether and reserves its next normal action for the drain. The tether resolves only if the player remains within three tiles.
+
+**Counterplay:** use the warning turn to reach distance four or greater. Staying close allows the attack to land and preserves the guardian's leech identity without relying on a generic enrage stat spike.
+
+### Floor 70 — Rupture Cross
+
+The guardian telegraphs a short cross centered on itself: three tiles horizontally and vertically. It gives up its next normal action while the cross charges.
+
+**Counterplay:** step off both the guardian's row and column before resolution. Regeneration and death burst remain secondary pressure, while the primary mechanic is spatial lane control.
+
 ## Remaining encounter work
 
-Floors 50 / 60 / 70 / 80 / 90 and the floor-100 finale still use tested trait combinations as their primary behavior. They remain tracked by Issue #5 and should be converted incrementally so each encounter gains explicit telegraphing and class-neutral counterplay without replacing the whole combat engine at once.
+Floors 80 / 90 and the floor-100 finale still use tested trait combinations as their primary behavior. They remain tracked by Issue #5 and should be converted incrementally so each encounter gains explicit telegraphing and class-neutral counterplay without replacing the whole combat engine at once.
