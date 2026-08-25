@@ -22,7 +22,7 @@ assert.match(home, /<h3>地牢回响<\/h3>/);
 assert.match(home, /href="https:\/\/play\.91hwl\.cn\/dungeon-echo\//);
 assert.match(home, /href="\/toys\/dungeon-echo\//);
 assert.match(detail, /<title>地牢回响 \| 91hwl<\/title>/);
-assert.match(detail, /当前版本 v1\.0\.0/);
+assert.match(detail, new RegExp(`当前版本 v${read('VERSION').trim().replace(/\./g, '\\.')}`));
 
 assert.match(deploy, /SITE_ROOT=\/var\/www\/91hwl/);
 assert.match(deploy, /EXPECTED_INDEX_SHA256/);

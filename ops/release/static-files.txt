@@ -15,3 +15,8 @@ desktop-controls.js
 art/loot-atlas.png
 art/title-backdrop.webp
 art/class-roster.webp
+art/hero-atlas-v11.png
+art/monster-atlas-v11.png
+art/guardian-atlas-v11.png
+art/final-boss-v11.png
+art/town-backdrop-v11.webp
