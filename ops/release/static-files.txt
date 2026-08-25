@@ -13,6 +13,7 @@ content-system.js
 gameplay-tuning.js
 desktop-controls.js
 art/loot-atlas.png
+art/loot-atlas-v12.svg
 art/title-backdrop.webp
 art/class-roster.webp
 art/hero-atlas-v11.png
