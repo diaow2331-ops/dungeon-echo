@@ -1,6 +1,6 @@
 ## Problem
 
-Describe the player-facing or developer-facing problem this PR solves.
+Describe the player-facing or maintainer-facing problem this PR solves.
 
 ## Solution
 
@@ -27,9 +27,12 @@ List only checks actually performed.
 
 - [ ] Touched JavaScript parses (`node --check` where applicable)
 - [ ] Relevant deterministic/headless test(s) run, if applicable
-- [ ] Save/load behavior checked, if applicable
+- [ ] Save/load behavior checked, if persistent state is touched
 - [ ] Production `index.html` still uses the 1→100 route
-- [ ] No unrelated large refactor bundled into this PR
+- [ ] New production scripts/art are explicitly covered by the release allowlist
+- [ ] Current README / maintenance / release docs remain consistent with actual deployment state
+- [ ] No development-only fixture is added to the public package
+- [ ] No unrelated large refactor is bundled into this PR
 
 ## Risk / follow-up
 
