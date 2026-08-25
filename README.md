@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.0.0 is publicly deployed. Development now focuses on post-launch boss design, long-run progression, town identity and a deeper art/UI pass.
+> **Status:** v1.0.0 remains the current public Release. The v1.1.0 art and town remaster is merged on `main` and is awaiting deployment; current development focuses on deeper guardian/final-boss mechanics, milestone skill evolution and full-run human balance.
 
 ## What is Dungeon Echo?
 
@@ -35,6 +35,7 @@ The game intentionally stays close to the web platform: vanilla HTML, CSS and Ja
 - Return-scroll risk management: secure your haul before death removes carried loot and gold.
 - Talents and class-oriented long-run progression.
 - Ten-floor chapter / guardian cadence with a floor-100 finale and post-launch work underway on more bespoke boss mechanics.
+- v1.1 mainline presentation with four in-dungeon hero sprites, equipment rarity accents, sixteen regular monster archetypes, bespoke art for all nine ten-floor guardians, unique floor-100 boss art and a ten-stage evolving town backdrop.
 - Keyboard, mouse/touch and native Gamepad API support.
 - Local saves through `localStorage`; no account or server-side save service is required.
 
@@ -53,9 +54,9 @@ The project therefore favors:
 
 ## AI-assisted development
 
-OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review and documentation refinement.
+OpenAI ChatGPT has been used as an **AI engineering collaborator** during the development and refinement of Dungeon Echo. Its contributions have included repository-wide code review, architecture and systems analysis, debugging, regression-test strategy, gameplay/economy reasoning, deployment-safety review, documentation refinement and mainline integration work.
 
-The current public-repository documentation/refinement pass was assisted by **GPT-5.6 Sol**.
+The current public-repository documentation and v1.1 integration/refinement pass was assisted by **GPT-5.6 Sol**.
 
 The workflow is deliberately human-directed: the repository maintainer defines product goals and acceptance criteria, decides which proposals to keep, controls merges and deployment, and performs the final product judgment. AI output is treated as engineering input to inspect and validate rather than as an authority.
 
@@ -120,26 +121,31 @@ Gamepad support is provided by `desktop-controls.js`; risky fast-skip actions ar
 ├── content-system.js           # late-floor themes and guardian content bridge
 ├── desktop-controls.js         # gamepad and desktop input adapter
 ├── profiles/                   # production + deterministic regression profiles
-├── art/                        # current art assets
+├── art/                        # production art assets and v1.1 atlases
 ├── test/                       # deterministic/headless regression harnesses
 ├── BALANCE_NOTES.md            # current human-play balance baseline
 ├── PRODUCTION_ROADMAP.md       # current post-launch priorities
 ├── MAINTENANCE.md              # current production/maintenance contract
 ├── AI_COLLABORATION.md         # transparent human/AI collaboration record
-└── RELEASE_NOTES_v1.0.0.md     # first public release record
+├── RELEASE_NOTES_v1.0.0.md     # first public release record
+└── RELEASE_NOTES_v1.1.0.md     # art and town remaster record
 ```
 
 The project is modularized **incrementally**. Systems move out of `game.js` when an active gameplay change creates a clear boundary; architecture work is expected to reduce regression risk rather than exist for its own sake.
 
 ## Release and validation
 
-v1.0.0 established a complete public 1→100 route, static production package and deterministic release gates. The release record reports:
+v1.0.0 established the public 1→100 route and remains the current public Release. The v1.1.0 remaster on `main` preserves that route and the existing save contract while upgrading hero, monster, guardian, final-boss and town presentation.
 
-- production-entry contract: **24/24**;
+The v1.1 change set reports:
+
+- production-entry contract: **29/29**;
 - deterministic floor 1→100 victory chain: **13/13**;
-- broad gameplay/save regression suite: **525/525**.
+- broad gameplay/save regression suite: **525/525**;
+- release contract: **11/11**;
+- site overlay and homepage mount deployment contracts: **PASS**.
 
-Post-launch work is tracked through Issues and `PRODUCTION_ROADMAP.md`. The main remaining quality targets are bespoke guardian/final-boss mechanics, milestone skill evolution, town progression identity, full-run human balance evidence and a more ambitious final visual pass.
+The main remaining quality targets are deeper guardian/final-boss mechanics, milestone skill evolution, full-run human balance evidence, combat telegraph/VFX refinement and audio polish.
 
 For maintainers, [`MAINTENANCE.md`](MAINTENANCE.md) is the concise current-state contract; it intentionally focuses on present behavior rather than old implementation transitions.
 
@@ -157,10 +163,12 @@ A few project rules matter more than code style:
 
 ## Deployment
 
-Dungeon Echo is intentionally backend-free. The game is deployed as static files at:
+Dungeon Echo is intentionally backend-free. The current public build is served at:
 
 - **Play:** https://play.91hwl.cn/dungeon-echo/
 - **Project page:** https://91hwl.cn/toys/dungeon-echo/
+
+The v1.1.0 remaster is merged on `main` but is not described as publicly deployed until the existing rollback-capable deployment path completes successfully.
 
 The deployment tooling stages an immutable release, verifies expected content, preserves the existing Web Toys tree and supports rollback on failed origin/public checks.
 
