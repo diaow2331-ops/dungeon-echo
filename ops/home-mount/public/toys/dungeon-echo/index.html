@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10131d">
+<meta name="description" content="地牢回响：四职业、百层地牢、装备锻造与城镇经营的浏览器地牢冒险。">
+<title>地牢回响 | 91hwl</title>
+<link rel="canonical" href="https://91hwl.cn/toys/dungeon-echo/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="地牢回响 | 91hwl">
+<meta property="og:description" content="选择职业，向百层地牢深处进发。打开浏览器即可游玩。">
+<meta property="og:url" content="https://91hwl.cn/toys/dungeon-echo/">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0d1018;--surface:#151a27;--surface-2:#1c2333;--text:#edf1ff;
+  --muted:#a7afc7;--line:#343e56;--accent:#85a7ef;--gold:#d8a843;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+body{
+  background:
+    radial-gradient(circle at 84% 4%,rgba(92,112,174,.22),transparent 34%),
+    linear-gradient(rgba(91,102,142,.08) 1px,transparent 1px) 0 0/42px 42px,
+    linear-gradient(90deg,rgba(91,102,142,.08) 1px,transparent 1px) 0 0/42px 42px,
+    var(--bg);
+}
+a{color:inherit}
+.shell{width:min(1040px,calc(100% - 32px));margin:0 auto;padding:26px 0 56px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:54px}
+.brand{font:900 20px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-decoration:none}
+.back{color:var(--muted);font-size:13px;text-decoration:none}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:44px;align-items:center;margin-bottom:32px}
+.eyebrow{color:var(--accent);font:800 11px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase}
+h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:13px 0 20px}
+.lead{max-width:610px;color:var(--muted);font-size:16px;line-height:1.85;margin:0 0 26px}
+.cta{display:inline-flex;align-items:center;gap:10px;padding:13px 18px;border-radius:9px;background:var(--accent);color:#0d162d;font-weight:900;text-decoration:none;box-shadow:0 12px 34px rgba(61,88,155,.28)}
+.cta:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.depth-card{min-height:300px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#111622;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+.room{position:absolute;inset:35px;border:5px solid #3a4560;background:#1d2434;box-shadow:inset 0 0 0 2px #111622}
+.room::before,.room::after{content:"";position:absolute;width:50px;height:50px;background:#111622;border:4px solid #3a4560}
+.room::before{left:-5px;bottom:34px;border-left:0}.room::after{right:-5px;top:35px;border-right:0}
+.hero-pawn{position:absolute;left:47%;top:46%;width:22px;height:31px;border:3px solid #090b11;background:#d7e6ff;box-shadow:0 0 0 4px #556fa6,21px 10px 0 -6px #85a7ef}
+.hero-pawn::before{content:"";position:absolute;left:3px;top:-17px;width:11px;height:12px;background:#d2a47e;border:2px solid #090b11}
+.torch{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 18px 8px rgba(216,168,67,.36)}
+.torch.one{left:62px;top:68px}.torch.two{right:65px;bottom:62px}
+.depth-label{position:absolute;left:53px;bottom:49px;color:#d9e2ff;font:900 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.09em}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0}
+.card{padding:22px;border:1px solid var(--line);border-radius:15px;background:rgba(21,26,39,.94)}
+.card b{display:block;margin-bottom:9px;font-size:15px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.7}
+.details{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.details .card{min-height:170px}
+.details h2{font-size:18px;margin:0 0 12px}.details ul{margin:0;padding-left:20px;color:var(--muted);font-size:13px;line-height:1.9}
+.foot{display:flex;justify-content:space-between;gap:18px;border-top:1px solid var(--line);margin-top:42px;padding-top:20px;color:var(--muted);font-size:12px}
+@media(max-width:760px){
+  .hero{grid-template-columns:1fr}.depth-card{min-height:250px}.grid{grid-template-columns:1fr}.details{grid-template-columns:1fr}.topbar{margin-bottom:34px}
+}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <a class="brand" href="/">91hwl</a>
+    <a class="back" href="/#toys">← 返回 Web Toys</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Web Toy 02 · Dungeon Crawler</div>
+      <h1>地牢<br>回响</h1>
+      <p class="lead">选择战士、游侠、秘术师或刺客，从第一层开始向下探索。在战斗、装备、锻造、补给与风险之间作出选择，最终抵达百层地牢深处。</p>
+      <a class="cta" href="https://play.91hwl.cn/dungeon-echo/">进入地牢 <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="depth-card" aria-hidden="true">
+      <div class="room"></div>
+      <div class="torch one"></div><div class="torch two"></div>
+      <div class="hero-pawn"></div>
+      <div class="depth-label">DEPTH 037 / 100</div>
+    </div>
+  </section>
+
+  <section class="grid" aria-label="游戏特性">
+    <div class="card"><b>四种职业</b><p>独立攻击方式、技能节奏与实战轮廓，装备价值会随职业和流派变化。</p></div>
+    <div class="card"><b>百层旅程</b><p>每十层进入新的章节节点，九位守卫与终局机制逐步改变战斗规则。</p></div>
+    <div class="card"><b>持续成长</b><p>有限补给、装备词条、锻造分支和城镇服务共同构成长线决策。</p></div>
+  </section>
+
+  <section class="details">
+    <div class="card">
+      <h2>操作</h2>
+      <ul>
+        <li>方向键或 WASD 移动</li>
+        <li>数字键使用技能与物品</li>
+        <li>鼠标可完成菜单与城镇操作</li>
+        <li>主要面向电脑端浏览器体验</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>运行方式</h2>
+      <ul>
+        <li>无需安装，无需账号</li>
+        <li>进度保存在当前浏览器</li>
+        <li>正式路线共 100 层</li>
+        <li>当前版本 v1.0.0</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="foot"><span>© 2026 91hwl</span><span>打开浏览器，继续向下。</span></footer>
+</main>
+</body>
+</html>
