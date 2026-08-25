@@ -46,7 +46,8 @@ ChatGPT has been used to reason about gameplay problems that were not well expla
 - turning high-rarity equipment into behavior-changing build choices;
 - keeping forging bounded instead of introducing unlimited random reroll loops;
 - analyzing the interaction between gold income, finite supplies, checkpoints, forging, selling and the fortune wheel;
-- identifying the current gap between generic guardian trait combinations and truly bespoke boss encounters;
+- identifying the gap between generic guardian trait combinations and truly bespoke boss encounters;
+- defining milestone skill evolution that changes behavior without expanding the hotkey bar;
 - defining a town direction that behaves like a persistent progression hub rather than a storage spreadsheet.
 
 The aim has been to improve player decisions, not merely increase the number of systems.
@@ -124,6 +125,22 @@ The work included:
 - aligning the repository-facing v1.1 status and release notes with the actual mainline state without claiming deployment before health checks succeed.
 
 The v1.1 visual concepts and product direction remained maintainer-controlled; the AI contribution here was repository analysis, integration reasoning, conflict resolution and implementation assistance.
+
+## v1.1 gameplay refinement pass
+
+On **2026-08-26**, GPT-5.6 Sol assisted with the gameplay-focused portion of the v1.1 release candidate.
+
+The work included:
+
+- replacing floors 20–100 guardian trait piles with incremental, readable state machines rather than rewriting the core combat engine;
+- designing and integrating one-turn telegraphs and explicit counterplay for Frost Ring, Ember Mark, Hunter Line, Mending Channel, Blood Tether, Rupture Cross, Arcane Strip, Echo Trial and the three-phase End-Abyss Sovereign finale;
+- keeping guardian specials from stacking with a normal attack on the same turn;
+- adding focused deterministic guardian transition coverage that reached **37/37** for the completed 10→100 encounter set;
+- reviewing and integrating four-class skill evolution at floors 20 / 40 / 60 / 80 while preserving the single `C` skill input and existing save schema;
+- adding focused skill-evolution coverage that reached **9/9**, including milestone catch-up and temporary-stat leakage protection;
+- keeping Issues #4 and #5 open for human-play validation after the code-side implementation was complete, rather than treating automated tests as proof of final balance.
+
+These changes were implemented through focused branches and pull requests, preserving the existing static deployment topology and local-save contracts.
 
 ## What this disclosure does not mean
 
