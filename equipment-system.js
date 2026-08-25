@@ -19,9 +19,10 @@
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
   // ---------- Class identity ----------
-  // DEF affinity is deliberately conservative. The current core still has a random
-  // anti-armor pierce rule, so production builds are steered toward HP/recovery/utility
-  // until that combat rule is replaced by telegraphed armor-break behavior.
+  // DEF affinity stays deliberately conservative until the next human-play pass.
+  // High DEF is now honest mitigation; selected enemies counter it through a visible
+  // armor-break wind-up instead of hidden random full bypass. HP/recovery remain separate
+  // survival axes rather than a workaround for a broken defense rule.
   const AFFINITY = {
     warrior:  { atk: 1.00, def: 0.65, hp: 1.26, crit: 0.82, leech: 1.08, gold: 0.90, thorns: 1.34, regen: 1.24 },
     ranger:   { atk: 1.12, def: 0.75, hp: 0.96, crit: 1.24, leech: 1.08, gold: 1.02, thorns: 0.70, regen: 1.02 },
@@ -95,8 +96,8 @@
     }
   }
 
-  // Armor gets HP as a second survival axis. This deliberately reduces the incentive
-  // for warrior to solve every problem by stacking DEF into the anti-armor pierce wall.
+  // Armor keeps HP as a second survival axis so Warrior still chooses between stable
+  // mitigation and a larger error buffer instead of solving every encounter with one stat.
   for (const b of profile.armorBases || []) {
     if (!b || b.__deArmorDoctrine || b.hp !== undefined) continue;
     try {
@@ -155,7 +156,7 @@
   // game.js currently owns only 4 static bases for these slots and stops at min=7.
   // New production loot receives an additive depth budget at the same major breakpoints
   // used by weapon/armor/ring. Defense growth stays intentionally shallow; most late
-  // survivability comes from HP/recovery so current random pierce cannot dominate builds.
+  // survivability still mixes HP/recovery with DEF so no single stat dominates builds.
   const DEEP_THRESHOLDS = [14, 22, 32, 44, 58, 74, 92];
   const SLOT_BONUS = {
     helmet: [

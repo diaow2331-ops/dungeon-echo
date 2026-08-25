@@ -1167,11 +1167,21 @@ const pThorns   = () => (player.thornsBase || 0) + eqStat('thorns');
 const pKillHeal = () => (player.regenBase || 0) + eqStat('regen');
 const pCritMul  = () => 1.8 + (player.critPower || 0) / 100;
 const pPlunder  = () => 1 + (player.plunder || 0) / 100;
-// —— 平衡反制机制（对抗「神装无敌」）——
-// 破甲一击：防御超出攻击者攻击力越多，怪物越容易打出无视护甲的全额重击。
-// 防御适度时概率为 0（前期手感不变）；堆到免疫墙附近时最高 45% 回合被穿甲。
-function pierceChanceOf(atk, def) {
-  return def <= atk ? 0 : Math.min(0.45, (def - atk) / 30);
+// —— 可读反制：隐藏随机穿甲已移除 ——
+// 普通攻击永远按护甲结算；高 DEF 不再提高任何隐藏的无视护甲概率。
+// 保留旧测试 API 名称并固定返回 0，避免外部调试脚本因接口消失而崩溃。
+function pierceChanceOf() { return 0; }
+
+function beginArmorBreak(m, mode) {
+  if (!m || !m.armorBreak || (m.armorBreakCooldown || 0) > 0 || (m.armorBreakCharge || 0) > 0) return false;
+  m.armorBreakCharge = 1;
+  m.armorBreakMode = mode === 'ranged' ? 'ranged' : 'melee';
+  floater(m, '破甲蓄力', '#e0a73a');
+  msg(m.armorBreakMode === 'ranged'
+    ? `${m.name} 锁定了你，下一回合将射出破甲重击——离开视线或射程！`
+    : `${m.name} 举起武器蓄力，下一回合将发动破甲重击——拉开距离！`, 'bad');
+  sfx.skill();
+  return true;
 }
 // 重伤期间治疗收益减半（吸血 / 药水 / 卷轴 / 神龛 / 击杀回复），自然回复停止。
 const healMult = () => ((player.grievous || 0) > 0 ? 0.5 : 1);
@@ -1366,6 +1376,8 @@ function makeMonster(base, p) {
     boom: !!base.boom || traits.includes('boom'),
     enrage: !!base.enrage || traits.includes('enrage'),
     enraged: false,
+    armorBreak: !!base.armorBreak || traits.includes('armorBreak'),
+    armorBreakCharge: 0, armorBreakMode: null, armorBreakCooldown: 0,
     alert: 0, skip: 0,
     hurtT: 0, lungeT: 0, ldx: 0, ldy: 0,
   };
@@ -1698,7 +1710,7 @@ function playerRangedAttack(m) {
   applyDamageToMonster(m, dmg, crit);
   if (m.hp > 0) msg(`${crit ? '暴击！' : ''}你射中${m.name}，造成 ${dmg} 点伤害。`);
 }
-function monsterAttack(m) {
+function monsterAttack(m, armorBreak = false) {
   lunge(m, player.x, player.y);
   // 游侠被动「灵巧」：一成几率闪开近战攻击（不挡远程——远程是游侠的克制面）
   if (classId === 'ranger' && player.hp > 0 && rng() < 0.10) {
@@ -1707,19 +1719,16 @@ function monsterAttack(m) {
     return;
   }
   const raw = m.atk + ri(-1, 1);
-  let dmg;
-  if (raw > 1 && rng() < pierceChanceOf(m.atk, pDef())) {
-    // 破甲一击：无视护甲的全额伤害，惩罚过度堆防
-    dmg = Math.max(1, raw);
-    floater(player, '破甲!', '#e0a73a');
-    msg(`${m.name} 看穿了护甲的破绽，破甲一击造成 ${dmg} 点伤害！`, 'bad');
+  const dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - pDef());
+  if (armorBreak) {
+    floater(player, '破甲重击!', '#e0a73a');
+    msg(`${m.name} 的蓄力破甲命中，造成 ${dmg} 点无视护甲伤害！`, 'bad');
   } else {
-    dmg = Math.max(1, raw - pDef());
     msg(`${m.name}击中你，造成 ${dmg} 点伤害！`, 'bad');
   }
   player.hp -= dmg;
   floater(player, `-${dmg}`, '#ff6b6b');
-  addTrauma(0.35); sfx.hurt();
+  addTrauma(armorBreak ? 0.48 : 0.35); sfx.hurt();
   if (m.poison) {
     player.poison = Math.max(player.poison || 0, 3);
     msg('毒素渗进伤口。', 'bad');
@@ -2547,22 +2556,20 @@ function randomStep(m) {
     m.x = nx; m.y = ny;
   }
 }
-function monsterRangedAttack(m) {
+function monsterRangedAttack(m, armorBreak = false) {
   fireArrow(m.x, m.y, player.x, player.y);
   const raw = Math.round(m.atk * 0.8) + ri(-1, 1);
   const effDef = Math.floor(pDef() / 2);
-  let dmg;
-  if (raw > 1 && rng() < pierceChanceOf(m.atk, pDef())) {
-    dmg = Math.max(1, raw);
-    floater(player, '破甲!', '#e0a73a');
-    msg(`${m.name} 的射击看穿护甲，造成 ${dmg} 点伤害！`, 'bad');
+  const dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - effDef);
+  if (armorBreak) {
+    floater(player, '破甲重击!', '#e0a73a');
+    msg(`${m.name} 的蓄力射击命中，造成 ${dmg} 点无视护甲伤害！`, 'bad');
   } else {
-    dmg = Math.max(1, raw - effDef);
     msg(`${m.name} 远程袭击你，造成 ${dmg} 点伤害！`, 'bad');
   }
   player.hp -= dmg;
   floater(player, `-${dmg}`, '#ff6b6b');
-  addTrauma(0.32); sfx.hurt();
+  addTrauma(armorBreak ? 0.45 : 0.32); sfx.hurt();
   if ((m.elite || m.boss || m.midBoss) && player.hp > 0) applyGrievous();
   if (m.poison) {
     player.poison = Math.max(player.poison || 0, 3);
@@ -2581,8 +2588,38 @@ function monstersTurn() {
       m.hp = Math.min(m.maxHp, m.hp + r);
       floater(m, `+${r}`, '#7dd87d');
     }
+    if ((m.armorBreakCooldown || 0) > 0) m.armorBreakCooldown--;
     const cheb = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
     const adj = Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1;
+
+    // 已经亮出破甲蓄力：下一回合只有目标仍在原攻击条件内才会命中。
+    // 玩家拉开距离/脱离视线会让这一整回合落空，形成明确的可操作反制。
+    if ((m.armorBreakCharge || 0) > 0) {
+      const rangedBreak = m.armorBreakMode === 'ranged';
+      const valid = rangedBreak
+        ? !!(m.ranged && canSeePlayer(m) && cheb <= m.ranged)
+        : adj;
+      m.armorBreakCharge = 0;
+      m.armorBreakMode = null;
+      if (valid) {
+        if (rangedBreak) monsterRangedAttack(m, true);
+        else monsterAttack(m, true);
+        m.armorBreakCooldown = 3;
+        if (state !== 'playing') return;
+      } else {
+        m.armorBreakCooldown = 1;
+        floater(m, '蓄力落空', '#9b8d78');
+        msg(`你避开了${m.name}的破甲重击窗口。`, 'good');
+      }
+      continue;
+    }
+
+    // 特定敌人才具备破甲能力；先给完整一回合预警，不再用隐藏概率惩罚高防。
+    if (m.armorBreak && (m.armorBreakCooldown || 0) <= 0) {
+      if (adj && beginArmorBreak(m, 'melee')) continue;
+      if (m.ranged && canSeePlayer(m) && cheb <= m.ranged && beginArmorBreak(m, 'ranged')) continue;
+    }
+
     if (adj) {
       monsterAttack(m);
       if (state !== 'playing') return;
@@ -2667,6 +2704,21 @@ function drawEntity(e, spr, size, now) {
     ctx.globalAlpha = Math.min(1, e.hurtT);
     ctx.drawImage(spr.white, px - size / 2, py - size / 2, size, size);
     ctx.globalAlpha = 1;
+  }
+  if ((e.armorBreakCharge || 0) > 0) {
+    ctx.save();
+    ctx.strokeStyle = '#e0a73a';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = .9;
+    ctx.beginPath();
+    ctx.arc(px, py, size * .58, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#f2d27b';
+    ctx.font = `bold ${Math.max(14, Math.round(size * .42))}px "Segoe UI",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('!', px, py - size * .72);
+    ctx.restore();
   }
   return [px, py];
 }
@@ -4236,7 +4288,7 @@ if (typeof window !== 'undefined') {
     genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
     persistRun, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
-    makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, spawnCasks, endTurn,
+    makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
     pThorns, pKillHeal, pMaxHp, pDef, eqScoreOf, pierceChanceOf,
     canDescendNow, isFinalFloor,
     get greedy() { return greedyMode; },

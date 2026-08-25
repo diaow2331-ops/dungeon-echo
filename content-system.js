@@ -1,7 +1,8 @@
 /* Dungeon Echo production content bridge v1.
  * Adds late-game chapter palettes so floors 85-100 do not clamp to one theme, and
  * gives each ten-floor guardian a distinct behavior combination using mechanics the
- * core already understands. Final bespoke boss phases can replace this bridge later.
+ * core already understands. Floor 10 now teaches the first telegraphed counterplay rule;
+ * later bespoke boss phases can replace the remaining interim combinations.
  */
 (() => {
   'use strict';
@@ -30,7 +31,8 @@
   // data module to combat implementation. Bespoke telegraphed phases remain a later P1.
   const guardians = Array.isArray(p.midBosses) ? p.midBosses : [];
   const patch = {
-    10: { enrage: true },
+    // 第一位守卫是破甲教学：先亮出蓄力，再给玩家一整回合拉开距离。
+    10: { armorBreak: true },
     20: { slow: true, regen: true },
     30: { boom: true, enrage: true },
     40: { ranged: 3 },

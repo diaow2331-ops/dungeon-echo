@@ -607,11 +607,11 @@ section('15 词缀：反伤 / 击杀回复');
 
 // 15.1 静态合同：所有 profile 必须声明 thorns/regen 数值区间
 {
-  const pdir = __dirname + '\\..\\profiles';
+  const pdir = path.resolve(__dirname, '..', 'profiles');
   const files = fs.readdirSync(pdir).filter(f => f.endsWith('.profile.js'));
   ok(files.length >= 7, `profile 文件齐备（${files.length} 个）`);
   const missing = files.filter(f => {
-    const txt = fs.readFileSync(pdir + '\\' + f, 'utf8');
+    const txt = fs.readFileSync(path.join(pdir, f), 'utf8');
     return !txt.includes('thorns:') || !txt.includes('regen:');
   });
   ok(missing.length === 0, `全部 profile 声明 thorns/regen 区间${missing.length ? '，缺：' + missing.join(',') : ''}`);
@@ -703,17 +703,16 @@ ok(T.pKillHeal() === 7, 'pKillHeal 汇总穿戴回复');
   ok(seen.has('thorns') && seen.has('regen'), '深度 40 下新词缀实际掉落出现');
 }
 
-// ---------- 16. 平衡反制：破甲一击 + 重伤 ----------
-section('16 平衡反制：破甲 / 重伤');
+// ---------- 16. 平衡反制：可读破甲 + 重伤 ----------
+section('16 平衡反制：可读破甲 / 重伤');
 
-// 16.1 破甲概率公式（确定性）
-ok(T.pierceChanceOf(10, 10) === 0, '防御不高于攻击时破甲率为 0');
-ok(T.pierceChanceOf(10, 16) === 0.2, '超出 6 点 → 20%');
-ok(T.pierceChanceOf(10, 25) === 0.45, '超出 15 点即触顶 45%');
-ok(T.pierceChanceOf(10, 100) === 0.45, '极端堆防被封顶在 45%');
+// 16.1 旧隐藏随机穿甲接口固定归零：高防不再反向提高受穿甲概率
+ok(T.pierceChanceOf(10, 10) === 0, '同攻防时隐藏穿甲率为 0');
+ok(T.pierceChanceOf(10, 25) === 0, '高防时隐藏穿甲率仍为 0');
+ok(T.pierceChanceOf(10, 100) === 0, '极端高防也不会触发隐藏随机穿甲');
 
-// 16.2 免疫墙被打破：高防玩家必然吃到全额破甲伤害
-T.setSeed('pierce-wall');
+// 16.2 普通怪物面对高防只能按正常护甲公式造成地板伤害
+T.setSeed('honest-defense');
 T.newGame('warrior');
 T.player.equip.armor = { slot: 'armor', name: '城墙板甲', score: 999, icon: 'iron-armor',
   rarity: 4, stats: { def: 200 }, base: { name: '城墙板甲' }, affixes: [], spr: 'armor', forge: 5 };
@@ -721,29 +720,73 @@ T.player.equip.armor = { slot: 'armor', name: '城墙板甲', score: 999, icon: 
   const v = T.monsters.find(x => !x.boss && !x.midBoss);
   v.x = T.player.x + 1; v.y = T.player.y;
   v.maxHp = 99999; v.hp = 99999; v.atk = 10; v.poison = 0; v.leech = 0;
-  v.boom = 0; v.enrage = 0; v.elite = false; v.xp = 0;
-  let maxDmg = 0, minDmg = 999, floorHits = 0;
-  for (let i = 0; i < 300; i++) {
-    T.player.hp = 99999;                       // 防止死亡干扰
+  v.boom = 0; v.enrage = 0; v.elite = false; v.armorBreak = false; v.xp = 0;
+  let maxDmg = 0;
+  for (let i = 0; i < 120; i++) {
+    T.player.hp = 99999;
     const before = T.player.hp;
     T.monsterAttack(v);
-    const d = before - T.player.hp;
-    if (d > maxDmg) maxDmg = d;
-    if (d < minDmg) minDmg = d;
-    if (d <= 2) floorHits++;
+    maxDmg = Math.max(maxDmg, before - T.player.hp);
   }
-  ok(maxDmg >= 8, `免疫墙已破：300 次攻击中最高单击 ${maxDmg}（旧公式恒为 1）`);
-  ok(floorHits > 50, `护甲仍挡下大部分普通攻击（${floorHits}/300 次地板伤）`);
+  ok(maxDmg === 1, `普通攻击尊重高防：120 次最高单击 ${maxDmg}`);
 }
 
-// 16.3 重伤：精英/Boss 命中施加，普通怪物不施加
+// 16.3 破甲敌人先蓄力；玩家离开攻击范围后重击落空
+T.setSeed('armor-break-telegraph');
+T.newGame('warrior');
+T.player.equip.armor = { slot: 'armor', name: '城墙板甲', score: 999, icon: 'iron-armor',
+  rarity: 4, stats: { def: 200 }, base: { name: '城墙板甲' }, affixes: [], spr: 'armor', forge: 5 };
+{
+  T.monsters.splice(0, T.monsters.length);
+  const m = T.makeMonster({
+    name: '破甲教官', sprite: 'skeleton', color: '#fff', hp: 99999, atk: 12, def: 0, xp: 0,
+    min: 1, max: 100, armorBreak: true,
+  }, { x: T.player.x + 1, y: T.player.y });
+  T.monsters.push(m);
+  T.player.hp = 500;
+  const before = T.player.hp;
+  T.monstersTurn();
+  ok(T.player.hp === before && m.armorBreakCharge === 1, '破甲第一回合只蓄力，不偷伤害');
+  T.player.x += 3;
+  T.monstersTurn();
+  ok(T.player.hp === before && m.armorBreakCharge === 0, '离开近战范围后蓄力落空');
+}
+
+// 16.4 若玩家留在窗口内，下一回合才结算无视护甲的明确重击
+T.setSeed('armor-break-resolve');
+T.newGame('warrior');
+T.player.equip.armor = { slot: 'armor', name: '城墙板甲', score: 999, icon: 'iron-armor',
+  rarity: 4, stats: { def: 200 }, base: { name: '城墙板甲' }, affixes: [], spr: 'armor', forge: 5 };
+{
+  T.monsters.splice(0, T.monsters.length);
+  const m = T.makeMonster({
+    name: '破甲教官', sprite: 'skeleton', color: '#fff', hp: 99999, atk: 12, def: 0, xp: 0,
+    min: 1, max: 100, armorBreak: true,
+  }, { x: T.player.x + 1, y: T.player.y });
+  T.monsters.push(m);
+  T.player.hp = 500;
+  T.monstersTurn();
+  const before = T.player.hp;
+  T.monstersTurn();
+  const dmg = before - T.player.hp;
+  ok(dmg >= 11, `破甲重击只在第二回合结算且无视护甲（实际 ${dmg}）`);
+  ok(m.armorBreakCooldown === 3, '破甲命中后进入 3 回合冷却，不会连续蓄力');
+}
+
+// 16.5 第 10 层守卫是生产路线里的第一只破甲教学敌人
+{
+  const contentSource = fs.readFileSync(__dirname + '/../content-system.js', 'utf8');
+  ok(contentSource.includes('10: { armorBreak: true }'), '第 10 层守卫显式启用 armorBreak 教学机制');
+}
+
+// 16.6 重伤：精英/Boss 命中施加，普通怪物不施加
 T.setSeed('grievous');
 T.newGame('warrior');
 {
   const e = T.monsters.find(x => !x.boss && !x.midBoss);
   e.x = T.player.x + 1; e.y = T.player.y;
   e.maxHp = 99999; e.hp = 99999; e.atk = 1; e.poison = 0; e.leech = 0;
-  e.boom = 0; e.enrage = 0; e.elite = true;
+  e.boom = 0; e.enrage = 0; e.elite = true; e.armorBreak = false;
   T.player.hp = 500;
   T.monsterAttack(e);
   ok(T.player.grievous === 3, '精英命中施加重伤 3 回合');
@@ -753,16 +796,16 @@ T.newGame('warrior');
   const n = T.monsters.find(x => !x.boss && !x.midBoss);
   n.x = T.player.x + 1; n.y = T.player.y;
   n.maxHp = 99999; n.hp = 99999; n.atk = 1; n.poison = 0; n.leech = 0;
-  n.boom = 0; n.enrage = 0; n.elite = false;
+  n.boom = 0; n.enrage = 0; n.elite = false; n.armorBreak = false;
   T.player.hp = 500;
   T.monsterAttack(n);
   ok((T.player.grievous || 0) === 0, '普通怪物命中不施加重伤');
 }
 
-// 16.4 重伤期间治疗减半：药水（清空怪物以隔离 usePotion 末尾的 endTurn 反击）
+// 16.7 重伤期间治疗减半：药水（清空怪物以隔离 usePotion 末尾的 endTurn 反击）
 {
   const depth = T.depth;
-  const fullHeal = Math.round((14 + depth * 2) * 0.5);      // 重伤减半
+  const fullHeal = Math.round((14 + depth * 2) * 0.5);
   T.monsters.splice(0, T.monsters.length);
   T.player.grievous = 3;
   T.player.potions = 1;
@@ -775,16 +818,17 @@ T.newGame('warrior');
   T.player.potions = 1;
   T.player.hp = 5;
   T.usePotion();
-  const fullHeal = Math.round(14 + T.depth * 2);            // 无重伤，全额
+  const fullHeal = Math.round(14 + T.depth * 2);
   ok(T.player.hp === 5 + fullHeal, '无重伤时药水治疗正常');
 }
 
-// 16.5 重伤期间吸血减半（使用构造的假怪物，避免依赖场上刷怪）
+// 16.8 重伤期间吸血减半（使用构造的假怪物，避免依赖场上刷怪）
 {
   const mkFake = () => ({ name: '测试靶子', x: 1, y: 1, fx: 1, fy: 1, color: '#fff',
     maxHp: 99999, hp: 99999, atk: 1, def: 0, xp: 0, sprite: 'rat',
     poison: false, leech: 0, boom: false, enrage: false, enraged: false,
     elite: false, boss: false, midBoss: false, regen: false, slow: false, erratic: false,
+    armorBreak: false, armorBreakCharge: 0, armorBreakMode: null, armorBreakCooldown: 0,
     traits: [], alert: 0, skip: 0, hurtT: 0, lungeT: 0, ldx: 0, ldy: 0 });
   T.player.equip.ring = { slot: 'ring', name: '百吸戒', score: 999, icon: 'copper-ring',
     rarity: 4, stats: { leech: 100 }, base: { name: '百吸戒' }, affixes: [], spr: 'ring', forge: 0 };
@@ -803,11 +847,11 @@ section('17 掉落稀缺性：贪婪洞窟式难获得');
 
 // 17.1 静态合同：所有档位的掉落率上限
 {
-  const pdir = __dirname + '\\..\\profiles';
+  const pdir = path.resolve(__dirname, '..', 'profiles');
   const files = fs.readdirSync(pdir).filter(f => f.endsWith('.profile.js'));
   const offenders = [];
   for (const f of files) {
-    const txt = fs.readFileSync(pdir + '\\' + f, 'utf8');
+    const txt = fs.readFileSync(path.join(pdir, f), 'utf8');
     const kl = txt.match(/killLoot: \{[^}]*\}/);
     const lc = txt.match(/lootChances: \{[^}]*\}/);
     const pc = txt.match(/potionLo: (\d+), potionHi: (\d+)/);
@@ -886,10 +930,11 @@ ok(T.meta.wheelSlots.every(s => s && typeof s.kind === 'string'), '每格都有�
 {
   const g0 = T.meta.gold;
   T.meta.gold = g0 < 500 ? g0 + 500 : g0;
+  T.meta.wheelSlots = Array.from({ length: 8 }, () => ({ kind: 'nothing' }));
   const g1 = T.meta.gold;
   const s0 = T.meta.wheelSpins;
   T.spinWheel();
-  ok(T.meta.gold === g1 - 40, `抽奖精确扣费 40 G（实际 -${g1 - T.meta.gold}）`);
+  ok(T.meta.gold === g1 - 40, `抽奖精确扣费 40 G（空奖隔离后实际 -${g1 - T.meta.gold}）`);
   ok(T.meta.wheelSpins === s0 + 1, '抽数计数 +1（下一抽将涨价）');
 }
 // 18.4 金币不足拒绝
