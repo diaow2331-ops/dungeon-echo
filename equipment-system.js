@@ -253,7 +253,8 @@
       prepareFreshItem(row.item, d);
       if (!row.__deFitPrice) {
         const mult = (profile.shop && profile.shop.equipMult) || 3;
-        row.price = Math.max(18, row.item.score * mult);
+        const value = typeof api.itemValueScore === 'function' ? api.itemValueScore(row.item) : row.item.score;
+        row.price = Math.max(18, value * mult);
         try { Object.defineProperty(row, '__deFitPrice', { value: true, enumerable: false }); }
         catch (e) { row.__deFitPrice = true; }
       }
