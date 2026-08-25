@@ -90,5 +90,14 @@ window.DE_SKILL_EVOLUTION.cast();
 ok(atkSeen > 10 && player.atkBase === 10,
   'assassin execute boosts a low-health target cast without leaking base attack');
 
+classId = 'warrior';
+player.talents = ['se_w20_guard', 'se_w60_pressure']; player.skillCd = 0; api.depth = 60;
+api.monsters = [{ x: 9, y: 9, hp: 30, maxHp: 30, def: 0 }];
+const baseAtk = player.atkBase, baseDr = player.flatDr, baseHaste = player.skillHaste;
+api.useSkill = () => {};
+window.DE_SKILL_EVOLUTION.cast();
+ok(player.atkBase === baseAtk && player.flatDr === baseDr && player.skillHaste === baseHaste,
+  'failed casts do not leak temporary permanent stats');
+
 console.log(`\nSkill evolution: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
