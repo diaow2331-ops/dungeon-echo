@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#10131d">
-<meta name="description" content="地牢回响：四职业、百层地牢、装备锻造与城镇经营的浏览器地牢冒险。">
+<meta name="description" content="地牢回响 v1.1：四职业、百层地牢、技能进化、可读 Boss、装备锻造与城镇经营的浏览器 Roguelike。">
 <title>地牢回响 | 91hwl</title>
 <link rel="canonical" href="https://91hwl.cn/toys/dungeon-echo/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:title" content="地牢回响 | 91hwl">
-<meta property="og:description" content="选择职业，向百层地牢深处进发。打开浏览器即可游玩。">
+<meta property="og:description" content="四职业百层 Roguelike：技能进化、可读守卫机制、装备构筑与贪婪远征。打开浏览器即可游玩。">
 <meta property="og:url" content="https://91hwl.cn/toys/dungeon-echo/">
 <style>
 :root{
@@ -68,9 +68,9 @@ h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:1
 
   <section class="hero">
     <div>
-      <div class="eyebrow">Web Toy 02 · Dungeon Crawler</div>
+      <div class="eyebrow">Web Toy 02 · Dungeon Crawler · v1.1</div>
       <h1>地牢<br>回响</h1>
-      <p class="lead">选择战士、游侠、秘术师或刺客，从第一层开始向下探索。在战斗、装备、锻造、补给与风险之间作出选择，最终抵达百层地牢深处。</p>
+      <p class="lead">选择战士、游侠、秘术师或刺客，从第一层开始向下探索。在战斗、装备、锻造、补给与回城风险之间作出选择；每十层面对可学习的守卫机制，并在 20 / 40 / 60 / 80 层逐步进化职业技能，最终挑战百层三阶段终局。</p>
       <a class="cta" href="https://play.91hwl.cn/dungeon-echo/">进入地牢 <span aria-hidden="true">→</span></a>
     </div>
     <div class="depth-card" aria-hidden="true">
@@ -82,28 +82,28 @@ h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:1
   </section>
 
   <section class="grid" aria-label="游戏特性">
-    <div class="card"><b>四种职业</b><p>独立攻击方式、技能节奏与实战轮廓，装备价值会随职业和流派变化。</p></div>
-    <div class="card"><b>百层旅程</b><p>每十层进入新的章节节点，九位守卫与终局机制逐步改变战斗规则。</p></div>
-    <div class="card"><b>持续成长</b><p>有限补给、装备词条、锻造分支和城镇服务共同构成长线决策。</p></div>
+    <div class="card"><b>四种职业</b><p>独立攻击方式、技能节奏与构筑轮廓；技能在 20 / 40 / 60 / 80 层继续分化，但始终保持同一个 C 键操作。</p></div>
+    <div class="card"><b>百层守卫</b><p>每十层进入新的章节节点，九位守卫与三阶段终局使用明确预警和可反制机制，而不是只增加数值。</p></div>
+    <div class="card"><b>贪婪成长</b><p>有限补给、装备词条、锻造分支、检查点与城镇服务共同决定继续深入还是带着战利品回家。</p></div>
   </section>
 
   <section class="details">
     <div class="card">
       <h2>操作</h2>
       <ul>
-        <li>方向键或 WASD 移动</li>
-        <li>数字键使用技能与物品</li>
-        <li>鼠标可完成菜单与城镇操作</li>
-        <li>主要面向电脑端浏览器体验</li>
+        <li>方向键 / WASD 移动，鼠标可点击已探索地块</li>
+        <li>C 职业技能 · Q 药水 · E 卷轴</li>
+        <li>T 回城（贪婪远征）· Enter 下楼 · Esc 暂停</li>
+        <li>支持原生 Gamepad API，主要面向电脑端浏览器</li>
       </ul>
     </div>
     <div class="card">
       <h2>运行方式</h2>
       <ul>
-        <li>无需安装，无需账号</li>
-        <li>进度保存在当前浏览器</li>
-        <li>正式路线共 100 层</li>
-        <li>当前版本 v1.1.0</li>
+        <li>无需安装，无需账号，无运行时后端</li>
+        <li>进度保存在当前浏览器 localStorage</li>
+        <li>正式路线固定为 1 → 100 层</li>
+        <li>当前候选版本 v1.1.0</li>
       </ul>
     </div>
   </section>
