@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="system">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="91hwl：个人开发日志、工程笔记与浏览器 Web Toys。">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="91hwl | Dev Log & Web Toys">
+    <meta property="og:description" content="个人开发日志、工程笔记与浏览器 Web Toys。">
+    <meta property="og:url" content="https://91hwl.cn/">
+    <link rel="canonical" href="https://91hwl.cn/">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <meta name="theme-color" content="#0b0b0a" id="themeColorMeta">
+    <title>91hwl | Dev Log & Web Toys</title>
+
+    <script>
+    (() => {
+        try {
+            const saved = localStorage.getItem('91hwl_theme');
+            if (saved === 'light' || saved === 'dark' || saved === 'system') {
+                document.documentElement.dataset.theme = saved;
+            }
+        } catch (_) {}
+    })();
+    </script>
+
+    <style>
+        :root {
+            --bg: #0b0b0a;
+            --surface: #11110f;
+            --surface-2: #171714;
+            --surface-3: #1c1c18;
+            --text: #f1f0eb;
+            --dim: #a29f95;
+            --muted: #6f6c64;
+            --line: #2b2a25;
+            --line-strong: #3b3932;
+            --accent: #facc15;
+            --accent-soft: rgba(250, 204, 21, .09);
+            --accent-ink: #171207;
+            --shadow: 0 18px 60px rgba(0,0,0,.18);
+            --max: 1040px;
+        }
+
+        html[data-theme="light"] {
+            --bg: #f3f0e7;
+            --surface: #faf8f1;
+            --surface-2: #fffdf8;
+            --surface-3: #eee9dc;
+            --text: #181713;
+            --dim: #666159;
+            --muted: #8a8478;
+            --line: #ddd7c8;
+            --line-strong: #c9c1ae;
+            --accent: #e6b800;
+            --accent-soft: rgba(230, 184, 0, .11);
+            --accent-ink: #181205;
+            --shadow: 0 18px 60px rgba(78,67,42,.08);
+        }
+
+        @media (prefers-color-scheme: light) {
+            html[data-theme="system"] {
+                --bg: #f3f0e7;
+                --surface: #faf8f1;
+                --surface-2: #fffdf8;
+                --surface-3: #eee9dc;
+                --text: #181713;
+                --dim: #666159;
+                --muted: #8a8478;
+                --line: #ddd7c8;
+                --line-strong: #c9c1ae;
+                --accent: #e6b800;
+                --accent-soft: rgba(230, 184, 0, .11);
+                --accent-ink: #181205;
+                --shadow: 0 18px 60px rgba(78,67,42,.08);
+            }
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 75% 5%, var(--accent-soft), transparent 27rem),
+                var(--bg);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.65;
+            transition: background-color .18s ease, color .18s ease;
+        }
+        button, a { -webkit-tap-highlight-color: transparent; }
+        a { color: inherit; }
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+
+        .shell {
+            width: min(calc(100% - 40px), var(--max));
+            margin: 0 auto;
+            padding: 30px 0 48px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            min-height: 44px;
+            margin-bottom: 70px;
+        }
+        .brand {
+            color: var(--accent);
+            font-weight: 950;
+            letter-spacing: -1.1px;
+            text-decoration: none;
+            font-size: 23px;
+        }
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .nav {
+            display: flex;
+            gap: 18px;
+            font-size: 13px;
+            color: var(--dim);
+        }
+        .nav a {
+            text-decoration: none;
+            transition: color .15s ease;
+        }
+        .nav a:hover { color: var(--text); }
+
+        .theme-switch {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            border-radius: 9px;
+        }
+        .theme-switch button {
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font: 750 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            cursor: pointer;
+        }
+        .theme-switch button:hover { color: var(--text); }
+        .theme-switch button[aria-pressed="true"] {
+            background: var(--surface-3);
+            color: var(--text);
+            box-shadow: inset 0 0 0 1px var(--line);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr);
+            gap: 54px;
+            align-items: end;
+            margin-bottom: 78px;
+        }
+        .eyebrow, .section-kicker {
+            margin: 0 0 13px;
+            color: var(--accent);
+            font: 800 11px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        h1 {
+            margin: 0 0 20px;
+            max-width: 720px;
+            font-size: clamp(42px, 7vw, 72px);
+            line-height: .99;
+            letter-spacing: -3.5px;
+        }
+        .hero-copy {
+            max-width: 640px;
+            margin: 0;
+            color: var(--dim);
+            font-size: 15px;
+        }
+        .now-card {
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(6px);
+        }
+        .now-card .label {
+            color: var(--muted);
+            font: 800 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            letter-spacing: .12em;
+            margin-bottom: 13px;
+        }
+        .now-card strong {
+            display: block;
+            margin-bottom: 9px;
+            font-size: 16px;
+            letter-spacing: -.2px;
+        }
+        .now-card p {
+            margin: 0;
+            color: var(--dim);
+            font-size: 12px;
+        }
+        .now-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .stat {
+            border-top: 1px solid var(--line);
+            padding-top: 10px;
+        }
+        .stat b {
+            display: block;
+            font-size: 20px;
+            line-height: 1.1;
+        }
+        .stat span {
+            color: var(--muted);
+            font: 700 9px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            text-transform: uppercase;
+        }
+
+        section { scroll-margin-top: 26px; }
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 18px;
+            margin-bottom: 15px;
+        }
+        .section-head h2 {
+            margin: 0;
+            font-size: 13px;
+            color: var(--dim);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .section-head span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .toy-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--line-strong);
+            border-radius: 18px;
+            background: var(--surface-2);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+        #toys .toy-card:last-child { margin-bottom: 72px; }
+        .toy-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(120deg, var(--accent-soft), transparent 34%),
+                linear-gradient(310deg, var(--accent-soft), transparent 26%);
+            opacity: .75;
+        }
+        .toy-grid {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 390px;
+            gap: 42px;
+            align-items: center;
+            padding: 32px;
+        }
+        .toy-meta {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .pill {
+            border: 1px solid var(--line-strong);
+            color: var(--dim);
+            padding: 4px 8px;
+            border-radius: 999px;
+            font: 750 9px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .toy-card h3 {
+            margin: 0 0 10px;
+            font-size: clamp(26px, 4vw, 38px);
+            letter-spacing: -1.2px;
+        }
+        .toy-card p {
+            margin: 0 0 22px;
+            max-width: 520px;
+            color: var(--dim);
+            font-size: 14px;
+        }
+        .play-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 11px 15px;
+            border-radius: 8px;
+            background: var(--accent);
+            color: var(--accent-ink);
+            font-weight: 900;
+            font-size: 13px;
+            text-decoration: none;
+            transition: transform .15s ease, filter .15s ease;
+        }
+        .play-link:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+        .preview {
+            min-height: 214px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid var(--line-strong);
+            background:
+                linear-gradient(var(--line) 1px, transparent 1px) 0 70% / 100% 31px,
+                linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 70% / 62px 100%,
+                var(--surface);
+        }
+        .preview-window {
+            position: absolute;
+            left: 28px;
+            right: 28px;
+            top: 26px;
+            height: 64px;
+            border: 3px solid var(--muted);
+            background: #bdd4dd;
+            opacity: .8;
+        }
+        html[data-theme="dark"] .preview-window { background: #26383f; }
+        @media (prefers-color-scheme: dark) {
+            html[data-theme="system"] .preview-window { background: #26383f; }
+        }
+        .preview-window::after {
+            content: "";
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            border-left: 2px solid var(--muted);
+        }
+        .preview-partition {
+            position: absolute;
+            left: 0; right: 0; top: 116px;
+            height: 43px;
+            background: var(--surface-3);
+            border-top: 2px solid var(--line-strong);
+            border-bottom: 1px solid var(--line);
+        }
+        .preview-desk {
+            position: absolute;
+            right: 34px;
+            bottom: 35px;
+            width: 128px;
+            height: 7px;
+            background: #9b866b;
+            box-shadow: 12px 8px 0 #6e5d4d, 100px 8px 0 #6e5d4d;
+        }
+        .preview-monitor {
+            position: absolute;
+            right: 73px;
+            bottom: 43px;
+            width: 48px;
+            height: 31px;
+            border: 4px solid #686868;
+            background: #c7dce4;
+        }
+        .preview-tower {
+            position: absolute;
+            right: 34px;
+            bottom: 31px;
+            width: 23px;
+            height: 46px;
+            border: 3px solid #5c5c5c;
+            background: #2a2a2a;
+        }
+        .preview-runner {
+            position: absolute;
+            left: 48px;
+            bottom: 30px;
+            width: 22px;
+            height: 45px;
+            background: #f1f0eb;
+            border: 3px solid #555;
+        }
+        .preview-runner::before {
+            content: "";
+            position: absolute;
+            left: 2px;
+            top: -16px;
+            width: 12px;
+            height: 12px;
+            background: #d4aa84;
+            border: 2px solid #555;
+        }
+        .preview-ground {
+            position: absolute;
+            left: 0; right: 0; bottom: 24px;
+            height: 4px;
+            background: var(--accent);
+            box-shadow: 0 -2px 0 color-mix(in srgb, var(--text) 22%, transparent);
+        }
+        .dungeon-preview {
+            background:
+                linear-gradient(rgba(91,102,142,.22) 1px, transparent 1px) 0 0 / 42px 42px,
+                linear-gradient(90deg, rgba(91,102,142,.22) 1px, transparent 1px) 0 0 / 42px 42px,
+                #11131d;
+        }
+        .dungeon-room {
+            position: absolute;
+            inset: 25px 28px 31px;
+            border: 5px solid #3a4056;
+            box-shadow: inset 0 0 0 2px #171a27;
+            background:
+                radial-gradient(circle at 22% 28%, #d8a843 0 3px, transparent 4px),
+                radial-gradient(circle at 80% 70%, #8e5dd0 0 4px, transparent 5px),
+                #1d2231;
+        }
+        .dungeon-room::before,
+        .dungeon-room::after {
+            content: "";
+            position: absolute;
+            width: 42px;
+            height: 42px;
+            background: #11131d;
+            border: 4px solid #3a4056;
+        }
+        .dungeon-room::before { left: -5px; bottom: 25px; border-left: 0; }
+        .dungeon-room::after { right: -5px; top: 24px; border-right: 0; }
+        .dungeon-hero {
+            position: absolute;
+            left: 44%;
+            top: 44%;
+            width: 18px;
+            height: 25px;
+            border: 3px solid #0d0f17;
+            background: #d7e6ff;
+            box-shadow: 0 0 0 3px #556fa6, 18px 8px 0 -5px #85a7ef;
+        }
+        .dungeon-hero::before {
+            content: "";
+            position: absolute;
+            left: 2px;
+            top: -14px;
+            width: 9px;
+            height: 10px;
+            background: #d2a47e;
+            border: 2px solid #0d0f17;
+        }
+        .dungeon-chest {
+            position: absolute;
+            right: 58px;
+            bottom: 47px;
+            width: 34px;
+            height: 24px;
+            border: 3px solid #17110a;
+            background: #b9772d;
+            box-shadow: inset 0 8px 0 #d59a43;
+        }
+        .dungeon-depth {
+            position: absolute;
+            left: 42px;
+            top: 35px;
+            color: #d9e2ff;
+            font: 900 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            letter-spacing: .08em;
+        }
+
+        .notes {
+            margin-bottom: 72px;
+        }
+        .post-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .post {
+            min-height: 170px;
+            display: flex;
+            flex-direction: column;
+            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--surface);
+            transition: border-color .15s ease, transform .15s ease;
+        }
+        .post:hover {
+            border-color: var(--line-strong);
+            transform: translateY(-1px);
+        }
+        .date {
+            color: var(--muted);
+            font: 750 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        .post h3 {
+            margin: 10px 0 9px;
+            font-size: 17px;
+            letter-spacing: -.3px;
+        }
+        .post p {
+            margin: 0;
+            color: var(--dim);
+            font-size: 13px;
+        }
+        code {
+            background: var(--surface-3);
+            color: var(--accent);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            padding-top: 21px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font: 700 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        @media (max-width: 850px) {
+            .hero { grid-template-columns: 1fr; gap: 28px; }
+            .now-card { max-width: 440px; }
+            .toy-grid { grid-template-columns: 1fr; }
+            .preview { min-height: 190px; order: -1; }
+        }
+
+        @media (max-width: 620px) {
+            .shell { width: min(calc(100% - 28px), var(--max)); padding-top: 18px; }
+            .topbar {
+                align-items: flex-start;
+                margin-bottom: 48px;
+            }
+            .top-actions {
+                align-items: flex-end;
+                flex-direction: column-reverse;
+                gap: 9px;
+            }
+            .nav { gap: 13px; }
+            .theme-switch button { padding: 6px 7px; font-size: 10px; }
+            h1 { font-size: clamp(40px, 13vw, 58px); letter-spacing: -2.7px; }
+            .hero { margin-bottom: 58px; }
+            .toy-grid { padding: 18px; gap: 22px; }
+            .toy-card { margin-bottom: 58px; }
+            .preview { min-height: 168px; }
+            .post-grid { grid-template-columns: 1fr; }
+            .post { min-height: auto; }
+            .footer { flex-direction: column; gap: 5px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            * { transition: none !important; }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="shell">
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="91hwl 首页">91hwl</a>
+
+            <div class="top-actions">
+                <nav class="nav" aria-label="主导航">
+                    <a href="#toys">Web Toys</a>
+                    <a href="#notes">Notes</a>
+                </nav>
+
+                <div class="theme-switch" role="group" aria-label="页面主题">
+                    <button type="button" data-theme-choice="system">自动</button>
+                    <button type="button" data-theme-choice="light">浅色</button>
+                    <button type="button" data-theme-choice="dark">深色</button>
+                </div>
+            </div>
+        </header>
+
+        <section class="hero" aria-labelledby="hero-title">
+            <div>
+                <div class="eyebrow">Personal Dev Log</div>
+                <h1 id="hero-title">做点东西。<br>顺手记下来。</h1>
+                <p class="hero-copy">这里放开发记录、工程折腾，以及偶尔做出来的浏览器小玩具。能直接打开的，就尽量不让你安装东西。</p>
+            </div>
+
+            <aside class="now-card" aria-label="当前站点状态">
+                <div class="label">NOW / 2026</div>
+                <strong>91hwl 正在从开发日志长成一个小型 Web Toys 站。</strong>
+                <p>两款游戏已经上线。后面会继续加入有趣、轻量、打开就能玩的东西。</p>
+                <div class="now-stats" aria-label="当前内容数量">
+                    <div class="stat"><b>02</b><span>Web Toys</span></div>
+                    <div class="stat"><b>02</b><span>Notes</span></div>
+                </div>
+            </aside>
+        </section>
+
+        <section id="toys" aria-labelledby="toys-title">
+            <div class="section-head">
+                <h2 id="toys-title">Web Toys</h2>
+                <span>打开浏览器就能玩</span>
+            </div>
+
+            <article class="toy-card">
+                <div class="toy-grid">
+                    <div>
+                        <div class="toy-meta">
+                            <span class="pill">Browser Game</span>
+                            <span class="pill">8-bit</span>
+                            <span class="pill">No Install</span>
+                        </div>
+                        <h3>摸鱼到下班</h3>
+                        <p>从 14:00 撑到 18:00。躲过老板、会议、临时需求和各种意外，喝点咖啡，看看今天到底能不能准点下班。</p>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                            <a class="play-link" href="https://play.91hwl.cn/moyu/" aria-label="开始玩摸鱼到下班">开始摸鱼 <span aria-hidden="true">→</span></a>
+                            <a href="/toys/moyu/" style="color:var(--dim);font-weight:800;font-size:12px;text-decoration:none">查看详情</a>
+                        </div>
+                    </div>
+
+                    <div class="preview" aria-hidden="true">
+                        <div class="preview-window"></div>
+                        <div class="preview-partition"></div>
+                        <div class="preview-desk"></div>
+                        <div class="preview-monitor"></div>
+                        <div class="preview-tower"></div>
+                        <div class="preview-runner"></div>
+                        <div class="preview-ground"></div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="toy-card">
+                <div class="toy-grid">
+                    <div>
+                        <div class="toy-meta">
+                            <span class="pill">Dungeon Crawler</span>
+                            <span class="pill">100 Floors</span>
+                            <span class="pill">Desktop First</span>
+                        </div>
+                        <h3>地牢回响</h3>
+                        <p>选择职业，探索百层地牢，在战斗、装备、锻造与城镇补给之间建立自己的成长路线。每十层都有新的守卫与机制。</p>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                            <a class="play-link" href="https://play.91hwl.cn/dungeon-echo/" aria-label="开始玩地牢回响">进入地牢 <span aria-hidden="true">→</span></a>
+                            <a href="/toys/dungeon-echo/" style="color:var(--dim);font-weight:800;font-size:12px;text-decoration:none">查看详情</a>
+                        </div>
+                    </div>
+
+                    <div class="preview dungeon-preview" aria-hidden="true">
+                        <div class="dungeon-room"></div>
+                        <div class="dungeon-depth">DEPTH 037</div>
+                        <div class="dungeon-hero"></div>
+                        <div class="dungeon-chest"></div>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section id="notes" class="notes" aria-labelledby="notes-title">
+            <div class="section-head">
+                <h2 id="notes-title">Engineering Notes</h2>
+                <span>开发随记</span>
+            </div>
+
+            <div class="post-grid">
+                <a class="post" href="/notes/shadow-route/" style="text-decoration:none;color:inherit">
+                    <div class="date">2026-01-22</div>
+                    <h3>异步生态网络中的寻址策略优化</h3>
+                    <p>在构建 <code>91-Commander</code> 核心寻址逻辑时，通过影子路由（Shadow Route）机制实现物理隔离，降低单点故障对整体链路的影响。</p>
+                </a>
+
+                <a class="post" href="/notes/nginx-https/" style="text-decoration:none;color:inherit">
+                    <div class="date">2026-01-19</div>
+                    <h3>Nginx 强制 HTTPS 跳转的安全性考量</h3>
+                    <p>通过 <code>301 Redirect</code> 强制全站加密，并结合 HSTS 策略减少明文链路暴露。</p>
+                </a>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <span>© 2026 91hwl</span>
+            <span>Notes · Experiments · Web Toys</span>
+        </footer>
+    </main>
+
+    <script>
+    (() => {
+        const root = document.documentElement;
+        const meta = document.getElementById('themeColorMeta');
+        const buttons = [...document.querySelectorAll('[data-theme-choice]')];
+        const media = window.matchMedia('(prefers-color-scheme: light)');
+
+        const themeColor = () => {
+            const mode = root.dataset.theme;
+            const light = mode === 'light' || (mode === 'system' && media.matches);
+            meta.setAttribute('content', light ? '#f3f0e7' : '#0b0b0a');
+        };
+
+        const render = () => {
+            const mode = root.dataset.theme || 'system';
+            buttons.forEach(btn => btn.setAttribute(
+                'aria-pressed',
+                String(btn.dataset.themeChoice === mode)
+            ));
+            themeColor();
+        };
+
+        const setTheme = mode => {
+            if (!['system','light','dark'].includes(mode)) return;
+            root.dataset.theme = mode;
+            try { localStorage.setItem('91hwl_theme', mode); } catch (_) {}
+            render();
+        };
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.dataset.themeChoice));
+        });
+
+        if (media.addEventListener) media.addEventListener('change', themeColor);
+        else if (media.addListener) media.addListener(themeColor);
+
+        render();
+    })();
+    </script>
+</body>
+</html>
