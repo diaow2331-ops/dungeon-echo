@@ -58,7 +58,7 @@ const C = window.DE_COMMERCE;
 let pass=0, fail=0;
 const ok=(cond,name)=>{ if(cond){pass++; console.log('PASS '+name);} else {fail++; console.log('FAIL '+name);} };
 
-ok(C && C.version==='v2', 'commerce v2 boots');
+ok(C && C.version==='v3', 'commerce v3 boots');
 ok(C.dungeonTier(1)===1 && C.dungeonTier(96)===10, 'dungeon tier bands');
 const shallow=C.dungeonHealPrice(5,50,100), deep=C.dungeonHealPrice(95,50,100);
 ok(shallow>0 && deep>shallow*3, 'deep healing price scales materially');
