@@ -16,6 +16,19 @@
     wearable: { url: 'art/equipment-wearables-v13.png', cols: 6, rows: 5 },
   });
 
+  // Warm both v13 atlases as soon as the visual layer is ready. They are reused by the
+  // dungeon bag, equipment bar, character overlay, town and merchant UI, so starting the
+  // requests here avoids a visible first-open decode/load flash without touching gameplay.
+  const preload = [];
+  if (typeof Image !== 'undefined') {
+    for (const sheet of Object.values(SHEETS)) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = sheet.url;
+      preload.push(img);
+    }
+  }
+
   const style = document.createElement('style');
   style.id = 'de-equipment-shop-art-v1';
   style.textContent = `
@@ -75,5 +88,5 @@
     observer.observe(root, { childList: true, subtree: true });
   }
 
-  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v1', sync, applyArt };
+  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v1', sync, applyArt, preload };
 })();
