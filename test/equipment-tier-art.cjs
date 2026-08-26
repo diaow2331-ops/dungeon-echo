@@ -9,7 +9,7 @@ const ok = (cond, name) => {
   else { fail++; console.log('  FAIL ' + name); }
 };
 
-const marker = src.match(/window\.__DE_EQUIPMENT_TIER_ART\s*=\s*\{([\s\S]*?)\n\s*\};/);
+const marker = src.match(/window\.__DE_EQUIPMENT_TIER_ART\s*=\s*\{([\s\S]*?)\};/);
 ok(marker && /version:\s*'v1'/.test(marker[1]), 'tier art declares the exact v1 marker');
 ok(/WEAPON_THRESHOLDS\s*=\s*Object\.freeze\(\[1,3,5,7,10,14,17,22,32,44,58,74,92\]\)/.test(src),
   'weapon art follows all 13 production progression thresholds');
