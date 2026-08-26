@@ -9,7 +9,7 @@ const ok = (cond, name) => {
   else { fail++; console.log('  FAIL ' + name); }
 };
 
-const marker = src.match(/window\.__DE_CHARACTER_GEAR_OVERLAY\s*=\s*\{([\s\S]*?)\n\s*\};/);
+const marker = src.match(/window\.__DE_CHARACTER_GEAR_OVERLAY\s*=\s*\{([\s\S]*?)\};/);
 ok(marker && /version:\s*'v2'/.test(marker[1]),
   'character gear overlay declares the exact v2 marker');
 const map = src.match(/const EQUIPMENT_SOURCE_BY_ICON = Object\.freeze\(\{([\s\S]*?)\}\);/);
