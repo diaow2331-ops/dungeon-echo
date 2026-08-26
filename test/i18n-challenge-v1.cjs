@@ -58,6 +58,10 @@ assert(content.includes("Town Tier $1 · Claimed $2/8 slots"), 'wheel-state loca
 assert(content.includes("Owned $1 · Stock $2"), 'town commerce inventory localization missing');
 assert(content.includes("Bind Wounds (Full heal · Missing $1)"), 'dungeon merchant service localization missing');
 assert(content.includes("+3 Refinement: choose a path"), 'forge refinement dialog localization missing');
+assert(content.includes("'霜环蓄积':'Frost Ring'") && content.includes("'终局第三相 · 深渊心爆':'Finale Phase III · Abyss Heart Nova'"), 'guardian/finale title localization missing');
+assert(content.includes('Heart Nova misses: you created distance at the last moment.'), 'guardian outcome localization missing');
+assert(content.includes('Lord of the Final Abyss enters Phase III'), 'finale phase feedback localization missing');
+assert(content.includes('let out=src;') && content.includes('return replaceNames(out);'), 'sentence grammar must translate before entity names');
 assert(!/\.name\s*=\s*translateEn|\.name\s*=\s*nameEn/.test(content), 'content localization must not mutate saved/gameplay names');
 
 // Production order and release packaging.
