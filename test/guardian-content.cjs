@@ -9,6 +9,13 @@ function ok(cond, name) {
   else { fail++; console.log('  FAIL ' + name); }
 }
 
+const storage = new Map();
+global.localStorage = {
+  getItem(k) { return storage.has(k) ? storage.get(k) : null; },
+  setItem(k, v) { storage.set(k, String(v)); },
+  removeItem(k) { storage.delete(k); },
+};
+
 const rafQueue = [];
 global.requestAnimationFrame = cb => { rafQueue.push(cb); return rafQueue.length; };
 function frame(turn) {
@@ -65,7 +72,7 @@ global.window = { DE_TEST: api };
 const source = fs.readFileSync(path.resolve(__dirname, '..', 'content-system.js'), 'utf8');
 vm.runInThisContext(source, { filename: 'content-system.js' });
 
-ok(window.__DE_CONTENT_SYSTEM === 'v4', 'content bridge reports v4');
+ok(window.__DE_CONTENT_SYSTEM === 'v5', 'content bridge reports v5');
 ok(profile.themes.length === 25, 'late-game themes extend to 25 palettes');
 const byDepth = d => profile.midBosses.find(g => g.depth === d);
 ok(byDepth(10).armorBreak === true, 'floor 10 retains telegraphed armor-break tutorial');
@@ -82,6 +89,8 @@ ok(stage.children.length === 2, 'runtime creates one telegraph canvas and warnin
 const frost = { midBoss:true, hp:100, maxHp:100, x:5, y:5, slow:false, skip:0 };
 api.monsters=[frost]; api.depth=20; frame(1); frame(2); frame(3);
 ok(frost.slow === true && frost.skip === 0, 'frost ring reserves guardian action');
+let persisted = JSON.parse(localStorage.getItem('de-guardian-encounter-v1'));
+ok(persisted && persisted.active && persisted.active.specId === 'frost-ring' && persisted.active.resolveTurn === 4, 'active frost telegraph persists immediately');
 frost.skip=1; frame(4);
 ok(meleeCalls === 1, 'frost ring hits inside radius');
 ok(frost.slow === false && frost.skip === 0, 'frost ring restores flags');
@@ -162,6 +171,34 @@ frame(178);
 boss.skip=1; frame(179);
 ok(meleeCalls === meleeBeforeBoss + 1, 'final phase 3 heart nova activates below one-third HP');
 ok(boss.slow === false && boss.skip === 0, 'final phase specials restore guardian action flags');
+
+// Resume contract: an announced mark survives recreation of the runtime monster object.
+const resume = window.DE_GUARDIAN_ENCOUNTER_STATE;
+const resumeGuardian = { midBoss:true, hp:100, maxHp:100, x:10, y:10, slow:false, skip:0 };
+api.depth=30; api.turns=300; api.player.x=15; api.player.y=15; api.monsters=[resumeGuardian];
+localStorage.setItem('de-guardian-encounter-v1', JSON.stringify({
+  v:1, profileId:'classic-100', depth:30, turn:300,
+  guardian:{boss:false,midBoss:true,name:'',maxHp:100}, sequenceIndex:0, finalPhase:null, nextSpecialTurn:304,
+  active:{specId:'ember-mark',resolveTurn:301,originalSlow:false,originalSkip:0,targetX:15,targetY:15,startHp:100,axis:null,line:null},
+}));
+ok(resume && resume.version === 'v1' && resume.restore(resumeGuardian) === true, 'saved telegraph can restore onto reloaded guardian object');
+ok(resumeGuardian.slow === true && resume.active && resume.active.specId === 'ember-mark', 'restored telegraph reserves guardian and keeps original special');
+api.player.x=16; frame(301);
+ok(meleeCalls === meleeBeforeBoss + 1, 'restored ember mark uses saved target and can still be dodged');
+persisted = JSON.parse(localStorage.getItem('de-guardian-encounter-v1'));
+ok(persisted && persisted.active === null && persisted.nextSpecialTurn === 305, 'resolved resumed special preserves its future cadence');
+
+const echoReload = { midBoss:true, hp:100, maxHp:100, x:10, y:10, slow:false, skip:0 };
+api.depth=90; api.turns=350; api.monsters=[echoReload];
+localStorage.setItem('de-guardian-encounter-v1', JSON.stringify({
+  v:1, profileId:'classic-100', depth:90, turn:350,
+  guardian:{boss:false,midBoss:true,name:'',maxHp:100}, sequenceIndex:2, finalPhase:null, nextSpecialTurn:354,
+  active:{specId:'echo-ring',resolveTurn:351,originalSlow:false,originalSkip:0,targetX:11,targetY:10,startHp:100,axis:null,line:null},
+}));
+ok(resume.restore(echoReload) === true && resume.sequenceIndex === 2 && resume.active.specId === 'echo-ring', 'floor 90 reload preserves sequence position and active pattern');
+
+api.depth=1; api.turns=400; api.monsters=[]; frame(400);
+ok(localStorage.getItem('de-guardian-encounter-v1') === null, 'new non-guardian expedition state clears stale encounter sidecar');
 
 console.log(`\nGuardian content: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
