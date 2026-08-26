@@ -7,7 +7,9 @@ const hint = fs.readFileSync('combat-hint-polish.js','utf8');
 const audio = fs.readFileSync('audio-director.js','utf8');
 const mobile = fs.readFileSync('mobile-ux.js','utf8');
 const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
+const bootstrap = fs.readFileSync('runtime-bootstrap.js','utf8');
 const desktop = fs.readFileSync('desktop-controls.js','utf8');
+const html = fs.readFileSync('index.html','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8');
 
 assert(controls.includes("lower === 'j'"), 'J attack hotkey missing');
@@ -72,10 +74,14 @@ assert(mobile.includes('de-mobile-optional'), 'mobile HUD compression missing');
 assert(mobile.includes('左侧方向盘'), 'mobile help copy missing');
 assert(mobile.includes('new MutationObserver(queueApply)'), 'dynamic touch-control resync missing');
 
-assert(shop.includes("loadScript('combat-controls.js'"), 'combat controls production loader missing');
-assert(shop.includes("loadScript('combat-hint-polish.js'"), 'tutorial production loader missing');
-assert(shop.includes("loadScript('audio-director.js'"), 'audio director production loader missing');
-assert(shop.includes("loadScript('mobile-ux.js'"), 'mobile UX production loader missing');
+// Core J/K+mana input is synchronous; late bootstrap owns only followers.
+const desktopPos = html.indexOf('<script src="desktop-controls.js"></script>');
+const controlsPos = html.indexOf('<script src="combat-controls.js"></script>');
+const challengePos = html.indexOf('<script src="challenge-pressure.js"></script>');
+assert(desktopPos >= 0 && controlsPos > desktopPos && challengePos > controlsPos, 'combat controls must be synchronous before final challenge pressure');
+assert(!bootstrap.includes("'combat-controls.js'"), 'late UX bootstrap must not own core combat controls');
+assert(bootstrap.includes("'combat-hint-polish.js'") && bootstrap.includes("'audio-director.js'") && bootstrap.includes("'mobile-ux.js'"), 'late UX follower chain incomplete');
+assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('combat-controls.js'"), 'shop preview regained production UX ownership');
 const files = manifest.split(/\r?\n/);
 for (const file of ['combat-controls.js','combat-hint-polish.js','audio-director.js','mobile-ux.js']) assert(files.includes(file), `release manifest missing ${file}`);
 
