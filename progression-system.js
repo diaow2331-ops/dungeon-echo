@@ -142,6 +142,47 @@
     return counts;
   }
 
+  function derivedMinimums(talents) {
+    const counts = Object.create(null);
+    for (const id of Array.isArray(talents) ? talents : []) counts[id] = (counts[id] || 0) + 1;
+    const n = id => counts[id] || 0;
+    return {
+      thornsBase: n('bramble') * 4 + n('w_reprise') * 5,
+      regenBase: n('scavenge') * 3 + n('w_reprise') * 2 + n('r_hunter') * 3,
+      potionBoost: n('elixir') * 40,
+      critPower: n('frenzy') * 25 + n('m_focus') * 10 + n('a_execute') * 12,
+      grivResist: n('tenacity'),
+      plunder: n('plunder') * 25,
+      fastRegen: n('echoborn') > 0,
+    };
+  }
+
+  function repairGreedyMetaDerivedStats() {
+    const meta = api.meta;
+    if (!api.greedy || !meta) return false;
+    const p = api.player;
+    const talents = p && Array.isArray(p.talents) ? p.talents : meta.talents;
+    const minimum = derivedMinimums(talents);
+    let changed = false;
+    for (const field of ['thornsBase', 'regenBase', 'potionBoost', 'critPower', 'grivResist', 'plunder']) {
+      const need = minimum[field];
+      const metaNow = Math.max(0, Number(meta[field]) || 0);
+      if (metaNow < need) { meta[field] = need; changed = true; }
+      if (p) {
+        const playerNow = Math.max(0, Number(p[field]) || 0);
+        if (playerNow < need) { p[field] = need; changed = true; }
+      }
+    }
+    if (minimum.fastRegen) {
+      if (!meta.fastRegen) { meta.fastRegen = 1; changed = true; }
+      if (p && !p.fastRegen) { p.fastRegen = true; changed = true; }
+    }
+    if (changed && typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('de-greedy-meta-v1', JSON.stringify(meta)); } catch (e) { /* storage unavailable */ }
+    }
+    return changed;
+  }
+
   function pendingEvolution() {
     const p = api.player;
     if (!p) return null;
@@ -176,6 +217,7 @@
   }
 
   function syncPool() {
+    repairGreedyMetaDerivedStats();
     if (api.state === 'talent') return;
     const pool = eligiblePool();
     api.TALENTS.splice(0, api.TALENTS.length, ...pool);
@@ -339,7 +381,12 @@
   }
   window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
 
-  window.DE_TALENT_RANKS = { caps: { ...CAP }, counts: rankCounts, eligible: eligiblePool };
+  window.DE_TALENT_RANKS = {
+    caps: { ...CAP },
+    counts: rankCounts,
+    eligible: eligiblePool,
+    repairGreedyMeta: repairGreedyMetaDerivedStats,
+  };
   window.DE_SKILL_EVOLUTION = {
     choices: evolution,
     pending: pendingEvolution,
