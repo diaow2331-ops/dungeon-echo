@@ -1,4 +1,4 @@
-/* Dungeon Echo production content bridge v4.
+/* Dungeon Echo production content bridge v5.
  * Keeps late-game chapter palettes and all guardian encounter identity in one place.
  *
  * Stateful encounters:
@@ -13,7 +13,8 @@
  * 90 Echo Trial (fixed three-pattern sequence)
  * 100 End-Abyss Sovereign (three HP-driven phases)
  *
- * Telegraph state is transient and intentionally does not change save schemas.
+ * Telegraph timing/state persists in a sidecar key so reload cannot cancel an announced
+ * special. The core run-save schema stays unchanged.
  */
 (() => {
   'use strict';
@@ -21,9 +22,10 @@
   if (window.__DE_CONTENT_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !api.runProfile) return;
-  window.__DE_CONTENT_SYSTEM = 'v4';
+  window.__DE_CONTENT_SYSTEM = 'v5';
 
   const p = api.runProfile;
+  const ENCOUNTER_KEY = 'de-guardian-encounter-v1';
 
   if (Array.isArray(p.themes) && p.themes.length === 21) {
     p.themes.push(
@@ -120,6 +122,36 @@
   const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   const depthNow = () => Number(api.depth) || 0;
 
+  function loadEncounterState() {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      const raw = JSON.parse(localStorage.getItem(ENCOUNTER_KEY));
+      return raw && raw.v === 1 && raw.profileId === api.profileId ? raw : null;
+    } catch (e) { return null; }
+  }
+
+  function clearEncounterState() {
+    try { if (typeof localStorage !== 'undefined') localStorage.removeItem(ENCOUNTER_KEY); } catch (e) {}
+  }
+
+  function guardianFingerprint(m) {
+    return m ? {
+      boss: !!m.boss,
+      midBoss: !!m.midBoss,
+      name: String(m.name || ''),
+      maxHp: Math.max(0, Number(m.maxHp) || 0),
+    } : null;
+  }
+
+  function encounterMatches(row, m) {
+    if (!row || !m || Number(row.depth) !== depthNow()) return false;
+    const saved = row.guardian || {}, current = guardianFingerprint(m) || {};
+    if (!!saved.boss !== !!current.boss || !!saved.midBoss !== !!current.midBoss) return false;
+    if (saved.name && current.name && saved.name !== current.name) return false;
+    if (Number(saved.maxHp) > 0 && Number(current.maxHp) > 0 && Number(saved.maxHp) !== Number(current.maxHp)) return false;
+    return true;
+  }
+
   function guardianForDepth() {
     const list = api.monsters;
     if (!Array.isArray(list)) return null;
@@ -161,6 +193,37 @@
     m.skip = active.originalSkip;
   }
 
+  function saveEncounterState() {
+    const m = active && active.guardian ? active.guardian : tracked;
+    if (!m || api.state !== 'playing') return false;
+    const row = {
+      v: 1,
+      profileId: api.profileId,
+      depth: depthNow(),
+      turn: Number(api.turns) || 0,
+      guardian: guardianFingerprint(m),
+      sequenceIndex: Math.max(0, Number(sequenceIndex) || 0),
+      finalPhase: finalPhase || null,
+      nextSpecialTurn: Number.isFinite(nextSpecialTurn) ? Number(nextSpecialTurn) : null,
+      active: active ? {
+        specId: active.spec && active.spec.id || '',
+        resolveTurn: Number(active.resolveTurn) || 0,
+        originalSlow: !!active.originalSlow,
+        originalSkip: Number(active.originalSkip) || 0,
+        targetX: Number(active.targetX) || 0,
+        targetY: Number(active.targetY) || 0,
+        startHp: Number(active.startHp) || 0,
+        axis: active.axis || null,
+        line: Number.isFinite(Number(active.line)) ? Number(active.line) : null,
+      } : null,
+    };
+    try {
+      if (typeof localStorage === 'undefined') return false;
+      localStorage.setItem(ENCOUNTER_KEY, JSON.stringify(row));
+      return true;
+    } catch (e) { return false; }
+  }
+
   function resetEncounter(m) {
     restoreReservedTurn();
     active = null;
@@ -169,6 +232,7 @@
     finalPhase = m && depthNow() === 100 ? finalPhaseKey(m) : null;
     if (m) normalizeRuntimeGuardian(m, depthNow());
     nextSpecialTurn = m && specFor(depthNow(), m) ? (Number(api.turns) || 0) + 2 : Infinity;
+    if (m) saveEncounterState(); else clearEncounterState();
   }
 
   function showNotice(text, color, ms = 1150) {
@@ -178,6 +242,49 @@
   }
 
   const lineLike = id => id === 'hunter-line' || id === 'echo-line' || id === 'void-line';
+
+  function specById(id) {
+    if (!id) return null;
+    for (const spec of Object.values(SPECS)) if (spec.id === id) return spec;
+    for (const spec of ECHO_SEQUENCE) if (spec.id === id) return spec;
+    for (const spec of Object.values(FINAL_PHASES)) if (spec.id === id) return spec;
+    return null;
+  }
+
+  function restoreEncounterState(m) {
+    const row = loadEncounterState();
+    if (!encounterMatches(row, m)) return false;
+    tracked = m;
+    sequenceIndex = Math.max(0, Math.floor(Number(row.sequenceIndex) || 0)) % ECHO_SEQUENCE.length;
+    finalPhase = depthNow() === 100 && row.finalPhase && FINAL_PHASES[row.finalPhase]
+      ? row.finalPhase : (depthNow() === 100 ? finalPhaseKey(m) : null);
+    normalizeRuntimeGuardian(m, depthNow());
+    nextSpecialTurn = Number.isFinite(Number(row.nextSpecialTurn))
+      ? Number(row.nextSpecialTurn) : ((Number(api.turns) || 0) + 2);
+    active = null;
+
+    if (row.active) {
+      const spec = specById(row.active.specId);
+      if (spec) {
+        active = {
+          spec,
+          guardian: m,
+          resolveTurn: Number(row.active.resolveTurn) || ((Number(api.turns) || 0) + 1),
+          originalSlow: !!row.active.originalSlow,
+          originalSkip: Number(row.active.originalSkip) || 0,
+          targetX: Number(row.active.targetX) || 0,
+          targetY: Number(row.active.targetY) || 0,
+          startHp: Number(row.active.startHp) || Number(m.hp) || 0,
+          axis: row.active.axis === 'row' || row.active.axis === 'col' ? row.active.axis : null,
+          line: Number.isFinite(Number(row.active.line)) ? Number(row.active.line) : null,
+        };
+        m.slow = true;
+        m.skip = 0;
+        showNotice(`${spec.title}：${spec.warn}`, spec.color, 1800);
+      }
+    }
+    return true;
+  }
 
   function startSpecial(m, spec) {
     const player = api.player;
@@ -198,6 +305,7 @@
       active.line = active.axis === 'row' ? player.y : player.x;
     }
     showNotice(`${spec.title}：${spec.warn}`, spec.color, 1800);
+    saveEncounterState();
   }
 
   function lineClear(m, player, axis) {
@@ -236,7 +344,10 @@
     restoreReservedTurn();
     active = null;
     nextSpecialTurn = (Number(api.turns) || 0) + a.spec.interval;
-    if (!m || !player || m.hp <= 0 || api.state !== 'playing') return;
+    if (!m || !player || m.hp <= 0 || api.state !== 'playing') {
+      clearEncounterState();
+      return;
+    }
 
     let hit = false;
     const id = a.spec.id;
@@ -291,12 +402,15 @@
 
     if (a.spec.sequence) sequenceIndex = (sequenceIndex + 1) % ECHO_SEQUENCE.length;
     syncHpHud();
+    saveEncounterState();
   }
 
   function processTurn() {
     const depth = depthNow();
     const m = guardianForDepth();
-    if (m !== tracked) resetEncounter(m);
+    if (m !== tracked) {
+      if (!restoreEncounterState(m)) resetEncounter(m);
+    }
     if (!m || api.state !== 'playing') return;
     normalizeRuntimeGuardian(m, depth);
 
@@ -314,15 +428,17 @@
           ? '终焉渊主进入第二阶段：王座碎裂，虚空裁线开始。'
           : '终焉渊主进入第三阶段：深渊之心暴露，心爆频率加快。';
         showNotice(text, phase === 'void' ? '#b49cff' : '#ff6f6f', 1900);
+        saveEncounterState();
       }
     }
 
     const spec = specFor(depth, m);
     if (!spec) return;
     if (!active && (Number(api.turns) || 0) >= nextSpecialTurn) {
-      if (spec.id === 'mending-channel' && m.hp >= m.maxHp * 0.85)
+      if (spec.id === 'mending-channel' && m.hp >= m.maxHp * 0.85) {
         nextSpecialTurn = (Number(api.turns) || 0) + 2;
-      else startSpecial(m, spec);
+        saveEncounterState();
+      } else startSpecial(m, spec);
     }
   }
 
@@ -424,6 +540,7 @@
     }
     const currentGuardian = guardianForDepth();
     if (!currentGuardian && tracked) resetEncounter(null);
+    else if (!currentGuardian && api.state === 'playing') clearEncounterState();
     drawTelegraph();
 
     const t = nowMs();
@@ -441,6 +558,17 @@
 
     requestAnimationFrame(frame);
   }
+
+  window.DE_GUARDIAN_ENCOUNTER_STATE = {
+    version: 'v1',
+    load: loadEncounterState,
+    save: saveEncounterState,
+    clear: clearEncounterState,
+    restore: restoreEncounterState,
+    get active() { return active ? { specId: active.spec && active.spec.id, resolveTurn: active.resolveTurn, targetX: active.targetX, targetY: active.targetY, axis: active.axis, line: active.line } : null; },
+    get sequenceIndex() { return sequenceIndex; },
+    get nextSpecialTurn() { return nextSpecialTurn; },
+  };
 
   requestAnimationFrame(frame);
 })();
