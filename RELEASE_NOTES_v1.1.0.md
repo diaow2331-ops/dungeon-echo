@@ -1,31 +1,25 @@
-# Dungeon Echo v1.1.0 — Art, Town, Guardian & Skill Evolution Remaster
+# Dungeon Echo v1.1.0 — Art, Equipment & Human-Play Balance Remaster
 
-**v1.1.0 is publicly deployed at `https://play.91hwl.cn/dungeon-echo/`.**
+Dungeon Echo v1.1.0 is the first substantial post-launch update after v1.0.0. It keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town save intact; no progress reset is required.
 
-The release keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town save intact. No progress reset is required.
+## Equipment and presentation remaster
 
-## Art remaster
+- Added dedicated v13 weapon and wearable atlases.
+- Existing equipment now resolves to tier-specific art instead of reusing one icon across many names and depths.
+- Equipment art is consistent across the dungeon bag, top equipment bar, character gear overlay, town bag, stash and underground merchant preview.
+- Character sprites visibly reflect equipped weapon, armor, helmet and boots; rings and amulets use restrained accessory effects.
+- Four heroes, common monsters, all nine guardians, the floor-100 boss and the town retain their dedicated production art passes.
 
-- Four production hero sprites now appear in the dungeon.
-- Sixteen common monster archetypes use a consistent high-detail atlas.
-- All nine ten-floor guardians use bespoke silhouettes.
-- The floor-100 End-Abyss Sovereign has unique final-boss art.
+## Town and progression presentation
+
 - Town presentation evolves across ten progression stages.
-- Equipment/loot presentation is unified across weapons, armor, helmets, boots, rings and amulets.
-- Swords, broad swords, axes, rune blades, daggers, bows and staves have distinct equipment silhouettes.
-- Leather, chain, plate and mithril armor are visually distinct rather than sharing one generic treatment.
-- New art paths retain runtime fallbacks so an individual asset failure does not block play.
-
-## Town remaster
-
-- New refuge backdrop with progression overlays.
-- Town stages 1–10 add lanterns, residents, banners and deep-echo effects as conquered depth increases.
-- A growth/readiness panel summarizes progression and preparation state.
-- The fortune wheel remains optional entertainment; stash, market, forge and checkpoints remain the main preparation loop.
+- Bag and stash rows now preserve the same equipment identity seen inside the dungeon.
+- Underground merchant equipment previews show the actual item art before purchase.
+- Existing stash, market, forge, checkpoint and optional fortune-wheel behavior remains unchanged.
 
 ## Guardian encounter remaster
 
-The ten guardian/finale nodes now use readable counterplay instead of relying primarily on larger stats and generic trait combinations.
+The ten guardian/finale nodes use readable counterplay rather than hidden punishment:
 
 - **10 — Telegraphed Armor Break**
 - **20 — Frost Ring**
@@ -38,51 +32,45 @@ The ten guardian/finale nodes now use readable counterplay instead of relying pr
 - **90 — Echo Trial**
 - **100 — End-Abyss Sovereign**, with three HP-driven phases
 
-New specials reserve the guardian's next normal action, preventing hidden normal-hit + special double spikes.
+Late explicit specials at floors 40/60/70/80/90/100 now resolve through the visible armor-break path when they hit. They still provide a full warning window and can be avoided entirely by movement, distance or line-of-sight play. Hidden random armor penetration remains disabled.
 
-Detailed counterplay is documented in `docs/GUARDIAN_MECHANICS.md`.
+## Human-play balance pass
+
+Real-player testing exposed a problem simulation success rates did not: endgame defensive equipment could outscale major enemy attack values so far that deep guardians became near-zero-risk encounters.
+
+v1.1.0 therefore:
+
+- raises ordinary depth scaling moderately;
+- increases elite durability and attack pressure without making every monster a stat wall;
+- retunes all nine guardians and the final boss to a monotonic 1→100 pressure curve;
+- sets the floor-100 boss target to **2200 HP / 104 ATK / 34 DEF**;
+- gives guardians, deep elites and selected heavy/ranged late enemies the existing one-turn telegraphed armor-break mechanic;
+- keeps normal attacks armor-based and keeps `pierceChanceOf() === 0`;
+- restores floor potion supply to a genuine 1–2 roll instead of forcing every floor to two;
+- reduces ordinary kill-potion frequency so damage leaves a resource cost and retreat/shop/rest decisions matter again.
+
+Player equipment, talents, owned consumables, save keys and item IDs are not nerfed or migrated.
 
 ## Skill evolution
 
-Floors **20 / 40 / 60 / 80** each unlock a two-choice active-skill evolution.
-
-- The active-skill key remains **`C`**.
-- Warrior routes alter Cleave area, reach, protection, cooldown rhythm and sustain.
-- Ranger routes alter Dash retaliation risk, mobility, kill chains and follow-up pressure.
-- Arcanist routes alter Arcane Bolt secondary targeting, isolated-target focus, protection and push control.
-- Assassin routes alter execution pressure, entry safety, kill sustain/cooldown and follow-up pressure.
-- Choices use the existing `player.talents` storage path; no save-schema bump is required.
-
-Detailed route intent is documented in `docs/SKILL_EVOLUTION.md`.
-
-## Validation
-
-Recorded engineering contracts for the v1.1 line include:
-
-- production entry: **29/29**;
-- deterministic floor 1→100 chain: **13/13**;
-- broad gameplay/save suite: **525/525**;
-- release contract: **11/11**;
-- guardian state-machine contract: **37/37**;
-- skill-evolution contract: **9/9**;
-- site overlay deployment: **PASS**;
-- homepage/detail deployment: **PASS**;
-- public v1.1 health checks: **PASS**.
-
-Automated checks protect engineering contracts; human play remains the source of truth for feel, pacing and balance.
+Floors **20 / 40 / 60 / 80** each unlock a two-choice active-skill evolution while keeping the same `C` skill input. Warrior, Ranger, Arcanist and Assassin each receive distinct routes for damage, mobility, protection, sustain and cooldown behavior.
 
 ## Compatibility
 
 - Existing run/meta save keys and schema versions remain unchanged.
-- Art/UI hotfixes do not clear browser `localStorage`.
-- Item IDs, equipment stats, affixes and economy semantics remain stable across the visual equipment pass.
-- Public URLs are unchanged.
-- The existing shared `/srv/91hwl-play` immutable-release/rollback model remains the deployment contract.
+- Existing compatible saves are preserved.
+- Art/UI changes do not clear browser `localStorage`.
+- Item IDs and equipment storage remain compatible with the v1.0.0 save path.
+- Public game and project URLs remain unchanged.
 
-## Post-v1.1 priorities
+## Validation note
 
-- representative all-four-class 1→100 human audit;
-- deeper town-service progression;
-- Boss/equipment/skill VFX and audio feedback;
-- continued economy and long-run balance review from real-player evidence;
-- repository/branch hygiene so current documentation stays aligned with the deployed product.
+The repository still contains its deterministic production, save, guardian, progression and release contracts. GitHub Actions quota was exhausted during the final art/balance pass, so the final v1.1.0 balance changes are not represented as a fresh full-suite Actions result. They were deliberately kept as small reviewable diffs with targeted regression contracts.
+
+Human play remains the source of truth for combat feel and long-run balance.
+
+## Deployment target
+
+- Game: `https://play.91hwl.cn/dungeon-echo/`
+- Project page: `https://91hwl.cn/toys/dungeon-echo/`
+- Version: **1.1.0**

@@ -11,6 +11,7 @@ ok(/__DE_EQUIPMENT_SHOP_ART/.test(src) && /version:\s*'v1'/.test(src), 'shop equ
 ok(/getShopStock\(\)/.test(src) && /offer\.kind\s*!==\s*'equip'/.test(src), 'only real equipment offers receive preview art');
 ok(/tierArt\.sourceForItem\(item\)/.test(src), 'shop preview reuses the tier resolver');
 ok(/\[data-buy\]/.test(src) && /getAttribute\('data-buy'\)/.test(src), 'shop rows bind through purchase indexes');
+ok(/new Image\(\)/.test(src) && /equipment-weapons-v13\.png/.test(src) && /equipment-wearables-v13\.png/.test(src), 'v13 equipment atlases warm before first interaction');
 ok(!/buyShop\(|player\.|shopStock\s*=|price\s*=|localStorage\.setItem/.test(src), 'preview cannot mutate shop or player state');
 ok(/<script src="visual-polish\.js"><\/script>\s*<script src="equipment-shop-ui\.js"><\/script>/.test(html), 'shop preview loads after tier art owner');
 ok(/equipment-shop-ui\.js/.test(release), 'release allowlist ships the preview module');
