@@ -86,7 +86,7 @@
   }
 
   // Late production layers intentionally load after the stable synchronous core chain.
-  // Order: existing pressure -> mild challenge -> i18n owner/runtime -> input/resource -> tutorial/audio/mobile.
+  // Order: pressure -> i18n owner -> dynamic runtime -> content translator -> input/resource -> tutorial/audio/mobile.
   function loadScript(src, marker, ready, done) {
     if (ready() || document.querySelector(`script[${marker}]`)) { if (done) done(); return; }
     const script = document.createElement('script');
@@ -101,10 +101,12 @@
     loadScript('challenge-pressure.js', 'data-de-challenge-pressure', () => !!window.__DE_CHALLENGE_PRESSURE_V1, () => {
       loadScript('i18n.js', 'data-de-i18n', () => !!window.DE_I18N, () => {
         loadScript('i18n-runtime.js', 'data-de-i18n-runtime', () => !!window.__DE_I18N_RUNTIME_V1, () => {
-          loadScript('combat-controls.js', 'data-de-combat-controls', () => !!window.__DE_COMBAT_CONTROLS_V1, () => {
-            loadScript('combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH);
-            loadScript('audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR, () => {
-              loadScript('mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX);
+          loadScript('i18n-content.js', 'data-de-i18n-content', () => !!window.__DE_I18N_CONTENT_V2, () => {
+            loadScript('combat-controls.js', 'data-de-combat-controls', () => !!window.__DE_COMBAT_CONTROLS_V1, () => {
+              loadScript('combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH);
+              loadScript('audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR, () => {
+                loadScript('mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX);
+              });
             });
           });
         });
