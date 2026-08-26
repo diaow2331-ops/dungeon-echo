@@ -4,6 +4,7 @@ const assert = require('assert');
 
 const controls = fs.readFileSync('combat-controls.js','utf8');
 const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
+const desktop = fs.readFileSync('desktop-controls.js','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8');
 
 assert(controls.includes("lower === 'j'"), 'J attack hotkey missing');
@@ -26,6 +27,10 @@ assert(controls.includes("src.includes('art/loot-atlas.png')"), 'ground loot atl
 assert(controls.includes("equipment-weapons-v13.png") && controls.includes("equipment-wearables-v13.png"), 'v13 ground replacement missing');
 assert(controls.includes('suppressCharacterEquipmentImages'), 'character gear suppression missing');
 assert(controls.includes("src.includes('equipment-weapons-v13.png') || src.includes('equipment-wearables-v13.png')"), 'character equipment image suppression contract missing');
+
+assert(!desktop.includes('de-gear-overlay'), 'legacy character gear overlay returned');
+assert(desktop.includes("edgeButton(pad, 2, 'k')"), 'gamepad skill must follow K contract');
+assert(!desktop.includes("edgeButton(pad, 2, 'c')"), 'legacy C gamepad skill returned');
 
 assert(shop.includes("script.src = 'combat-controls.js'"), 'production loader missing');
 assert(manifest.split(/\r?\n/).includes('combat-controls.js'), 'release manifest missing combat-controls.js');
