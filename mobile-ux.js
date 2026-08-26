@@ -14,7 +14,7 @@
   const optionalIds=['st-xp','st-crit','st-key','st-mobs','st-scroll'];
   const labels={attack:'⚔ 攻击',skill:'✦ 技能',potion:'药水',descend:'下楼',escape:'回城',scroll:'卷轴',pause:'暂停',mute:'声音'};
   const order=['attack','skill','potion','descend','escape','scroll','pause','mute'];
-  let active=false;
+  let active=false, applying=false, mutationQueued=false;
 
   const style=document.createElement('style');
   style.id='de-mobile-ux-v1';
@@ -71,64 +71,55 @@
   document.head.appendChild(style);
 
   function buzz(ms=8){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
-
-  function markOptional(){
-    for(const id of optionalIds){const el=document.getElementById(id);const stat=el&&el.closest('.stat');if(stat)stat.classList.add('de-mobile-optional');}
-  }
+  function markOptional(){for(const id of optionalIds){const el=document.getElementById(id);const stat=el&&el.closest('.stat');if(stat)stat.classList.add('de-mobile-optional')}}
 
   function prepareActions(on){
     const root=document.getElementById('actions');if(!root)return;
     const buttons=Array.from(root.querySelectorAll('button[data-act]'));
     if(on){
-      for(const btn of buttons){
-        if(!originals.has(btn))originals.set(btn,btn.innerHTML);
-        const act=btn.dataset.act;
-        if(labels[act])btn.textContent=labels[act];
-      }
+      for(const btn of buttons){if(!originals.has(btn))originals.set(btn,btn.innerHTML);const act=btn.dataset.act;if(labels[act])btn.textContent=labels[act]}
       const map=new Map(buttons.map(b=>[b.dataset.act,b]));
-      for(const act of order){const b=map.get(act);if(b)root.appendChild(b);}
-    }else{
-      for(const btn of buttons){if(originals.has(btn))btn.innerHTML=originals.get(btn);}
-    }
+      const desired=order.filter(act=>map.has(act));
+      const current=Array.from(root.querySelectorAll('button[data-act]')).map(b=>b.dataset.act).filter(act=>desired.includes(act));
+      if(current.join('|')!==desired.join('|'))for(const act of desired)root.appendChild(map.get(act));
+    }else for(const btn of buttons)if(originals.has(btn))btn.innerHTML=originals.get(btn);
   }
 
-  const repeatState=new WeakMap();
   function installHold(btn){
     if(!btn||btn.__deHold)return;btn.__deHold=true;
     let timeout=0,interval=0,repeated=false,skipNative=false;
-    const stop=()=>{clearTimeout(timeout);clearInterval(interval);timeout=interval=0;if(repeated)skipNative=true;repeated=false;};
-    btn.addEventListener('pointerdown',e=>{
-      if(!active)return;repeated=false;buzz(5);
-      timeout=setTimeout(()=>{repeated=true;btn.click();interval=setInterval(()=>btn.click(),125);},275);
-      try{btn.setPointerCapture(e.pointerId)}catch(err){}
-    });
+    const stop=()=>{clearTimeout(timeout);clearInterval(interval);timeout=interval=0;if(repeated)skipNative=true;repeated=false};
+    btn.addEventListener('pointerdown',e=>{if(!active)return;repeated=false;buzz(5);timeout=setTimeout(()=>{repeated=true;btn.click();interval=setInterval(()=>btn.click(),125)},275);try{btn.setPointerCapture(e.pointerId)}catch(err){}});
     btn.addEventListener('pointerup',stop);btn.addEventListener('pointercancel',stop);btn.addEventListener('pointerleave',e=>{if(e.buttons)stop()});
-    btn.addEventListener('click',e=>{if(skipNative){skipNative=false;e.preventDefault();e.stopImmediatePropagation();}},true);
-    repeatState.set(btn,()=>{clearTimeout(timeout);clearInterval(interval)});
+    btn.addEventListener('click',e=>{if(skipNative){skipNative=false;e.preventDefault();e.stopImmediatePropagation()}},true);
   }
 
   function installHaptics(){
     document.querySelectorAll('#dpad button').forEach(installHold);
-    document.querySelectorAll('#actions button').forEach(btn=>{if(btn.__deBuzz)return;btn.__deBuzz=true;btn.addEventListener('pointerdown',()=>{if(active)buzz(btn.dataset.act==='attack'||btn.dataset.act==='skill'?10:5)},{passive:true});});
+    document.querySelectorAll('#actions button').forEach(btn=>{if(btn.__deBuzz)return;btn.__deBuzz=true;btn.addEventListener('pointerdown',()=>{if(active)buzz(btn.dataset.act==='attack'||btn.dataset.act==='skill'?10:5)},{passive:true})});
   }
 
   function syncMobileHelp(){
-    const help=document.querySelector('#help-screen .help-cols');if(!help||help.dataset.mobileCopy==='1')return;
-    help.dataset.mobileCopy='1';
-    const first=help.querySelector('p');
-    if(first)first.innerHTML='电脑：<b>WASD / 方向键</b>移动与转向，<b>J</b>攻击，<b>K</b>技能。<br>手机：<b>左侧方向盘</b>移动与转向，右侧<b>攻击 / 技能</b>为主操作；长按方向可连续行走。<br>药水 Q · 卷轴 E · 回城 T · 下楼 Enter · 暂停 Esc。';
+    const help=document.querySelector('#help-screen .help-cols');if(!help||help.dataset.mobileCopy==='1')return;help.dataset.mobileCopy='1';
+    const first=help.querySelector('p');if(first)first.innerHTML='电脑：<b>WASD / 方向键</b>移动与转向，<b>J</b>攻击，<b>K</b>技能。<br>手机：<b>左侧方向盘</b>移动与转向，右侧<b>攻击 / 技能</b>为主操作；长按方向可连续行走。<br>药水 Q · 卷轴 E · 回城 T · 下楼 Enter · 暂停 Esc。';
   }
 
   function apply(){
-    const on=coarse();active=on;document.documentElement.classList.toggle('de-mobile-ui',on);
-    markOptional();prepareActions(on);installHaptics();syncMobileHelp();
-    const game=document.getElementById('game');if(game)game.setAttribute('aria-label',on?'地牢地图：可点已探索地块移动，也可使用下方方向盘':'地牢地图：使用方向键、WASD 或点击已探索地块移动');
+    if(applying)return;applying=true;
+    try{
+      const on=coarse();active=on;document.documentElement.classList.toggle('de-mobile-ui',on);
+      markOptional();prepareActions(on);installHaptics();syncMobileHelp();
+      const game=document.getElementById('game');if(game)game.setAttribute('aria-label',on?'地牢地图：可点已探索地块移动，也可使用下方方向盘':'地牢地图：使用方向键、WASD 或点击已探索地块移动');
+    }finally{applying=false}
   }
 
+  function queueApply(){if(mutationQueued)return;mutationQueued=true;requestAnimationFrame(()=>{mutationQueued=false;apply()})}
+  const actions=document.getElementById('actions');
+  if(actions&&typeof MutationObserver!=='undefined')new MutationObserver(queueApply).observe(actions,{childList:true,subtree:true});
   let resizeTimer=0;
   window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(apply,100)});
   window.addEventListener('orientationchange',()=>setTimeout(apply,160));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)apply()});
-  apply();
-  window.__DE_MOBILE_UX={version:'v1',apply,get active(){return active;},coarse};
+  apply();setTimeout(apply,60);setTimeout(apply,240);
+  window.__DE_MOBILE_UX={version:'v1',apply,get active(){return active},coarse};
 })();
