@@ -88,5 +88,19 @@
     observer.observe(root, { childList: true, subtree: true });
   }
 
-  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v1', sync, applyArt, preload };
+  // combat-controls must run after gameplay-tuning/defense/desktop controls have completed
+  // their synchronous bootstrap. Loading it at window.load gives the new J/K input layer the
+  // final capture-stage ownership without reordering the stable production script chain.
+  function loadCombatControls() {
+    if (window.__DE_COMBAT_CONTROLS_V1 || document.querySelector('script[data-de-combat-controls]')) return;
+    const script = document.createElement('script');
+    script.src = 'combat-controls.js';
+    script.async = false;
+    script.dataset.deCombatControls = 'v1';
+    document.body.appendChild(script);
+  }
+  if (document.readyState === 'complete') setTimeout(loadCombatControls, 0);
+  else window.addEventListener('load', () => setTimeout(loadCombatControls, 0), { once: true });
+
+  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v1', sync, applyArt, preload, loadCombatControls };
 })();
