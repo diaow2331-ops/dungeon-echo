@@ -125,6 +125,8 @@
       setText(pop.querySelector('small'),L.t('audio.note'));
       setText(document.getElementById('de-audio-master'),window.__DE_AUDIO_DIRECTOR&&window.__DE_AUDIO_DIRECTOR.muted?L.t('audio.off'):L.t('audio.on'));
     }
+    const director=window.__DE_AUDIO_DIRECTOR,audioBtn=document.getElementById('de-audio-settings-btn');
+    if(director&&audioBtn)setText(audioBtn,director.muted?(L.isEnglish?'⚙ Muted':'⚙ 静音'):`⚙ ${director.musicVolume}/${director.sfxVolume}`);
 
     setText(document.getElementById('de-tutorial-reset'),L.t('tutorial.reset'));
     setText(document.querySelector('#de-onboarding b'),L.t('tutorial.label'));
