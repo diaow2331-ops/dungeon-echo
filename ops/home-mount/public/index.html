@@ -1,24 +1,44 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="system">
+<html lang="zh-CN" data-theme="system" data-lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="91hwl：个人开发日志、工程笔记与浏览器 Web Toys。">
+    <meta name="description" content="91hwl：浏览器 Web Toys、独立小游戏与开发记录。打开即玩，无需安装。">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="91hwl | Dev Log & Web Toys">
-    <meta property="og:description" content="个人开发日志、工程笔记与浏览器 Web Toys。">
+    <meta property="og:title" content="91hwl | Web Toys & Dev Log">
+    <meta property="og:description" content="Browser-native Web Toys and development notes. Open, play, and explore.">
     <meta property="og:url" content="https://91hwl.cn/">
+    <meta property="og:image" content="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="91hwl | Web Toys & Dev Log">
+    <meta name="twitter:description" content="Browser-native Web Toys and development notes. Open, play, and explore.">
+    <meta name="twitter:image" content="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp">
     <link rel="canonical" href="https://91hwl.cn/">
+    <link rel="alternate" hreflang="zh-CN" href="https://91hwl.cn/?lang=zh">
+    <link rel="alternate" hreflang="en" href="https://91hwl.cn/?lang=en">
+    <link rel="alternate" hreflang="x-default" href="https://91hwl.cn/">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <meta name="theme-color" content="#0b0b0a" id="themeColorMeta">
-    <title>91hwl | Dev Log & Web Toys</title>
+    <meta name="theme-color" content="#0b0c10" id="themeColorMeta">
+    <title>91hwl | Web Toys & Dev Log</title>
 
     <script>
     (() => {
         try {
-            const saved = localStorage.getItem('91hwl_theme');
-            if (saved === 'light' || saved === 'dark' || saved === 'system') {
-                document.documentElement.dataset.theme = saved;
+            const root = document.documentElement;
+            const params = new URLSearchParams(location.search);
+            const requested = params.get('lang');
+            const savedLang = localStorage.getItem('91hwl_lang');
+            const lang = requested === 'en' || requested === 'zh'
+                ? requested
+                : (savedLang === 'en' || savedLang === 'zh'
+                    ? savedLang
+                    : (/^zh\b/i.test(navigator.language || '') ? 'zh' : 'en'));
+            root.dataset.lang = lang;
+            root.lang = lang === 'en' ? 'en' : 'zh-CN';
+
+            const savedTheme = localStorage.getItem('91hwl_theme');
+            if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') {
+                root.dataset.theme = savedTheme;
             }
         } catch (_) {}
     })();
@@ -26,53 +46,59 @@
 
     <style>
         :root {
-            --bg: #0b0b0a;
-            --surface: #11110f;
-            --surface-2: #171714;
-            --surface-3: #1c1c18;
-            --text: #f1f0eb;
-            --dim: #a29f95;
-            --muted: #6f6c64;
-            --line: #2b2a25;
-            --line-strong: #3b3932;
-            --accent: #facc15;
-            --accent-soft: rgba(250, 204, 21, .09);
+            --bg: #0b0c10;
+            --surface: #11131a;
+            --surface-2: #171a23;
+            --surface-3: #202431;
+            --text: #f3f4f7;
+            --dim: #b0b4c0;
+            --muted: #777d8d;
+            --line: #292e3b;
+            --line-strong: #3a4254;
+            --accent: #f2c84b;
+            --accent-soft: rgba(242, 200, 75, .10);
             --accent-ink: #171207;
-            --shadow: 0 18px 60px rgba(0,0,0,.18);
-            --max: 1040px;
+            --blue: #8eabef;
+            --blue-soft: rgba(88, 118, 191, .17);
+            --shadow: 0 24px 80px rgba(0, 0, 0, .28);
+            --max: 1180px;
         }
 
         html[data-theme="light"] {
-            --bg: #f3f0e7;
-            --surface: #faf8f1;
+            --bg: #f4f1e8;
+            --surface: #faf8f2;
             --surface-2: #fffdf8;
-            --surface-3: #eee9dc;
-            --text: #181713;
-            --dim: #666159;
-            --muted: #8a8478;
-            --line: #ddd7c8;
-            --line-strong: #c9c1ae;
-            --accent: #e6b800;
-            --accent-soft: rgba(230, 184, 0, .11);
-            --accent-ink: #181205;
-            --shadow: 0 18px 60px rgba(78,67,42,.08);
+            --surface-3: #eee9dd;
+            --text: #171713;
+            --dim: #646158;
+            --muted: #8b867b;
+            --line: #ddd7ca;
+            --line-strong: #c9c1b0;
+            --accent: #dcae15;
+            --accent-soft: rgba(220, 174, 21, .12);
+            --accent-ink: #171207;
+            --blue: #4969ae;
+            --blue-soft: rgba(73, 105, 174, .10);
+            --shadow: 0 24px 80px rgba(74, 64, 40, .10);
         }
 
         @media (prefers-color-scheme: light) {
             html[data-theme="system"] {
-                --bg: #f3f0e7;
-                --surface: #faf8f1;
+                --bg: #f4f1e8;
+                --surface: #faf8f2;
                 --surface-2: #fffdf8;
-                --surface-3: #eee9dc;
-                --text: #181713;
-                --dim: #666159;
-                --muted: #8a8478;
-                --line: #ddd7c8;
-                --line-strong: #c9c1ae;
-                --accent: #e6b800;
-                --accent-soft: rgba(230, 184, 0, .11);
-                --accent-ink: #181205;
-                --shadow: 0 18px 60px rgba(78,67,42,.08);
+                --surface-3: #eee9dd;
+                --text: #171713;
+                --dim: #646158;
+                --muted: #8b867b;
+                --line: #ddd7ca;
+                --line-strong: #c9c1b0;
+                --accent: #dcae15;
+                --accent-soft: rgba(220, 174, 21, .12);
+                --accent-ink: #171207;
+                --blue: #4969ae;
+                --blue-soft: rgba(73, 105, 174, .10);
+                --shadow: 0 24px 80px rgba(74, 64, 40, .10);
             }
         }
 
@@ -82,487 +108,198 @@
             margin: 0;
             min-height: 100vh;
             background:
-                radial-gradient(circle at 75% 5%, var(--accent-soft), transparent 27rem),
+                radial-gradient(circle at 82% -8%, var(--blue-soft), transparent 34rem),
+                radial-gradient(circle at 10% 5%, var(--accent-soft), transparent 28rem),
                 var(--bg);
             color: var(--text);
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
             line-height: 1.65;
             transition: background-color .18s ease, color .18s ease;
         }
+        img { display: block; max-width: 100%; }
         button, a { -webkit-tap-highlight-color: transparent; }
         a { color: inherit; }
-        a:focus-visible, button:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 3px;
-        }
+        a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
-        .shell {
-            width: min(calc(100% - 40px), var(--max));
-            margin: 0 auto;
-            padding: 30px 0 48px;
-        }
+        .i18n-en { display: none; }
+        html[data-lang="en"] .i18n-zh { display: none !important; }
+        html[data-lang="en"] .i18n-en { display: inline !important; }
+        html[data-lang="en"] .block.i18n-en { display: block !important; }
+        html[data-lang="zh"] .block.i18n-zh { display: block !important; }
+
+        .shell { width: min(calc(100% - 40px), var(--max)); margin: 0 auto; padding: 22px 0 54px; }
 
         .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 18px;
-            min-height: 44px;
-            margin-bottom: 70px;
+            gap: 20px;
+            min-height: 62px;
+            margin-bottom: 54px;
+            background: color-mix(in srgb, var(--bg) 88%, transparent);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
         }
-        .brand {
-            color: var(--accent);
-            font-weight: 950;
-            letter-spacing: -1.1px;
-            text-decoration: none;
-            font-size: 23px;
-        }
-        .top-actions {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-        }
-        .nav {
-            display: flex;
-            gap: 18px;
-            font-size: 13px;
-            color: var(--dim);
-        }
-        .nav a {
-            text-decoration: none;
-            transition: color .15s ease;
-        }
+        .brand { color: var(--accent); font-weight: 950; letter-spacing: -1.2px; text-decoration: none; font-size: 24px; }
+        .top-actions { display: flex; align-items: center; gap: 12px; }
+        .nav { display: flex; gap: 17px; font-size: 13px; color: var(--dim); }
+        .nav a { text-decoration: none; }
         .nav a:hover { color: var(--text); }
 
-        .theme-switch {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-            padding: 3px;
-            border: 1px solid var(--line);
-            background: var(--surface);
-            border-radius: 9px;
-        }
-        .theme-switch button {
+        .segmented { display: flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; }
+        .segmented button {
             border: 0;
             background: transparent;
             color: var(--muted);
-            border-radius: 6px;
-            padding: 6px 8px;
-            font: 750 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            border-radius: 7px;
+            padding: 7px 8px;
+            font: 750 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
             cursor: pointer;
         }
-        .theme-switch button:hover { color: var(--text); }
-        .theme-switch button[aria-pressed="true"] {
-            background: var(--surface-3);
-            color: var(--text);
-            box-shadow: inset 0 0 0 1px var(--line);
-        }
+        .segmented button:hover { color: var(--text); }
+        .segmented button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
 
         .hero {
             display: grid;
-            grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr);
+            grid-template-columns: minmax(0, 1.05fr) minmax(380px, .95fr);
             gap: 54px;
-            align-items: end;
-            margin-bottom: 78px;
-        }
-        .eyebrow, .section-kicker {
-            margin: 0 0 13px;
-            color: var(--accent);
-            font: 800 11px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            letter-spacing: .12em;
-            text-transform: uppercase;
-        }
-        h1 {
-            margin: 0 0 20px;
-            max-width: 720px;
-            font-size: clamp(42px, 7vw, 72px);
-            line-height: .99;
-            letter-spacing: -3.5px;
-        }
-        .hero-copy {
-            max-width: 640px;
-            margin: 0;
-            color: var(--dim);
-            font-size: 15px;
-        }
-        .now-card {
-            background: color-mix(in srgb, var(--surface) 88%, transparent);
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            padding: 18px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(6px);
-        }
-        .now-card .label {
-            color: var(--muted);
-            font: 800 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            letter-spacing: .12em;
-            margin-bottom: 13px;
-        }
-        .now-card strong {
-            display: block;
-            margin-bottom: 9px;
-            font-size: 16px;
-            letter-spacing: -.2px;
-        }
-        .now-card p {
-            margin: 0;
-            color: var(--dim);
-            font-size: 12px;
-        }
-        .now-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 16px;
-        }
-        .stat {
-            border-top: 1px solid var(--line);
-            padding-top: 10px;
-        }
-        .stat b {
-            display: block;
-            font-size: 20px;
-            line-height: 1.1;
-        }
-        .stat span {
-            color: var(--muted);
-            font: 700 9px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            text-transform: uppercase;
-        }
-
-        section { scroll-margin-top: 26px; }
-        .section-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: end;
-            gap: 18px;
-            margin-bottom: 15px;
-        }
-        .section-head h2 {
-            margin: 0;
-            font-size: 13px;
-            color: var(--dim);
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            letter-spacing: .12em;
-            text-transform: uppercase;
-        }
-        .section-head span {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .toy-card {
-            position: relative;
-            overflow: hidden;
-            border: 1px solid var(--line-strong);
-            border-radius: 18px;
-            background: var(--surface-2);
-            box-shadow: var(--shadow);
-            margin-bottom: 24px;
-        }
-        #toys .toy-card:last-child { margin-bottom: 72px; }
-        .toy-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                linear-gradient(120deg, var(--accent-soft), transparent 34%),
-                linear-gradient(310deg, var(--accent-soft), transparent 26%);
-            opacity: .75;
-        }
-        .toy-grid {
-            position: relative;
-            z-index: 1;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 390px;
-            gap: 42px;
             align-items: center;
-            padding: 32px;
+            margin-bottom: 82px;
         }
-        .toy-meta {
-            display: flex;
-            gap: 7px;
-            flex-wrap: wrap;
-            margin-bottom: 14px;
-        }
-        .pill {
-            border: 1px solid var(--line-strong);
-            color: var(--dim);
-            padding: 4px 8px;
-            border-radius: 999px;
-            font: 750 9px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-        }
-        .toy-card h3 {
-            margin: 0 0 10px;
-            font-size: clamp(26px, 4vw, 38px);
-            letter-spacing: -1.2px;
-        }
-        .toy-card p {
-            margin: 0 0 22px;
-            max-width: 520px;
-            color: var(--dim);
-            font-size: 14px;
-        }
-        .play-link {
+        .eyebrow, .section-kicker { margin: 0 0 14px; color: var(--accent); font: 800 11px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .12em; text-transform: uppercase; }
+        h1 { margin: 0 0 22px; max-width: 720px; font-size: clamp(46px, 6.8vw, 78px); line-height: .96; letter-spacing: -4px; }
+        .hero-copy { max-width: 660px; margin: 0 0 25px; color: var(--dim); font-size: 16px; }
+        .hero-actions, .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .button {
             display: inline-flex;
             align-items: center;
-            gap: 9px;
-            padding: 11px 15px;
-            border-radius: 8px;
-            background: var(--accent);
-            color: var(--accent-ink);
-            font-weight: 900;
-            font-size: 13px;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 10px 15px;
+            border-radius: 9px;
+            border: 1px solid var(--line-strong);
+            background: var(--surface-2);
+            color: var(--text);
+            font-weight: 850;
+            font-size: 12px;
             text-decoration: none;
-            transition: transform .15s ease, filter .15s ease;
         }
-        .play-link:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.03);
-        }
+        .button.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+        .button:hover { transform: translateY(-1px); filter: brightness(1.04); }
+        .hero-facts { display: flex; flex-wrap: wrap; gap: 9px 16px; margin-top: 22px; color: var(--muted); font: 700 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-        .preview {
-            min-height: 214px;
+        .hero-visual {
+            position: relative;
+            min-height: 420px;
+            overflow: hidden;
+            border: 1px solid var(--line-strong);
+            border-radius: 24px;
+            background: #0f131d;
+            box-shadow: var(--shadow);
+        }
+        .hero-visual img { width: 100%; height: 100%; min-height: 420px; object-fit: cover; filter: saturate(.9) contrast(1.03); }
+        .hero-visual::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8, 10, 15, .90), rgba(8, 10, 15, .10) 55%, transparent); pointer-events: none; }
+        .visual-caption { position: absolute; z-index: 2; left: 22px; right: 22px; bottom: 20px; display: flex; align-items: end; justify-content: space-between; gap: 20px; color: #f4f6ff; }
+        .visual-caption small { display: block; color: #aab4cf; margin-bottom: 5px; font: 750 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; }
+        .visual-caption strong { font-size: 22px; letter-spacing: -.5px; }
+        .visual-caption .version { flex: 0 0 auto; padding: 5px 8px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; font: 800 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+        section { scroll-margin-top: 84px; }
+        .section-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 18px; }
+        .section-head h2 { margin: 0; font-size: clamp(23px, 3vw, 34px); letter-spacing: -1px; }
+        .section-head p { margin: 0; color: var(--muted); font-size: 12px; }
+
+        .featured {
             position: relative;
             overflow: hidden;
-            border-radius: 12px;
-            border: 1px solid var(--line-strong);
-            background:
-                linear-gradient(var(--line) 1px, transparent 1px) 0 70% / 100% 31px,
-                linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 70% / 62px 100%,
-                var(--surface);
-        }
-        .preview-window {
-            position: absolute;
-            left: 28px;
-            right: 28px;
-            top: 26px;
-            height: 64px;
-            border: 3px solid var(--muted);
-            background: #bdd4dd;
-            opacity: .8;
-        }
-        html[data-theme="dark"] .preview-window { background: #26383f; }
-        @media (prefers-color-scheme: dark) {
-            html[data-theme="system"] .preview-window { background: #26383f; }
-        }
-        .preview-window::after {
-            content: "";
-            position: absolute;
-            top: 0; bottom: 0; left: 50%;
-            border-left: 2px solid var(--muted);
-        }
-        .preview-partition {
-            position: absolute;
-            left: 0; right: 0; top: 116px;
-            height: 43px;
-            background: var(--surface-3);
-            border-top: 2px solid var(--line-strong);
-            border-bottom: 1px solid var(--line);
-        }
-        .preview-desk {
-            position: absolute;
-            right: 34px;
-            bottom: 35px;
-            width: 128px;
-            height: 7px;
-            background: #9b866b;
-            box-shadow: 12px 8px 0 #6e5d4d, 100px 8px 0 #6e5d4d;
-        }
-        .preview-monitor {
-            position: absolute;
-            right: 73px;
-            bottom: 43px;
-            width: 48px;
-            height: 31px;
-            border: 4px solid #686868;
-            background: #c7dce4;
-        }
-        .preview-tower {
-            position: absolute;
-            right: 34px;
-            bottom: 31px;
-            width: 23px;
-            height: 46px;
-            border: 3px solid #5c5c5c;
-            background: #2a2a2a;
-        }
-        .preview-runner {
-            position: absolute;
-            left: 48px;
-            bottom: 30px;
-            width: 22px;
-            height: 45px;
-            background: #f1f0eb;
-            border: 3px solid #555;
-        }
-        .preview-runner::before {
-            content: "";
-            position: absolute;
-            left: 2px;
-            top: -16px;
-            width: 12px;
-            height: 12px;
-            background: #d4aa84;
-            border: 2px solid #555;
-        }
-        .preview-ground {
-            position: absolute;
-            left: 0; right: 0; bottom: 24px;
-            height: 4px;
-            background: var(--accent);
-            box-shadow: 0 -2px 0 color-mix(in srgb, var(--text) 22%, transparent);
-        }
-        .dungeon-preview {
-            background:
-                linear-gradient(rgba(91,102,142,.22) 1px, transparent 1px) 0 0 / 42px 42px,
-                linear-gradient(90deg, rgba(91,102,142,.22) 1px, transparent 1px) 0 0 / 42px 42px,
-                #11131d;
-        }
-        .dungeon-room {
-            position: absolute;
-            inset: 25px 28px 31px;
-            border: 5px solid #3a4056;
-            box-shadow: inset 0 0 0 2px #171a27;
-            background:
-                radial-gradient(circle at 22% 28%, #d8a843 0 3px, transparent 4px),
-                radial-gradient(circle at 80% 70%, #8e5dd0 0 4px, transparent 5px),
-                #1d2231;
-        }
-        .dungeon-room::before,
-        .dungeon-room::after {
-            content: "";
-            position: absolute;
-            width: 42px;
-            height: 42px;
-            background: #11131d;
-            border: 4px solid #3a4056;
-        }
-        .dungeon-room::before { left: -5px; bottom: 25px; border-left: 0; }
-        .dungeon-room::after { right: -5px; top: 24px; border-right: 0; }
-        .dungeon-hero {
-            position: absolute;
-            left: 44%;
-            top: 44%;
-            width: 18px;
-            height: 25px;
-            border: 3px solid #0d0f17;
-            background: #d7e6ff;
-            box-shadow: 0 0 0 3px #556fa6, 18px 8px 0 -5px #85a7ef;
-        }
-        .dungeon-hero::before {
-            content: "";
-            position: absolute;
-            left: 2px;
-            top: -14px;
-            width: 9px;
-            height: 10px;
-            background: #d2a47e;
-            border: 2px solid #0d0f17;
-        }
-        .dungeon-chest {
-            position: absolute;
-            right: 58px;
-            bottom: 47px;
-            width: 34px;
-            height: 24px;
-            border: 3px solid #17110a;
-            background: #b9772d;
-            box-shadow: inset 0 8px 0 #d59a43;
-        }
-        .dungeon-depth {
-            position: absolute;
-            left: 42px;
-            top: 35px;
-            color: #d9e2ff;
-            font: 900 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            letter-spacing: .08em;
-        }
-
-        .notes {
-            margin-bottom: 72px;
-        }
-        .post-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
+            grid-template-columns: minmax(0, 1fr) minmax(360px, .86fr);
+            gap: 0;
+            margin-bottom: 20px;
+            border: 1px solid var(--line-strong);
+            border-radius: 22px;
+            background: var(--surface-2);
+            box-shadow: var(--shadow);
         }
-        .post {
-            min-height: 170px;
-            display: flex;
-            flex-direction: column;
-            padding: 22px;
+        .featured-copy { padding: 34px; }
+        .meta { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
+        .pill { border: 1px solid var(--line-strong); color: var(--dim); padding: 4px 8px; border-radius: 999px; font: 750 9px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; letter-spacing: .06em; }
+        .featured h3, .toy-small h3 { margin: 0 0 11px; font-size: clamp(28px, 4vw, 42px); letter-spacing: -1.4px; }
+        .featured p, .toy-small p { margin: 0 0 23px; color: var(--dim); font-size: 14px; max-width: 610px; }
+        .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin: 24px 0 0; }
+        .feature-list div { padding-top: 11px; border-top: 1px solid var(--line); }
+        .feature-list b { display: block; font-size: 15px; }
+        .feature-list span { color: var(--muted); font-size: 11px; }
+        .featured-media { position: relative; min-height: 360px; background: #111622; overflow: hidden; }
+        .featured-media img { width: 100%; height: 100%; min-height: 360px; object-fit: cover; }
+        .featured-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--surface-2), transparent 26%); pointer-events: none; }
+
+        .toy-small {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 380px;
+            align-items: center;
+            gap: 34px;
+            padding: 28px;
+            margin-bottom: 78px;
             border: 1px solid var(--line);
-            border-radius: 14px;
+            border-radius: 18px;
             background: var(--surface);
-            transition: border-color .15s ease, transform .15s ease;
         }
-        .post:hover {
-            border-color: var(--line-strong);
-            transform: translateY(-1px);
-        }
-        .date {
-            color: var(--muted);
-            font: 750 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        }
-        .post h3 {
-            margin: 10px 0 9px;
-            font-size: 17px;
-            letter-spacing: -.3px;
-        }
-        .post p {
-            margin: 0;
-            color: var(--dim);
-            font-size: 13px;
-        }
-        code {
-            background: var(--surface-3);
-            color: var(--accent);
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        .preview { min-height: 205px; position: relative; overflow: hidden; border-radius: 12px; border: 1px solid var(--line-strong); background: linear-gradient(var(--line) 1px, transparent 1px) 0 70% / 100% 31px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 70% / 62px 100%, var(--surface-2); }
+        .preview-window { position: absolute; left: 28px; right: 28px; top: 25px; height: 62px; border: 3px solid var(--muted); background: #283943; }
+        .preview-window::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; border-left: 2px solid var(--muted); }
+        .preview-partition { position: absolute; left: 0; right: 0; top: 113px; height: 42px; background: var(--surface-3); border-top: 2px solid var(--line-strong); }
+        .preview-desk { position: absolute; right: 34px; bottom: 35px; width: 128px; height: 7px; background: #9b866b; box-shadow: 12px 8px 0 #6e5d4d, 100px 8px 0 #6e5d4d; }
+        .preview-monitor { position: absolute; right: 73px; bottom: 43px; width: 48px; height: 31px; border: 4px solid #686868; background: #c7dce4; }
+        .preview-runner { position: absolute; left: 48px; bottom: 30px; width: 22px; height: 45px; background: #f1f0eb; border: 3px solid #555; }
+        .preview-runner::before { content: ""; position: absolute; left: 2px; top: -16px; width: 12px; height: 12px; background: #d4aa84; border: 2px solid #555; }
+        .preview-ground { position: absolute; left: 0; right: 0; bottom: 24px; height: 4px; background: var(--accent); }
+
+        .notes { margin-bottom: 74px; }
+        .post-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .post { min-height: 168px; display: flex; flex-direction: column; padding: 22px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); text-decoration: none; transition: border-color .15s ease, transform .15s ease; }
+        .post:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+        .date { color: var(--muted); font: 750 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        .post h3 { margin: 10px 0 9px; font-size: 17px; letter-spacing: -.3px; }
+        .post p { margin: 0; color: var(--dim); font-size: 13px; }
+        code { background: var(--surface-3); color: var(--accent); padding: 2px 5px; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+        .footer { display: flex; justify-content: space-between; gap: 18px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font: 700 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+        @media (max-width: 930px) {
+            .hero { grid-template-columns: 1fr; gap: 30px; }
+            .hero-visual { min-height: 340px; }
+            .hero-visual img { min-height: 340px; }
+            .featured { grid-template-columns: 1fr; }
+            .featured-media { min-height: 300px; order: -1; }
+            .featured-media::after { background: linear-gradient(to bottom, transparent 55%, var(--surface-2)); }
+            .toy-small { grid-template-columns: 1fr; }
+            .preview { order: -1; }
         }
 
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            gap: 18px;
-            padding-top: 21px;
-            border-top: 1px solid var(--line);
-            color: var(--muted);
-            font: 700 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        }
-
-        @media (max-width: 850px) {
-            .hero { grid-template-columns: 1fr; gap: 28px; }
-            .now-card { max-width: 440px; }
-            .toy-grid { grid-template-columns: 1fr; }
-            .preview { min-height: 190px; order: -1; }
-        }
-
-        @media (max-width: 620px) {
-            .shell { width: min(calc(100% - 28px), var(--max)); padding-top: 18px; }
-            .topbar {
-                align-items: flex-start;
-                margin-bottom: 48px;
-            }
-            .top-actions {
-                align-items: flex-end;
-                flex-direction: column-reverse;
-                gap: 9px;
-            }
-            .nav { gap: 13px; }
-            .theme-switch button { padding: 6px 7px; font-size: 10px; }
-            h1 { font-size: clamp(40px, 13vw, 58px); letter-spacing: -2.7px; }
+        @media (max-width: 680px) {
+            .shell { width: min(calc(100% - 26px), var(--max)); padding-top: 10px; }
+            .topbar { min-height: 56px; margin-bottom: 36px; align-items: flex-start; }
+            .top-actions { align-items: flex-end; flex-direction: column-reverse; gap: 7px; padding-top: 7px; }
+            .nav { gap: 12px; font-size: 12px; }
+            .segmented button { padding: 6px 7px; font-size: 9px; }
+            h1 { font-size: clamp(42px, 13.5vw, 62px); letter-spacing: -3px; }
             .hero { margin-bottom: 58px; }
-            .toy-grid { padding: 18px; gap: 22px; }
-            .toy-card { margin-bottom: 58px; }
-            .preview { min-height: 168px; }
+            .hero-visual { min-height: 280px; border-radius: 18px; }
+            .hero-visual img { min-height: 280px; }
+            .visual-caption { left: 16px; right: 16px; bottom: 15px; }
+            .visual-caption strong { font-size: 18px; }
+            .section-head { align-items: flex-start; flex-direction: column; gap: 4px; }
+            .featured-copy { padding: 21px; }
+            .feature-list { grid-template-columns: 1fr; }
+            .featured-media { min-height: 230px; }
+            .featured-media img { min-height: 230px; }
+            .toy-small { padding: 19px; gap: 20px; margin-bottom: 58px; }
+            .preview { min-height: 170px; }
             .post-grid { grid-template-columns: 1fr; }
             .post { min-height: auto; }
             .footer { flex-direction: column; gap: 5px; }
@@ -573,169 +310,199 @@
             * { transition: none !important; }
         }
     </style>
-</head>
 
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "91hwl",
+      "url": "https://91hwl.cn/",
+      "description": "Browser-native Web Toys and development notes."
+    }
+    </script>
+</head>
 <body>
     <main class="shell">
         <header class="topbar">
-            <a class="brand" href="/" aria-label="91hwl 首页">91hwl</a>
-
+            <a class="brand" href="/" aria-label="91hwl">91hwl</a>
             <div class="top-actions">
-                <nav class="nav" aria-label="主导航">
-                    <a href="#toys">Web Toys</a>
+                <nav class="nav" aria-label="Primary">
+                    <a href="#toys"><span class="i18n-zh">作品</span><span class="i18n-en">Toys</span></a>
                     <a href="#notes">Notes</a>
                 </nav>
-
-                <div class="theme-switch" role="group" aria-label="页面主题">
-                    <button type="button" data-theme-choice="system">自动</button>
-                    <button type="button" data-theme-choice="light">浅色</button>
-                    <button type="button" data-theme-choice="dark">深色</button>
+                <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">
+                    <div class="segmented" role="group" aria-label="Language">
+                        <button type="button" data-lang-choice="zh">中文</button>
+                        <button type="button" data-lang-choice="en">EN</button>
+                    </div>
+                    <div class="segmented" role="group" aria-label="Theme">
+                        <button type="button" data-theme-choice="system"><span class="i18n-zh">自动</span><span class="i18n-en">Auto</span></button>
+                        <button type="button" data-theme-choice="light"><span class="i18n-zh">浅色</span><span class="i18n-en">Light</span></button>
+                        <button type="button" data-theme-choice="dark"><span class="i18n-zh">深色</span><span class="i18n-en">Dark</span></button>
+                    </div>
                 </div>
             </div>
         </header>
 
         <section class="hero" aria-labelledby="hero-title">
             <div>
-                <div class="eyebrow">Personal Dev Log</div>
-                <h1 id="hero-title">做点东西。<br>顺手记下来。</h1>
-                <p class="hero-copy">这里放开发记录、工程折腾，以及偶尔做出来的浏览器小玩具。能直接打开的，就尽量不让你安装东西。</p>
+                <div class="eyebrow"><span class="i18n-zh">Browser-native Web Toys</span><span class="i18n-en">Browser-native Web Toys</span></div>
+                <h1 id="hero-title"><span class="i18n-zh">打开浏览器。<br>直接玩。</span><span class="i18n-en">Open the browser.<br>Just play.</span></h1>
+                <p class="hero-copy"><span class="i18n-zh">91hwl 是一个小型 Web Toys 与开发记录站。这里的作品优先做到无需安装、无需账号、打开即玩；工程过程则尽量公开、可追溯。</span><span class="i18n-en">91hwl is a small home for browser-native Web Toys and development notes. The goal is simple: no install, no account, open and play — with the engineering process kept visible and traceable.</span></p>
+                <div class="hero-actions">
+                    <a class="button primary" href="#toys"><span class="i18n-zh">查看作品</span><span class="i18n-en">Explore toys</span> <span aria-hidden="true">↓</span></a>
+                    <a class="button" href="https://github.com/diaow2331-ops/dungeon-echo">GitHub</a>
+                </div>
+                <div class="hero-facts"><span>02 WEB TOYS</span><span>NO INSTALL</span><span>STATIC-FIRST</span><span>ZH / EN</span></div>
             </div>
 
-            <aside class="now-card" aria-label="当前站点状态">
-                <div class="label">NOW / 2026</div>
-                <strong>91hwl 正在从开发日志长成一个小型 Web Toys 站。</strong>
-                <p>两款游戏已经上线。后面会继续加入有趣、轻量、打开就能玩的东西。</p>
-                <div class="now-stats" aria-label="当前内容数量">
-                    <div class="stat"><b>02</b><span>Web Toys</span></div>
-                    <div class="stat"><b>02</b><span>Notes</span></div>
+            <a class="hero-visual" href="/toys/dungeon-echo/" aria-label="Dungeon Echo">
+                <img src="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp" alt="" fetchpriority="high">
+                <div class="visual-caption">
+                    <div><small>FEATURED / DUNGEON ECHO</small><strong><span class="i18n-zh">百层地牢，构筑与撤退</span><span class="i18n-en">100 floors of builds and retreat</span></strong></div>
+                    <span class="version">v1.2.2</span>
                 </div>
-            </aside>
+            </a>
         </section>
 
         <section id="toys" aria-labelledby="toys-title">
             <div class="section-head">
-                <h2 id="toys-title">Web Toys</h2>
-                <span>打开浏览器就能玩</span>
+                <div><div class="section-kicker">Playable now</div><h2 id="toys-title"><span class="i18n-zh">现在就能玩的东西</span><span class="i18n-en">Things you can play now</span></h2></div>
+                <p><span class="i18n-zh">PC 优先，同时兼顾手机浏览器</span><span class="i18n-en">Desktop-first, with mobile support</span></p>
             </div>
 
-            <article class="toy-card">
-                <div class="toy-grid">
-                    <div>
-                        <div class="toy-meta">
-                            <span class="pill">Browser Game</span>
-                            <span class="pill">8-bit</span>
-                            <span class="pill">No Install</span>
-                        </div>
-                        <h3>摸鱼到下班</h3>
-                        <p>从 14:00 撑到 18:00。躲过老板、会议、临时需求和各种意外，喝点咖啡，看看今天到底能不能准点下班。</p>
-                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-                            <a class="play-link" href="https://play.91hwl.cn/moyu/" aria-label="开始玩摸鱼到下班">开始摸鱼 <span aria-hidden="true">→</span></a>
-                            <a href="/toys/moyu/" style="color:var(--dim);font-weight:800;font-size:12px;text-decoration:none">查看详情</a>
-                        </div>
+            <article class="featured">
+                <div class="featured-copy">
+                    <div class="meta"><span class="pill">100 Floors</span><span class="pill">Roguelike</span><span class="pill">Open Source</span><span class="pill">ZH / EN</span></div>
+                    <h3><span class="i18n-zh">地牢回响</span><span class="i18n-en">Dungeon Echo</span></h3>
+                    <p><span class="i18n-zh">从第 1 层一路下潜到第 100 层。四职业、装备构筑、Mana、锻造、城镇整备与可读 Boss 机制共同组成“继续贪，还是带着战利品回去”的长局选择。</span><span class="i18n-en">Descend from floor 1 to 100 through four classes, equipment builds, Mana, forging, town preparation and readable bosses. The central question is always the same: push your luck, or return safely with what you found?</span></p>
+                    <div class="actions">
+                        <a class="button primary" href="https://play.91hwl.cn/dungeon-echo/"><span class="i18n-zh">进入地牢</span><span class="i18n-en">Play</span> <span aria-hidden="true">→</span></a>
+                        <a class="button" href="/toys/dungeon-echo/"><span class="i18n-zh">项目详情</span><span class="i18n-en">Details</span></a>
+                        <a class="button" href="https://github.com/diaow2331-ops/dungeon-echo">GitHub</a>
                     </div>
-
-                    <div class="preview" aria-hidden="true">
-                        <div class="preview-window"></div>
-                        <div class="preview-partition"></div>
-                        <div class="preview-desk"></div>
-                        <div class="preview-monitor"></div>
-                        <div class="preview-tower"></div>
-                        <div class="preview-runner"></div>
-                        <div class="preview-ground"></div>
+                    <div class="feature-list">
+                        <div><b>1 → 100</b><span><span class="i18n-zh">完整正式旅程</span><span class="i18n-en">one full route</span></span></div>
+                        <div><b>4 Classes</b><span><span class="i18n-zh">不同战斗节奏</span><span class="i18n-en">distinct combat rhythms</span></span></div>
+                        <div><b>Local Save</b><span><span class="i18n-zh">无需账号</span><span class="i18n-en">no account</span></span></div>
                     </div>
+                </div>
+                <div class="featured-media" aria-hidden="true">
+                    <img src="https://play.91hwl.cn/dungeon-echo/art/class-roster.webp" alt="" loading="lazy">
                 </div>
             </article>
 
-            <article class="toy-card">
-                <div class="toy-grid">
-                    <div>
-                        <div class="toy-meta">
-                            <span class="pill">Dungeon Crawler</span>
-                            <span class="pill">100 Floors</span>
-                            <span class="pill">Desktop First</span>
-                        </div>
-                        <h3>地牢回响</h3>
-                        <p>选择职业，探索百层地牢，在战斗、装备、锻造与城镇补给之间建立自己的成长路线。每十层都有新的守卫与机制。</p>
-                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-                            <a class="play-link" href="https://play.91hwl.cn/dungeon-echo/" aria-label="开始玩地牢回响">进入地牢 <span aria-hidden="true">→</span></a>
-                            <a href="/toys/dungeon-echo/" style="color:var(--dim);font-weight:800;font-size:12px;text-decoration:none">查看详情</a>
-                        </div>
-                    </div>
-
-                    <div class="preview dungeon-preview" aria-hidden="true">
-                        <div class="dungeon-room"></div>
-                        <div class="dungeon-depth">DEPTH 037</div>
-                        <div class="dungeon-hero"></div>
-                        <div class="dungeon-chest"></div>
+            <article class="toy-small">
+                <div>
+                    <div class="meta"><span class="pill">Browser Game</span><span class="pill">8-bit</span><span class="pill">No Install</span></div>
+                    <h3><span class="i18n-zh">摸鱼到下班</span><span class="i18n-en">Survive Until Clock-out</span></h3>
+                    <p><span class="i18n-zh">从 14:00 撑到 18:00。躲过老板、会议、临时需求和各种意外，喝点咖啡，看看今天到底能不能准点下班。</span><span class="i18n-en">Make it from 14:00 to 18:00. Dodge the boss, meetings, surprise requests and office chaos — and see whether you can leave on time.</span></p>
+                    <div class="actions">
+                        <a class="button primary" href="https://play.91hwl.cn/moyu/"><span class="i18n-zh">开始摸鱼</span><span class="i18n-en">Play</span> <span aria-hidden="true">→</span></a>
+                        <a class="button" href="/toys/moyu/"><span class="i18n-zh">查看详情</span><span class="i18n-en">Details</span></a>
                     </div>
                 </div>
+                <div class="preview" aria-hidden="true"><div class="preview-window"></div><div class="preview-partition"></div><div class="preview-desk"></div><div class="preview-monitor"></div><div class="preview-runner"></div><div class="preview-ground"></div></div>
             </article>
         </section>
 
         <section id="notes" class="notes" aria-labelledby="notes-title">
             <div class="section-head">
-                <h2 id="notes-title">Engineering Notes</h2>
-                <span>开发随记</span>
+                <div><div class="section-kicker">Engineering notes</div><h2 id="notes-title"><span class="i18n-zh">开发随记</span><span class="i18n-en">Development notes</span></h2></div>
+                <p><span class="i18n-zh">不把工程过程藏起来</span><span class="i18n-en">Keep the process visible</span></p>
             </div>
-
             <div class="post-grid">
-                <a class="post" href="/notes/shadow-route/" style="text-decoration:none;color:inherit">
+                <a class="post" href="/notes/shadow-route/">
                     <div class="date">2026-01-22</div>
-                    <h3>异步生态网络中的寻址策略优化</h3>
-                    <p>在构建 <code>91-Commander</code> 核心寻址逻辑时，通过影子路由（Shadow Route）机制实现物理隔离，降低单点故障对整体链路的影响。</p>
+                    <h3><span class="i18n-zh">异步生态网络中的寻址策略优化</span><span class="i18n-en">Addressing strategy in asynchronous network systems</span></h3>
+                    <p><span class="i18n-zh">通过影子路由（Shadow Route）机制实现物理隔离，降低单点故障对整体链路的影响。</span><span class="i18n-en">Using a Shadow Route mechanism to isolate failure domains and reduce the impact of single-point failures.</span></p>
                 </a>
-
-                <a class="post" href="/notes/nginx-https/" style="text-decoration:none;color:inherit">
+                <a class="post" href="/notes/nginx-https/">
                     <div class="date">2026-01-19</div>
-                    <h3>Nginx 强制 HTTPS 跳转的安全性考量</h3>
-                    <p>通过 <code>301 Redirect</code> 强制全站加密，并结合 HSTS 策略减少明文链路暴露。</p>
+                    <h3><span class="i18n-zh">Nginx 强制 HTTPS 跳转的安全性考量</span><span class="i18n-en">Security considerations for forced HTTPS redirects</span></h3>
+                    <p><span class="i18n-zh">通过 <code>301 Redirect</code> 强制全站加密，并结合 HSTS 减少明文链路暴露。</span><span class="i18n-en">Using <code>301 Redirect</code> and HSTS to reduce plaintext exposure across the site.</span></p>
                 </a>
             </div>
         </section>
 
-        <footer class="footer">
-            <span>© 2026 91hwl</span>
-            <span>Notes · Experiments · Web Toys</span>
-        </footer>
+        <footer class="footer"><span>© 2026 91hwl</span><span>Notes · Experiments · Web Toys</span></footer>
     </main>
 
     <script>
     (() => {
         const root = document.documentElement;
-        const meta = document.getElementById('themeColorMeta');
-        const buttons = [...document.querySelectorAll('[data-theme-choice]')];
+        const metaTheme = document.getElementById('themeColorMeta');
+        const themeButtons = [...document.querySelectorAll('[data-theme-choice]')];
+        const langButtons = [...document.querySelectorAll('[data-lang-choice]')];
         const media = window.matchMedia('(prefers-color-scheme: light)');
+        const metaDesc = document.querySelector('meta[name="description"]');
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        const twTitle = document.querySelector('meta[name="twitter:title"]');
+        const twDesc = document.querySelector('meta[name="twitter:description"]');
 
-        const themeColor = () => {
-            const mode = root.dataset.theme;
-            const light = mode === 'light' || (mode === 'system' && media.matches);
-            meta.setAttribute('content', light ? '#f3f0e7' : '#0b0b0a');
+        const languageMeta = {
+            zh: {
+                title: '91hwl | Web Toys 与开发记录',
+                desc: '91hwl：浏览器 Web Toys、独立小游戏与开发记录。打开即玩，无需安装。'
+            },
+            en: {
+                title: '91hwl | Web Toys & Dev Log',
+                desc: 'Browser-native Web Toys and development notes. No install, no account — open and play.'
+            }
         };
 
-        const render = () => {
+        const themeColor = () => {
             const mode = root.dataset.theme || 'system';
-            buttons.forEach(btn => btn.setAttribute(
-                'aria-pressed',
-                String(btn.dataset.themeChoice === mode)
-            ));
+            const light = mode === 'light' || (mode === 'system' && media.matches);
+            metaTheme.setAttribute('content', light ? '#f4f1e8' : '#0b0c10');
+        };
+
+        const renderTheme = () => {
+            const mode = root.dataset.theme || 'system';
+            themeButtons.forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.themeChoice === mode)));
             themeColor();
         };
 
-        const setTheme = mode => {
+        const renderLang = () => {
+            const lang = root.dataset.lang === 'en' ? 'en' : 'zh';
+            root.lang = lang === 'en' ? 'en' : 'zh-CN';
+            langButtons.forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.langChoice === lang)));
+            const meta = languageMeta[lang];
+            document.title = meta.title;
+            metaDesc && metaDesc.setAttribute('content', meta.desc);
+            ogTitle && ogTitle.setAttribute('content', meta.title);
+            ogDesc && ogDesc.setAttribute('content', meta.desc);
+            twTitle && twTitle.setAttribute('content', meta.title);
+            twDesc && twDesc.setAttribute('content', meta.desc);
+        };
+
+        themeButtons.forEach(btn => btn.addEventListener('click', () => {
+            const mode = btn.dataset.themeChoice;
             if (!['system','light','dark'].includes(mode)) return;
             root.dataset.theme = mode;
             try { localStorage.setItem('91hwl_theme', mode); } catch (_) {}
-            render();
-        };
+            renderTheme();
+        }));
 
-        buttons.forEach(btn => {
-            btn.addEventListener('click', () => setTheme(btn.dataset.themeChoice));
-        });
+        langButtons.forEach(btn => btn.addEventListener('click', () => {
+            const lang = btn.dataset.langChoice;
+            if (!['zh','en'].includes(lang)) return;
+            root.dataset.lang = lang;
+            try { localStorage.setItem('91hwl_lang', lang); } catch (_) {}
+            try {
+                const url = new URL(location.href);
+                url.searchParams.set('lang', lang);
+                history.replaceState(null, '', url);
+            } catch (_) {}
+            renderLang();
+        }));
 
         if (media.addEventListener) media.addEventListener('change', themeColor);
         else if (media.addListener) media.addListener(themeColor);
 
-        render();
+        renderTheme();
+        renderLang();
     })();
     </script>
 </body>

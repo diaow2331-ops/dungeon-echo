@@ -1,120 +1,217 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-lang="zh">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#10131d">
-<meta name="description" content="地牢回响 Dungeon Echo：四职业、百层地牢、Mana 技能、可读 Boss、装备锻造、城镇经营、手机触控与中英双语的浏览器 Roguelike。">
-<title>地牢回响 Dungeon Echo | 91hwl</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1018">
+<meta name="description" content="Dungeon Echo 地牢回响：四职业、百层地牢、J/K + Mana、装备构筑、锻造、城镇整备与可读 Boss 机制的开源浏览器 Roguelike。">
+<title>Dungeon Echo · 地牢回响 | 91hwl</title>
 <link rel="canonical" href="https://91hwl.cn/toys/dungeon-echo/">
+<link rel="alternate" hreflang="zh-CN" href="https://91hwl.cn/toys/dungeon-echo/?lang=zh">
+<link rel="alternate" hreflang="en" href="https://91hwl.cn/toys/dungeon-echo/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://91hwl.cn/toys/dungeon-echo/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Dungeon Echo · 地牢回响 | 91hwl">
-<meta property="og:description" content="A bilingual 100-floor browser roguelike with four classes, readable bosses, mana skills, forging, town progression and mobile controls.">
+<meta property="og:description" content="A 100-floor open-source browser roguelike about builds, risk, retreat and greed.">
 <meta property="og:url" content="https://91hwl.cn/toys/dungeon-echo/">
+<meta property="og:image" content="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Dungeon Echo · 100-floor browser roguelike">
+<meta name="twitter:description" content="Four classes, builds, Mana, readable bosses, forging, town prep and no install.">
+<meta name="twitter:image" content="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp">
+
+<script>
+(() => {
+  try {
+    const root = document.documentElement;
+    const params = new URLSearchParams(location.search);
+    const requested = params.get('lang');
+    const saved = localStorage.getItem('91hwl_lang');
+    const lang = requested === 'en' || requested === 'zh'
+      ? requested
+      : (saved === 'en' || saved === 'zh'
+        ? saved
+        : (/^zh\b/i.test(navigator.language || '') ? 'zh' : 'en'));
+    root.dataset.lang = lang;
+    root.lang = lang === 'en' ? 'en' : 'zh-CN';
+  } catch (_) {}
+})();
+</script>
+
 <style>
 :root{
   color-scheme:dark;
-  --bg:#0d1018;--surface:#151a27;--surface-2:#1c2333;--text:#edf1ff;
-  --muted:#a7afc7;--line:#343e56;--accent:#85a7ef;--gold:#d8a843;
+  --bg:#0b0e15;--surface:#121722;--surface2:#191f2e;--surface3:#222a3c;
+  --text:#f1f4ff;--muted:#aab2c8;--dim:#79839f;--line:#313b53;--line2:#485572;
+  --accent:#8daaf1;--accent2:#d8a843;--accentSoft:rgba(87,117,187,.18);--shadow:0 26px 90px rgba(0,0,0,.34);
+  --max:1180px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-body{
-  background:
-    radial-gradient(circle at 84% 4%,rgba(92,112,174,.22),transparent 34%),
-    linear-gradient(rgba(91,102,142,.08) 1px,transparent 1px) 0 0/42px 42px,
-    linear-gradient(90deg,rgba(91,102,142,.08) 1px,transparent 1px) 0 0/42px 42px,
-    var(--bg);
-}
-a{color:inherit}
-.shell{width:min(1040px,calc(100% - 32px));margin:0 auto;padding:26px 0 56px}
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:54px}
-.brand{font:900 20px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-decoration:none}
-.back{color:var(--muted);font-size:13px;text-decoration:none}
-.hero{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:44px;align-items:center;margin-bottom:32px}
-.eyebrow{color:var(--accent);font:800 11px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase}
-h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:13px 0 20px}
-.lead{max-width:650px;color:var(--muted);font-size:16px;line-height:1.85;margin:0 0 26px}
-.cta-row{display:flex;flex-wrap:wrap;gap:10px}
-.cta{display:inline-flex;align-items:center;gap:10px;padding:13px 18px;border-radius:9px;background:var(--accent);color:#0d162d;font-weight:900;text-decoration:none;box-shadow:0 12px 34px rgba(61,88,155,.28)}
-.cta.secondary{background:var(--surface-2);color:var(--text);border:1px solid var(--line);box-shadow:none}
-.cta:hover{filter:brightness(1.06);transform:translateY(-1px)}
-.depth-card{min-height:300px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#111622;box-shadow:0 24px 70px rgba(0,0,0,.3)}
-.room{position:absolute;inset:35px;border:5px solid #3a4560;background:#1d2434;box-shadow:inset 0 0 0 2px #111622}
-.room::before,.room::after{content:"";position:absolute;width:50px;height:50px;background:#111622;border:4px solid #3a4560}
-.room::before{left:-5px;bottom:34px;border-left:0}.room::after{right:-5px;top:35px;border-right:0}
-.hero-pawn{position:absolute;left:47%;top:46%;width:22px;height:31px;border:3px solid #090b11;background:#d7e6ff;box-shadow:0 0 0 4px #556fa6,21px 10px 0 -6px #85a7ef}
-.hero-pawn::before{content:"";position:absolute;left:3px;top:-17px;width:11px;height:12px;background:#d2a47e;border:2px solid #090b11}
-.torch{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 18px 8px rgba(216,168,67,.36)}
-.torch.one{left:62px;top:68px}.torch.two{right:65px;bottom:62px}
-.depth-label{position:absolute;left:53px;bottom:49px;color:#d9e2ff;font:900 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.09em}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0}
-.card{padding:22px;border:1px solid var(--line);border-radius:15px;background:rgba(21,26,39,.94)}
-.card b{display:block;margin-bottom:9px;font-size:15px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.7}
-.details{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.details .card{min-height:170px}
-.details h2{font-size:18px;margin:0 0 12px}.details ul{margin:0;padding-left:20px;color:var(--muted);font-size:13px;line-height:1.9}
-.foot{display:flex;justify-content:space-between;gap:18px;border-top:1px solid var(--line);margin-top:42px;padding-top:20px;color:var(--muted);font-size:12px}
-@media(max-width:760px){
-  .hero{grid-template-columns:1fr}.depth-card{min-height:250px}.grid{grid-template-columns:1fr}.details{grid-template-columns:1fr}.topbar{margin-bottom:34px}
-}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.68;background:radial-gradient(circle at 84% 0,rgba(72,95,158,.23),transparent 32rem),radial-gradient(circle at 8% 18%,rgba(216,168,67,.08),transparent 27rem),var(--bg)}
+a{color:inherit}img{display:block;max-width:100%}button,a{-webkit-tap-highlight-color:transparent}a:focus-visible,button:focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
+.i18n-en{display:none}html[data-lang="en"] .i18n-zh{display:none!important}html[data-lang="en"] .i18n-en{display:inline!important}html[data-lang="en"] .block.i18n-en{display:block!important}html[data-lang="zh"] .block.i18n-zh{display:block!important}
+.shell{width:min(var(--max),calc(100% - 40px));margin:0 auto;padding:18px 0 58px}
+.topbar{position:sticky;top:0;z-index:30;display:flex;justify-content:space-between;align-items:center;gap:18px;min-height:62px;margin-bottom:42px;background:rgba(11,14,21,.88);backdrop-filter:blur(14px);border-bottom:1px solid rgba(49,59,83,.72)}
+.brand{font:950 22px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-decoration:none;color:#f2c84b}.top-actions{display:flex;align-items:center;gap:10px}.back{color:var(--muted);font-size:12px;text-decoration:none}.back:hover{color:var(--text)}
+.lang-switch{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.lang-switch button{border:0;background:transparent;color:var(--dim);border-radius:7px;padding:7px 9px;font:800 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;cursor:pointer}.lang-switch button[aria-pressed="true"]{background:var(--surface3);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(430px,.92fr);gap:52px;align-items:center;margin-bottom:54px}.eyebrow,.kicker{color:var(--accent);font:850 11px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase}.version-row{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0 14px}.chip{display:inline-flex;align-items:center;min-height:25px;padding:4px 8px;border:1px solid var(--line2);border-radius:999px;color:#c4cce1;font:780 9px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;text-transform:uppercase}.chip.gold{border-color:rgba(216,168,67,.52);color:#e4c172;background:rgba(216,168,67,.06)}
+h1{margin:0 0 18px;font-size:clamp(50px,7vw,84px);line-height:.91;letter-spacing:-.065em}.lead{max-width:690px;margin:0 0 25px;color:var(--muted);font-size:16px;line-height:1.82}.cta-row{display:flex;flex-wrap:wrap;gap:9px}.cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:11px 16px;border-radius:9px;border:1px solid var(--line2);background:var(--surface2);color:var(--text);font-weight:900;font-size:12px;text-decoration:none}.cta.primary{background:var(--accent);border-color:var(--accent);color:#0b1427}.cta:hover{transform:translateY(-1px);filter:brightness(1.05)}.facts{display:flex;flex-wrap:wrap;gap:9px 18px;margin-top:22px;color:var(--dim);font:750 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.hero-art{position:relative;min-height:430px;overflow:hidden;border:1px solid var(--line2);border-radius:24px;background:#101521;box-shadow:var(--shadow)}.hero-art img{width:100%;height:100%;min-height:430px;object-fit:cover}.hero-art::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(6,9,15,.9),transparent 58%);pointer-events:none}.hero-art-caption{position:absolute;z-index:2;left:20px;right:20px;bottom:18px;color:#fff}.hero-art-caption small{display:block;margin-bottom:4px;color:#aeb9d7;font:760 9px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.08em}.hero-art-caption strong{font-size:19px}
+section{scroll-margin-top:82px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:0 0 18px}.section-head h2{margin:5px 0 0;font-size:clamp(25px,3.3vw,38px);letter-spacing:-1.3px}.section-head p{margin:0;color:var(--dim);font-size:12px;max-width:470px;text-align:right}
+.loop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:64px}.card{padding:22px;border:1px solid var(--line);border-radius:16px;background:rgba(18,23,34,.94)}.card .num{display:block;color:var(--accent2);font:900 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.11em}.card h3{margin:11px 0 8px;font-size:19px}.card p{margin:0;color:var(--muted);font-size:13px}
+.gallery{display:grid;grid-template-columns:1.18fr .82fr;grid-template-rows:265px 265px;gap:12px;margin-bottom:64px}.shot{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:17px;background:#101520}.shot:first-child{grid-row:1/3}.shot img{width:100%;height:100%;object-fit:cover}.shot::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(6,8,13,.8),transparent 52%);pointer-events:none}.shot figcaption{position:absolute;z-index:2;left:15px;bottom:13px;color:#fff;font:800 10px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.05em}.shot.boss img{object-fit:contain;padding:14px;background:radial-gradient(circle,#24131b,#0c0f17 68%)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:64px}.panel{padding:26px;border:1px solid var(--line);border-radius:17px;background:var(--surface)}.panel h3{margin:0 0 13px;font-size:21px}.panel p{margin:0 0 15px;color:var(--muted);font-size:13px}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.control{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.control b{color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.list{margin:0;padding:0;list-style:none}.list li{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.list li::before{content:"•";color:var(--accent2);font-weight:900}
+.tech{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-bottom:64px}.tech .panel:first-child{background:linear-gradient(135deg,rgba(69,93,154,.18),transparent 56%),var(--surface)}.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.badge{padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:#c5cde2;font:780 9px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.final-cta{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;padding:28px;border:1px solid var(--line2);border-radius:18px;background:linear-gradient(135deg,var(--accentSoft),transparent 62%),var(--surface2);margin-bottom:50px}.final-cta h2{margin:0 0 6px;font-size:25px}.final-cta p{margin:0;color:var(--muted);font-size:13px}.foot{display:flex;justify-content:space-between;gap:18px;padding-top:20px;border-top:1px solid var(--line);color:var(--dim);font:700 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media(max-width:900px){.hero{grid-template-columns:1fr}.hero-art{min-height:340px}.hero-art img{min-height:340px}.gallery{grid-template-columns:1fr 1fr;grid-template-rows:310px 230px}.shot:first-child{grid-row:auto;grid-column:1/3}.tech{grid-template-columns:1fr}}
+@media(max-width:680px){.shell{width:min(calc(100% - 26px),var(--max));padding-top:8px}.topbar{min-height:56px;margin-bottom:30px}.back{font-size:0}.back::after{content:"← 91hwl";font-size:11px}.hero{gap:27px;margin-bottom:45px}.hero-art{min-height:270px;border-radius:18px}.hero-art img{min-height:270px}h1{font-size:clamp(48px,15vw,68px)}.lead{font-size:14px}.loop,.split{grid-template-columns:1fr}.gallery{display:grid;grid-template-columns:1fr;grid-template-rows:250px 205px 205px}.shot:first-child{grid-column:auto}.section-head{align-items:flex-start;flex-direction:column;gap:4px}.section-head p{text-align:left}.controls{grid-template-columns:1fr}.final-cta{grid-template-columns:1fr}.foot{flex-direction:column;gap:5px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 </style>
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"VideoGame",
+  "name":"Dungeon Echo",
+  "alternateName":"地牢回响",
+  "url":"https://91hwl.cn/toys/dungeon-echo/",
+  "gamePlatform":["Web Browser"],
+  "applicationCategory":"Game",
+  "operatingSystem":"Any modern browser",
+  "isAccessibleForFree":true,
+  "inLanguage":["zh-CN","en"],
+  "description":"A 100-floor open-source browser roguelike about builds, risk, retreat and greed.",
+  "image":"https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp",
+  "softwareVersion":"1.2.2"
+}
+</script>
 </head>
-<body>
+<body data-site-version="1.2.2">
 <main class="shell">
   <header class="topbar">
     <a class="brand" href="/">91hwl</a>
-    <a class="back" href="/#toys">← 返回 Web Toys</a>
+    <div class="top-actions">
+      <a class="back" href="/#toys"><span class="i18n-zh">← 返回作品</span><span class="i18n-en">← Back to toys</span></a>
+      <div class="lang-switch" role="group" aria-label="Language"><button type="button" data-lang-choice="zh">中文</button><button type="button" data-lang-choice="en">EN</button></div>
+    </div>
   </header>
 
   <section class="hero">
     <div>
-      <div class="eyebrow">Web Toy 02 · 100 Floors · 中文 / English</div>
-      <h1>地牢<br>回响</h1>
-      <p class="lead">选择战士、游侠、秘术师或刺客，从第一层开始向下探索。在战斗、Mana、装备、锻造、补给与回城风险之间作出选择；每十层面对可学习的守卫机制，并在 20 / 40 / 60 / 80 层逐步进化职业技能，最终挑战百层三阶段终局。支持电脑与手机浏览器，并可随时切换中文 / English。</p>
+      <div class="eyebrow">Web Toy 02 · Open Source · 100 Floors</div>
+      <div class="version-row"><span class="chip gold">v1.2.2</span><span class="chip">No Install</span><span class="chip">No Account</span><span class="chip">Local Save</span></div>
+      <h1><span class="i18n-zh">地牢<br>回响</span><span class="i18n-en">Dungeon<br>Echo</span></h1>
+      <p class="lead"><span class="i18n-zh">一个围绕<strong>构筑、风险、撤退与贪念</strong>展开的百层浏览器 Roguelike。四种职业从第 1 层开始下潜，在 J 攻击、K 技能与 Mana、装备、锻造、补给和回城之间做选择；每十层都有可学习、可反制的守卫机制。</span><span class="i18n-en">A 100-floor browser roguelike about <strong>builds, risk, retreat and greed</strong>. Pick one of four classes and descend from floor 1, balancing J attacks, K skills and Mana, equipment, forging, supplies and the decision to return safely. Every ten floors introduces a readable guardian mechanic you can learn and counter.</span></p>
       <div class="cta-row">
-        <a class="cta" href="https://play.91hwl.cn/dungeon-echo/">进入地牢 <span aria-hidden="true">→</span></a>
-        <a class="cta secondary" href="https://play.91hwl.cn/dungeon-echo/?lang=en">Play in English</a>
-        <a class="cta secondary" href="https://github.com/diaow2331-ops/dungeon-echo">GitHub</a>
+        <a class="cta primary" href="https://play.91hwl.cn/dungeon-echo/"><span class="i18n-zh">进入地牢</span><span class="i18n-en">Play now</span> <span aria-hidden="true">→</span></a>
+        <a class="cta" href="https://play.91hwl.cn/dungeon-echo/?lang=en">Play in English</a>
+        <a class="cta" href="https://github.com/diaow2331-ops/dungeon-echo">GitHub</a>
+      </div>
+      <div class="facts"><span>VANILLA HTML / CSS / JS</span><span>MIT</span><span>DESKTOP + MOBILE + GAMEPAD</span><span>ZH / EN</span></div>
+    </div>
+    <div class="hero-art">
+      <img src="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp" alt="Dungeon Echo dark fantasy title artwork" fetchpriority="high">
+      <div class="hero-art-caption"><small>BUILD / RISK / RETREAT</small><strong><span class="i18n-zh">你能贪到第几层？</span><span class="i18n-en">How deep will you risk going?</span></strong></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="loop-title">
+    <div class="section-head"><div><div class="kicker">The loop</div><h2 id="loop-title"><span class="i18n-zh">下潜不是唯一目标</span><span class="i18n-en">Descending is only half the decision</span></h2></div><p><span class="i18n-zh">真正的长局压力来自：什么时候继续贪，什么时候把构筑安全带回城镇。</span><span class="i18n-en">The long-run tension comes from knowing when to push deeper and when to secure your build back in town.</span></p></div>
+    <div class="loop">
+      <div class="card"><span class="num">01 / BUILD</span><h3><span class="i18n-zh">构筑，而不是只看总分</span><span class="i18n-en">Builds, not one universal score</span></h3><p><span class="i18n-zh">六装备栏、职业适配、Epic / Legendary 行为词缀，以及 +1～+5 锻造、+3 精炼和 +5 淬炼。</span><span class="i18n-en">Six gear slots, class-relative fit, Epic/Legendary behavior traits, +1–+5 forging, +3 refinement and +5 masterwork.</span></p></div>
+      <div class="card"><span class="num">02 / RISK</span><h3><span class="i18n-zh">继续贪，还是回城</span><span class="i18n-en">Push your luck or return</span></h3><p><span class="i18n-zh">贪婪远征中，随身战利品和金币有风险；仓库与金库安全。撤退本身就是构筑的一部分。</span><span class="i18n-en">In Greedy Expedition, carried loot and gold are at risk while storage and banked value stay safe. Retreat is part of the build.</span></p></div>
+      <div class="card"><span class="num">03 / COUNTERPLAY</span><h3><span class="i18n-zh">Boss 用机制，不靠隐藏惩罚</span><span class="i18n-en">Readable bosses over hidden punishment</span></h3><p><span class="i18n-zh">10 / 20 / … / 100 的守卫节点使用明确预警、位移、打断与阶段机制；第 100 层是三阶段终局。</span><span class="i18n-en">Guardian nodes at 10 / 20 / … / 100 use visible tells, movement, interrupts and phase mechanics. Floor 100 is a three-phase finale.</span></p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="gallery-title">
+    <div class="section-head"><div><div class="kicker">Visuals</div><h2 id="gallery-title"><span class="i18n-zh">四职业、城镇与终局</span><span class="i18n-en">Four classes, a town, and the final descent</span></h2></div><p><span class="i18n-zh">v1.2.2 完成当前阶段最终角色、掉落与锻造表现收尾。</span><span class="i18n-en">v1.2.2 closes the current broad character, loot and forge presentation pass.</span></p></div>
+    <div class="gallery">
+      <figure class="shot"><img src="https://play.91hwl.cn/dungeon-echo/art/class-roster.webp" alt="Dungeon Echo four-class roster" loading="lazy"><figcaption>WARRIOR · RANGER · ARCANIST · ASSASSIN</figcaption></figure>
+      <figure class="shot"><img src="https://play.91hwl.cn/dungeon-echo/art/town-backdrop-v11.webp" alt="Dungeon Echo town" loading="lazy"><figcaption><span class="i18n-zh">回响小镇 · 安全整备区</span><span class="i18n-en">ECHO TOWN · SAFE PREPARATION</span></figcaption></figure>
+      <figure class="shot boss"><img src="https://play.91hwl.cn/dungeon-echo/art/final-boss-v11.png" alt="Dungeon Echo final boss" loading="lazy"><figcaption><span class="i18n-zh">第 100 层 · 三阶段终局</span><span class="i18n-en">FLOOR 100 · THREE-PHASE FINALE</span></figcaption></figure>
+    </div>
+  </section>
+
+  <section class="split" aria-label="Controls and progression">
+    <div class="panel">
+      <h3><span class="i18n-zh">操作与 Mana</span><span class="i18n-en">Controls & Mana</span></h3>
+      <p><span class="i18n-zh">移动与攻击分离。四职业拥有不同 Mana 上限、技能消耗和回复节奏，让技能成为真正的战术资源。</span><span class="i18n-en">Movement and attacks are separate. Each class has its own Mana capacity, skill cost and recovery rhythm, making skills a real tactical resource.</span></p>
+      <div class="controls">
+        <div class="control"><span><span class="i18n-zh">移动 / 面向</span><span class="i18n-en">Move / face</span></span><b>WASD / ARROWS</b></div>
+        <div class="control"><span><span class="i18n-zh">主动攻击</span><span class="i18n-en">Attack</span></span><b>J</b></div>
+        <div class="control"><span><span class="i18n-zh">职业技能</span><span class="i18n-en">Class skill</span></span><b>K</b></div>
+        <div class="control"><span><span class="i18n-zh">等待 / 集中</span><span class="i18n-en">Wait / focus</span></span><b>SPACE</b></div>
+        <div class="control"><span><span class="i18n-zh">药水 / 卷轴</span><span class="i18n-en">Potion / scroll</span></span><b>Q / E</b></div>
+        <div class="control"><span><span class="i18n-zh">回城 / 下楼</span><span class="i18n-en">Return / descend</span></span><b>T / ENTER</b></div>
       </div>
     </div>
-    <div class="depth-card" aria-hidden="true">
-      <div class="room"></div>
-      <div class="torch one"></div><div class="torch two"></div>
-      <div class="hero-pawn"></div>
-      <div class="depth-label">DEPTH 037 / 100</div>
-    </div>
-  </section>
-
-  <section class="grid" aria-label="游戏特性">
-    <div class="card"><b>四种职业</b><p>独立攻击方式、Mana 恢复节奏与构筑轮廓；J 普攻、K 技能，技能在 20 / 40 / 60 / 80 层继续分化。</p></div>
-    <div class="card"><b>百层守卫</b><p>每十层进入新的章节节点，九位守卫与三阶段终局使用明确预警和可反制机制，而不是只增加数值。</p></div>
-    <div class="card"><b>贪婪成长</b><p>有限补给、装备词条、锻造分支、检查点与城镇服务共同决定继续深入还是带着战利品回家。</p></div>
-  </section>
-
-  <section class="details">
-    <div class="card">
-      <h2>操作</h2>
-      <ul>
-        <li>方向键 / WASD 移动与转向；J 攻击，K 使用职业技能</li>
-        <li>Q 药水 · E 卷轴 · T 回城 · Enter 下楼</li>
-        <li>M 控制总声音；背景音乐与音效可分别按 0–100% 调节</li>
-        <li>支持原生 Gamepad API，以及专门设计的手机触控布局</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h2>运行方式</h2>
-      <ul>
-        <li>无需安装，无需账号，无运行时后端</li>
-        <li>进度保存在当前浏览器 localStorage</li>
-        <li>正式路线固定为 1 → 100 层</li>
-        <li>中文 / English 可自由切换；英文可用 ?lang=en 直达</li>
+    <div class="panel">
+      <h3><span class="i18n-zh">百层成长</span><span class="i18n-en">100-floor progression</span></h3>
+      <p><span class="i18n-zh">所有职业都从第 1 层出发，不提供付费或开局跳层。成长来自构筑、技能进化和你真正征服过的深度。</span><span class="i18n-en">Every class starts on floor 1. There are no paid or opening skips into unconquered content. Progress comes from builds, skill evolution and depth you actually earned.</span></p>
+      <ul class="list">
+        <li><span><strong>20 / 40 / 60 / 80</strong> — <span class="i18n-zh">主动技能二选一进化</span><span class="i18n-en">two-choice active-skill evolutions</span></span></li>
+        <li><span><strong>10 / 20 / … / 90</strong> — <span class="i18n-zh">九位深层守卫</span><span class="i18n-en">nine deep guardians</span></span></li>
+        <li><span><strong>100</strong> — <span class="i18n-zh">三阶段终局 Boss</span><span class="i18n-en">three-phase final boss</span></span></li>
+        <li><span><strong>11 / 21 / … / 91</strong> — <span class="i18n-zh">只在真正征服前段后解锁的回返点</span><span class="i18n-en">earned return checkpoints after real clears</span></span></li>
       </ul>
     </div>
   </section>
 
-  <footer class="foot"><span>© 2026 91hwl</span><span>打开浏览器，继续向下。 · Open the browser. Descend deeper.</span></footer>
+  <section class="tech" aria-label="Technical details">
+    <div class="panel">
+      <h3><span class="i18n-zh">为什么是浏览器游戏</span><span class="i18n-en">Why a browser game</span></h3>
+      <p><span class="i18n-zh">Dungeon Echo 保持为原生 HTML / CSS / JavaScript 静态应用：无需安装、无需账号、核心玩法没有运行时后端依赖。打开链接就能开始，存档留在当前浏览器。</span><span class="i18n-en">Dungeon Echo stays a vanilla HTML/CSS/JavaScript static app: no install, no account and no runtime backend dependency for core play. Open the link and start; saves remain in your browser.</span></p>
+      <div class="badges"><span class="badge">VANILLA JS</span><span class="badge">STATIC</span><span class="badge">LOCALSTORAGE</span><span class="badge">MIT</span><span class="badge">OPEN SOURCE</span></div>
+    </div>
+    <div class="panel">
+      <h3>v1.2.2</h3>
+      <p><span class="i18n-zh">这一版本作为当前阶段的最终游戏/UX 收尾：稳定语言运行时、角色残留装备叠层清理、地面掉落表现、锻造反馈，以及仓库/发布治理。</span><span class="i18n-en">This release closes the current broad game/UX pass: stable per-page localization, residual character-overlay cleanup, ground-loot presentation, forge feedback and release/repository governance.</span></p>
+      <ul class="list">
+        <li><span><span class="i18n-zh">兼容现有 run / meta 存档</span><span class="i18n-en">Existing run/meta saves remain compatible</span></span></li>
+        <li><span><span class="i18n-zh">不要求账号或云存档</span><span class="i18n-en">No account or cloud save required</span></span></li>
+        <li><span><span class="i18n-zh">中文 / English 标题页选择</span><span class="i18n-en">Chinese / English title-screen selection</span></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div><h2><span class="i18n-zh">从第一层开始。</span><span class="i18n-en">Start on floor one.</span></h2><p><span class="i18n-zh">不登录，不安装。你只需要决定什么时候该继续贪。</span><span class="i18n-en">No login. No install. Just decide how long you can keep pushing your luck.</span></p></div>
+    <div class="cta-row"><a class="cta primary" href="https://play.91hwl.cn/dungeon-echo/"><span class="i18n-zh">开始远征</span><span class="i18n-en">Start expedition</span> →</a><a class="cta" href="https://github.com/diaow2331-ops/dungeon-echo">GitHub</a></div>
+  </section>
+
+  <footer class="foot"><span>© 2026 91hwl · Dungeon Echo v1.2.2</span><span><span class="i18n-zh">打开浏览器，继续向下。</span><span class="i18n-en">Open the browser. Descend deeper.</span></span></footer>
 </main>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const buttons = [...document.querySelectorAll('[data-lang-choice]')];
+  const metaDesc = document.querySelector('meta[name="description"]');
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  const ogDesc = document.querySelector('meta[property="og:description"]');
+  const twTitle = document.querySelector('meta[name="twitter:title"]');
+  const twDesc = document.querySelector('meta[name="twitter:description"]');
+  const copy = {
+    zh:{title:'Dungeon Echo · 地牢回响 | 91hwl',desc:'Dungeon Echo 地牢回响：四职业、百层地牢、J/K + Mana、装备构筑、锻造、城镇整备与可读 Boss 机制的开源浏览器 Roguelike。'},
+    en:{title:'Dungeon Echo · 100-floor browser roguelike | 91hwl',desc:'Dungeon Echo is an open-source 100-floor browser roguelike about builds, risk, retreat and greed.'}
+  };
+  function render(){
+    const lang=root.dataset.lang==='en'?'en':'zh';
+    root.lang=lang==='en'?'en':'zh-CN';
+    buttons.forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.langChoice===lang)));
+    const c=copy[lang];document.title=c.title;metaDesc?.setAttribute('content',c.desc);ogTitle?.setAttribute('content',c.title);ogDesc?.setAttribute('content',c.desc);twTitle?.setAttribute('content',c.title);twDesc?.setAttribute('content',c.desc);
+  }
+  buttons.forEach(btn=>btn.addEventListener('click',()=>{
+    const lang=btn.dataset.langChoice;if(!['zh','en'].includes(lang))return;root.dataset.lang=lang;
+    try{localStorage.setItem('91hwl_lang',lang)}catch(_){}
+    try{const u=new URL(location.href);u.searchParams.set('lang',lang);history.replaceState(null,'',u)}catch(_){}
+    render();
+  }));
+  render();
+})();
+</script>
 </body>
 </html>
