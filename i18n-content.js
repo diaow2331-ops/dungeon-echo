@@ -75,7 +75,9 @@
     const src=String(input||'');if(!src)return src;
     if(EXACT[src])return EXACT[src];
     const eq=equipmentName(src);if(eq)return eq;
-    let out=replaceNames(src);
+    // Translate Chinese sentence grammar first. Entity names are substituted last so
+    // phrases like “金币不足” and “终焉渊主进入第二阶段” never become half-English before matching.
+    let out=src;
 
     // stats / affixes / forging
     out=out
@@ -180,9 +182,9 @@
       .replace(/^(.+)falls!它守护的【(.+)】掉落了出来！$/,'$1 falls! The guarded [$2] drops to the ground!')
       .replace(/^Floor (\d+)的门后，(.+)挡住了去路。击败它仍可继续下潜。$/,'Beyond the door on Floor $1, $2 blocks the way. Defeat it to keep descending.')
       .replace(/^(.+)collapses.通往更深处的阶梯重新亮起。$/,'$1 collapses. The stairs to the depths flare back to life.')
-      .replace(/^一位Masked Merchant在火把下摆开摊位。Gold能换来活路。$/,'A Masked Merchant opens a stall beneath the torchlight. Gold can buy another chance.')
-      .replace(/^一处Ember Camp。你可以在此包扎伤口。$/,'An Ember Camp. You can bind your wounds here.')
-      .replace(/^一座Nameless Shrine在黑暗中发着微光。触碰它，接受回响的赌注。$/,'A Nameless Shrine glows in the dark. Touch it and accept the echo’s wager.')
+      .replace(/^一位蒙面商人在火把下摆开摊位。金币能换来活路。$/,'A Masked Merchant opens a stall beneath the torchlight. Gold can buy another chance.')
+      .replace(/^一处余烬营地。你可以在此包扎伤口。$/,'An Ember Camp. You can bind your wounds here.')
+      .replace(/^一座无名神龛在黑暗中发着微光。触碰它，接受回响的赌注。$/,'A Nameless Shrine glows in the dark. Touch it and accept the echo’s wager.')
       .replace(/^你拒绝了归途。回响一层层叠上来——没有尽头，只有更深。$/,'You reject the way home. Echoes stack layer upon layer — no ending, only deeper.')
       .replace(/^本层已肃清。阶梯处金光大盛，你感到一笔清场赏金入袋。$/,'The floor is clear. Gold floods the stairs as the clear bonus enters your pouch.')
       .replace(/^墙面裂开，露出一间密室！$/,'The wall splits open, revealing a secret room!');
@@ -202,7 +204,7 @@
       .replace(/职业技能造成击杀时额外返还 (\d+) 回合冷却。/g,'Class-skill kills refund $1 extra turn(s) of cooldown.')
       .replace(/等待时额外恢复 (\d+) 回合技能冷却。/g,'Waiting restores $1 extra turn(s) of skill cooldown.');
 
-    return out;
+    return replaceNames(out);
   }
 
   function translateNode(node){
