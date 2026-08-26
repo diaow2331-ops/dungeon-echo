@@ -85,8 +85,8 @@
     observer.observe(root, { childList: true, subtree: true });
   }
 
-  // Late presentation/input layers intentionally load after the stable synchronous core chain.
-  // Combat controls owns final J/K capture semantics; hint/audio are presentation-only followers.
+  // Late UX layers intentionally load after the stable synchronous core chain.
+  // Combat controls owns final J/K capture semantics; tutorial/audio/mobile are followers.
   function loadScript(src, marker, ready, done) {
     if (ready() || document.querySelector(`script[${marker}]`)) { if (done) done(); return; }
     const script = document.createElement('script');
@@ -100,7 +100,9 @@
   function loadCombatControls() {
     loadScript('combat-controls.js', 'data-de-combat-controls', () => !!window.__DE_COMBAT_CONTROLS_V1, () => {
       loadScript('combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH);
-      loadScript('audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR);
+      loadScript('audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR, () => {
+        loadScript('mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX);
+      });
     });
   }
   if (document.readyState === 'complete') setTimeout(loadCombatControls, 0);

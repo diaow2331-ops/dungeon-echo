@@ -4,8 +4,8 @@
  * - J attacks in the current facing direction (ranged classes use their line range).
  * - K uses the class skill and consumes mana.
  * - Touch controls mirror the same attack/skill contract.
- * - Ground equipment swaps old loot-atlas equipment cells to v13 art at draw time.
- * - Character equipment image overlays are suppressed so the hero atlas remains visually authoritative.
+ * - Ground equipment uses the real v13 tier art even when production rewrites the old atlas path.
+ * - All legacy character equipment geometry/image overlays are suppressed so the hero atlas stays authoritative.
  */
 (() => {
   'use strict';
@@ -324,31 +324,89 @@
   const artImages = {};
   for (const [id,s] of Object.entries(SHEETS)) { const img=new Image(); img.src=s.url; artImages[id]=img; }
 
+  function groundItemAtDraw(args, canvas) {
+    if (args.length !== 9 || !canvas) return null;
+    const grid = api.mapGrid;
+    const cols = Array.isArray(grid) && grid[0] ? grid[0].length : 40;
+    const rows = Array.isArray(grid) && grid.length ? grid.length : 28;
+    const tw = (Number(canvas.width) || 1280) / Math.max(1, cols);
+    const th = (Number(canvas.height) || 896) / Math.max(1, rows);
+    const cx = Number(args[5]) + Number(args[7]) / 2;
+    const cy = Number(args[6]) + Number(args[8]) / 2;
+    const x = Math.floor(cx / tw), y = Math.floor(cy / th);
+    return (api.items || []).find(it => it && it.type === 'equip' && it.item && Number(it.x) === x && Number(it.y) === y) || null;
+  }
+
   function patchGroundEquipmentArt() {
     const canvas = document.getElementById('game');
     if (!canvas || canvas.__deGroundEquipPatch) return;
     const ctx = canvas.getContext('2d');
     if (!ctx || typeof ctx.drawImage !== 'function') return;
-    const native = ctx.drawImage.bind(ctx);
+    const nativeDrawImage = ctx.drawImage.bind(ctx);
+    const nativeSave = ctx.save.bind(ctx);
+    const nativeRestore = ctx.restore.bind(ctx);
+    const nativeStroke = ctx.stroke.bind(ctx);
+    const nativeFillRect = ctx.fillRect.bind(ctx);
+    const nativeFill = ctx.fill.bind(ctx);
+    let heroJustDrawn = false;
+    let suppressLegacyGear = false;
+    let gearSaveDepth = 0;
+
     ctx.drawImage = function(...args) {
       const img = args[0];
       const src = String(img && img.src || '');
-      if (src.includes('art/loot-atlas.png') && args.length === 9) {
+      if (/hero-atlas-v11\.png(?:[?#].*)?$/i.test(src)) heroJustDrawn = true;
+
+      const oldLoot = /loot-atlas(?:-v12)?\.(?:png|svg)(?:[?#].*)?$/i.test(src);
+      if (oldLoot && args.length === 9) {
         const sw = Number(args[3]), sh = Number(args[4]);
         if (sw > 0 && sh > 0) {
           const ix = Math.round(Number(args[1]) / sw), iy = Math.round(Number(args[2]) / sh);
-          const mapped = OLD_EQUIP_MAP.get(`${ix},${iy}`);
+          const ground = groundItemAtDraw(args, canvas);
+          const exact = ground && tierArt && typeof tierArt.sourceForItem === 'function'
+            ? tierArt.sourceForItem(ground.item) : null;
+          const mapped = exact || OLD_EQUIP_MAP.get(`${ix},${iy}`);
           if (mapped) {
             const [sheetId,sx,sy] = mapped, sheet = SHEETS[sheetId], art = artImages[sheetId];
             if (sheet && art && art.complete && art.naturalWidth > 4) {
-              const cw=art.naturalWidth/sheet.cols, ch=art.naturalHeight/sheet.rows;
-              return native(art,sx*cw,sy*ch,cw,ch,args[5],args[6],args[7],args[8]);
+              const cw = art.naturalWidth / sheet.cols, ch = art.naturalHeight / sheet.rows;
+              return nativeDrawImage(art, sx*cw, sy*ch, cw, ch, args[5], args[6], args[7], args[8]);
             }
           }
         }
       }
-      return native(...args);
+      return nativeDrawImage(...args);
     };
+
+    // game.js still contains its oldest rarity-coloured weapon/armor/helmet geometry.
+    // The first canvas save immediately after the hero-atlas draw exclusively owns that block;
+    // suppress its paint calls while preserving canvas state and all later world rendering.
+    ctx.save = function(...args) {
+      const out = nativeSave(...args);
+      if (heroJustDrawn && !suppressLegacyGear) {
+        heroJustDrawn = false;
+        suppressLegacyGear = true;
+        gearSaveDepth = 1;
+      } else if (suppressLegacyGear) {
+        gearSaveDepth++;
+      }
+      return out;
+    };
+    ctx.restore = function(...args) {
+      const out = nativeRestore(...args);
+      if (suppressLegacyGear) {
+        gearSaveDepth--;
+        if (gearSaveDepth <= 0) {
+          gearSaveDepth = 0;
+          suppressLegacyGear = false;
+        }
+      }
+      return out;
+    };
+    ctx.stroke = function(...args) { if (suppressLegacyGear) return; return nativeStroke(...args); };
+    ctx.fillRect = function(...args) { if (suppressLegacyGear) return; return nativeFillRect(...args); };
+    ctx.fill = function(...args) { if (suppressLegacyGear) return; return nativeFill(...args); };
+
     canvas.__deGroundEquipPatch = true;
   }
 
