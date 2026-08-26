@@ -12,7 +12,7 @@
   const EXACT=Object.freeze({
     // rarity / consumables / world interactables
     '普通':'Common','精良':'Fine','稀有':'Rare','史诗':'Epic','传说':'Legendary',
-    '治疗药水':'Healing Potion','传送卷轴':'Teleport Scroll','金币':'Gold','锈蚀钥匙':'Rusty Key','终焉之心':'Heart of the End',
+    '治疗药水':'Healing Potion','传送卷轴':'Teleport Scroll','回城卷轴':'Return Scroll','保险符':'Insurance Charm','金币':'Gold','锈蚀钥匙':'Rusty Key','终焉之心':'Heart of the End',
     '上锁的宝箱':'Locked Chest','木桶':'Cask','无名神龛':'Nameless Shrine','余烬营地':'Ember Camp','蒙面商人':'Masked Merchant','装备':'Gear',
 
     // equipment — warrior
@@ -28,8 +28,9 @@
     '铜戒指':'Copper Ring','红宝石戒':'Ruby Ring','守护之戒':'Guardian Ring','永夜之戒':'Evernight Ring','星骸之戒':'Starbone Ring','陨星之戒':'Meteor Ring','深渊之戒':'Abyss Ring','终焉之戒':'End Ring','星蚀之戒':'Eclipse Ring','混沌之戒':'Chaos Ring',
     '布帽':'Cloth Hood','铁盔':'Iron Helm','骑士头盔':'Knight Helm','龙冠':'Dragon Crown','草鞋':'Cloth Sandals','皮靴':'Leather Boots','钢胫甲':'Steel Greaves','疾风之靴':'Gale Boots','铜坠链':'Copper Pendant','月石坠':'Moonstone Pendant','守护圣符':'Guardian Talisman','深渊之眼':'Eye of the Abyss',
 
-    // mechanic traits
+    // mechanic traits / forge paths
     '锋鸣':'Echo Edge','收割':'Reaper','镇守':'Brace','反击甲':'Reprisal','清创':'Clarity','游猎':'Skirmish','残影':'Afterimage','决斗':'Duelist','危机脉搏':'Crisis Pulse','回路超频':'Overclock','凝息':'Meditate',
+    '锋锐':'Keen','饮血':'Blooded','壁垒':'Bastion','荆棘':'Barbed','生息':'Vitality','回春':'Restoration','稳步':'Stout','猎步':'Hunterstep','洞察':'Insight','血契':'Blood Pact','狂意':'Fury','凝神':'Focus','淬炼':'Masterwork',
 
     // early monsters
     '巨鼠':'Dire Rat','蝙蝠':'Cave Bat','哥布林':'Goblin','墓穴蛛':'Crypt Spider','骷髅':'Skeleton','兽人':'Orc','幽魂':'Ghost','血教徒':'Blood Cultist','巨魔':'Troll','深渊恶魔':'Abyss Demon','霜怨灵':'Frost Wraith','霜语法师':'Frostspeaker','墓石魔像':'Gravestone Golem','血爵':'Blood Baron','墓园巫妖':'Graveyard Lich','缝合憎恶':'Stitched Abomination','裂隙龙裔':'Rift Dragonkin','陨星使':'Fallen-Star Herald','虚空幼体':'Void Spawn',
@@ -43,8 +44,9 @@
     // themes
     '石砌地窟':'Stone Crypt','苔湿洞穴':'Moss Cavern','血色深渊':'Crimson Abyss','地狱核心':'Infernal Core','霜骨墓园':'Frostbone Graveyard','沉没圣堂':'Sunken Sanctum','虚空裂隙':'Void Rift','熔岩锻炉':'Lava Forge','蛛丝墓穴':'Webbed Tomb','星骸神殿':'Starbone Temple','碎裂回廊':'Shattered Gallery','深红祭坛':'Crimson Altar','永冻深渊':'Everfrozen Abyss','熔核裂谷':'Molten Rift','虚空回声':'Void Echo','亡语圣殿':'Deathwhisper Sanctum','星尘残骸':'Stardust Ruins','无光深渊':'Lightless Abyss','终焉回廊':'Final Gallery','虚空核心':'Void Core','永夜之城':'Evernight City',
 
-    // common short combat/status text
-    '破甲蓄力':'Armor Break','狂暴!':'ENRAGED!','残影卸力':'Afterimage','就绪':'Ready','祈祷':'Pray','离开':'Leave','购买':'Buy','出售':'Sell','装备':'Gear','丢弃':'Drop','背包':'Backpack','冒险日志':'Adventure Log'
+    // common short UI/status text
+    '破甲蓄力':'Armor Break','狂暴!':'ENRAGED!','残影卸力':'Afterimage','就绪':'Ready','祈祷':'Pray','离开':'Leave','购买':'Buy','出售':'Sell','售罄':'Sold Out','装备':'Gear','丢弃':'Drop','背包':'Backpack','冒险日志':'Adventure Log',
+    '已征服检查点':'Conquered Checkpoints','本轮已全部领取':'All Claimed','重置轮盘':'Reset Wheel','抽奖':'Spin','持有':'Owned','库存':'Stock','适配':'Fit','价值':'Value'
   });
 
   const REVERSE=Object.freeze(Object.fromEntries(Object.entries(EXACT).map(([zh,en])=>[en,zh])));
@@ -76,7 +78,48 @@
       .replace(/攻击 \+(\d+)/g,'ATK +$1').replace(/防御 \+(\d+)/g,'DEF +$1').replace(/生命 \+(\d+)/g,'HP +$1')
       .replace(/暴击 \+(\d+)%/g,'Crit +$1%').replace(/吸血 \+(\d+)%/g,'Leech +$1%').replace(/金币获取 \+(\d+)%/g,'Gold Find +$1%')
       .replace(/反伤 \+(\d+)/g,'Thorns +$1').replace(/击杀回复 \+(\d+)/g,'Kill Heal +$1')
-      .replace(/强化 \+(\d+)/g,'Forge +$1').replace(/评分\s*(\d+)/g,'Score $1').replace(/价值\s*(\d+)/g,'Value $1');
+      .replace(/强化 \+(\d+)/g,'Forge +$1').replace(/评分\s*(\d+)/g,'Score $1').replace(/价值\s*(\d+)/g,'Value $1')
+      .replace(/适配\s*(\d+)/g,'Fit $1')
+      .replace(/^卖\s*(\d+)G$/,'Sell $1G').replace(/^出售得\s*(\d+)\s*G$/,'Sell for $1 G')
+      .replace(/^强化到 \+(\d+)，需 (\d+) G$/,'Forge to +$1 · $2 G').replace(/^已至 \+5 极致$/,'Maxed at +5')
+      .replace(/^\+3 精炼：为【(.+)】定一个方向$/,'+3 Refinement: choose a path for [$1]')
+      .replace(/^精炼不会失败，也不会毁坏装备。这个选择会在 \+5 时继续淬炼强化。$/,'Refinement cannot fail or destroy gear. Your choice is mastered again at +5.')
+      .replace(/更稳定地走暴击路线。/g,'A steadier critical-strike path.')
+      .replace(/用持续吸血换取推进续航。/g,'Trade toward sustained life-steal progression.')
+      .replace(/把生存重心转向生命，而不是继续堆纯 DEF。/g,'Shift survival toward HP instead of stacking pure DEF.')
+      .replace(/近战换血时获得更强反伤收益。/g,'Gain stronger thorns value while trading melee hits.')
+      .replace(/扩大生命池，提高失误容错。/g,'Expand the HP pool for a larger mistake buffer.')
+      .replace(/强化击杀后的长期续航。/g,'Improve long-run sustain after kills.')
+      .replace(/以生命换取稳定推进。/g,'Build HP for steadier progression.')
+      .replace(/轻量暴击方向，适合游侠\/刺客等主动拉扯构筑。/g,'A light Crit path for Ranger/Assassin kiting builds.')
+      .replace(/把戒指定型为暴击核心。/g,'Shape the ring into a Crit core.')
+      .replace(/把戒指定型为吸血续航核心。/g,'Shape the ring into a life-steal sustain core.')
+      .replace(/直接强化攻击，适合高压输出路线。/g,'Directly raise ATK for high-pressure damage builds.')
+      .replace(/把项链定型为暴击\/爆发方向。/g,'Shape the amulet toward Crit and burst.');
+
+    // town checkpoints / wheel / commerce
+    out=out
+      .replace(/^最深到达 (\d+) 层 · 通过十层守卫后解锁下一段$/,'Deepest Floor $1 · Defeat each 10-floor guardian to unlock the next checkpoint')
+      .replace(/^从第 1 层出发$/,'Depart from Floor 1')
+      .replace(/^从已征服区 · 第 (\d+) 层出发$/,'Depart from conquered Floor $1')
+      .replace(/^抽奖 (\d+) G$/,'Spin $1 G').replace(/^重置轮盘 (\d+) G$/,'Reset Wheel $1 G')
+      .replace(/^本阶段实际抽奖成本 (\d+) G$/,'Actual spin cost this stage: $1 G')
+      .replace(/^本阶段重摇全部八格，实际成本 (\d+) G$/,'Reroll all eight slots this stage: $1 G')
+      .replace(/^重置轮盘后才能开启新一轮奖池$/,'Reset the wheel to begin a new prize pool')
+      .replace(/^城镇阶段 (\d+) · 已领取 (\d+)\/8 格（(.+)）；已领取格再次停中不会重复发奖。$/,'Town Tier $1 · Claimed $2/8 slots ($3). Claimed slots cannot pay twice.')
+      .replace(/^城镇阶段 (\d+) · 八格奖池每格最多领取一次；重置会整盘换新。$/,'Town Tier $1 · Each of the eight prize slots pays once; reset replaces the whole board.')
+      .replace(/^这一轮八格都已经领取，先重置轮盘再继续。$/,'All eight slots are claimed. Reset the wheel before spinning again.')
+      .replace(/^金币不足：本阶段抽奖需要 (\d+) G。$/,'Not enough Gold: this stage requires $1 G to spin.')
+      .replace(/^金币不足：本阶段重置需要 (\d+) G。$/,'Not enough Gold: this stage requires $1 G to reset.')
+      .replace(/持有 (\d+) · 库存 (\d+)/g,'Owned $1 · Stock $2')
+      .replace(/^城镇阶段 (\d+) · 本轮补给库存固定；完成一次远征返回后刷新，不会因反复打开商店刷新。$/,'Town Tier $1 · Supply stock is fixed for this expedition cycle and refreshes only after a completed return.')
+      .replace(/^价格按已征服的十层阶段成长；装备交易将在后续价值体系中接入。$/,'Prices scale with conquered 10-floor tiers. Gear trading follows the equipment value system.')
+      .replace(/^(.+)本轮已经售罄。$/,'$1 is sold out for this cycle.')
+      .replace(/^金币不足：(.+)需要 (\d+) G。$/,'Not enough Gold: $1 costs $2 G.')
+      .replace(/^购入 (.+) ×1。$/,'Purchased $1 ×1.')
+      .replace(/^附近仍有敌人逼近，商人拒绝交易。先把战斗解决掉。$/,'Enemies are still closing in. The merchant refuses to trade until the fight is over.')
+      .replace(/^包扎伤口（回满 · 缺 (\d+)）$/,'Bind Wounds (Full heal · Missing $1)')
+      .replace(/^包扎伤口（已满血）$/,'Bind Wounds (Already full HP)');
 
     // common combat/log grammar
     out=out
