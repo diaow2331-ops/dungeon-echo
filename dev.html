@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#17100b">
-<meta name="description" content="地牢回响 Dungeon Echo——内部多 Profile 调试入口，使用当前生产运行栈。">
+<meta name="description" content="地牢回响 Dungeon Echo——内部多 Profile 调试入口，使用当前共享运行栈。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317100b'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23e0a73a'%3E%E5%9B%9E%3C/text%3E%3C/svg%3E">
 <title>地牢回响 · Dev</title>
 <link rel="preload" href="art/loot-atlas.png" as="image">
@@ -160,11 +160,6 @@
     </div>
   </div>
 </div>
-<script>
-if (new URLSearchParams(location.search).get('profile') === 'classic-100') {
-  document.write('<script src="production-bootstrap.js"><\\/script>');
-}
-</script>
 <script src="profiles/classic-10.profile.js"></script>
 <script src="profiles/classic-20.profile.js"></script>
 <script src="profiles/classic-30.profile.js"></script>
