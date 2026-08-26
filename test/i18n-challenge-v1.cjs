@@ -45,7 +45,7 @@ assert(runtime.includes("de:languagechange"), 'dynamic runtime language refresh 
 // Dynamic content localization is display-only and reversible.
 assert(content.includes("window.__DE_I18N_CONTENT_V2"), 'content-localization owner missing');
 assert(content.includes('sourceByNode=new WeakMap()'), 'reversible DOM source cache missing');
-assert(content.includes("CanvasRenderingContext2D"), 'Canvas text localization hook missing');
+assert(content.includes("canvas.getContext('2d')"), 'Canvas text localization hook missing');
 assert(content.includes("ctx.fillText=function"), 'Canvas fillText translation wrapper missing');
 assert(content.includes("equipmentName(text)"), 'equipment-name localization parser missing');
 for (const name of ['Iron Sword','Chaos Staff','Void Sovereign','Lord of the Final Abyss']) assert(content.includes(name), `English dynamic content missing: ${name}`);
