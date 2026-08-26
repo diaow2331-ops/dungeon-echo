@@ -41,8 +41,12 @@
     // guardians / finale
     '深渊领主':'Abyss Lord','霜骨暴君':'Frostbone Tyrant','熔核战神':'Molten Warlord','虚空执政官':'Void Archon','星骸圣裁':'Starbone Judicator','熔心龙帝':'Moltenheart Dragon Emperor','无光泰坦':'Lightless Titan','星蚀圣座':'Eclipse Seraph','深渊化身':'Abyss Incarnate','终焉渊主':'Lord of the Final Abyss',
 
-    // themes
+    // themes / late encounter identities
     '石砌地窟':'Stone Crypt','苔湿洞穴':'Moss Cavern','血色深渊':'Crimson Abyss','地狱核心':'Infernal Core','霜骨墓园':'Frostbone Graveyard','沉没圣堂':'Sunken Sanctum','虚空裂隙':'Void Rift','熔岩锻炉':'Lava Forge','蛛丝墓穴':'Webbed Tomb','星骸神殿':'Starbone Temple','碎裂回廊':'Shattered Gallery','深红祭坛':'Crimson Altar','永冻深渊':'Everfrozen Abyss','熔核裂谷':'Molten Rift','虚空回声':'Void Echo','亡语圣殿':'Deathwhisper Sanctum','星尘残骸':'Stardust Ruins','无光深渊':'Lightless Abyss','终焉回廊':'Final Gallery','虚空核心':'Void Core','永夜之城':'Evernight City',
+    '噤声王庭':'Hushed Court','黑星墓海':'Blackstar Necropolis','终末天井':'Endwell','回响王座':'Echo Throne',
+    '霜环蓄积':'Frost Ring','爆裂标记':'Ember Mark','猎杀线':'Hunter Line','愈合咏唱':'Mending Channel','血契牵引':'Blood Tether','地脉震裂':'Rupture Cross','星蚀弹幕':'Eclipse Barrage',
+    '回响试炼 I · 踏焰':'Echo Trial I · Flame Step','回响试炼 II · 断线':'Echo Trial II · Break Line','回响试炼 III · 离环':'Echo Trial III · Leave Ring',
+    '终局第一相 · 王座烙印':'Finale Phase I · Throne Mark','终局第二相 · 虚空裁线':'Finale Phase II · Void Line','终局第三相 · 深渊心爆':'Finale Phase III · Abyss Heart Nova',
 
     // common short UI/status text
     '破甲蓄力':'Armor Break','狂暴!':'ENRAGED!','残影卸力':'Afterimage','就绪':'Ready','祈祷':'Pray','离开':'Leave','购买':'Buy','出售':'Sell','售罄':'Sold Out','装备':'Gear','丢弃':'Drop','背包':'Backpack','冒险日志':'Adventure Log',
@@ -120,6 +124,39 @@
       .replace(/^附近仍有敌人逼近，商人拒绝交易。先把战斗解决掉。$/,'Enemies are still closing in. The merchant refuses to trade until the fight is over.')
       .replace(/^包扎伤口（回满 · 缺 (\d+)）$/,'Bind Wounds (Full heal · Missing $1)')
       .replace(/^包扎伤口（已满血）$/,'Bind Wounds (Already full HP)');
+
+    // guardian telegraphs / outcomes
+    out=out
+      .replace(/寒气将在下一回合覆盖守卫周围 2 格。离开霜环范围。/g,'Cold will cover the 2-tile ring around the guardian next turn. Leave the frost ring.')
+      .replace(/脚下地块已被点燃。下一回合前离开这个格子。/g,'Your tile is marked to ignite. Leave it before the next turn.')
+      .replace(/守卫锁定了一条射击线。横向\/纵向侧移，或让地形挡住射线。/g,'The guardian locks a firing line. Sidestep perpendicular to it or break line of sight with terrain.')
+      .replace(/守卫将在下一回合恢复大量生命。警告期间对它造成伤害即可打断。/g,'The guardian will restore a large amount of HP next turn. Damage it during the warning to interrupt.')
+      .replace(/血链将在下一回合抽取近距离目标。与守卫拉开到 4 格以上。/g,'The blood tether drains nearby targets next turn. Create at least 4 tiles of distance.')
+      .replace(/守卫将在自身横纵 3 格内震裂地面。离开十字形危险线。/g,'The guardian will rupture ground 3 tiles along its row and column. Leave the cross-shaped danger line.')
+      .replace(/弹幕锁定你所在的短直线。沿垂直于亮线的方向侧移一格。/g,'The barrage locks a short line through you. Sidestep one tile perpendicular to the lit line.')
+      .replace(/旧日爆裂标记再次出现。离开被锁定的地块。/g,'The old Ember Mark returns. Leave the locked tile.')
+      .replace(/旧日猎杀线再次出现。侧移、离开射程或借墙断线。/g,'The old Hunter Line returns. Sidestep, leave range, or break line of sight with a wall.')
+      .replace(/旧日霜环再次出现。离开守卫周围 2 格。/g,'The old Frost Ring returns. Leave the 2-tile ring around the guardian.')
+      .replace(/渊主烙印你脚下的地块。下一回合前离开。/g,'The Abyss Lord marks your tile. Leave it before the next turn.')
+      .replace(/渊主锁定整条行列。侧移或借墙切断射线。/g,'The Abyss Lord locks your entire row or column. Sidestep or use a wall to break the line.')
+      .replace(/渊主将引爆周围 2 格。停止贪刀，立刻拉开距离。/g,'The Abyss Lord will detonate the 2-tile area around itself. Stop greed-attacking and create distance now.')
+      .replace(/心爆落空：你在最后一刻拉开了距离。/g,'Heart Nova misses: you created distance at the last moment.')
+      .replace(/范围爆发落空：你及时离开了危险区。/g,'Area burst misses: you left the danger zone in time.')
+      .replace(/命中：警告区不能硬吃。/g,' hits: telegraphed danger zones must be avoided.')
+      .replace(/命中：原地贪刀付出了代价。/g,' hits: greed-attacking on the marked tile has a cost.')
+      .replace(/落空：你及时离开了锁定地块。/g,' misses: you left the marked tile in time.')
+      .replace(/命中：下一次看见锁线时侧移或断线。/g,' hits: next time, sidestep or break the firing line.')
+      .replace(/落空：你避开或切断了射线。/g,' misses: you dodged or broke the firing line.')
+      .replace(/星蚀弹幕命中：短直线要沿垂直方向侧移。/g,'Eclipse Barrage hits: sidestep perpendicular to the short line.')
+      .replace(/星蚀弹幕落空：你离开了锁定短线。/g,'Eclipse Barrage misses: you left the locked short line.')
+      .replace(/愈合咏唱被打断：持续施压阻止了这次回复。/g,'Mending Channel interrupted: sustained pressure stopped the heal.')
+      .replace(/愈合完成：守卫恢复了 (\d+) 点生命。/g,'Mending completes: the guardian restores $1 HP.')
+      .replace(/血契抽取命中：下次在警告期间拉开到 4 格以上。/g,'Blood Tether hits: next time create at least 4 tiles of distance during the warning.')
+      .replace(/血契断裂：你成功拉开了距离。/g,'Blood Tether breaks: you created enough distance.')
+      .replace(/地脉震裂命中：十字线不能硬吃。/g,'Rupture Cross hits: do not tank the cross-shaped danger line.')
+      .replace(/地脉震裂落空：你离开了横纵危险线。/g,'Rupture Cross misses: you left the row/column danger line.')
+      .replace(/终焉渊主进入第二阶段：王座碎裂，虚空裁线开始。/g,'Lord of the Final Abyss enters Phase II: the throne shatters and Void Line begins.')
+      .replace(/终焉渊主进入第三阶段：深渊之心暴露，心爆频率加快。/g,'Lord of the Final Abyss enters Phase III: the Abyss Heart is exposed and Heart Nova accelerates.');
 
     // common combat/log grammar
     out=out
