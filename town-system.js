@@ -1,4 +1,4 @@
-/* Dungeon Echo production town systems v2.
+/* Dungeon Echo production town systems v3.
  * Owns conquered-depth checkpoint return and production wheel lifecycle/economy policy.
  *
  * Checkpoints unlock only AFTER crossing each 10-floor guardian: 11/21/.../91.
@@ -6,8 +6,8 @@
  *
  * The legacy core wheel still owns its animation and seeded random selection. This layer
  * adds the missing production rules around it: a landed prize slot is consumed exactly
- * once, claimed state persists in meta saves, and spin/reset prices receive a chapter-
- * scaled surcharge so late-game gold growth cannot turn the wheel into a money printer.
+ * once, claimed state persists in meta saves, spin/reset prices receive a chapter-scaled
+ * surcharge, and death can no longer reroll the visible board for free.
  */
 (() => {
   'use strict';
@@ -15,9 +15,10 @@
   if (window.__DE_TOWN_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_TOWN_SYSTEM = 'v2';
+  window.__DE_TOWN_SYSTEM = 'v3';
 
   const META_KEY = 'de-greedy-meta-v1';
+  const WHEEL_STATE_KEY = 'de-town-wheel-state-v1';
   const CHECKPOINTS = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91];
   let selected = 1;
 
@@ -118,6 +119,78 @@
   let landedIndex = -1;
   let pendingWheelAction = null;
 
+  const wheelClassId = () => String(api.meta && api.meta.classId || api.classId || 'warrior');
+  const copySlots = slots => JSON.parse(JSON.stringify(slots || []));
+  const slotFingerprint = slots => JSON.stringify(copySlots(slots));
+
+  function loadWheelState() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WHEEL_STATE_KEY));
+      return raw && raw.v === 1 && raw.classes && typeof raw.classes === 'object'
+        ? raw : { v:1, classes:{} };
+    } catch (e) { return { v:1, classes:{} }; }
+  }
+
+  function wheelShadowRow() {
+    const root = loadWheelState();
+    const row = root.classes[wheelClassId()];
+    if (!row || !Array.isArray(row.slots) || row.slots.length !== 8) return null;
+    return {
+      slots: copySlots(row.slots),
+      spins: Math.max(0, Number(row.spins) || 0),
+      resets: Math.max(0, Number(row.resets) || 0),
+    };
+  }
+
+  function snapshotWheel() {
+    const meta = api.meta;
+    if (!meta || !Array.isArray(meta.wheelSlots) || meta.wheelSlots.length !== 8) return false;
+    const root = loadWheelState();
+    root.classes[wheelClassId()] = {
+      slots: copySlots(meta.wheelSlots),
+      spins: Math.max(0, Number(meta.wheelSpins) || 0),
+      resets: Math.max(0, Number(meta.wheelResets) || 0),
+    };
+    try {
+      localStorage.setItem(WHEEL_STATE_KEY, JSON.stringify(root));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function restoreWheelShadow(row = wheelShadowRow()) {
+    const meta = api.meta;
+    if (!meta || !row) return false;
+    meta.wheelSlots = copySlots(row.slots);
+    meta.wheelSpins = row.spins;
+    meta.wheelResets = row.resets;
+    persistMeta();
+    return true;
+  }
+
+  function reconcileWheelShadow() {
+    const meta = api.meta;
+    if (!meta || !Array.isArray(meta.wheelSlots) || meta.wheelSlots.length !== 8) return 'missing';
+    if (wheelArmed || pendingWheelAction) return 'busy';
+    const shadow = wheelShadowRow();
+    if (!shadow) {
+      snapshotWheel();
+      return 'seeded';
+    }
+
+    const boardChanged = slotFingerprint(meta.wheelSlots) !== slotFingerprint(shadow.slots);
+    const countersRegressed = (Number(meta.wheelSpins) || 0) < shadow.spins ||
+      (Number(meta.wheelResets) || 0) < shadow.resets;
+    if (boardChanged || countersRegressed) {
+      restoreWheelShadow(shadow);
+      return 'restored';
+    }
+
+    const countersAdvanced = (Number(meta.wheelSpins) || 0) > shadow.spins ||
+      (Number(meta.wheelResets) || 0) > shadow.resets;
+    if (countersAdvanced) snapshotWheel();
+    return countersAdvanced ? 'advanced' : 'stable';
+  }
+
   function wrapWheelSlots() {
     const meta = api.meta;
     if (!meta || !Array.isArray(meta.wheelSlots)) return;
@@ -164,6 +237,7 @@
     if ('item' in slot) delete slot.item;
     if ('amount' in slot) delete slot.amount;
     persistMeta();
+    snapshotWheel();
     return true;
   }
 
@@ -196,6 +270,7 @@
   function syncWheelUi() {
     const meta = api.meta;
     if (!meta) return;
+    reconcileWheelShadow();
     wrapWheelSlots();
     const wheel = document.getElementById('town-wheel');
     if (!wheel) return;
@@ -238,6 +313,7 @@
 
   function beginWheelAction(kind, e) {
     if (api.state !== 'town' || !api.meta) return false;
+    reconcileWheelShadow();
     wrapWheelSlots();
     const meta = api.meta;
     const isSpin = kind === 'spin';
@@ -289,9 +365,10 @@
     } else if (kind === 'spin' && landedIndex >= 0) {
       consumeWheelSlot(landedIndex);
     } else if (kind === 'reset') {
-      // New board objects need tracking getters; core already persisted the reset.
+      // A paid reset is the only legal way to replace the whole board.
       wrapWheelSlots();
       persistMeta();
+      snapshotWheel();
     }
 
     wheelArmed = false;
@@ -356,9 +433,14 @@
     get selected() { return selected; },
   };
   window.DE_TOWN_ECONOMY = {
+    version: 'v3',
     tier: townTier,
     wheelSpinCost: spinTotalCost,
     wheelResetCost: resetTotalCost,
     claimedWheelSlots: claimedCount,
+    snapshotWheel,
+    restoreWheelShadow,
+    reconcileWheelShadow,
+    wheelShadowRow,
   };
 })();
