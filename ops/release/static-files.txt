@@ -15,6 +15,7 @@ runtime-bootstrap.js
 challenge-pressure.js
 visual-polish.js
 equipment-shop-ui.js
+release-stamp-v122.js
 locale-runtime-v122.js
 world-loot-polish-v122.js
 forge-feedback-v122.js
