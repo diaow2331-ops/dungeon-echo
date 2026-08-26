@@ -26,7 +26,7 @@ No account is required. Saves live in the browser. The production game is static
 - Desktop keyboard/mouse, native Gamepad API and portrait/landscape touch controls.
 - Progressive onboarding that teaches mechanics without covering the mobile action deck.
 - Chinese / English sessions with automatic browser-language selection, direct language URLs and a title-screen language selector.
-- v1.2.3 final device/presentation cleanup: no always-on player halo, lower-cost mobile overlay work, steadier non-fullscreen browser layout and faster pointer-down touch response.
+- v1.2.3 final device/presentation cleanup: no always-on player halo, camera-aware visual overlays, steadier non-fullscreen mobile layout, faster pointer-down touch response and a four-way D-pad without the accidental center Wait target.
 
 The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -34,10 +34,10 @@ The project favors readable counterplay over hidden punishment, human playtestin
 
 | Action | Keyboard | Mobile |
 | --- | --- | --- |
-| Move / face | Arrow keys / WASD | Left D-pad |
+| Move / face | Arrow keys / WASD | Four-way D-pad |
 | Attack | `J` | Attack |
 | Class skill | `K` | Skill |
-| Wait / focus | Space / `.` | Center D-pad |
+| Wait / focus | Space / `.` | Not exposed on touch D-pad |
 | Potion | `Q` | Potion |
 | Scroll | `E` | Scroll |
 | Return to town | `T` | Return |
@@ -90,7 +90,7 @@ http://localhost:8000/dev.html
 ├── progression-system.js          # talents + skill evolution
 ├── content-system.js              # late-floor themes + guardian/finale states
 ├── combat-pressure.js             # readable deep-floor / guardian pressure
-├── visual-polish.js               # atmosphere + equipment/town presentation
+├── visual-polish.js               # camera-aware atmosphere + equipment/town presentation
 ├── equipment-shop-ui.js           # equipment/town presentation bridge
 ├── gameplay-tuning.js             # production gameplay tuning
 ├── defense-system.js              # defense semantics / mitigation layer
@@ -104,8 +104,7 @@ http://localhost:8000/dev.html
 ├── world-loot-polish-v122.js      # visible ground-loot presentation
 ├── forge-feedback-v122.js         # post-result forge feedback
 ├── audio-director.js              # adaptive BGM + Music/SFX mixer
-├── mobile-ux.js                   # base mobile control/layout follower
-├── mobile-visual-final-v123.js     # final mobile latency/layout + player-light cleanup
+├── mobile-ux.js                   # stable mobile layout + direct touch input owner
 ├── profiles/                      # production + deterministic fixtures
 ├── art/                           # production art assets
 ├── test/                          # targeted deterministic contracts
