@@ -30,6 +30,7 @@ revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
 [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || fail 'bundle revision is invalid'
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'bundle version is invalid'
+release_stamp="release-stamp-v${version//./}.js"
 
 release_name="$(date -u +%Y%m%dT%H%M%SZ)-de-${revision:0:12}"
 release_dir="$RELEASES_DIR/$release_name"
@@ -65,7 +66,10 @@ cp -a "$GAME_SOURCE/." "$tmp_dir/dungeon-echo/"
 test -r "$tmp_dir/moyu/index.html" || fail 'existing /moyu/ was not preserved'
 test -r "$tmp_dir/dungeon-echo/index.html" || fail 'Dungeon Echo entry was not staged'
 grep -Fq '地牢回响' "$tmp_dir/dungeon-echo/index.html" || fail 'Dungeon Echo title missing from staged entry'
-grep -Fq "v$version" "$tmp_dir/dungeon-echo/index.html" || fail 'Dungeon Echo version missing from staged entry'
+test -r "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap missing from staged entry'
+test -r "$tmp_dir/dungeon-echo/$release_stamp" || fail "release stamp missing from staged entry: $release_stamp"
+grep -Fq "$release_stamp" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load current release stamp'
+grep -Fq "const version = '$version'" "$tmp_dir/dungeon-echo/$release_stamp" || fail 'release stamp version does not match bundle VERSION'
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +
 find "$tmp_dir" -type f -exec chmod 0644 {} +
