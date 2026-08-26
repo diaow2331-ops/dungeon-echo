@@ -3,6 +3,7 @@ const fs = require('fs');
 const assert = require('assert');
 
 const controls = fs.readFileSync('combat-controls.js','utf8');
+const game = fs.readFileSync('game.js','utf8');
 const hint = fs.readFileSync('combat-hint-polish.js','utf8');
 const audio = fs.readFileSync('audio-director.js','utf8');
 const mobile = fs.readFileSync('mobile-ux.js','utf8');
@@ -24,6 +25,17 @@ assert(/warrior:\s*\{ max:60, cost:30, regen:2, attackGain:2, focusGain:3 \}/.te
 assert(/ranger:\s*\{ max:70, cost:32, regen:2, attackGain:3, focusGain:4 \}/.test(controls), 'ranger mana contract changed');
 assert(/mage:\s*\{ max:100,cost:42, regen:3, attackGain:1, focusGain:10 \}/.test(controls), 'mage mana contract changed');
 assert(/assassin:\s*\{ max:65, cost:34, regen:2, attackGain:3, focusGain:4 \}/.test(controls), 'assassin mana contract changed');
+
+// Mana is part of the persisted run state. Any real mutation must commit the final value,
+// preventing refresh/reload from restoring a pre-cost or pre-regeneration snapshot.
+assert(controls.includes("const persistResourceState = () =>"), 'mana persistence helper missing');
+assert(controls.includes("typeof api.persistRun === 'function'"), 'mana persistence must reuse core run save API');
+assert(/function ensureMana[\s\S]*?persistResourceState\(\);[\s\S]*?return p;/.test(controls), 'mana initialization/clamp must persist its normalized value');
+assert(/function gainMana[\s\S]*?if \(gain > 0\)[\s\S]*?persistResourceState\(\);[\s\S]*?return gain;/.test(controls), 'mana regeneration/attack gain must persist after mutation');
+assert(/p\.mana = clamp\(p\.mana - cost, 0, p\.manaMax\);\s*persistResourceState\(\);/.test(controls), 'skill mana cost must persist after deduction');
+assert(game.includes('player: JSON.parse(JSON.stringify(player))'), 'run save must serialize the complete player resource state');
+assert(game.includes('player = raw.player;'), 'run restore must recover persisted player mana state');
+assert(/persistRun,\s*peekRun,\s*restoreRun/.test(game), 'core run-save API must remain exposed to resource owners');
 
 // Ground equipment must recognize the production v12 SVG bridge, recover the real map item,
 // and use tierArt.sourceForItem rather than blindly drawing the old loot cell.
