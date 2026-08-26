@@ -50,8 +50,9 @@ ok(persisted === 1, 'cleanup persists the collision-state repair');
 (async () => {
   const shrine = npcs.find(n => n.type === 'shrine');
   shrine.used = true;
-  const click = (listeners.click || [])[0];
-  if (click) click({ target: null });
+  const clicks = listeners.click || [];
+  const cleanupClick = clicks[clicks.length - 1];
+  if (cleanupClick) cleanupClick({ target: null });
   await new Promise(resolve => queueMicrotask(resolve));
   ok(!npcs.some(n => n.type === 'shrine'), 'newly consumed shrine clears after the interaction event');
   ok(persisted === 2, 'post-interaction cleanup persists exactly once');
