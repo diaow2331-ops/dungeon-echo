@@ -11,6 +11,7 @@ forge-system.js
 progression-system.js
 content-system.js
 gameplay-tuning.js
+defense-system.js
 desktop-controls.js
 art/loot-atlas.png
 art/loot-atlas-v12.svg
