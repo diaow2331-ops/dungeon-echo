@@ -2,7 +2,7 @@
 
 v1.2.2 is the final gameplay/UX polish release before repository and 91hwl.cn governance become the primary workstreams.
 
-It keeps the v1.2 combat, mana, economy, save schema and 1→100 content intact. This patch focuses on language stability, ground-loot presentation and forge feedback.
+It keeps the v1.2 combat, mana, economy, save schema and 1→100 content intact. This patch focuses on language stability, character/loot presentation and forge feedback.
 
 ## Stable Chinese / English sessions
 
@@ -16,9 +16,26 @@ v1.2.2 retires that production chain.
 - Choosing another language persists the preference and reloads through `?lang=zh` / `?lang=en`.
 - There is no whole-run live language hot switch.
 - Dynamic translation is event-driven for newly rendered content and a few narrow status nodes; there is no locale polling loop and no global character-data observer.
+- Canvas text localization is cached rather than re-translated every paint.
 - Save/profile/item identities remain language-independent.
 
-This also consolidates the high-frequency English display rules for equipment, common monsters/guardians, combat damage, Gold pickup, Mana feedback, forge copy and standing hints.
+This also consolidates the high-frequency English display rules for equipment, common monsters/guardians, combat damage, Gold pickup, Mana feedback, forge copy, tutorial steps and standing hints.
+
+## Character-art residual cleanup
+
+The hero artwork is now the sole character-art owner in production.
+
+Earlier presentation layers could still leave equipment-derived visuals around the hero: a rarity ellipse from the core renderer, geometric weapon/armor/helmet/charm accents, and v13 equipment imagery from the visual overlay. On camera-constrained viewports those overlay coordinates could visibly separate from the hero.
+
+v1.2.2 ships `character-art-cleanup-v122.js` to quarantine those obsolete presentation paths:
+
+- suppress the core equipment-rarity ellipse around the hero;
+- suppress the legacy post-hero weapon/armor/helmet/charm geometry block;
+- block v13 weapon/wearable atlas images from the character overlay canvas;
+- suppress the obsolete ring and amulet character effects;
+- preserve the hero sprite, class ambience, skill-ready presence, enemy effects, UI equipment art, town equipment art and ground-loot art.
+
+This layer is presentation-only and does not mutate equipped items, stats, combat, saves or inventory state.
 
 ## Ground-loot presentation pass
 
