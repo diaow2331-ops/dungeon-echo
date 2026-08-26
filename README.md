@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/?lang=en) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.1.0 is the current public release. `main` may contain post-v1.1 release-candidate UX, balance and localization work that has not been deployed yet. Existing browser saves remain compatible unless a release note explicitly says otherwise.
+> **Status:** v1.2.0 is frozen as the current release candidate. The public site remains on the previously deployed build until the v1.2.0 file-upload deployment is activated and its health checks pass. Existing browser saves remain compatible unless a release note explicitly says otherwise.
 
 Dungeon Echo is a vanilla HTML/CSS/JavaScript roguelike built around one continuous journey from **floor 1 to floor 100**.
 
@@ -21,10 +21,11 @@ No account is required. Saves live in the browser. The production game is static
 - Skill evolution at **20 / 40 / 60 / 80**.
 - Ten guardian/finale nodes with readable movement, interrupt and armor-break counterplay.
 - A three-phase floor-100 finale.
-- Adaptive procedural BGM plus independent **Music / SFX 0–100%** controls.
-- Desktop keyboard/mouse, native Gamepad API and mobile-first touch controls.
-- Progressive onboarding that teaches mechanics when they become relevant.
-- Chinese / English localization with automatic browser-language selection and an in-game language switch.
+- Explicit **J Attack / K Skill** combat with class-specific mana capacity, skill cost and recovery rhythm.
+- Adaptive procedural BGM plus independent **Music / SFX 0–100%** controls and persistent master mute.
+- Desktop keyboard/mouse, native Gamepad API and mobile-first portrait/landscape touch controls.
+- Progressive onboarding that teaches mechanics when they become relevant without covering the mobile action deck.
+- Chinese / English localization with automatic browser-language selection, direct language URLs and an in-game language switch.
 
 The project deliberately favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -41,10 +42,10 @@ The project deliberately favors readable counterplay over hidden punishment, hum
 | Return to town | `T` | Return |
 | Descend | `Enter` | Descend |
 | Pause | `Esc` | Pause |
-| Master mute | `M` | Sound settings |
+| Master mute | `M` | Sound |
 | Fullscreen | `F` | Fullscreen |
 
-Skills use mana. Each class has a different mana capacity, skill cost and recovery rhythm, so active skills are tactical resources rather than free cooldown buttons.
+Skills use mana. Each class has a different mana capacity, skill cost and recovery rhythm, so active skills are tactical resources rather than free cooldown buttons. Mana mutations are persisted through the existing run-save path so refreshing the page cannot restore a pre-cost/pre-recovery snapshot.
 
 ## Language
 
@@ -99,9 +100,13 @@ Engineering checks protect contracts; they do **not** replace human playtesting.
 
 High-value checks cover production entry, 1→100 descent, guardian state machines, skill evolution, save compatibility, deployment boundaries, input/mana, equipment art, mobile UX, localization and human-play pressure. GitHub Actions is not treated as the only release path; production uses a prepared file-upload / staging / checksum / atomic activation / rollback flow.
 
+The v1.2.0 freeze does not claim a fresh full-suite GitHub Actions run. Actions quota was exhausted during this release line, so v1.2 changes were kept as focused reviewable diffs with targeted static regression contracts. Human play remains the source of truth for feel and long-run balance.
+
 ## Save compatibility
 
 Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
+
+v1.2.0 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. It does not require a migration or progress reset.
 
 ## AI-assisted development
 
