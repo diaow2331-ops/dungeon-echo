@@ -154,7 +154,7 @@ ok(!/data-act="quickdive"|id="quickdive-fab"/.test(html), '游客入口不公开
 ok(expectedScripts.every(src => fs.existsSync(path.join(root, src))), '全部生产脚本资源存在');
 ok(fs.existsSync(path.join(root, 'art/title-backdrop.webp')) && /art\/title-backdrop\.webp/.test(html),
   '标题美术已预载并存在');
-ok(fs.existsSync(path.join(root, 'art/class-roster.webp')) && /rel="preload" href="art\/class-roster\.webp/.test(html),
+ok(fs.existsSync(path.join(root, 'art/class-roster.webp')) && /rel="preload" href="art\/class-roster\.webp"/.test(html),
   '四职业肖像已预载并存在');
 for (const art of ['hero-atlas-v11.png', 'monster-atlas-v11.png', 'guardian-atlas-v11.png',
   'final-boss-v11.png', 'town-backdrop-v11.webp']) {
