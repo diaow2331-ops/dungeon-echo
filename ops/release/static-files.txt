@@ -15,14 +15,11 @@ runtime-bootstrap.js
 challenge-pressure.js
 visual-polish.js
 equipment-shop-ui.js
-i18n.js
-i18n-runtime.js
-i18n-content.js
+locale-runtime-v122.js
 combat-controls.js
 combat-hint-polish.js
 audio-director.js
 mobile-ux.js
-ux-hotfix-v121.js
 gameplay-tuning.js
 defense-system.js
 desktop-controls.js
