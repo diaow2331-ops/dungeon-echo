@@ -14,6 +14,8 @@ combat-pressure.js
 visual-polish.js
 equipment-shop-ui.js
 combat-controls.js
+combat-hint-polish.js
+audio-director.js
 gameplay-tuning.js
 defense-system.js
 desktop-controls.js
