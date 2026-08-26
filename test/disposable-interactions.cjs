@@ -41,7 +41,7 @@ function ok(cond, name) {
 }
 
 const bridge = window.__DE_DISPOSABLE_NPC_CLEANUP;
-ok(bridge && bridge.version === 'p0-v1', 'disposable NPC cleanup boots');
+ok(bridge && bridge.version === 'p0-v2', 'disposable NPC cleanup/pathing bridge boots');
 ok(npcs.length === 2, 'already-used shrine and rest are removed at install');
 ok(npcs.some(n => n.type === 'shop'), 'repeatable shop NPC is preserved');
 ok(npcs.some(n => n.type === 'shrine' && !n.used), 'unused shrine remains interactable');
