@@ -23,6 +23,7 @@ const expectedScripts = [
   'progression-system.js',
   'content-system.js',
   'gameplay-tuning.js',
+  'defense-system.js',
   'desktop-controls.js',
 ];
 
@@ -121,6 +122,7 @@ global.requestAnimationFrame = () => 0;
 global.cancelAnimationFrame = () => {};
 global.setInterval = () => 0;
 global.clearInterval = () => {};
+global.queueMicrotask = fn => fn();
 global.Image = class { set src(_value) {} };
 global.KeyboardEvent = class {
   constructor(type, init) { this.type = type; Object.assign(this, init); }
@@ -173,9 +175,9 @@ ok(T && T.runProfile.floorRules.maxDepth === 100, '正式旅程最大深度 100'
 const markers = [
   '__DE_EQUIPMENT_SYSTEM', '__DE_TOWN_SYSTEM', '__DE_COMMERCE_SYSTEM',
   '__DE_FORGE_SYSTEM', '__DE_PROGRESSION_SYSTEM', '__DE_CONTENT_SYSTEM',
-  '__DE_GAMEPLAY_TUNING', '__DE_GAMEPAD_BOOTED',
+  '__DE_GAMEPLAY_TUNING', '__DE_DEFENSE_MODEL', '__DE_GAMEPAD_BOOTED',
 ];
-ok(markers.every(name => !!window[name]), '八个生产系统均同步装载');
+ok(markers.every(name => !!window[name]), '九个生产系统均同步装载');
 ok(!!window.DE_TOWN_CHECKPOINTS && !!window.DE_TOWN_ECONOMY, '城镇检查点与阶段经济可用');
 ok(!!window.DE_COMMERCE && !!window.DE_FORGE_REFINEMENT, '有限库存与锻造分支可用');
 ok(!!window.DE_TALENT_RANKS && typeof window.DE_EQUIP_FIT_SCORE === 'function', '百层天赋与装备双轴价值可用');
@@ -197,6 +199,38 @@ ok(new Set(signatures).size === 9, '九位守卫拥有不同机制组合');
 ok(guardians.find(g => g.depth === 10).armorBreak === true, '第 10 层守卫教授可预判破甲');
 ok(T.runProfile.themes.length >= 25, '85–100 层拥有独立章节主题');
 ok(T.runProfile.boss.ranged === 3 && T.runProfile.boss.regen && T.runProfile.boss.enrage, '第 100 层终局机制桥已启用');
+
+console.log('\n[production] greedy meta derived-stat repair');
+T.setGreedy(true);
+T.newGame('warrior');
+{
+  const broken = JSON.parse(JSON.stringify(T.meta));
+  broken.talents = [
+    'bramble', 'bramble', 'scavenge', 'elixir', 'frenzy', 'tenacity',
+    'plunder', 'echoborn', 'w_reprise',
+  ];
+  for (const field of ['thornsBase', 'regenBase', 'potionBoost', 'critPower', 'grivResist', 'plunder']) broken[field] = 0;
+  broken.fastRegen = 0;
+  localStorage.setItem('de-greedy-meta-v1', JSON.stringify(broken));
+  T.newGame('warrior');
+  const repaired = window.DE_TALENT_RANKS.repairGreedyMeta();
+  ok(repaired === true, '旧贪婪元档触发兼容回填');
+  ok(T.player.thornsBase === 13 && T.meta.thornsBase === 13, '荆棘/铁血反击恢复反伤最低值');
+  ok(T.player.regenBase === 5 && T.meta.regenBase === 5, '食腐/铁血反击恢复击杀回复最低值');
+  ok(T.player.potionBoost === 40 && T.meta.potionBoost === 40, '强效药剂恢复药水强化');
+  ok(T.player.critPower === 25 && T.meta.critPower === 25, '致命节奏恢复暴击伤害');
+  ok(T.player.grivResist === 1 && T.meta.grivResist === 1, '坚韧恢复重伤抗性');
+  ok(T.player.plunder === 25 && T.meta.plunder === 25, '掠夺者恢复掉落加成');
+  ok(T.player.fastRegen === true && T.meta.fastRegen === 1, '回响体恢复快速自然回复');
+  const disk = JSON.parse(localStorage.getItem('de-greedy-meta-v1'));
+  ok(disk.thornsBase === 13 && disk.regenBase === 5 && disk.fastRegen === 1,
+    '修复结果立即写回元存档，避免再次重载丢失');
+  T.player.critPower = 99;
+  T.meta.critPower = 99;
+  window.DE_TALENT_RANKS.repairGreedyMeta();
+  ok(T.player.critPower === 99 && T.meta.critPower === 99, '兼容修复只补最低值，不覆盖更高合法属性');
+}
+T.setGreedy(false);
 
 console.log('\nRESULT  ' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
