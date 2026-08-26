@@ -14,6 +14,7 @@
     ['combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
     ['audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     ['mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
+    ['ux-hotfix-v121.js', 'data-de-ux-hotfix-v121', () => !!window.__DE_UX_HOTFIX_V121],
   ]);
 
   let started = false;
