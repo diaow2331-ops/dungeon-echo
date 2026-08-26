@@ -16,6 +16,8 @@ challenge-pressure.js
 visual-polish.js
 equipment-shop-ui.js
 locale-runtime-v122.js
+world-loot-polish-v122.js
+forge-feedback-v122.js
 combat-controls.js
 combat-hint-polish.js
 audio-director.js
