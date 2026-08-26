@@ -6,14 +6,18 @@ page. It verifies the current homepage hash before writing, keeps a server-side
 backup, and rolls back both files when any origin or public check fails.
 
 The homepage/project-page package has its own `SITE_VERSION`. It is intentionally
-independent from the playable game's root `VERSION`, so a game hotfix cannot
-silently relabel an older, not-yet-deployed website candidate.
+independent from the playable game's root `VERSION`, so a game-only hotfix cannot
+silently relabel an older website candidate.
 
-Current site candidate: 1.2.2
+Current site candidate: 1.2.3
+
+The v1.2.3 candidate is product-first and bilingual, uses the shipped Dungeon Echo
+art instead of placeholder visuals, exposes Play / Details / GitHub routes clearly,
+and documents the final mobile/visual cleanup without reopening gameplay balance.
 
 Server usage:
-  unzip 91hwl-home-dungeon-echo-v1.2.2.zip -d /tmp/91hwl-home-dungeon-echo-v1.2.2
-  cd /tmp/91hwl-home-dungeon-echo-v1.2.2
+  unzip 91hwl-home-dungeon-echo-v1.2.3.zip -d /tmp/91hwl-home-dungeon-echo-v1.2.3
+  cd /tmp/91hwl-home-dungeon-echo-v1.2.3
   sudo ./ops/deploy.sh
 
 Success markers:
