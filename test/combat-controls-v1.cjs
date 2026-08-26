@@ -25,6 +25,14 @@ assert(/ranger:\s*\{ max:70, cost:32, regen:2, attackGain:3, focusGain:4 \}/.tes
 assert(/mage:\s*\{ max:100,cost:42, regen:3, attackGain:1, focusGain:10 \}/.test(controls), 'mage mana contract changed');
 assert(/assassin:\s*\{ max:65, cost:34, regen:2, attackGain:3, focusGain:4 \}/.test(controls), 'assassin mana contract changed');
 
+// Mana is part of the persisted run state. Any real mutation must commit the final value,
+// preventing refresh/reload from restoring a pre-cost or pre-regeneration snapshot.
+assert(controls.includes("const persistResourceState = () =>"), 'mana persistence helper missing');
+assert(controls.includes("typeof api.persistRun === 'function'"), 'mana persistence must reuse core run save API');
+assert(/function ensureMana[\s\S]*?persistResourceState\(\);[\s\S]*?return p;/.test(controls), 'mana initialization/clamp must persist its normalized value');
+assert(/function gainMana[\s\S]*?if \(gain > 0\)[\s\S]*?persistResourceState\(\);[\s\S]*?return gain;/.test(controls), 'mana regeneration/attack gain must persist after mutation');
+assert(/p\.mana = clamp\(p\.mana - cost, 0, p\.manaMax\);\s*persistResourceState\(\);/.test(controls), 'skill mana cost must persist after deduction');
+
 // Ground equipment must recognize the production v12 SVG bridge, recover the real map item,
 // and use tierArt.sourceForItem rather than blindly drawing the old loot cell.
 assert(controls.includes("/loot-atlas(?:-v12)?\\.(?:png|svg)"), 'production loot-atlas v12 interception missing');
