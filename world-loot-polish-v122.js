@@ -61,8 +61,8 @@
     if(!visible(it,v))return;
     const x=(Number(it.x)-v.vx+.5)*v.tw,y=(Number(it.y)-v.vy+.5)*v.th;
     const c=colorFor(it),rarity=rarityFor(it);
-    const pulse=reduceMotion?.45:(.45+.55*Math.sin(now*.0045+(Number(it.x)||0)*.91+(Number(it.y)||0)*.47));
-    const radius=Math.min(v.tw,v.th)*(it.type==='equip'?.42:.34);
+    const pulse=reduceMotion ? .45 : (.45+.55*Math.sin(now*.0045+(Number(it.x)||0)*.91+(Number(it.y)||0)*.47));
+    const radius=Math.min(v.tw,v.th)*(it.type==='equip' ? .42 : .34);
 
     ctx.save();
     ctx.globalAlpha=.22+rarity*.025;
