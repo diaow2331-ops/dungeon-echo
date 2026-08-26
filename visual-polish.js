@@ -55,6 +55,7 @@
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const rgba = (rgb, a) => `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
   const classId = () => api.classId || (api.meta && api.meta.classId) || 'warrior';
+  const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function dims() {
     const grid = api.mapGrid;
@@ -84,12 +85,13 @@
 
   function drawDust(now, d, depth) {
     const count = depth >= 70 ? 18 : depth >= 30 ? 14 : 10;
-    const speed = depth >= 80 ? .010 : .0065;
+    const t = reduceMotion ? 0 : now / 1000;
+    const pulseSpeed = depth >= 80 ? 1.0 : .65;
     ctx.save();
     for (let i = 0; i < count; i++) {
-      const px = ((i * 97.3 + now * (6 + (i % 4) * 1.7)) % (d.width + 80)) - 40;
-      const py = ((i * 61.7 + now * (2.2 + (i % 3) * 1.2)) % (d.height + 60)) - 30;
-      const pulse = .5 + .5 * Math.sin(now * speed * 1000 + i * 1.93);
+      const px = ((i * 97.3 + t * (6 + (i % 4) * 1.7)) % (d.width + 80)) - 40;
+      const py = ((i * 61.7 + t * (2.2 + (i % 3) * 1.2)) % (d.height + 60)) - 30;
+      const pulse = reduceMotion ? .5 : .5 + .5 * Math.sin(t * pulseSpeed + i * 1.93);
       const r = .8 + (i % 3) * .55;
       ctx.globalAlpha = .045 + pulse * .055;
       ctx.fillStyle = depth >= 80 ? '#c9b7ff' : depth >= 50 ? '#d8b9aa' : '#ead8b2';
@@ -105,7 +107,7 @@
     const pos = position(p, d);
     if (!p || !pos) return;
     const rgb = CLASS_GLOW[classId()] || CLASS_GLOW.warrior;
-    const pulse = .5 + .5 * Math.sin(now * .0042);
+    const pulse = reduceMotion ? .5 : .5 + .5 * Math.sin(now * .0042);
     radial(pos.x, pos.y + d.th * .18, d.tw * .12, d.tw * (1.05 + pulse * .10), rgb, .12 + pulse * .035);
 
     if ((Number(p.skillCd) || 0) <= 0) {
@@ -131,7 +133,7 @@
       if (m.boss) boss = m;
       else if (m.midBoss) guardian = m;
       else if (m.elite) {
-        const pulse = .5 + .5 * Math.sin(now * .0048 + (Number(m.x) || 0));
+        const pulse = reduceMotion ? .5 : .5 + .5 * Math.sin(now * .0048 + (Number(m.x) || 0));
         radial(pos.x, pos.y + d.th * .20, d.tw * .08, d.tw * .78, [214, 153, 65], .075 + pulse * .025);
       }
     }
@@ -140,7 +142,7 @@
     if (!focal) return;
     const pos = position(focal, d);
     if (!pos) return;
-    const pulse = .5 + .5 * Math.sin(now * (boss ? .0054 : .0046));
+    const pulse = reduceMotion ? .5 : .5 + .5 * Math.sin(now * (boss ? .0054 : .0046));
     const rgb = boss ? [178, 72, 116] : [220, 157, 73];
     radial(pos.x, pos.y + d.th * .10, d.tw * .16, d.tw * (boss ? 2.4 : 1.75), rgb, (boss ? .17 : .12) + pulse * .04);
 
