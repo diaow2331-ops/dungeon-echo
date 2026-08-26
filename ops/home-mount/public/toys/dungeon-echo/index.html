@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#10131d">
-<meta name="description" content="地牢回响 v1.1：四职业、百层地牢、技能进化、可读 Boss、装备锻造与城镇经营的浏览器 Roguelike。">
-<title>地牢回响 | 91hwl</title>
+<meta name="description" content="地牢回响 Dungeon Echo：四职业、百层地牢、Mana 技能、可读 Boss、装备锻造、城镇经营、手机触控与中英双语的浏览器 Roguelike。">
+<title>地牢回响 Dungeon Echo | 91hwl</title>
 <link rel="canonical" href="https://91hwl.cn/toys/dungeon-echo/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
-<meta property="og:title" content="地牢回响 | 91hwl">
-<meta property="og:description" content="四职业百层 Roguelike：技能进化、可读守卫机制、装备构筑与贪婪远征。打开浏览器即可游玩。">
+<meta property="og:title" content="Dungeon Echo · 地牢回响 | 91hwl">
+<meta property="og:description" content="A bilingual 100-floor browser roguelike with four classes, readable bosses, mana skills, forging, town progression and mobile controls.">
 <meta property="og:url" content="https://91hwl.cn/toys/dungeon-echo/">
 <style>
 :root{
@@ -35,8 +35,10 @@ a{color:inherit}
 .hero{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:44px;align-items:center;margin-bottom:32px}
 .eyebrow{color:var(--accent);font:800 11px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase}
 h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:13px 0 20px}
-.lead{max-width:610px;color:var(--muted);font-size:16px;line-height:1.85;margin:0 0 26px}
+.lead{max-width:650px;color:var(--muted);font-size:16px;line-height:1.85;margin:0 0 26px}
+.cta-row{display:flex;flex-wrap:wrap;gap:10px}
 .cta{display:inline-flex;align-items:center;gap:10px;padding:13px 18px;border-radius:9px;background:var(--accent);color:#0d162d;font-weight:900;text-decoration:none;box-shadow:0 12px 34px rgba(61,88,155,.28)}
+.cta.secondary{background:var(--surface-2);color:var(--text);border:1px solid var(--line);box-shadow:none}
 .cta:hover{filter:brightness(1.06);transform:translateY(-1px)}
 .depth-card{min-height:300px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#111622;box-shadow:0 24px 70px rgba(0,0,0,.3)}
 .room{position:absolute;inset:35px;border:5px solid #3a4560;background:#1d2434;box-shadow:inset 0 0 0 2px #111622}
@@ -68,10 +70,14 @@ h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:1
 
   <section class="hero">
     <div>
-      <div class="eyebrow">Web Toy 02 · Dungeon Crawler · v1.1</div>
+      <div class="eyebrow">Web Toy 02 · 100 Floors · 中文 / English</div>
       <h1>地牢<br>回响</h1>
-      <p class="lead">选择战士、游侠、秘术师或刺客，从第一层开始向下探索。在战斗、装备、锻造、补给与回城风险之间作出选择；每十层面对可学习的守卫机制，并在 20 / 40 / 60 / 80 层逐步进化职业技能，最终挑战百层三阶段终局。</p>
-      <a class="cta" href="https://play.91hwl.cn/dungeon-echo/">进入地牢 <span aria-hidden="true">→</span></a>
+      <p class="lead">选择战士、游侠、秘术师或刺客，从第一层开始向下探索。在战斗、Mana、装备、锻造、补给与回城风险之间作出选择；每十层面对可学习的守卫机制，并在 20 / 40 / 60 / 80 层逐步进化职业技能，最终挑战百层三阶段终局。支持电脑与手机浏览器，并可随时切换中文 / English。</p>
+      <div class="cta-row">
+        <a class="cta" href="https://play.91hwl.cn/dungeon-echo/">进入地牢 <span aria-hidden="true">→</span></a>
+        <a class="cta secondary" href="https://play.91hwl.cn/dungeon-echo/?lang=en">Play in English</a>
+        <a class="cta secondary" href="https://github.com/diaow2331-ops/dungeon-echo">GitHub</a>
+      </div>
     </div>
     <div class="depth-card" aria-hidden="true">
       <div class="room"></div>
@@ -82,7 +88,7 @@ h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:1
   </section>
 
   <section class="grid" aria-label="游戏特性">
-    <div class="card"><b>四种职业</b><p>独立攻击方式、技能节奏与构筑轮廓；技能在 20 / 40 / 60 / 80 层继续分化，但始终保持同一个 C 键操作。</p></div>
+    <div class="card"><b>四种职业</b><p>独立攻击方式、Mana 恢复节奏与构筑轮廓；J 普攻、K 技能，技能在 20 / 40 / 60 / 80 层继续分化。</p></div>
     <div class="card"><b>百层守卫</b><p>每十层进入新的章节节点，九位守卫与三阶段终局使用明确预警和可反制机制，而不是只增加数值。</p></div>
     <div class="card"><b>贪婪成长</b><p>有限补给、装备词条、锻造分支、检查点与城镇服务共同决定继续深入还是带着战利品回家。</p></div>
   </section>
@@ -91,10 +97,10 @@ h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:1
     <div class="card">
       <h2>操作</h2>
       <ul>
-        <li>方向键 / WASD 移动，鼠标可点击已探索地块</li>
-        <li>C 职业技能 · Q 药水 · E 卷轴</li>
-        <li>T 回城（贪婪远征）· Enter 下楼 · Esc 暂停</li>
-        <li>支持原生 Gamepad API，主要面向电脑端浏览器</li>
+        <li>方向键 / WASD 移动与转向；J 攻击，K 使用职业技能</li>
+        <li>Q 药水 · E 卷轴 · T 回城 · Enter 下楼</li>
+        <li>M 控制总声音；背景音乐与音效可分别按 0–100% 调节</li>
+        <li>支持原生 Gamepad API，以及专门设计的手机触控布局</li>
       </ul>
     </div>
     <div class="card">
@@ -103,12 +109,12 @@ h1{font-size:clamp(48px,9vw,82px);line-height:.93;letter-spacing:-.07em;margin:1
         <li>无需安装，无需账号，无运行时后端</li>
         <li>进度保存在当前浏览器 localStorage</li>
         <li>正式路线固定为 1 → 100 层</li>
-        <li>当前候选版本 v1.1.0</li>
+        <li>中文 / English 可自由切换；英文可用 ?lang=en 直达</li>
       </ul>
     </div>
   </section>
 
-  <footer class="foot"><span>© 2026 91hwl</span><span>打开浏览器，继续向下。</span></footer>
+  <footer class="foot"><span>© 2026 91hwl</span><span>打开浏览器，继续向下。 · Open the browser. Descend deeper.</span></footer>
 </main>
 </body>
 </html>

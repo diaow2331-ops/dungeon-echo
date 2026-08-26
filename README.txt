@@ -8,6 +8,10 @@
 --------
 https://play.91hwl.cn/dungeon-echo/
 
+English
+-------
+https://play.91hwl.cn/dungeon-echo/?lang=en
+
 项目页面
 --------
 https://91hwl.cn/toys/dungeon-echo/
@@ -22,20 +26,24 @@ https://91hwl.cn/toys/dungeon-echo/
 - 已征服检查点：只有真正通过上一阶段守卫后，才会解锁更深的回返点。
 - 城镇有限补给、章节价格、幸运转盘与死亡风险共同构成长局经济。
 - 10→100 守卫/终局节点拥有可读预警、反制和阶段机制；第 100 层为三阶段终局战。
-- 四职业在 20 / 40 / 60 / 80 层获得二选一主动技能进化，仍只使用 C 键释放职业技能。
+- 四职业在 20 / 40 / 60 / 80 层获得二选一主动技能进化；J 为普攻，K 释放职业技能，技能消耗蓝量。
+- 自适应程序化 BGM + 战斗音效；背景音乐与游戏音效可分别按 0–100% 调节，M 为总静音。
+- PC 与手机拥有独立操作布局；手机支持拇指方向盘、攻击/技能主按钮与长按连续移动。
+- 支持中文 / English 自由切换；?lang=en 可直接打开英文界面。
 - v1.1.0 主线加入四职业地牢形象、16 类普通怪物、9 位独立守卫、终局 Boss 美术、装备稀有度反馈与十阶段城镇视觉成长。
 
 操作
 ----
 移动       方向键 / WASD / 点击已探索地块
+攻击       J（按当前面向）
 等待       空格 或 .
+职业技能   K（消耗蓝量）
 药水       Q
 卷轴       E
 回城       T（贪婪远征）
-职业技能   C
 下楼       Enter（站在楼梯上）
 暂停       Esc
-静音       M
+声音       M（总静音；音乐/音效可独立调节）
 全屏       F
 重开       死亡或胜利后按 R
 
@@ -43,7 +51,7 @@ https://91hwl.cn/toys/dungeon-echo/
 ----
 进度保存在当前浏览器的 localStorage 中，不会上传到云端。
 清除站点数据、使用另一浏览器配置/设备，或更换存储来源可能导致进度不可用；
-v1.1.0 保留现有 run/meta 存档结构，不要求迁移或清档，也不提供云存档。
+当前仍保留现有 run/meta 存档结构，不要求迁移或清档，也不提供云存档。
 
 本地运行
 --------
@@ -54,6 +62,10 @@ v1.1.0 保留现有 run/meta 存档结构，不要求迁移或清档，也不提
 然后访问：
 
   http://localhost:8000/
+
+英文直达：
+
+  http://localhost:8000/?lang=en
 
 index.html 为正式 1→100 路线；dev.html 与短 Profile 仅用于开发测试。
 
@@ -66,6 +78,8 @@ index.html 为正式 1→100 路线；dev.html 与短 Profile 仅用于开发测
   node test/descent100.cjs
   node test/guardian-content.cjs
   node test/skill-evolution.cjs
+  node test/i18n-challenge-v1.cjs
+  node test/combat-controls-v1.cjs
   node test/smoke.cjs
   node test/release.cjs
 

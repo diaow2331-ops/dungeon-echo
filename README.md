@@ -55,7 +55,7 @@ The production UI supports **中文 / English**.
 - Without a language parameter, the browser language is used on first visit.
 - A manual language switch is persisted locally.
 
-Localization is owned by one `i18n.js` dictionary/API so gameplay modules do not accumulate scattered language conditionals. Shell UI, controls, onboarding, sound settings and class identity are covered first; dynamic combat/content strings continue to migrate through the same contract.
+Localization has one language owner (`i18n.js`) with dynamic followers rather than scattered language conditionals. Shell UI, controls, onboarding, sound settings, class identity, equipment, monsters, guardians/finale, town commerce, forging and high-value combat messages all follow the same reversible display-only contract; save/profile identities remain unchanged.
 
 ## Run locally
 
@@ -75,6 +75,8 @@ Then open `http://localhost:8000/`.
 ├── challenge-pressure.js       # mild human-play attack-pressure follow-up
 ├── combat-controls.js          # J/K controls + mana resource
 ├── i18n.js                     # Chinese / English language owner
+├── i18n-runtime.js             # dynamic shell/help/accessibility follower
+├── i18n-content.js             # display-only gameplay/content localization
 ├── audio-director.js           # adaptive BGM + Music/SFX mixer
 ├── mobile-ux.js                # mobile-first control layout
 ├── equipment-system.js         # equipment generation / fit / value
