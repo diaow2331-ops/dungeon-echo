@@ -85,8 +85,8 @@
     observer.observe(root, { childList: true, subtree: true });
   }
 
-  // Late UX layers intentionally load after the stable synchronous core chain.
-  // Combat controls owns final J/K capture semantics; tutorial/audio/mobile are followers.
+  // Late production layers intentionally load after the stable synchronous core chain.
+  // Order matters: existing pressure -> mild challenge follow-up -> i18n -> input/resource -> tutorial/audio/mobile.
   function loadScript(src, marker, ready, done) {
     if (ready() || document.querySelector(`script[${marker}]`)) { if (done) done(); return; }
     const script = document.createElement('script');
@@ -97,16 +97,20 @@
     document.body.appendChild(script);
   }
 
-  function loadCombatControls() {
-    loadScript('combat-controls.js', 'data-de-combat-controls', () => !!window.__DE_COMBAT_CONTROLS_V1, () => {
-      loadScript('combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH);
-      loadScript('audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR, () => {
-        loadScript('mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX);
+  function loadProductionUx() {
+    loadScript('challenge-pressure.js', 'data-de-challenge-pressure', () => !!window.__DE_CHALLENGE_PRESSURE_V1, () => {
+      loadScript('i18n.js', 'data-de-i18n', () => !!window.DE_I18N, () => {
+        loadScript('combat-controls.js', 'data-de-combat-controls', () => !!window.__DE_COMBAT_CONTROLS_V1, () => {
+          loadScript('combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH);
+          loadScript('audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR, () => {
+            loadScript('mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX);
+          });
+        });
       });
     });
   }
-  if (document.readyState === 'complete') setTimeout(loadCombatControls, 0);
-  else window.addEventListener('load', () => setTimeout(loadCombatControls, 0), { once: true });
+  if (document.readyState === 'complete') setTimeout(loadProductionUx, 0);
+  else window.addEventListener('load', () => setTimeout(loadProductionUx, 0), { once: true });
 
-  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v1', sync, applyArt, preload, loadCombatControls };
+  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v1', sync, applyArt, preload, loadProductionUx };
 })();
