@@ -31,6 +31,9 @@
   const classId = () => api.classId || (api.meta && api.meta.classId) || 'warrior';
   const cfg = () => RESOURCE[classId()] || RESOURCE.warrior;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const persistResourceState = () => {
+    if (typeof api.persistRun === 'function') api.persistRun();
+  };
 
   let lastTurn = Number(api.turns) || 0;
   let lastPlayer = null;
@@ -38,11 +41,14 @@
 
   function ensureMana(p = api.player) {
     if (!p) return null;
+    const beforeMax = Number(p.manaMax);
+    const beforeMana = Number(p.mana);
     const c = cfg();
     if (!Number.isFinite(Number(p.manaMax)) || Number(p.manaMax) <= 0) p.manaMax = c.max;
     else p.manaMax = c.max;
     if (!Number.isFinite(Number(p.mana))) p.mana = p.manaMax;
     p.mana = clamp(Math.round(Number(p.mana) || 0), 0, p.manaMax);
+    if (Number(p.manaMax) !== beforeMax || Number(p.mana) !== beforeMana) persistResourceState();
     return p;
   }
 
@@ -52,7 +58,10 @@
     const before = p.mana;
     p.mana = clamp(before + amount, 0, p.manaMax);
     const gain = p.mana - before;
-    if (gain > 0 && reason === 'focus') feedback(`凝神 +${gain} 蓝量`, 'good', 800);
+    if (gain > 0) {
+      if (reason === 'focus') feedback(`凝神 +${gain} 蓝量`, 'good', 800);
+      persistResourceState();
+    }
     return gain;
   }
 
@@ -146,6 +155,7 @@
     const after = Number(api.turns) || 0;
     if (after > before || (Number(p.skillCd)||0) > beforeCd) {
       p.mana = clamp(p.mana - cost, 0, p.manaMax);
+      persistResourceState();
       lastTurn = after;
       waitPrimed = false;
       feedback(`${api.CLASSES[classId()].skill.name} −${cost} 蓝量`, 'skill', 900);
