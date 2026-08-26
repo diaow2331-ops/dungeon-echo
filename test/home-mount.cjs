@@ -8,6 +8,7 @@ const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const version = read('VERSION').trim();
 const home = read('ops/home-mount/public/index.html');
 const detail = read('ops/home-mount/public/toys/dungeon-echo/index.html');
 const deploy = read('ops/home-mount/deploy.sh');
@@ -16,14 +17,41 @@ const builder = path.join(root, 'ops/release/build-home-mount-bundle.sh');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-home-mount-'));
 const archive = path.join(temp, 'mount.zip');
 
-assert.match(home, /<b>02<\/b><span>Web Toys<\/span>/);
-assert.match(home, /<h3>摸鱼到下班<\/h3>/);
-assert.match(home, /<h3>地牢回响<\/h3>/);
+// Homepage conversion contract: product-first, bilingual, real Dungeon Echo art.
+assert.match(home, /02 WEB TOYS/);
+assert.match(home, /data-lang-choice="zh"/);
+assert.match(home, /data-lang-choice="en"/);
+assert.match(home, /91hwl_lang/);
+assert.match(home, /Open the browser\.<br>Just play\./);
+assert.match(home, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/title-backdrop\.webp/);
+assert.match(home, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/class-roster\.webp/);
 assert.match(home, /href="https:\/\/play\.91hwl\.cn\/dungeon-echo\//);
 assert.match(home, /href="\/toys\/dungeon-echo\//);
-assert.match(detail, /<title>地牢回响 \| 91hwl<\/title>/);
-assert.match(detail, new RegExp(`当前版本 v${read('VERSION').trim().replace(/\./g, '\\.')}`));
+assert.match(home, /https:\/\/github\.com\/diaow2331-ops\/dungeon-echo/);
+assert.match(home, /v1\.2\.2/);
+assert.match(home, /twitter:card/);
+assert.match(home, /hreflang="en"/);
+assert.match(home, /"@type": "WebSite"/);
+assert.match(home, /摸鱼到下班/);
 
+// Dungeon Echo project page must carry the current product/release story itself.
+assert.match(detail, /<title>Dungeon Echo · 地牢回响 \| 91hwl<\/title>/);
+assert.match(detail, new RegExp(`data-site-version="${version.replace(/\./g, '\\.')}"`));
+assert.match(detail, new RegExp(`Dungeon Echo v${version.replace(/\./g, '\\.')}`));
+assert.match(detail, /data-lang-choice="zh"/);
+assert.match(detail, /data-lang-choice="en"/);
+assert.match(detail, /href="https:\/\/play\.91hwl\.cn\/dungeon-echo\/\?lang=en"/);
+assert.match(detail, /https:\/\/github\.com\/diaow2331-ops\/dungeon-echo/);
+assert.match(detail, /J attacks, K skills and Mana/);
+assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/class-roster\.webp/);
+assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/town-backdrop-v11\.webp/);
+assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/final-boss-v11\.png/);
+assert.match(detail, /"@type":"VideoGame"/);
+assert.match(detail, /"softwareVersion":"1\.2\.2"/);
+assert.match(detail, /LOCALSTORAGE/);
+assert.match(detail, /MIT/);
+
+// Deployment remains bounded to the existing 91hwl tree and rollback contract.
 assert.match(deploy, /SITE_ROOT=\/var\/www\/91hwl/);
 assert.match(deploy, /EXPECTED_INDEX_SHA256/);
 assert.match(deploy, /chown --reference="\$SITE_ROOT\/index\.html"/);
