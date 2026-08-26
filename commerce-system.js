@@ -1,4 +1,4 @@
-/* Dungeon Echo production commerce v2.
+/* Dungeon Echo production commerce v3.
  * Owns town supply stock / chapter-scaled pricing and closes underground service exploits
  * for classic-100 without changing the core save schema.
  */
@@ -8,7 +8,7 @@
   if (window.__DE_COMMERCE_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_COMMERCE_SYSTEM = 'v2';
+  window.__DE_COMMERCE_SYSTEM = 'v3';
 
   const STORAGE_KEY = 'de-town-commerce-v1';
   const META_KEY = 'de-greedy-meta-v1';
@@ -289,6 +289,86 @@
     });
   }
 
+  let extraction = null;
+  const EXTRACTION_KEYS = new Set([
+    'ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+    'w','W','a','A','s','S','d','D',
+    ' ','q','Q','e','E','c','C','Enter','n','N','PageDown','>','.',
+  ]);
+  const EXTRACTION_ACTS = new Set([
+    'up','down','left','right','wait','potion','scroll','skill','descend','quickdive',
+  ]);
+
+  function extractionReady() {
+    return !!(extraction && extraction.ready && extraction.player === api.player &&
+      api.state === 'playing' && api.player && Number(api.player.hp) > 0);
+  }
+
+  function clearExtraction(reason) {
+    if (!extraction) return false;
+    extraction = null;
+    if (reason) dungeonMessage(reason, 'bad');
+    return true;
+  }
+
+  function beginExtraction() {
+    const p = api.player;
+    if (!api.greedy || api.state !== 'playing' || !p || (Number(p.escapes) || 0) <= 0) return false;
+    extraction = { player:p, startTurn:Number(api.turns) || 0, ready:false };
+    dungeonMessage('回城卷轴开始共鸣：你必须先撑过敌人的一个完整回合。', 'gold');
+    if (typeof api.endTurn === 'function') api.endTurn();
+    if (api.state === 'playing' && api.player === p && Number(p.hp) > 0) {
+      extraction.ready = true;
+      dungeonMessage('回城共鸣已经稳定。再次按 T 即可撤离；任何其他回合行动都会打断。', 'gold');
+      if (typeof api.persistRun === 'function') api.persistRun();
+      return true;
+    }
+    extraction = null;
+    return false;
+  }
+
+  function completeExtraction() {
+    if (!extractionReady() || typeof api.useEscape !== 'function') return false;
+    extraction = null;
+    api.useEscape();
+    return true;
+  }
+
+  function isExtractionInput(e) {
+    if (!e) return false;
+    if (e.type === 'keydown') return String(e.key || '').toLowerCase() === 't';
+    const t = e.target;
+    return !!(t && typeof t.closest === 'function' && t.closest('[data-act="escape"]'));
+  }
+
+  function isTurnAction(e) {
+    if (!e) return false;
+    if (e.type === 'keydown') return EXTRACTION_KEYS.has(String(e.key || ''));
+    const t = e.target;
+    if (!t || typeof t.closest !== 'function') return false;
+    if (t.id === 'game' || t.closest('#game')) return true;
+    const act = t.closest('[data-act]');
+    return !!(act && EXTRACTION_ACTS.has(String(act.dataset && act.dataset.act || '')));
+  }
+
+  function guardExtractionInput(e) {
+    if (!api.greedy || api.state !== 'playing') {
+      if (extraction) extraction = null;
+      return;
+    }
+    if (isExtractionInput(e)) {
+      if (!api.player || (Number(api.player.escapes) || 0) <= 0) return;
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      if (extractionReady()) completeExtraction();
+      else beginExtraction();
+      return;
+    }
+    if (extractionReady() && isTurnAction(e)) {
+      clearExtraction('你的行动打断了回城共鸣。需要重新使用回城卷轴。');
+    }
+  }
+
   document.addEventListener('click', e => {
     const btn = e.target && e.target.closest ? e.target.closest('[data-de-townbuy]') : null;
     if (!btn) return;
@@ -299,6 +379,8 @@
 
   document.addEventListener('keydown', armDungeonServiceSafety, true);
   document.addEventListener('click', armDungeonServiceSafety, true);
+  document.addEventListener('keydown', guardExtractionInput, true);
+  document.addEventListener('click', guardExtractionInput, true);
 
   const town = document.getElementById('town-screen');
   let observer = null;
@@ -311,7 +393,7 @@
   window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); }, { once: true });
 
   window.DE_COMMERCE = {
-    version: 'v2',
+    version: 'v3',
     tier: townTier,
     priceScale,
     priceFor,
@@ -321,6 +403,10 @@
     unsafeForTrade,
     syncDungeonShop,
     settleUsedRests,
+    extractionReady,
+    beginExtraction,
+    completeExtraction,
+    clearExtraction,
     getState: () => ensureState() ? JSON.parse(JSON.stringify(state)) : null,
     refreshForDebug() { state = freshState(); saveState(); renderShop(true); },
   };
