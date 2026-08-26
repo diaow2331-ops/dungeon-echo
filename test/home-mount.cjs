@@ -20,8 +20,9 @@ const archive = path.join(temp, 'mount.zip');
 
 assert.match(gameVersion, /^1\.2\.\d+$/);
 assert.match(siteVersion, /^1\.2\.\d+$/);
+const escapedSite = siteVersion.replace(/\./g, '\\.');
 
-// Homepage conversion contract: product-first, bilingual, real Dungeon Echo art.
+// Homepage: product-first, bilingual, real shipped art and explicit current site version.
 assert.match(home, /02 WEB TOYS/);
 assert.match(home, /data-lang-choice="zh"/);
 assert.match(home, /data-lang-choice="en"/);
@@ -32,14 +33,13 @@ assert.match(home, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/class-roster\.
 assert.match(home, /href="https:\/\/play\.91hwl\.cn\/dungeon-echo\//);
 assert.match(home, /href="\/toys\/dungeon-echo\//);
 assert.match(home, /https:\/\/github\.com\/diaow2331-ops\/dungeon-echo/);
+assert.match(home, new RegExp(`v${escapedSite}`));
 assert.match(home, /twitter:card/);
 assert.match(home, /hreflang="en"/);
-assert.match(home, /"@type": "WebSite"/);
+assert.match(home, /"@type"\s*:\s*"WebSite"/);
 assert.match(home, /摸鱼到下班/);
 
-// The website candidate has an explicit site version. A game-only hotfix must not silently
-// relabel this page before the site files themselves are updated and reviewed.
-const escapedSite = siteVersion.replace(/\./g, '\\.');
+// Dungeon Echo detail page carries the same explicit site release story.
 assert.match(detail, /<title>Dungeon Echo · 地牢回响 \| 91hwl<\/title>/);
 assert.match(detail, new RegExp(`data-site-version="${escapedSite}"`));
 assert.match(detail, new RegExp(`Dungeon Echo v${escapedSite}`));
@@ -49,6 +49,7 @@ assert.match(detail, /data-lang-choice="en"/);
 assert.match(detail, /href="https:\/\/play\.91hwl\.cn\/dungeon-echo\/\?lang=en"/);
 assert.match(detail, /https:\/\/github\.com\/diaow2331-ops\/dungeon-echo/);
 assert.match(detail, /J attacks, K skills and Mana/);
+assert.match(detail, /four-way D-pad/i);
 assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/class-roster\.webp/);
 assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/town-backdrop-v11\.webp/);
 assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/final-boss-v11\.png/);
