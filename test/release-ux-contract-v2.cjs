@@ -42,7 +42,7 @@ assert(runtime.includes("'aria-label',en?'Dungeon map:"), 'English game-map aria
 assert(runtime.includes("'title',en?'Return Scroll:"), 'English return tooltip missing');
 assert(runtime.includes("'title',en?'Enter or leave immersive fullscreen (F)'"), 'English fullscreen tooltip missing');
 assert(runtime.includes("'aria-label',en?'Touch controls'"), 'English touch-controls label missing');
-assert(runtime.includes('version:\'v2\''), 'i18n runtime version marker not advanced');
+assert(runtime.includes("version:'v2'"), 'i18n runtime version marker not advanced');
 
 // Character art remains single-owner: no old geometric gear overlay may return.
 assert(!desktop.includes('de-gear-overlay'), 'legacy character gear overlay returned');
