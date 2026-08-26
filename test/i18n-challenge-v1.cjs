@@ -5,6 +5,7 @@ const assert = require('assert');
 const pressure = fs.readFileSync('challenge-pressure.js','utf8');
 const i18n = fs.readFileSync('i18n.js','utf8');
 const runtime = fs.readFileSync('i18n-runtime.js','utf8');
+const content = fs.readFileSync('i18n-content.js','utf8');
 const loader = fs.readFileSync('equipment-shop-ui.js','utf8');
 const tutorial = fs.readFileSync('combat-hint-polish.js','utf8');
 const release = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/);
@@ -41,12 +42,24 @@ assert(runtime.includes("Armor-break special · Hit ignores armor"), 'guardian w
 assert(runtime.includes("Not enough mana:"), 'mana feedback translation missing');
 assert(runtime.includes("de:languagechange"), 'dynamic runtime language refresh missing');
 
+// Dynamic content localization is display-only and reversible.
+assert(content.includes("window.__DE_I18N_CONTENT_V2"), 'content-localization owner missing');
+assert(content.includes('sourceByNode=new WeakMap()'), 'reversible DOM source cache missing');
+assert(content.includes("CanvasRenderingContext2D"), 'Canvas text localization hook missing');
+assert(content.includes("ctx.fillText=function"), 'Canvas fillText translation wrapper missing');
+assert(content.includes("equipmentName(text)"), 'equipment-name localization parser missing');
+for (const name of ['Iron Sword','Chaos Staff','Void Sovereign','Lord of the Final Abyss']) assert(content.includes(name), `English dynamic content missing: ${name}`);
+assert(content.includes("replace(/攻击 \\+(\\d+)/g,'ATK +$1')"), 'equipment stat localization missing');
+assert(!/\.name\s*=\s*translateEn|\.name\s*=\s*nameEn/.test(content), 'content localization must not mutate saved/gameplay names');
+
 // Production order and release packaging.
 const challengePos = loader.indexOf("loadScript('challenge-pressure.js'");
 const i18nPos = loader.indexOf("loadScript('i18n.js'");
 const runtimePos = loader.indexOf("loadScript('i18n-runtime.js'");
+const contentPos = loader.indexOf("loadScript('i18n-content.js'");
 const controlsPos = loader.indexOf("loadScript('combat-controls.js'");
-assert(challengePos >= 0 && i18nPos > challengePos && runtimePos > i18nPos && controlsPos > runtimePos, 'production order challenge -> i18n -> runtime -> controls broken');
-for (const f of ['challenge-pressure.js','i18n.js','i18n-runtime.js']) assert(release.includes(f), `release manifest missing ${f}`);
+assert(challengePos >= 0 && i18nPos > challengePos && runtimePos > i18nPos && contentPos > runtimePos && controlsPos > contentPos,
+  'production order challenge -> i18n -> runtime -> content -> controls broken');
+for (const f of ['challenge-pressure.js','i18n.js','i18n-runtime.js','i18n-content.js']) assert(release.includes(f), `release manifest missing ${f}`);
 
 console.log('i18n_challenge_v1=PASS');
