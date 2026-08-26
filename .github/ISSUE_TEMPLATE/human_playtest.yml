@@ -1,0 +1,116 @@
+name: Human 1→100 playtest evidence
+description: Record representative long-run evidence for the post-v1.1 P0 stabilization audit
+title: "[Playtest] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for real/manual Dungeon Echo play evidence. Bot and deterministic-test results belong in engineering validation, not here. One report may cover a full run or one focused floor band.
+  - type: dropdown
+    id: class
+    attributes:
+      label: Class
+      options:
+        - Warrior
+        - Ranger
+        - Arcanist
+        - Assassin
+    validations:
+      required: true
+  - type: dropdown
+    id: band
+    attributes:
+      label: Floor band
+      options:
+        - 1-10
+        - 11-30
+        - 31-60
+        - 61-90
+        - 91-100
+        - Full 1-100 run
+        - Focused guardian / checkpoint reproduction
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Public version plus commit SHA when known.
+      placeholder: "v1.1.0 / 9a5476f..."
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser / display / input
+      placeholder: "Chrome 140, Windows 11, 1920x1080, keyboard+mouse"
+    validations:
+      required: true
+  - type: input
+    id: seed
+    attributes:
+      label: Seed or reproduction identifier
+      placeholder: "Run seed when available"
+  - type: textarea
+    id: build
+    attributes:
+      label: Build and progression choices
+      description: Key equipment traits, forge/refinement choices, milestone skill evolutions and relevant town preparation.
+      placeholder: "Weapon/armor traits, +3 route, floor 20/40/60/80 skill choices, checkpoint used..."
+    validations:
+      required: true
+  - type: textarea
+    id: resources
+    attributes:
+      label: Resource / economy evidence
+      description: Record consumables used, gold income/sinks, return-to-town timing, purchases, forging and any suspected arbitrage.
+      placeholder: "Potions 5, return scroll 1, 780G earned, 420G forge, returned after floor 58..."
+    validations:
+      required: true
+  - type: textarea
+    id: combat
+    attributes:
+      label: Combat and guardian evidence
+      description: Note major damage spikes, deaths, unclear tells, unavoidable geometry, skill loops, sustain loops or dominant tactics.
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Meaningful decisions or repetitive behavior
+      description: Describe where the game created a real choice and where one option felt mandatory, irrelevant or obviously dominant.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Outcome and breakpoint
+      placeholder: "Reached floor 100; died twice around 62; floor 90 line sequence unclear on first attempt..."
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Screenshots, recording links, save-state notes, exact numbers or other reproducible observations.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Player-facing severity
+      options:
+        - Blocker / progression-breaking
+        - Major / strongly distorts decisions
+        - Moderate / noticeable balance or readability problem
+        - Minor / polish or isolated edge case
+        - No defect — baseline evidence only
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Evidence confirmation
+      options:
+        - label: This report is based on manual play, not only simulation or automated tests.
+          required: true
+        - label: I distinguished observed behavior from proposed fixes.
+          required: true
