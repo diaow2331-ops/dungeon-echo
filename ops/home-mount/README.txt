@@ -6,8 +6,8 @@ page. It verifies the current homepage hash before writing, keeps a server-side
 backup, and rolls back both files when any origin or public check fails.
 
 Server usage:
-  unzip 91hwl-home-dungeon-echo-v1.2.2.zip -d /tmp/91hwl-home-dungeon-echo-v1.2.2
-  cd /tmp/91hwl-home-dungeon-echo-v1.2.2
+  unzip 91hwl-home-dungeon-echo-v1.2.3.zip -d /tmp/91hwl-home-dungeon-echo-v1.2.3
+  cd /tmp/91hwl-home-dungeon-echo-v1.2.3
   sudo ./ops/deploy.sh
 
 Success markers:
