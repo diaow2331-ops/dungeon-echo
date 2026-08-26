@@ -54,6 +54,9 @@
     setAction('scroll','action.scroll','E');setAction('escape','action.escape','T');setAction('descend','action.descend','Enter');
     setAction('pause','action.pause','Esc');setAction('mute','action.sound','M');
 
+    const greedy=document.getElementById('btn-greedy');
+    if(greedy)greedy.textContent=L.t(greedy.getAttribute('aria-pressed')==='true'?'title.greedy.on':'title.greedy.off');
+
     const pop=document.getElementById('de-audio-settings-pop');
     if(pop){
       const head=pop.querySelector('.de-audio-head b');if(head)head.textContent=L.t('audio.title');
