@@ -6,11 +6,21 @@
 
 > **Status:** v1.2.3 is the current repository release line. Public deployment is only considered complete after the normal file-upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
 
+![Dungeon Echo title artwork](art/title-backdrop.webp)
+
 Dungeon Echo is a vanilla HTML/CSS/JavaScript roguelike built around one continuous journey from **floor 1 to floor 100**.
 
 `descend → fight → loot → decide whether to push deeper → return safely → secure the build → descend again`
 
 No account is required. Saves live in the browser. The production game is static and has no runtime backend dependency.
+
+## See the journey
+
+| Four classes | Return to town | Floor 100 |
+| --- | --- | --- |
+| ![Warrior, Ranger, Arcanist and Assassin](art/class-roster.webp) | ![Dungeon Echo town](art/town-backdrop-v11.webp) | ![Dungeon Echo final boss](art/final-boss-v11.png) |
+
+The launch media intentionally uses current shipped art. A fresh post-v1.2.3 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
 
 ## Why play it?
 
