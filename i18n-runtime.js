@@ -8,6 +8,7 @@
   const api=window.DE_TEST, L=window.DE_I18N;
   if(!api||!L)return;
   let applying=false;
+  const setText=(el,value)=>{if(el&&el.textContent!==value)el.textContent=value};
 
   function classStats(c){
     if(!c)return '';
@@ -40,13 +41,13 @@
     const el=document.querySelector(`#actions [data-act="${act}"]`);if(!el)return;
     const mobile=document.documentElement.classList.contains('de-mobile-ui');
     const label=L.t(key);
-    if(mobile){if(el.textContent!==label)el.textContent=label;return;}
+    if(mobile){setText(el,label);return;}
     let hk=el.querySelector('span');
     if(!hk){hk=document.createElement('span');el.appendChild(hk)}
-    hk.textContent=hotkey;
+    if(hk.textContent!==hotkey)hk.textContent=hotkey;
     let first=Array.from(el.childNodes).find(n=>n.nodeType===3);
     if(!first){first=document.createTextNode('');el.insertBefore(first,el.firstChild)}
-    first.nodeValue=label+' ';
+    const wanted=label+' ';if(first.nodeValue!==wanted)first.nodeValue=wanted;
   }
 
   function syncLateControls(){
@@ -55,22 +56,21 @@
     setAction('pause','action.pause','Esc');setAction('mute','action.sound','M');
 
     const greedy=document.getElementById('btn-greedy');
-    if(greedy)greedy.textContent=L.t(greedy.getAttribute('aria-pressed')==='true'?'title.greedy.on':'title.greedy.off');
+    if(greedy)setText(greedy,L.t(greedy.getAttribute('aria-pressed')==='true'?'title.greedy.on':'title.greedy.off'));
 
     const pop=document.getElementById('de-audio-settings-pop');
     if(pop){
-      const head=pop.querySelector('.de-audio-head b');if(head)head.textContent=L.t('audio.title');
-      const labels=pop.querySelectorAll('label span');if(labels[0])labels[0].textContent=L.t('audio.music');if(labels[1])labels[1].textContent=L.t('audio.sfx');
-      const preset=document.getElementById('de-audio-preset');if(preset)preset.textContent=L.t('audio.preset');
-      const note=pop.querySelector('small');if(note)note.textContent=L.t('audio.note');
-      const master=document.getElementById('de-audio-master');if(master)master.textContent=window.__DE_AUDIO_DIRECTOR&&window.__DE_AUDIO_DIRECTOR.muted?L.t('audio.off'):L.t('audio.on');
+      setText(pop.querySelector('.de-audio-head b'),L.t('audio.title'));
+      const labels=pop.querySelectorAll('label span');setText(labels[0],L.t('audio.music'));setText(labels[1],L.t('audio.sfx'));
+      setText(document.getElementById('de-audio-preset'),L.t('audio.preset'));
+      setText(pop.querySelector('small'),L.t('audio.note'));
+      setText(document.getElementById('de-audio-master'),window.__DE_AUDIO_DIRECTOR&&window.__DE_AUDIO_DIRECTOR.muted?L.t('audio.off'):L.t('audio.on'));
     }
 
-    const help=document.querySelector('#help-screen .help-cols p');
-    if(help)help.textContent=L.t('mobile.help');
-    const reset=document.getElementById('de-tutorial-reset');if(reset)reset.textContent=L.t('tutorial.reset');
-    const tl=document.querySelector('#de-onboarding b');if(tl)tl.textContent=L.t('tutorial.label');
-    const ts=document.querySelector('#de-onboarding [data-tutorial-skip]');if(ts)ts.textContent=L.t('tutorial.skip');
+    setText(document.querySelector('#help-screen .help-cols p'),L.t('mobile.help'));
+    setText(document.getElementById('de-tutorial-reset'),L.t('tutorial.reset'));
+    setText(document.querySelector('#de-onboarding b'),L.t('tutorial.label'));
+    setText(document.querySelector('#de-onboarding [data-tutorial-skip]'),L.t('tutorial.skip'));
   }
 
   function syncCoreStatus(){
