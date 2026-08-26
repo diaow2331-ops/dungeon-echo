@@ -20,7 +20,7 @@ const profile={
 };
 const api={
   profileId:'classic-100',runProfile:profile,CLASSES:{warrior:{}},classId:'warrior',
-  get state(){return state;},get depth(){return 20;},get player(){return player;},
+  get state(){return state;},get depth(){return 20;},get turns(){return turns;},get player(){return player;},
   get items(){return[];},get meta(){return null;},getShopStock(){return[];},
   endTurn(){turns++;},persistRun(){persisted++;},
 };
@@ -34,6 +34,8 @@ vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','equipme
 const G=window.__DE_EQUIPMENT_SWAP_TURN;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
 ok(G&&G.version==='v1','gear-swap turn guard boots');
+ok(G&&G.owner==='equipment-system','equipment-system is the declared turn owner');
+ok((listeners.window.click||[]).length===1 && !(listeners.document.click||[]).length,'gear-swap guard registers on early window capture');
 let before=G.snapshotEquip();
 ok(before&&before.equip[0]===w1,'snapshot captures equipped object identity');
 ok(G.settleEquipChange(before)===false&&turns===8,'unchanged loadout costs no turn');
@@ -52,7 +54,7 @@ ok(G.settleEquipChange(before)===true&&turns===10,'unequip costs exactly one tur
 before=G.snapshotEquip(); player.equip.weapon=w1; player.equip.armor=null;
 ok(G.settleEquipChange(before)===true&&turns===11,'multiple slot mutations in one action cost one turn');
 
-before=G.snapshotEquip(); player={equip:{weapon:w1,armor:null},inv:[]};
+before=G.snapshotEquip(); player={equip:{weapon:w1,armor:null,helmet:null,boots:null,ring:null,amulet:null},inv:[]};
 ok(G.settleEquipChange(before)===false&&turns===11,'player replacement is not mistaken for a gear action');
 
 state='town';
@@ -61,5 +63,31 @@ ok(G.snapshotEquip()===null,'town equipment management does not arm turn cost');
 state='playing'; before=G.snapshotEquip(); player.equip.weapon=w2; state='town';
 ok(G.settleEquipChange(before)===false&&turns===11,'state transition before settlement is not charged');
 
-console.log(`RESULT ${pass} passed / ${fail} failed`);
-process.exit(fail?1:0);
+(async()=>{
+  // Production also still loads the older progression fallback after equipment-system.
+  // Mimic its later window-capture listener: it must observe the turn already advanced
+  // by equipment-system and decline to charge a second turn.
+  state='playing';
+  player={equip:{weapon:w1,armor:null,helmet:null,boots:null,ring:null,amulet:null},inv:[w2]};
+  const legacyListener=()=>{
+    const p=player, turn=turns, weapon=p.equip.weapon;
+    queueMicrotask(()=>{
+      if(player!==p||state!=='playing'||turns!==turn)return;
+      if(p.equip.weapon===weapon)return;
+      api.endTurn();
+    });
+  };
+  listeners.window.click.push(legacyListener);
+  const event={target:{closest(){return null;}}};
+  const beforeTurns=turns, beforePersist=persisted, beforeClear=extractionClears;
+  for(const fn of listeners.window.click) fn(event);
+  player.equip.weapon=w2;
+  await new Promise(r=>queueMicrotask(r));
+  await new Promise(r=>queueMicrotask(r));
+  ok(turns===beforeTurns+1,'production-order equipment swap advances exactly one turn');
+  ok(persisted===beforePersist+1,'authoritative equipment settlement persists once');
+  ok(extractionClears===beforeClear+1,'authoritative equipment settlement cancels extraction once');
+
+  console.log(`RESULT ${pass} passed / ${fail} failed`);
+  process.exit(fail?1:0);
+})();
