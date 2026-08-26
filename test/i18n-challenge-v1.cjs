@@ -66,12 +66,12 @@ assert(content.includes('Lord of the Final Abyss enters Phase III'), 'finale pha
 assert(content.includes('let out=src;') && content.includes('return replaceNames(out);'), 'sentence grammar must translate before entity names');
 assert(!/\.name\s*=\s*translateEn|\.name\s*=\s*nameEn/.test(content), 'content localization must not mutate saved/gameplay names');
 
-// Balance is synchronous production state; late bootstrap owns presentation/control only.
-const corePressurePos = html.indexOf('<script src="combat-pressure.js"></script>');
+// Balance is the last synchronous gameplay layer; late bootstrap owns presentation/control only.
+const desktopPos = html.indexOf('<script src="desktop-controls.js"></script>');
 const challengePos = html.indexOf('<script src="challenge-pressure.js"></script>');
-const visualPos = html.indexOf('<script src="visual-polish.js"></script>');
-assert(corePressurePos >= 0 && challengePos > corePressurePos && visualPos > challengePos,
-  'challenge pressure must load synchronously after core pressure and before presentation');
+const bootstrapPos = html.indexOf('<script src="runtime-bootstrap.js"></script>');
+assert(desktopPos >= 0 && challengePos > desktopPos && bootstrapPos > challengePos,
+  'challenge pressure must be final synchronous gameplay layer immediately before UX bootstrap');
 assert(!loader.includes("'challenge-pressure.js'"), 'late UX bootstrap must not own gameplay balance');
 assert(loader.includes('window.__DE_PRODUCTION_UX_BOOTSTRAP'), 'production UX bootstrap owner missing');
 const i18nPos = loader.indexOf("'i18n.js'");
