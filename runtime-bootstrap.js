@@ -7,6 +7,7 @@
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
   const chain = Object.freeze([
+    ['release-stamp-v122.js', 'data-de-release-stamp-v122', () => !!window.__DE_RELEASE_STAMP_V122],
     ['locale-runtime-v122.js', 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     ['world-loot-polish-v122.js', 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
     ['forge-feedback-v122.js', 'data-de-forge-feedback-v122', () => !!window.__DE_FORGE_FEEDBACK_V122],
