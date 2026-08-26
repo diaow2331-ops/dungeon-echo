@@ -1,7 +1,8 @@
-/* Dungeon Echo desktop visual polish v1.
+/* Dungeon Echo desktop visual polish v2.
  * Presentation-only overlay for the public classic-100 route.
- * It adds atmosphere, class presence, elite/guardian pressure and town depth without
- * changing map state, hitboxes, combat timing, save data, RNG or existing art assets.
+ * It adds atmosphere, class presence, elite/guardian pressure, town depth and v13
+ * equipment icon routing without changing map state, hitboxes, combat timing, save data,
+ * RNG or equipment identities.
  */
 (() => {
   'use strict';
@@ -15,7 +16,7 @@
   if (!stage || !game || typeof game.getContext !== 'function') return;
 
   const style = document.createElement('style');
-  style.id = 'de-visual-polish-v1';
+  style.id = 'de-visual-polish-v2';
   style.textContent = `
     #stage{position:relative;isolation:isolate;background:#080706}
     #game{position:relative;z-index:1;filter:saturate(1.07) contrast(1.045) brightness(.985)}
@@ -30,6 +31,41 @@
     @media (prefers-reduced-motion:reduce){#town-screen .town-service{transition:none}}
   `;
   if (document.head && document.head.appendChild) document.head.appendChild(style);
+
+  // v13 equipment art keeps the legacy 4x8 loot coordinate contract intact. Only the
+  // equipment slots are redirected to the new source sheets; consumables stay on v12.
+  const EQUIPMENT_SHEETS = Object.freeze({
+    weapon: { url: 'art/equipment-weapons-v13.png', cols: 6, rows: 4 },
+    wearable: { url: 'art/equipment-wearables-v13.png', cols: 6, rows: 5 },
+  });
+  const EQUIPMENT_ICON_MAP = Object.freeze([
+    // legacy x,y -> sheet, source x,y
+    [0,0,'weapon',0,0], [1,0,'weapon',1,0], [2,0,'weapon',3,1], [3,0,'weapon',3,0],
+    [0,1,'wearable',0,0], [1,1,'wearable',2,0], [2,1,'wearable',4,0], [3,1,'wearable',3,0],
+    [0,2,'wearable',0,3], [1,2,'wearable',2,3], [2,2,'wearable',4,3],
+    [0,4,'weapon',2,3], [1,4,'weapon',5,1], [2,4,'weapon',4,2],
+    [3,4,'wearable',0,1], [0,5,'wearable',2,1], [1,5,'wearable',3,1], [2,5,'wearable',5,1],
+    [3,5,'wearable',0,2], [0,6,'wearable',1,2], [1,6,'wearable',2,2], [2,6,'wearable',4,2],
+    [3,6,'wearable',0,4], [0,7,'wearable',1,4], [1,7,'wearable',3,4], [2,7,'wearable',5,4],
+  ]);
+  function installEquipmentArt() {
+    if (!document.head || window.__DE_EQUIPMENT_ART_V13) return;
+    const equipmentStyle = document.createElement('style');
+    equipmentStyle.id = 'de-equipment-art-v13';
+    equipmentStyle.textContent = EQUIPMENT_ICON_MAP.map(([oldX, oldY, sheetId, sx, sy]) => {
+      const sheet = EQUIPMENT_SHEETS[sheetId];
+      const px = sheet.cols > 1 ? sx / (sheet.cols - 1) * 100 : 0;
+      const py = sheet.rows > 1 ? sy / (sheet.rows - 1) * 100 : 0;
+      return `.loot-icon[style*="--ix:${oldX};--iy:${oldY}"]{background-image:url("${sheet.url}")!important;background-size:${sheet.cols * 100}% ${sheet.rows * 100}%!important;background-position:${px}% ${py}%!important}`;
+    }).join('\n');
+    document.head.appendChild(equipmentStyle);
+    window.__DE_EQUIPMENT_ART_V13 = {
+      version: 'v13',
+      mappedIcons: EQUIPMENT_ICON_MAP.length,
+      sheets: { ...EQUIPMENT_SHEETS },
+    };
+  }
+  installEquipmentArt();
 
   const overlay = document.createElement('canvas');
   overlay.id = 'de-visual-polish';
@@ -202,7 +238,7 @@
   }
 
   window.__DE_VISUAL_POLISH = {
-    version: 'v1',
+    version: 'v2',
     draw,
     dims,
     classGlow: { ...CLASS_GLOW },
