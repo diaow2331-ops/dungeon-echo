@@ -10,6 +10,7 @@ commerce-system.js
 forge-system.js
 progression-system.js
 content-system.js
+visual-polish.js
 gameplay-tuning.js
 defense-system.js
 desktop-controls.js

@@ -22,6 +22,7 @@ const expectedScripts = [
   'forge-system.js',
   'progression-system.js',
   'content-system.js',
+  'visual-polish.js',
   'gameplay-tuning.js',
   'defense-system.js',
   'desktop-controls.js',
@@ -175,9 +176,9 @@ ok(T && T.runProfile.floorRules.maxDepth === 100, '正式旅程最大深度 100'
 const markers = [
   '__DE_EQUIPMENT_SYSTEM', '__DE_TOWN_SYSTEM', '__DE_COMMERCE_SYSTEM',
   '__DE_FORGE_SYSTEM', '__DE_PROGRESSION_SYSTEM', '__DE_CONTENT_SYSTEM',
-  '__DE_GAMEPLAY_TUNING', '__DE_DEFENSE_MODEL', '__DE_GAMEPAD_BOOTED',
+  '__DE_VISUAL_POLISH', '__DE_GAMEPLAY_TUNING', '__DE_DEFENSE_MODEL', '__DE_GAMEPAD_BOOTED',
 ];
-ok(markers.every(name => !!window[name]), '九个生产系统均同步装载');
+ok(markers.every(name => !!window[name]), '十个生产系统均同步装载');
 ok(!!window.DE_TOWN_CHECKPOINTS && !!window.DE_TOWN_ECONOMY, '城镇检查点与阶段经济可用');
 ok(!!window.DE_COMMERCE && !!window.DE_FORGE_REFINEMENT, '有限库存与锻造分支可用');
 ok(!!window.DE_TALENT_RANKS && typeof window.DE_EQUIP_FIT_SCORE === 'function', '百层天赋与装备双轴价值可用');
