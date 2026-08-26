@@ -1,15 +1,6 @@
-/* Dungeon Echo production commerce v1.
- * Owns town supply stock and chapter-scaled consumable pricing for classic-100.
- *
- * Design goals:
- * - opening the town panel never rerolls stock;
- * - stock refreshes only when a new expedition cycle returns (meta.runs changes) or a
- *   new 10-floor town tier is reached;
- * - common supplies stay finite and economically relevant across the 1→100 journey;
- * - the module uses its own small localStorage record so core meta sanitization does not
- *   have to know about merchant stock yet.
- *
- * Equipment offers and intrinsic buy/sell valuation remain follow-up work under #10/#3.
+/* Dungeon Echo production commerce v2.
+ * Owns town supply stock / chapter-scaled pricing and closes underground service exploits
+ * for classic-100 without changing the core save schema.
  */
 (() => {
   'use strict';
@@ -17,7 +8,7 @@
   if (window.__DE_COMMERCE_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_COMMERCE_SYSTEM = 'v1';
+  window.__DE_COMMERCE_SYSTEM = 'v2';
 
   const STORAGE_KEY = 'de-town-commerce-v1';
   const META_KEY = 'de-greedy-meta-v1';
@@ -60,6 +51,7 @@
   let state = null;
   let lastFlash = '';
   let lastFlashUntil = 0;
+  const chargedRests = new WeakSet();
 
   function townTier() {
     const best = Math.max(1, Number(api.meta && api.meta.bestDepth) || 1);
@@ -67,9 +59,6 @@
   }
 
   function priceScale(tier = townTier()) {
-    // A chapter curve, not raw-floor inflation. Tier 1 keeps the historical baseline;
-    // tier 10 is ~10x, while supply quantities are finite. This is deliberately an
-    // interim anchor until #7 audits the full 1→100 gold curve.
     const t = clamp(Number(tier) || 1, 1, 10) - 1;
     return 1 + 0.42 * t + 0.065 * t * t;
   }
@@ -172,8 +161,8 @@
       run: st.cycleRun, tier: st.tier, gold: Number(meta.gold) || 0,
       stock: ids.map(id => st.stock[id]), held: ids.map(id => SUPPLIES[id].held(meta)), flash: flashText,
     });
-    const ours = !!el.querySelector('[data-de-townbuy]');
-    if (!force && ours && el.dataset.deCommerceSig === sig) return;
+    const ours = !!(el.querySelector && el.querySelector('[data-de-townbuy]'));
+    if (!force && ours && el.dataset && el.dataset.deCommerceSig === sig) return;
 
     const rows = ids.map(id => {
       const def = SUPPLIES[id];
@@ -192,11 +181,114 @@
       `<p class="dim-note" style="margin:0 0 8px">城镇阶段 ${st.tier} · 本轮补给库存固定；完成一次远征返回后刷新，不会因反复打开商店刷新。</p>` +
       rows +
       `<p class="dim-note" data-de-commerce-note style="margin:8px 0 0">${flashText || '价格按已征服的十层阶段成长；装备交易将在后续价值体系中接入。'}</p>`;
-    el.dataset.deCommerceSig = sig;
+    if (el.dataset) el.dataset.deCommerceSig = sig;
   }
 
-  // Our buttons intentionally do not use the core `data-townbuy` attribute. Commerce owns
-  // the transaction and finite stock; the old unlimited town buyer never sees the click.
+  function dungeonTier(depth = api.depth) {
+    return clamp(Math.ceil(Math.max(1, Number(depth) || 1) / 10), 1, 10);
+  }
+
+  function dungeonHealPrice(depth = api.depth, hp, maxHp) {
+    const p = api.player || {};
+    const max = Math.max(1, Number(maxHp) || (typeof api.pMaxHp === 'function' ? Number(api.pMaxHp()) : Number(p.hpBase)) || 1);
+    const cur = clamp(Number(hp) || 0, 0, max);
+    const missing = max - cur;
+    if (missing <= 0) return 0;
+    const tier = dungeonTier(depth);
+    const t = tier - 1;
+    const depthScale = 1 + 0.32 * t + 0.04 * t * t;
+    const missingScale = 0.60 + 0.60 * (missing / max);
+    return round5((Number(shopCfg.healPrice) || 24) * depthScale * missingScale);
+  }
+
+  function activeDungeonThreats(radius = 5) {
+    const p = api.player;
+    if (!p || !Array.isArray(api.monsters)) return [];
+    const r = Math.max(1, Number(radius) || 5);
+    return api.monsters.filter(m => {
+      if (!m || Number(m.hp) <= 0) return false;
+      const dist = Math.abs((Number(m.x) || 0) - (Number(p.x) || 0)) +
+        Math.abs((Number(m.y) || 0) - (Number(p.y) || 0));
+      return dist <= r || (Number(m.alert) || 0) > 0 || (Number(m.armorBreakCharge) || 0) > 0;
+    });
+  }
+
+  const unsafeForTrade = () => activeDungeonThreats(5).length > 0;
+
+  function dungeonMessage(text, cls = 'bad') {
+    const log = document.getElementById && document.getElementById('log');
+    if (log && typeof log.insertAdjacentHTML === 'function') {
+      const safe = String(text).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      log.insertAdjacentHTML('afterbegin', `<div class="${cls}">${safe}</div>`);
+    }
+    const hint = document.getElementById && document.getElementById('hint');
+    if (hint) hint.textContent = `› ${text}`;
+  }
+
+  function syncDungeonShop() {
+    if (api.state !== 'shop' || !api.player) return 'inactive';
+    if (unsafeForTrade()) {
+      if (typeof api.closeShop === 'function') api.closeShop();
+      dungeonMessage('附近仍有敌人逼近，商人拒绝交易。先把战斗解决掉。');
+      return 'blocked';
+    }
+
+    const stock = typeof api.getShopStock === 'function' ? api.getShopStock() : null;
+    if (!Array.isArray(stock)) return 'missing';
+    const index = stock.findIndex(row => row && row.kind === 'heal');
+    if (index < 0) return 'no-heal';
+    const row = stock[index];
+    const max = typeof api.pMaxHp === 'function' ? Math.max(1, Number(api.pMaxHp()) || 1) :
+      Math.max(1, Number(api.player.hpBase) || 1);
+    const hp = clamp(Number(api.player.hp) || 0, 0, max);
+    const missing = max - hp;
+    const price = dungeonHealPrice(api.depth, hp, max);
+    row.price = price || (Number(shopCfg.healPrice) || 24);
+    row.name = missing > 0 ? `包扎伤口（回满 · 缺 ${missing}）` : '包扎伤口（已满血）';
+
+    const list = document.getElementById && document.getElementById('shop-list');
+    if (list && typeof list.querySelector === 'function') {
+      const btn = list.querySelector(`[data-buy="${index}"]`);
+      const host = btn && typeof btn.closest === 'function' ? btn.closest('.shop-row') : null;
+      if (btn) btn.disabled = missing <= 0 || (Number(api.player.gold) || 0) < row.price;
+      if (host && typeof host.querySelector === 'function') {
+        const nameEl = host.querySelector('span');
+        const priceEl = host.querySelector('b');
+        if (nameEl) nameEl.textContent = row.name;
+        if (priceEl) priceEl.textContent = missing > 0 ? `${row.price} G` : '—';
+      }
+    }
+    const goldEl = document.getElementById && document.getElementById('shop-gold');
+    if (goldEl) goldEl.textContent = `金币 ${Number(api.player.gold) || 0}`;
+    return missing > 0 ? 'synced' : 'full';
+  }
+
+  function settleUsedRests(before) {
+    if (!Array.isArray(before) || !before.length) return 0;
+    let charged = 0;
+    for (const rest of before) {
+      if (!rest || !rest.used || chargedRests.has(rest)) continue;
+      chargedRests.add(rest);
+      charged++;
+      if (api.state === 'playing' && typeof api.endTurn === 'function') api.endTurn();
+      dungeonMessage('包扎伤口耗去一个回合；地牢不会在你休息时停下来。', 'good');
+    }
+    if (charged && typeof api.persistRun === 'function' && (api.state === 'playing' || api.state === 'town')) {
+      api.persistRun();
+    }
+    return charged;
+  }
+
+  function armDungeonServiceSafety() {
+    const rests = api.state === 'playing' && Array.isArray(api.npcs)
+      ? api.npcs.filter(n => n && n.type === 'rest' && !n.used)
+      : [];
+    queueMicrotask(() => {
+      settleUsedRests(rests);
+      syncDungeonShop();
+    });
+  }
+
   document.addEventListener('click', e => {
     const btn = e.target && e.target.closest ? e.target.closest('[data-de-townbuy]') : null;
     if (!btn) return;
@@ -205,9 +297,9 @@
     purchase(btn.dataset.deTownbuy);
   }, true);
 
-  // Core town actions frequently call renderTown(), which rewrites #town-shop with the
-  // legacy unlimited list. Observe that surface and immediately restore the production
-  // merchant without adding another polling interval.
+  document.addEventListener('keydown', armDungeonServiceSafety, true);
+  document.addEventListener('click', armDungeonServiceSafety, true);
+
   const town = document.getElementById('town-screen');
   let observer = null;
   if (town && typeof MutationObserver !== 'undefined') {
@@ -215,14 +307,20 @@
     observer.observe(town, { childList: true, subtree: true });
   }
 
-  // Initial town entry may already be rendered before this dynamically loaded module.
   renderShop(true);
   window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); }, { once: true });
 
   window.DE_COMMERCE = {
+    version: 'v2',
     tier: townTier,
     priceScale,
     priceFor,
+    dungeonTier,
+    dungeonHealPrice,
+    activeDungeonThreats,
+    unsafeForTrade,
+    syncDungeonShop,
+    settleUsedRests,
     getState: () => ensureState() ? JSON.parse(JSON.stringify(state)) : null,
     refreshForDebug() { state = freshState(); saveState(); renderShop(true); },
   };
