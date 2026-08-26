@@ -25,16 +25,19 @@
       if (ready()) { resolve('ready'); return; }
       const existing = document.querySelector(`script[${marker}]`);
       if (existing) {
-        // A duplicate owner should never block the rest of the chain. If it is still
-        // loading, resolve on either outcome; if it already loaded, continue now.
-        if (existing.dataset && existing.dataset.deSettled === '1') { resolve('existing'); return; }
+        // A duplicate owner should never block the chain forever, but dependency order
+        // still matters. Wait for its outcome, with a bounded fallback for stale nodes.
+        if (existing.dataset && existing.dataset.deSettled === '1') { resolve(ready() ? 'ready' : 'existing'); return; }
+        let done = false;
         const settle = () => {
+          if (done) return;
+          done = true;
           if (existing.dataset) existing.dataset.deSettled = '1';
           resolve(ready() ? 'ready' : 'existing');
         };
         existing.addEventListener('load', settle, { once:true });
         existing.addEventListener('error', settle, { once:true });
-        setTimeout(settle, 0);
+        setTimeout(settle, 1500);
         return;
       }
 
@@ -42,7 +45,10 @@
       script.src = src;
       script.async = false;
       script.setAttribute(marker, 'v1');
+      let done = false;
       const settle = status => {
+        if (done) return;
+        done = true;
         if (script.dataset) script.dataset.deSettled = '1';
         resolve(status);
       };
