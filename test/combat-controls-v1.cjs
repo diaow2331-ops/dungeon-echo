@@ -30,12 +30,15 @@ assert(!desktop.includes('de-gear-overlay'), 'legacy character gear overlay retu
 assert(desktop.includes("edgeButton(pad, 2, 'k')"), 'gamepad skill must follow K contract');
 assert(!desktop.includes("edgeButton(pad, 2, 'c')"), 'legacy C gamepad skill returned');
 
-// Progressive onboarding, based on the proven action-driven tutorial model.
+// Progressive onboarding advances from actual game outcomes, not raw key events.
 assert(hint.includes("const KEY = 'de-onboarding-v2'"), 'progressive tutorial persistence key missing');
 for (const step of ['move','attack','skill','bag','potion','stairs','escape','guardian']) assert(hint.includes(`'${step}'`), `tutorial step missing: ${step}`);
 assert(hint.includes('跳过教学'), 'tutorial skip control missing');
 assert(hint.includes('重置教学'), 'tutorial reset control missing');
-assert(hint.includes('queueMicrotask'), 'tutorial must advance from real actions, not timers only');
+assert(hint.includes('function inferProgress(cur)'), 'outcome-driven tutorial progression missing');
+assert(hint.includes('cur.hp<snap.hp'), 'attack tutorial must observe real monster damage');
+assert(hint.includes('cur.mana<snap.mana') && hint.includes('cur.cd>snap.cd'), 'skill tutorial must observe real resource/cooldown changes');
+assert(hint.includes('cur.depth>snap.depth'), 'stairs tutorial must observe real depth change');
 assert(hint.includes('pointer:coarse'), 'mobile-aware tutorial wording missing');
 
 // Free BGM/SFX mixer: 0-100 sliders, persistent 30/85 recommended mix, master mute.
@@ -54,7 +57,7 @@ assert(mobile.includes("grid-template-columns:174px minmax(0,1fr)"), 'portrait t
 assert(mobile.includes('(orientation:landscape)'), 'landscape mobile layout missing');
 assert(mobile.includes('setInterval(()=>btn.click(),125)'), 'hold-to-walk missing');
 assert(mobile.includes('navigator.vibrate'), 'touch haptic feedback missing');
-assert(mobile.includes("['attack','skill','potion','descend','escape','scroll','pause','mute']") || mobile.includes("const order=['attack','skill','potion','descend','escape','scroll','pause','mute']"), 'mobile action priority missing');
+assert(mobile.includes("const order=['attack','skill','potion','descend','escape','scroll','pause','mute']"), 'mobile action priority missing');
 assert(mobile.includes('de-mobile-optional'), 'mobile HUD compression missing');
 assert(mobile.includes('左侧方向盘'), 'mobile help copy missing');
 
