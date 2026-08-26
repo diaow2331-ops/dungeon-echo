@@ -292,3 +292,63 @@
     window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
   }
 })();
+
+/* Tactical gear commitment: changing equipped slots in the dungeon costs one real turn. */
+(() => {
+  'use strict';
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (window.__DE_EQUIPMENT_SWAP_TURN) return;
+  const api = window.DE_TEST;
+  if (!api || api.profileId !== 'classic-100') return;
+
+  const SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet'];
+
+  function snapshotEquip() {
+    const p = api.player;
+    if (!p || api.state !== 'playing') return null;
+    return {
+      player: p,
+      equip: SLOTS.map(slot => (p.equip && p.equip[slot]) || null),
+    };
+  }
+
+  function equipChanged(before) {
+    const p = api.player;
+    if (!before || before.player !== p || !p || api.state !== 'playing') return false;
+    return SLOTS.some((slot, i) => ((p.equip && p.equip[slot]) || null) !== before.equip[i]);
+  }
+
+  function surfaceMessage(text) {
+    const log = document.getElementById && document.getElementById('log');
+    if (log && typeof log.insertAdjacentHTML === 'function') {
+      const safe = String(text).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+      log.insertAdjacentHTML('afterbegin', `<div class="good">${safe}</div>`);
+    }
+    const hint = document.getElementById && document.getElementById('hint');
+    if (hint) hint.textContent = `› ${text}`;
+  }
+
+  function settleEquipChange(before) {
+    if (!equipChanged(before)) return false;
+    const commerce = window.DE_COMMERCE;
+    if (commerce && typeof commerce.clearExtraction === 'function') {
+      commerce.clearExtraction('换装打断了回城共鸣。需要重新使用回城卷轴。');
+    }
+    surfaceMessage('你重新调整了装备；换装耗去一个回合。');
+    if (api.state === 'playing' && typeof api.endTurn === 'function') api.endTurn();
+    if (typeof api.persistRun === 'function' && (api.state === 'playing' || api.state === 'town')) {
+      api.persistRun();
+    }
+    return true;
+  }
+
+  function armSwapWatch() {
+    const before = snapshotEquip();
+    if (before) queueMicrotask(() => settleEquipChange(before));
+  }
+
+  document.addEventListener('click', armSwapWatch, true);
+  window.__DE_EQUIPMENT_SWAP_TURN = {
+    version: 'v1', snapshotEquip, equipChanged, settleEquipChange,
+  };
+})();
