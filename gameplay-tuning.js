@@ -284,3 +284,125 @@
   window.addEventListener('beforeunload',()=>clearInterval(timer),{once:true});
   window.DE_MECHANICS_INTEGRITY={version:'p0-v1',guardianCleared,markGuardianClear,allowedCheckpoints,canLeaveDepth,sanitizeGuardianSave,attackPlan};
 })();
+
+/* P0 progression commitment: equipment actions spend turns; permanent growth has a compatibility-safe ceiling. */
+(() => {
+  'use strict';
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (window.__DE_PROGRESSION_COMMITMENT) return;
+  const api = window.DE_TEST;
+  if (!api || api.profileId !== 'classic-100') return;
+
+  const GUARD_KEY = 'de-progression-guard-v1';
+  const META_KEY = 'de-greedy-meta-v1';
+  const DEFAULT_LEVEL_CAP = 50;
+  const HP_HEADROOM = 160;
+  const ATK_HEADROOM = 24;
+
+  function loadGuard() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(GUARD_KEY));
+      if (raw && raw.v === 1 && raw.classes && typeof raw.classes === 'object') return raw;
+    } catch (e) {}
+    return { v: 1, classes: {} };
+  }
+  function saveGuard(raw) {
+    try { localStorage.setItem(GUARD_KEY, JSON.stringify(raw)); } catch (e) {}
+  }
+  function guardRow() {
+    const meta = api.meta;
+    if (!meta) return null;
+    const id = meta.classId || api.classId || 'warrior';
+    const state = loadGuard();
+    let row = state.classes[id];
+    if (!row) {
+      row = {
+        legacyLvl: Math.max(1, Number(meta.lvl) || 1),
+        legacyHp: Math.max(1, Number(meta.hpBase) || 1),
+        legacyAtk: Math.max(0, Number(meta.atkBase) || 0),
+      };
+      state.classes[id] = row;
+      saveGuard(state);
+    }
+    return { id, row };
+  }
+  function capsFor(level, info) {
+    const c = api.CLASSES[info.id] || api.CLASSES.warrior;
+    const lvl = Math.max(1, Number(level) || 1);
+    return {
+      level: Math.max(DEFAULT_LEVEL_CAP, Number(info.row.legacyLvl) || 1),
+      hp: Math.max(Number(info.row.legacyHp) || 1, (Number(c.hpBase) || 1) + (lvl - 1) * 6 + HP_HEADROOM),
+      atk: Math.max(Number(info.row.legacyAtk) || 0, (Number(c.atkBase) || 0) + (lvl - 1) + ATK_HEADROOM),
+    };
+  }
+  function clampGrowth(obj, info) {
+    if (!obj || !info) return false;
+    let changed = false;
+    let lvl = Math.max(1, Number(obj.lvl) || 1);
+    const preliminary = capsFor(lvl, info);
+    if (lvl > preliminary.level) {
+      const excess = lvl - preliminary.level;
+      obj.hpBase = Math.max(1, (Number(obj.hpBase) || 1) - excess * 6);
+      obj.atkBase = Math.max(0, (Number(obj.atkBase) || 0) - excess);
+      obj.lvl = preliminary.level;
+      obj.xp = Math.min(Math.max(0, Number(obj.xp) || 0), preliminary.level * 15 - 1);
+      lvl = preliminary.level;
+      changed = true;
+    }
+    const caps = capsFor(lvl, info);
+    if ((Number(obj.hpBase) || 0) > caps.hp) { obj.hpBase = caps.hp; changed = true; }
+    if ((Number(obj.atkBase) || 0) > caps.atk) { obj.atkBase = caps.atk; changed = true; }
+    return changed;
+  }
+  function syncGrowth() {
+    const meta = api.meta;
+    if (!meta) return;
+    const info = guardRow();
+    if (!info) return;
+    const metaChanged = clampGrowth(meta, info);
+    const p = api.player;
+    const playerChanged = p ? clampGrowth(p, info) : false;
+    if (p && playerChanged && typeof api.pMaxHp === 'function') p.hp = Math.min(Number(p.hp) || 0, api.pMaxHp());
+    if (metaChanged) {
+      try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch (e) {}
+    }
+  }
+
+  const slots = ['weapon','armor','helmet','boots','ring','amulet'];
+  function itemSig(it) {
+    if (!it) return '-';
+    return [it.name || '', Number(it.forge) || 0, Number(it.score) || 0, Number(it.originDepth) || 0].join(':');
+  }
+  function loadoutSig() {
+    const p = api.player;
+    if (!p) return '';
+    const eq = slots.map(s => itemSig(p.equip && p.equip[s])).join('|');
+    const bag = (p.inv || []).map(itemSig).join('|');
+    return `${eq}#${bag}`;
+  }
+  function equipmentActionTarget(target) {
+    if (!target || typeof target.closest !== 'function') return false;
+    return !!target.closest('#bag [data-i],#bag [data-drop],[data-bag-equip],[data-bag-drop],#equipbar .eqslot');
+  }
+  window.addEventListener('click', e => {
+    if (api.state !== 'playing' || !api.player || !equipmentActionTarget(e.target)) return;
+    const before = loadoutSig();
+    const turn = Number(api.turns) || 0;
+    const p = api.player;
+    queueMicrotask(() => {
+      if (api.player !== p || api.state !== 'playing' || (Number(api.turns) || 0) !== turn) return;
+      if (loadoutSig() === before) return;
+      const synthetic = (p.grievous || 0) <= 0;
+      if (synthetic) p.grievous = 1;
+      if (typeof api.endTurn === 'function') api.endTurn();
+      if (synthetic && p.grievous === 1) p.grievous = 0;
+      const hint = document.getElementById('hint');
+      if (hint && api.state === 'playing') hint.textContent = '› 战斗中整理装备消耗 1 回合 · 深层换装需要承担风险';
+    });
+  }, true);
+
+  syncGrowth();
+  const timer = setInterval(syncGrowth, 150);
+  window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
+  window.__DE_PROGRESSION_COMMITMENT = { version:'p0-v1', capsFor, clampGrowth, loadoutSig };
+})();
