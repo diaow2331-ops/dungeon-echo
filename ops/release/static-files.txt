@@ -13,6 +13,7 @@ content-system.js
 combat-pressure.js
 visual-polish.js
 equipment-shop-ui.js
+combat-controls.js
 gameplay-tuning.js
 defense-system.js
 desktop-controls.js
