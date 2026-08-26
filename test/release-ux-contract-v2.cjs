@@ -7,6 +7,7 @@ const readme = fs.readFileSync('README.txt','utf8');
 const projectPage = fs.readFileSync('ops/home-mount/public/toys/dungeon-echo/index.html','utf8');
 const locale = fs.readFileSync('locale-runtime-v122.js','utf8');
 const bootstrap = fs.readFileSync('runtime-bootstrap.js','utf8');
+const cleanup = fs.readFileSync('character-art-cleanup-v122.js','utf8');
 const loot = fs.readFileSync('world-loot-polish-v122.js','utf8');
 const forge = fs.readFileSync('forge-feedback-v122.js','utf8');
 const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
@@ -49,10 +50,12 @@ for (const retired of ['i18n.js','i18n-runtime.js','i18n-content.js','ux-hotfix-
 // Late UX bootstrap may own presentation only, never core input/balance.
 assert(bootstrap.includes('window.__DE_PRODUCTION_UX_BOOTSTRAP'), 'runtime bootstrap owner missing');
 assert(!bootstrap.includes("'combat-controls.js'") && !bootstrap.includes("'challenge-pressure.js'"), 'bootstrap regained core input/balance ownership');
-for (const f of ['locale-runtime-v122.js','world-loot-polish-v122.js','forge-feedback-v122.js','audio-director.js','mobile-ux.js']) assert(bootstrap.includes(`'${f}'`), `late follower missing: ${f}`);
+for (const f of ['locale-runtime-v122.js','character-art-cleanup-v122.js','world-loot-polish-v122.js','forge-feedback-v122.js','audio-director.js','mobile-ux.js']) assert(bootstrap.includes(`'${f}'`), `late follower missing: ${f}`);
 assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('i18n.js'"), 'shop art regained UX boot ownership');
 
 // Final art/forge polish stays presentation-only.
+assert(cleanup.includes('isLegacyRarityRing') && cleanup.includes('legacyGearDepth'), 'hero equipment residual cleanup missing');
+assert(!/localStorage\.setItem|persistRun|endTurn|\.stats\s*=|\.forge\s*=/.test(cleanup), 'character cleanup mutates gameplay');
 assert(loot.includes('function los(') && loot.includes('api.items'), 'visible-loot polish contract missing');
 assert(!/items\.push|items\.splice|\.rarity\s*=|\.stats\s*=/.test(loot), 'loot polish mutates gameplay');
 assert(forge.includes('statDelta') && forge.includes('de-forge-stage'), 'forge process feedback missing');
@@ -61,7 +64,7 @@ assert(!/item\.forge\s*=|item\.stats\s*=|meta\.gold\s*=/.test(forge), 'forge fee
 // Character art remains single-owner: no old DOM gear overlay may return.
 assert(!desktop.includes('de-gear-overlay'), 'legacy character gear overlay returned');
 
-for (const f of ['runtime-bootstrap.js','locale-runtime-v122.js','world-loot-polish-v122.js','forge-feedback-v122.js','combat-controls.js','mobile-ux.js']) {
+for (const f of ['runtime-bootstrap.js','locale-runtime-v122.js','character-art-cleanup-v122.js','world-loot-polish-v122.js','forge-feedback-v122.js','combat-controls.js','mobile-ux.js']) {
   assert(manifest.includes(f), `release manifest missing ${f}`);
 }
 
