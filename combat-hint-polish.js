@@ -19,19 +19,24 @@
     if (!localStorage.getItem(KEY) && localStorage.getItem(OLD_KEY) === '1') { state.done.move=1; state.done.attack=1; }
   } catch (e) {}
 
+  const i18n = () => window.DE_I18N;
+  const tr = (key, fallback) => i18n() && typeof i18n().t === 'function' ? i18n().t(key) : fallback;
   const coarse = () => innerWidth <= 900 || (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches);
   const text = {
-    move: () => coarse() ? '移动 · 用左侧方向盘移动；朝向也会跟着改变' : '移动 · WASD / 方向键移动，同时改变面向',
-    attack: () => coarse() ? '攻击 · 面向敌人后点「攻击」' : '攻击 · 面向敌人后按 J',
+    move: () => coarse() ? tr('tutorial.move.mobile','移动 · 用左侧方向盘移动；朝向也会跟着改变') : tr('tutorial.move.desktop','移动 · WASD / 方向键移动，同时改变面向'),
+    attack: () => coarse() ? tr('tutorial.attack.mobile','攻击 · 面向敌人后点「攻击」') : tr('tutorial.attack.desktop','攻击 · 面向敌人后按 J'),
     skill: () => {
       const p=api.player,cost=window.__DE_COMBAT_CONTROLS_V1&&window.__DE_COMBAT_CONTROLS_V1.manaCost?window.__DE_COMBAT_CONTROLS_V1.manaCost():null;
-      return coarse()?`技能 · 点「技能」释放，会消耗蓝量${p?` · ${p.mana}/${p.manaMax}${cost?`，消耗 ${cost}`:''}`:''}`:`技能 · K 释放，会消耗蓝量${p?` · ${p.mana}/${p.manaMax}${cost?`，消耗 ${cost}`:''}`:''}`;
+      const base=coarse()?tr('tutorial.skill.mobile','技能 · 点「技能」释放，会消耗蓝量'):tr('tutorial.skill.desktop','技能 · K 释放，会消耗蓝量');
+      if(!p)return base;
+      const en=i18n()&&i18n().isEnglish;
+      return en?`${base} · Mana ${p.mana}/${p.manaMax}${cost?`, cost ${cost}`:''}`:`${base} · ${p.mana}/${p.manaMax}${cost?`，消耗 ${cost}`:''}`;
     },
-    bag: () => coarse() ? '装备 · 点背包物品查看属性，再点「装备」；穿戴不会覆盖角色立绘' : '装备 · 点击背包物品查看属性，再决定是否装备',
-    potion: () => coarse() ? '受伤后可点「药水」恢复；深层补给有限' : '受伤后按 Q 喝药；深层补给有限',
-    stairs: () => coarse() ? '下潜 · 站上楼梯后点「下楼」进入下一层' : '下潜 · 站上楼梯后按 Enter',
-    escape: () => coarse() ? '贪婪远征 · 点「回城」把背包和金币安全带回镇上' : '贪婪远征 · T 回城，把背包和金币安全带回镇上',
-    guardian: () => '守卫破甲 · 明示的破甲大招命中会无视护甲；看到预警就走位，不要硬吃',
+    bag: () => coarse() ? tr('tutorial.bag.mobile','装备 · 点背包物品查看属性，再点「装备」；穿戴不会覆盖角色立绘') : tr('tutorial.bag.desktop','装备 · 点击背包物品查看属性，再决定是否装备'),
+    potion: () => coarse() ? tr('tutorial.potion.mobile','受伤后可点「药水」恢复；深层补给有限') : tr('tutorial.potion.desktop','受伤后按 Q 喝药；深层补给有限'),
+    stairs: () => coarse() ? tr('tutorial.stairs.mobile','下潜 · 站上楼梯后点「下楼」进入下一层') : tr('tutorial.stairs.desktop','下潜 · 站上楼梯后按 Enter'),
+    escape: () => coarse() ? tr('tutorial.escape.mobile','贪婪远征 · 点「回城」把背包和金币安全带回镇上') : tr('tutorial.escape.desktop','贪婪远征 · T 回城，把背包和金币安全带回镇上'),
+    guardian: () => tr('tutorial.guardian','守卫破甲 · 明示的破甲大招命中会无视护甲；看到预警就走位，不要硬吃'),
   };
 
   let active='';let timer=0;let lastPlayer=null;
@@ -53,9 +58,10 @@
     #de-onboarding[hidden]{display:none}#de-onboarding b{color:#f1c45b;white-space:nowrap}#de-onboarding span{min-width:0}#de-onboarding button{border:0;background:transparent;color:#8ea2bb;padding:3px 4px;cursor:pointer;font-size:11px;white-space:nowrap}#de-onboarding button:hover{color:#fff}
     @media(max-width:700px){#de-onboarding{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom) + 8px);transform:none;max-width:none;z-index:90;font-size:12px;padding:8px 9px}#de-onboarding b{display:none}}
   `;document.head.appendChild(style);
-  const toast=document.createElement('div');toast.id='de-onboarding';toast.hidden=true;toast.innerHTML='<b>新手提示</b><span></span><button type="button" data-tutorial-skip>跳过教学</button>';(document.getElementById('stage')||document.body).appendChild(toast);toast.querySelector('[data-tutorial-skip]').addEventListener('click',markAll);
+  const toast=document.createElement('div');toast.id='de-onboarding';toast.hidden=true;toast.innerHTML='<b></b><span></span><button type="button" data-tutorial-skip></button>';(document.getElementById('stage')||document.body).appendChild(toast);toast.querySelector('[data-tutorial-skip]').addEventListener('click',markAll);
 
-  function show(id,ttl=0){if(!id||done(id)||!text[id])return false;if(active===id&&!toast.hidden)return true;active=id;toast.querySelector('span').textContent=text[id]();toast.hidden=false;clearTimeout(timer);if(ttl>0)timer=setTimeout(()=>mark(id),ttl);return true}
+  function syncLabels(){const b=toast.querySelector('b'),s=toast.querySelector('[data-tutorial-skip]');if(b)b.textContent=tr('tutorial.label','新手提示');if(s)s.textContent=tr('tutorial.skip','跳过教学');const r=document.getElementById('de-tutorial-reset');if(r)r.textContent=tr('tutorial.reset','重置教学')}
+  function show(id,ttl=0){if(!id||done(id)||!text[id])return false;active=id;toast.querySelector('span').textContent=text[id]();syncLabels();toast.hidden=false;clearTimeout(timer);if(ttl>0)timer=setTimeout(()=>mark(id),ttl);return true}
   function hide(){clearTimeout(timer);timer=0;active='';toast.hidden=true}
   function adjacentEnemy(){const p=api.player;if(!p)return null;return(api.monsters||[]).find(m=>m&&Number(m.hp)>0&&Math.abs(Number(m.x)-p.x)+Math.abs(Number(m.y)-p.y)===1)||null}
   const anyThreat=()=> (api.monsters||[]).some(m=>m&&Number(m.hp)>0);
@@ -93,7 +99,8 @@
   const observer=typeof MutationObserver!=='undefined'?new MutationObserver(()=>{const el=document.getElementById('de-combat-feedback');if(el&&LEGACY.test(String(el.textContent||'')))el.hidden=true;attachReset()}):null;if(observer)observer.observe(document.body,{childList:true,subtree:true,characterData:true});
 
   function resetTutorial(){state.done={};save();hide();lastPlayer=null;snap=null;inspect()}
-  function attachReset(){const tools=document.querySelector('#de-audio-settings-pop .de-audio-tools');if(!tools||document.getElementById('de-tutorial-reset'))return;const b=document.createElement('button');b.type='button';b.id='de-tutorial-reset';b.textContent='重置教学';b.style.cssText='border:1px solid rgba(224,167,58,.3);background:#17100c;color:#d9c7a3;padding:5px 8px;font-size:10px;cursor:pointer;margin-right:auto';b.addEventListener('click',resetTutorial);tools.insertBefore(b,tools.firstChild)}
+  function attachReset(){const tools=document.querySelector('#de-audio-settings-pop .de-audio-tools');if(!tools||document.getElementById('de-tutorial-reset'))return;const b=document.createElement('button');b.type='button';b.id='de-tutorial-reset';b.textContent=tr('tutorial.reset','重置教学');b.style.cssText='border:1px solid rgba(224,167,58,.3);background:#17100c;color:#d9c7a3;padding:5px 8px;font-size:10px;cursor:pointer;margin-right:auto';b.addEventListener('click',resetTutorial);tools.insertBefore(b,tools.firstChild)}
+  window.addEventListener('de:languagechange',()=>{syncLabels();if(active&&!toast.hidden)toast.querySelector('span').textContent=text[active]()});
 
-  setInterval(inspect,140);inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v2',key:KEY,show,mark,resetTutorial,get state(){return JSON.parse(JSON.stringify(state))}};
+  setInterval(inspect,140);syncLabels();inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v2',key:KEY,show,mark,resetTutorial,get state(){return JSON.parse(JSON.stringify(state))}};
 })();
