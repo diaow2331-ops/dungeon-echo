@@ -2,6 +2,8 @@
  * Re-aligns monster/guardian pressure with real 1-100 equipment growth.
  * Philosophy: no hidden random pierce. High armor remains valuable, but dangerous enemies
  * gain the existing one-turn telegraphed armor-break attack so standing still is not immunity.
+ * Supply pressure is deliberately mild: floors still roll 1-2 potions, but are no longer
+ * force-filled to two and kill drops stop turning deep monster packs into potion farms.
  */
 (() => {
   'use strict';
@@ -11,6 +13,7 @@
   if (!api || api.profileId !== 'classic-100' || !api.runProfile) return;
 
   const profile = api.runProfile;
+  const SUPPLY_POLICY = Object.freeze({ minPotions: 1, killPotionThreshold: 0.67 });
   const GUARDIAN_TARGETS = Object.freeze({
     10:  { hp: 140,  atk: 18,  def: 6 },
     20:  { hp: 220,  atk: 25,  def: 9 },
@@ -43,6 +46,17 @@
     return false;
   }
 
+  function patchSupply(fr) {
+    if (!fr) return false;
+    fr.minPotions = SUPPLY_POLICY.minPotions;
+    const drops = fr.killLoot;
+    if (drops && Number(drops.gold) < SUPPLY_POLICY.killPotionThreshold &&
+        SUPPLY_POLICY.killPotionThreshold < Number(drops.equip)) {
+      drops.potion = SUPPLY_POLICY.killPotionThreshold;
+    }
+    return true;
+  }
+
   function patchProfile() {
     const fr = profile.floorRules;
     if (fr) {
@@ -50,6 +64,7 @@
       fr.eliteChance = 0.16;
       fr.eliteHpMult = 2.20;
       fr.eliteAtkMult = 1.45;
+      patchSupply(fr);
     }
     if (profile.midBoss) applyTarget(profile.midBoss, 10);
     for (const g of profile.midBosses || []) applyTarget(g, Number(g && g.depth));
@@ -113,6 +128,12 @@
     guardianTargets: GUARDIAN_TARGETS,
     heavyBreakCandidate,
     patchProfile,
+    patchSupply,
     syncExisting,
+  };
+  window.__DE_SUSTAIN_PRESSURE_V1 = {
+    version: 'v1',
+    supplyPolicy: { ...SUPPLY_POLICY },
+    patchSupply,
   };
 })();
