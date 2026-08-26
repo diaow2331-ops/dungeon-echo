@@ -24,6 +24,10 @@ assert(finalizer.includes("backdrop-filter:none!important"), 'browser-chrome mod
 assert(finalizer.includes('playerAura'), 'desktop/mobile player aura suppression must remain explicit');
 assert(finalizer.includes('skillReadyRing'), 'desktop/mobile skill-ready ring suppression must remain explicit');
 assert(finalizer.includes('mobileEntityRadial'), 'mobile camera-misaligned decorative entity radials must be suppressed');
+assert(finalizer.includes('disableMobileWait'), 'mobile wait target must have an explicit disable path');
+assert(finalizer.includes('#dpad [data-act="wait"]{visibility:hidden!important;pointer-events:none!important}'), 'mobile center wait must not remain a touch target');
+assert(finalizer.includes("#dpad button:not([data-act=\"wait\"])"), 'directional pointer owner must exclude the center wait control');
+assert(notes.includes('center mobile D-pad Wait target'), 'release notes must record the mobile wait mis-tap fix');
 assert(notes.includes('Combat numbers') && notes.includes('save schema'), 'release notes must preserve gameplay/save non-goals');
 
 console.log('mobile_visual_final_v123=PASS');
