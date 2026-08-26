@@ -23,10 +23,20 @@ assert(/ranger:\s*\{ max:70, cost:32, regen:2, attackGain:3, focusGain:4 \}/.tes
 assert(/mage:\s*\{ max:100,cost:42, regen:3, attackGain:1, focusGain:10 \}/.test(controls), 'mage mana contract changed');
 assert(/assassin:\s*\{ max:65, cost:34, regen:2, attackGain:3, focusGain:4 \}/.test(controls), 'assassin mana contract changed');
 
-assert(controls.includes("src.includes('art/loot-atlas.png')"), 'ground loot atlas interception missing');
+// Ground equipment must recognize the production v12 SVG bridge, recover the real map item,
+// and use tierArt.sourceForItem rather than blindly drawing the old loot cell.
+assert(controls.includes("/loot-atlas(?:-v12)?\\.(?:png|svg)"), 'production loot-atlas v12 interception missing');
+assert(controls.includes('function groundItemAtDraw(args, canvas)'), 'ground item coordinate recovery missing');
+assert(controls.includes("it.type === 'equip'"), 'ground replacement must be equip-only');
+assert(controls.includes("tierArt.sourceForItem(ground.item)"), 'tier-specific ground equipment source missing');
 assert(controls.includes('equipment-weapons-v13.png') && controls.includes('equipment-wearables-v13.png'), 'v13 ground replacement missing');
-assert(controls.includes('suppressCharacterEquipmentImages'), 'character gear suppression missing');
-assert(!desktop.includes('de-gear-overlay'), 'legacy character gear overlay returned');
+
+// No equipment art may be pasted on the hero: suppress both the oldest core geometry and the later v13 overlay.
+assert(controls.includes('heroJustDrawn'), 'hero draw-window marker missing');
+assert(controls.includes('suppressLegacyGear'), 'legacy core gear geometry suppression missing');
+assert(controls.includes('ctx.stroke = function') && controls.includes('ctx.fillRect = function') && controls.includes('ctx.fill = function'), 'legacy hero geometry paint guards missing');
+assert(controls.includes('suppressCharacterEquipmentImages'), 'v13 character gear suppression missing');
+assert(!desktop.includes('de-gear-overlay'), 'legacy desktop character gear overlay returned');
 assert(desktop.includes("edgeButton(pad, 2, 'k')"), 'gamepad skill must follow K contract');
 assert(!desktop.includes("edgeButton(pad, 2, 'c')"), 'legacy C gamepad skill returned');
 
@@ -60,6 +70,7 @@ assert(mobile.includes('navigator.vibrate'), 'touch haptic feedback missing');
 assert(mobile.includes("const order=['attack','skill','potion','descend','escape','scroll','pause','mute']"), 'mobile action priority missing');
 assert(mobile.includes('de-mobile-optional'), 'mobile HUD compression missing');
 assert(mobile.includes('左侧方向盘'), 'mobile help copy missing');
+assert(mobile.includes('new MutationObserver(queueApply)'), 'dynamic touch-control resync missing');
 
 assert(shop.includes("loadScript('combat-controls.js'"), 'combat controls production loader missing');
 assert(shop.includes("loadScript('combat-hint-polish.js'"), 'tutorial production loader missing');
