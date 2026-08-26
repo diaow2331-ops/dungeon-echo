@@ -1,17 +1,13 @@
-/* Dungeon Echo production UX bootstrap v1.
- * Owns the late presentation/accessibility chain independently of gameplay/input systems.
- * Core gameplay, J/K + mana controls and balance layers load synchronously from index.html;
- * these followers can start immediately without waiting for heavyweight image/window load.
+/* Dungeon Echo production UX bootstrap v2.
+ * Core gameplay/input/balance are synchronous in index.html.
+ * Locale is now one stable event-driven owner; late UX followers are tutorial/audio/mobile only.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
   const chain = Object.freeze([
-    ['i18n.js', 'data-de-i18n', () => !!window.DE_I18N],
-    ['i18n-runtime.js', 'data-de-i18n-runtime', () => !!window.__DE_I18N_RUNTIME_V1],
-    ['i18n-content.js', 'data-de-i18n-content', () => !!window.__DE_I18N_CONTENT_V2],
-    ['ux-hotfix-v121.js', 'data-de-ux-hotfix-v121', () => !!window.__DE_UX_HOTFIX_V121],
+    ['locale-runtime-v122.js', 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     ['combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
     ['audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     ['mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
@@ -24,35 +20,19 @@
       if (ready()) { resolve('ready'); return; }
       const existing = document.querySelector(`script[${marker}]`);
       if (existing) {
-        if (existing.dataset && existing.dataset.deSettled === '1') { resolve(ready() ? 'ready' : 'existing'); return; }
-        let done = false;
-        const settle = () => {
-          if (done) return;
-          done = true;
-          if (existing.dataset) existing.dataset.deSettled = '1';
-          resolve(ready() ? 'ready' : 'existing');
-        };
+        const settle = () => resolve(ready() ? 'ready' : 'existing');
         existing.addEventListener('load', settle, { once:true });
         existing.addEventListener('error', settle, { once:true });
-        setTimeout(settle, 1500);
+        setTimeout(settle, 1200);
         return;
       }
-
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v1');
-      let done = false;
-      const settle = status => {
-        if (done) return;
-        done = true;
-        if (script.dataset) script.dataset.deSettled = '1';
-        resolve(status);
-      };
-      script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
-      script.addEventListener('error', () => settle('error'), { once:true });
+      script.setAttribute(marker, 'v2');
+      script.addEventListener('load', () => resolve(ready() ? 'ready' : 'loaded'), { once:true });
+      script.addEventListener('error', () => resolve('error'), { once:true });
       document.body.appendChild(script);
-      setTimeout(() => settle('timeout'), 4000);
     });
   }
 
@@ -61,13 +41,13 @@
     started = true;
     for (const [src, marker, ready] of chain) {
       try { await loadScript(src, marker, ready); }
-      catch (_err) { /* one optional UX layer must never block the following layers */ }
+      catch (_err) { /* optional presentation layers must not block later followers */ }
     }
     return true;
   }
 
-  if (document.body) setTimeout(start, 0);
-  else window.addEventListener('DOMContentLoaded', () => setTimeout(start, 0), { once:true });
+  if (document.body) start();
+  else window.addEventListener('DOMContentLoaded', start, { once:true });
 
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v1', start, loadScript, chain };
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v2', start, loadScript, chain };
 })();
