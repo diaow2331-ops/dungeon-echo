@@ -1,6 +1,6 @@
 /* Dungeon Echo production UX bootstrap v3.
  * Core gameplay/input/balance are synchronous in index.html.
- * Locale is one stable event-driven owner; late followers are presentation/input-polish only.
+ * Locale is one stable event-driven owner; late followers are presentation-only.
  */
 (() => {
   'use strict';
@@ -15,7 +15,6 @@
     ['combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
     ['audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     ['mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
-    ['mobile-visual-final-v123.js', 'data-de-mobile-visual-final-v123', () => !!window.__DE_MOBILE_VISUAL_FINAL_V123],
   ]);
 
   let started = false;
