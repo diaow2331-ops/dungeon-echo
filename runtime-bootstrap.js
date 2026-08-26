@@ -24,19 +24,31 @@
       if (ready()) { resolve('ready'); return; }
       const existing = document.querySelector(`script[${marker}]`);
       if (existing) {
-        const settle = () => resolve(ready() ? 'ready' : 'existing');
-        existing.addEventListener('load', settle, { once:true });
-        existing.addEventListener('error', settle, { once:true });
-        setTimeout(settle, 1200);
+        let done = false;
+        const settle = status => {
+          if (done) return;
+          done = true;
+          resolve(status || (ready() ? 'ready' : 'existing'));
+        };
+        existing.addEventListener('load', () => settle(ready() ? 'ready' : 'existing'), { once:true });
+        existing.addEventListener('error', () => settle('error'), { once:true });
+        setTimeout(() => settle('timeout'), 1200);
         return;
       }
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
       script.setAttribute(marker, 'v2');
-      script.addEventListener('load', () => resolve(ready() ? 'ready' : 'loaded'), { once:true });
-      script.addEventListener('error', () => resolve('error'), { once:true });
+      let done = false;
+      const settle = status => {
+        if (done) return;
+        done = true;
+        resolve(status);
+      };
+      script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
+      script.addEventListener('error', () => settle('error'), { once:true });
       document.body.appendChild(script);
+      setTimeout(() => settle('timeout'), 3000);
     });
   }
 
