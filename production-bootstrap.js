@@ -112,9 +112,46 @@
     window.__DE_XP_CAP_GUARD = { version: 'p0-v1', levelCap, hold };
   }
 
+  // One-shot dungeon interactables should stop being collision objects after they are used.
+  // Core currently leaves shrine/rest NPC records in `npcs`, so their consumed shells can
+  // block corridors indefinitely. Keep repeatable NPCs (shop etc.) untouched.
+  function installDisposableNpcCleanup() {
+    if (window.__DE_DISPOSABLE_NPC_CLEANUP) return;
+    const api = window.DE_TEST;
+    if (!api || api.profileId !== 'classic-100' || typeof document === 'undefined') return;
+    const disposable = new Set(['shrine', 'rest']);
+
+    function cleanup() {
+      const list = api.npcs;
+      if (!Array.isArray(list) || !list.length) return 0;
+      let removed = 0;
+      for (let i = list.length - 1; i >= 0; i--) {
+        const npc = list[i];
+        if (!npc || !npc.used || !disposable.has(String(npc.type || ''))) continue;
+        list.splice(i, 1);
+        removed++;
+      }
+      if (removed && typeof api.persistRun === 'function' && (api.state === 'playing' || api.state === 'town')) {
+        api.persistRun();
+      }
+      return removed;
+    }
+
+    function schedule() { queueMicrotask(cleanup); }
+    document.addEventListener('keydown', schedule, false);
+    document.addEventListener('click', schedule, false);
+    cleanup();
+    window.__DE_DISPOSABLE_NPC_CLEANUP = { version: 'p0-v1', cleanup };
+  }
+
+  function installPostBootGuards() {
+    installXpCapGuard();
+    installDisposableNpcCleanup();
+  }
+
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading' || !document.readyState)
-      window.addEventListener('DOMContentLoaded', installXpCapGuard, { once: true });
-    else installXpCapGuard();
+      window.addEventListener('DOMContentLoaded', installPostBootGuards, { once: true });
+    else installPostBootGuards();
   }
 })();
