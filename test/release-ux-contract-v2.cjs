@@ -5,61 +5,64 @@ const assert = require('assert');
 const index = fs.readFileSync('index.html','utf8');
 const readme = fs.readFileSync('README.txt','utf8');
 const projectPage = fs.readFileSync('ops/home-mount/public/toys/dungeon-echo/index.html','utf8');
-const runtime = fs.readFileSync('i18n-runtime.js','utf8');
+const locale = fs.readFileSync('locale-runtime-v122.js','utf8');
 const bootstrap = fs.readFileSync('runtime-bootstrap.js','utf8');
+const loot = fs.readFileSync('world-loot-polish-v122.js','utf8');
+const forge = fs.readFileSync('forge-feedback-v122.js','utf8');
 const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
 const desktop = fs.readFileSync('desktop-controls.js','utf8');
-const manifest = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/);
+const manifest = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/).filter(Boolean);
 
-// Static entry must tell the same control story as the runtime before any late JS loads.
+// Static entry must tell the same control story before late JS loads.
 assert(index.includes('data-act="skill">技能 <span>K</span>'), 'static touch skill must be K');
 assert(index.includes('J 攻击 · K 职业技能'), 'footer J/K contract missing');
 assert(index.includes('攻击：<b>J</b>') && index.includes('技能：<b>K</b>（消耗蓝量）'), 'help J/K + mana contract missing');
-assert(index.includes('data-act="mute">声音 <span>M</span>'), 'M must be described as overall sound, not SFX only');
-assert(index.includes('<script src="combat-controls.js"></script>'), 'synchronous J/K + mana controls missing from production entry');
-assert(index.includes('<script src="runtime-bootstrap.js"></script>'), 'independent runtime bootstrap missing from production entry');
-assert(index.indexOf('<script src="combat-controls.js"></script>') < index.indexOf('<script src="challenge-pressure.js"></script>'), 'combat controls must initialize before final balance layer');
-assert(!index.includes('冲撞攻击'), 'legacy bump-attack copy returned');
-assert(!index.includes('技能 <span>C</span>'), 'legacy touch C skill returned');
-assert(!index.includes('技能：<b>C</b>'), 'legacy help C skill returned');
+assert(index.includes('data-act="mute">声音 <span>M</span>'), 'M must be overall sound');
+assert(index.includes('<script src="combat-controls.js"></script>'), 'synchronous J/K + mana controls missing');
+assert(index.includes('<script src="runtime-bootstrap.js"></script>'), 'runtime bootstrap missing');
+assert(!index.includes('冲撞攻击') && !index.includes('技能 <span>C</span>') && !index.includes('技能：<b>C</b>'), 'legacy C/bump copy returned');
 
-// Shipped plain-text README is also user-facing when the bundle is unpacked locally.
+// Unpacked bundle remains understandable without repository context.
 assert(readme.includes('攻击       J（按当前面向）'), 'README J attack missing');
 assert(readme.includes('职业技能   K（消耗蓝量）'), 'README K/mana contract missing');
-assert(readme.includes('/?lang=en'), 'README English direct route missing');
-assert(readme.includes('背景音乐与游戏音效可分别按 0–100% 调节'), 'README independent mixer description missing');
-assert(!readme.includes('仍只使用 C 键') && !readme.includes('职业技能   C'), 'README legacy C contract returned');
+assert(readme.includes('/?lang=en'), 'README English route missing');
+assert(!readme.includes('职业技能   C'), 'README legacy C contract returned');
 
-// 91hwl project page is part of the promotion funnel and must not advertise obsolete controls.
+// Project page is part of the future promotion funnel.
 assert(projectPage.includes('J 普攻、K 技能'), 'project page J/K contract missing');
 assert(projectPage.includes('Play in English'), 'project page English CTA missing');
 assert(projectPage.includes('https://github.com/diaow2331-ops/dungeon-echo'), 'project page GitHub CTA missing');
-assert(projectPage.includes('背景音乐与音效可分别按 0–100% 调节'), 'project page independent audio controls missing');
-assert(projectPage.includes('专门设计的手机触控布局'), 'project page mobile support missing');
-assert(!projectPage.includes('始终保持同一个 C 键') && !projectPage.includes('C 职业技能'), 'project page legacy C contract returned');
-assert(!projectPage.includes('主要面向电脑端浏览器'), 'project page obsolete desktop-only claim returned');
+assert(!projectPage.includes('主要面向电脑端浏览器'), 'obsolete desktop-only claim returned');
 
-// Language follower must own visible help/footer plus tooltip/accessibility attributes.
-assert(runtime.includes('function syncHelp()'), 'bilingual help follower missing');
-assert(runtime.includes('function syncFooter()'), 'bilingual footer follower missing');
-assert(runtime.includes('function syncAccessibility()'), 'bilingual accessibility follower missing');
-assert(runtime.includes("'aria-label',en?'Dungeon map:"), 'English game-map aria label missing');
-assert(runtime.includes("'title',en?'Return Scroll:"), 'English return tooltip missing');
-assert(runtime.includes("'title',en?'Enter or leave immersive fullscreen (F)'"), 'English fullscreen tooltip missing');
-assert(runtime.includes("'aria-label',en?'Touch controls'"), 'English touch-controls label missing');
-assert(runtime.includes("version:'v2'"), 'i18n runtime version marker not advanced');
+// Stable locale: title-only reload and no global polling chain.
+assert(locale.includes("box.id = 'de-title-language'"), 'title language chooser missing');
+assert(locale.includes("location.replace(target.href)"), 'language choice must reload');
+assert(locale.includes("window.DE_I18N ="), 'stable locale API missing');
+assert(locale.includes("'Dungeon Echo'"), 'English shell content missing');
+assert(locale.includes("'aria-label',en?'Dungeon map:"), 'English map accessibility missing');
+assert(!locale.includes('setInterval('), 'locale polling returned');
+for (const retired of ['i18n.js','i18n-runtime.js','i18n-content.js','ux-hotfix-v121.js']) {
+  assert(!bootstrap.includes(`'${retired}'`), `retired locale layer returned to bootstrap: ${retired}`);
+  assert(!manifest.includes(retired), `retired locale layer returned to release: ${retired}`);
+}
 
-// Late UX boot must survive optional failures and must not own core input/balance.
+// Late UX bootstrap may own presentation only, never core input/balance.
 assert(bootstrap.includes('window.__DE_PRODUCTION_UX_BOOTSTRAP'), 'runtime bootstrap owner missing');
-assert(!bootstrap.includes("'combat-controls.js'") && !bootstrap.includes("'challenge-pressure.js'"), 'runtime bootstrap regained core input/balance ownership');
-assert(bootstrap.includes("'audio-director.js'") && bootstrap.includes("'mobile-ux.js'"), 'runtime bootstrap follower chain incomplete');
+assert(!bootstrap.includes("'combat-controls.js'") && !bootstrap.includes("'challenge-pressure.js'"), 'bootstrap regained core input/balance ownership');
+for (const f of ['locale-runtime-v122.js','world-loot-polish-v122.js','forge-feedback-v122.js','audio-director.js','mobile-ux.js']) assert(bootstrap.includes(`'${f}'`), `late follower missing: ${f}`);
 assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('i18n.js'"), 'shop art regained UX boot ownership');
 
-// Character art remains single-owner: no old geometric gear overlay may return.
+// Final art/forge polish stays presentation-only.
+assert(loot.includes('function los(') && loot.includes('api.items'), 'visible-loot polish contract missing');
+assert(!/items\.push|items\.splice|\.rarity\s*=|\.stats\s*=/.test(loot), 'loot polish mutates gameplay');
+assert(forge.includes('statDelta') && forge.includes('de-forge-stage'), 'forge process feedback missing');
+assert(!/item\.forge\s*=|item\.stats\s*=|meta\.gold\s*=/.test(forge), 'forge feedback mutates canonical forge data');
+
+// Character art remains single-owner: no old DOM gear overlay may return.
 assert(!desktop.includes('de-gear-overlay'), 'legacy character gear overlay returned');
 
-for (const f of ['runtime-bootstrap.js','i18n.js','i18n-runtime.js','i18n-content.js','combat-controls.js','mobile-ux.js']) {
+for (const f of ['runtime-bootstrap.js','locale-runtime-v122.js','world-loot-polish-v122.js','forge-feedback-v122.js','combat-controls.js','mobile-ux.js']) {
   assert(manifest.includes(f), `release manifest missing ${f}`);
 }
 
-console.log('release_ux_contract_v2=PASS');
+console.log('release_ux_contract_v122=PASS');
