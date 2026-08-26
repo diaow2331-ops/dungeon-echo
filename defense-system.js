@@ -149,3 +149,83 @@
     sync: syncDefenseModel,
   };
 })();
+
+/* P0 talent exhaustion safety.
+ * The legacy core enters the talent screen even when TALENTS is empty. Progression owns
+ * finite rank caps, so long-lived saves eventually need a repeatable non-power fallback.
+ */
+(() => {
+  'use strict';
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (window.__DE_TALENT_SAFETY) return;
+  const api = window.DE_TEST;
+  if (!api || api.profileId !== 'classic-100' || !Array.isArray(api.TALENTS)) return;
+
+  const OVERFLOW = {
+    id: 'overflow_supply',
+    name: '余烬整备',
+    desc: '可成长天赋已达上限：获得药水 +1、卷轴 +1。',
+    apply(p) {
+      p.potions = (Number(p.potions) || 0) + 1;
+      p.scrolls = (Number(p.scrolls) || 0) + 1;
+    },
+  };
+
+  function eligible() {
+    const ranks = window.DE_TALENT_RANKS;
+    if (!ranks || typeof ranks.eligible !== 'function') return api.TALENTS.slice();
+    const pool = ranks.eligible();
+    return Array.isArray(pool) ? pool : [];
+  }
+
+  function desiredPool() {
+    const pool = eligible();
+    return pool.length ? pool : [OVERFLOW];
+  }
+
+  function syncPool() {
+    if (api.state === 'talent') return false;
+    const pool = desiredPool();
+    api.TALENTS.splice(0, api.TALENTS.length, ...pool);
+    return true;
+  }
+
+  const esc = value => String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+
+  function repairTalentScreen() {
+    if (api.state !== 'talent') return false;
+    const grid = document.getElementById('talent-grid');
+    if (!grid || (grid.querySelector && grid.querySelector('button[data-talent]'))) return false;
+    const pool = desiredPool().slice(0, 3);
+    api.TALENTS.splice(0, api.TALENTS.length, ...pool);
+    grid.innerHTML = pool.map(t =>
+      `<button type="button" class="class-card" data-talent="${esc(t.id)}"><h3>${esc(t.name)}</h3><p>${esc(t.desc)}</p></button>`
+    ).join('');
+    return true;
+  }
+
+  function sync() {
+    if (api.state === 'talent') return repairTalentScreen();
+    return syncPool();
+  }
+
+  document.addEventListener('keydown', sync, true);
+  document.addEventListener('click', () => { sync(); queueMicrotask(sync); }, true);
+  sync();
+  const timer = setInterval(sync, 75);
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
+  }
+
+  window.__DE_TALENT_SAFETY = {
+    version: 'v1',
+    overflow: OVERFLOW,
+    eligible,
+    desiredPool,
+    syncPool,
+    repairTalentScreen,
+    sync,
+  };
+})();
