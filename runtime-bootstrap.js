@@ -1,7 +1,7 @@
 /* Dungeon Echo production UX bootstrap v1.
- * Owns the late presentation/control chain independently of optional art/shop modules.
- * Gameplay/balance layers load synchronously from index.html before this file; these UX
- * followers can start immediately without waiting for heavyweight image/window load.
+ * Owns the late presentation/accessibility chain independently of gameplay/input systems.
+ * Core gameplay, J/K + mana controls and balance layers load synchronously from index.html;
+ * these followers can start immediately without waiting for heavyweight image/window load.
  */
 (() => {
   'use strict';
@@ -11,7 +11,6 @@
     ['i18n.js', 'data-de-i18n', () => !!window.DE_I18N],
     ['i18n-runtime.js', 'data-de-i18n-runtime', () => !!window.__DE_I18N_RUNTIME_V1],
     ['i18n-content.js', 'data-de-i18n-content', () => !!window.__DE_I18N_CONTENT_V2],
-    ['combat-controls.js', 'data-de-combat-controls', () => !!window.__DE_COMBAT_CONTROLS_V1],
     ['combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
     ['audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     ['mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
