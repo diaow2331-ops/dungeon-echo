@@ -6,6 +6,8 @@ const index = fs.readFileSync('index.html','utf8');
 const readme = fs.readFileSync('README.txt','utf8');
 const projectPage = fs.readFileSync('ops/home-mount/public/toys/dungeon-echo/index.html','utf8');
 const runtime = fs.readFileSync('i18n-runtime.js','utf8');
+const bootstrap = fs.readFileSync('runtime-bootstrap.js','utf8');
+const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
 const desktop = fs.readFileSync('desktop-controls.js','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/);
 
@@ -14,6 +16,7 @@ assert(index.includes('data-act="skill">技能 <span>K</span>'), 'static touch s
 assert(index.includes('J 攻击 · K 职业技能'), 'footer J/K contract missing');
 assert(index.includes('攻击：<b>J</b>') && index.includes('技能：<b>K</b>（消耗蓝量）'), 'help J/K + mana contract missing');
 assert(index.includes('data-act="mute">声音 <span>M</span>'), 'M must be described as overall sound, not SFX only');
+assert(index.includes('<script src="runtime-bootstrap.js"></script>'), 'independent runtime bootstrap missing from production entry');
 assert(!index.includes('冲撞攻击'), 'legacy bump-attack copy returned');
 assert(!index.includes('技能 <span>C</span>'), 'legacy touch C skill returned');
 assert(!index.includes('技能：<b>C</b>'), 'legacy help C skill returned');
@@ -44,10 +47,15 @@ assert(runtime.includes("'title',en?'Enter or leave immersive fullscreen (F)'"),
 assert(runtime.includes("'aria-label',en?'Touch controls'"), 'English touch-controls label missing');
 assert(runtime.includes("version:'v2'"), 'i18n runtime version marker not advanced');
 
+// UX boot must survive an optional shop-art failure and keep one explicit owner.
+assert(bootstrap.includes('window.__DE_PRODUCTION_UX_BOOTSTRAP'), 'runtime bootstrap owner missing');
+assert(bootstrap.includes("'combat-controls.js'") && bootstrap.includes("'audio-director.js'") && bootstrap.includes("'mobile-ux.js'"), 'runtime bootstrap core UX chain incomplete');
+assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('i18n.js'"), 'shop art regained UX boot ownership');
+
 // Character art remains single-owner: no old geometric gear overlay may return.
 assert(!desktop.includes('de-gear-overlay'), 'legacy character gear overlay returned');
 
-for (const f of ['i18n.js','i18n-runtime.js','i18n-content.js','combat-controls.js','mobile-ux.js']) {
+for (const f of ['runtime-bootstrap.js','i18n.js','i18n-runtime.js','i18n-content.js','combat-controls.js','mobile-ux.js']) {
   assert(manifest.includes(f), `release manifest missing ${f}`);
 }
 

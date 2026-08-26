@@ -11,6 +11,7 @@ forge-system.js
 progression-system.js
 content-system.js
 combat-pressure.js
+runtime-bootstrap.js
 challenge-pressure.js
 visual-polish.js
 equipment-shop-ui.js
