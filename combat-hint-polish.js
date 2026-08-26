@@ -56,7 +56,8 @@
   const style=document.createElement('style');style.id='de-onboarding-style-v2';style.textContent=`
     #de-onboarding{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:10px;max-width:min(620px,86%);padding:8px 10px 8px 12px;border:1px solid rgba(132,157,196,.34);border-radius:8px;background:rgba(7,10,16,.86);color:#dbe6f4;box-shadow:0 5px 18px rgba(0,0,0,.34);backdrop-filter:blur(4px);font:600 12px/1.45 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;pointer-events:auto}
     #de-onboarding[hidden]{display:none}#de-onboarding b{color:#f1c45b;white-space:nowrap}#de-onboarding span{min-width:0}#de-onboarding button{border:0;background:transparent;color:#8ea2bb;padding:3px 4px;cursor:pointer;font-size:11px;white-space:nowrap}#de-onboarding button:hover{color:#fff}
-    @media(max-width:700px){#de-onboarding{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom) + 8px);transform:none;max-width:none;z-index:90;font-size:12px;padding:8px 9px}#de-onboarding b{display:none}}
+    @media(max-width:700px) and (orientation:portrait){#de-onboarding{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom) + 190px);transform:none;max-width:none;z-index:90;font-size:12px;padding:8px 9px}#de-onboarding b{display:none}}
+    @media(max-width:700px) and (orientation:landscape){#de-onboarding{position:fixed;left:8px;right:316px;bottom:calc(env(safe-area-inset-bottom) + 8px);transform:none;max-width:none;z-index:90;font-size:11px;padding:7px 8px}#de-onboarding b{display:none}}
   `;document.head.appendChild(style);
   const toast=document.createElement('div');toast.id='de-onboarding';toast.hidden=true;toast.innerHTML='<b></b><span></span><button type="button" data-tutorial-skip></button>';(document.getElementById('stage')||document.body).appendChild(toast);toast.querySelector('[data-tutorial-skip]').addEventListener('click',markAll);
 
