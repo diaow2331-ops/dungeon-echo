@@ -147,9 +147,14 @@
     applyMixer();
   }
 
+  function resumeContext() {
+    if (!ctx || ctx.state === 'running' || ctx.state === 'closed' || typeof ctx.resume !== 'function') return;
+    ctx.resume().catch(() => {});
+  }
+
   function ensureContext() {
     if (ctx) {
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      resumeContext();
       return ctx;
     }
     try {
@@ -377,12 +382,19 @@
     if (e && e.type === 'keydown' && String(e.key || '').toLowerCase() === 'm') return;
     ensureContext();
     if (ctx && !timer) timer = window.setInterval(pump, 70);
-    document.removeEventListener('pointerdown', unlock, true);
-    document.removeEventListener('touchstart', unlock, true);
   }
 
   document.addEventListener('pointerdown', unlock, true);
   document.addEventListener('touchstart', unlock, true);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) resumeContext();
+  });
+  window.addEventListener('click', e => {
+    const target = e && e.target;
+    if (!target || typeof target.closest !== 'function' || !target.closest('[data-act="mute"]')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    ensureContext(); setMuted(!muted);
+  }, true);
   window.addEventListener('keydown', e => {
     const key = String(e.key || '').toLowerCase();
     if (key === 'm') {
