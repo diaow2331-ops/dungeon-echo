@@ -11,8 +11,10 @@ forge-system.js
 progression-system.js
 content-system.js
 combat-pressure.js
+challenge-pressure.js
 visual-polish.js
 equipment-shop-ui.js
+i18n.js
 combat-controls.js
 combat-hint-polish.js
 audio-director.js
