@@ -4,6 +4,7 @@ const assert = require('assert');
 
 const pressure = fs.readFileSync('challenge-pressure.js','utf8');
 const i18n = fs.readFileSync('i18n.js','utf8');
+const runtime = fs.readFileSync('i18n-runtime.js','utf8');
 const loader = fs.readFileSync('equipment-shop-ui.js','utf8');
 const tutorial = fs.readFileSync('combat-hint-polish.js','utf8');
 const release = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/);
@@ -32,11 +33,20 @@ assert(i18n.includes("'tutorial.guardian':'Armor Break"), 'guardian tutorial loc
 assert(tutorial.includes("tr('tutorial.attack.desktop'"), 'tutorial must consume central i18n API');
 assert(tutorial.includes("de:languagechange"), 'active tutorial must refresh on language switch');
 
+// Dynamic legacy-core text follows the central language owner.
+assert(runtime.includes('syncClassCards'), 'class-card runtime localization missing');
+assert(runtime.includes('syncCurrentClass'), 'current class HUD localization missing');
+assert(runtime.includes('HP ${c.hpBase} · ATK ${c.atkBase}'), 'English class stat card missing');
+assert(runtime.includes("Armor-break special · Hit ignores armor"), 'guardian warning translation missing');
+assert(runtime.includes("Not enough mana:"), 'mana feedback translation missing');
+assert(runtime.includes("de:languagechange"), 'dynamic runtime language refresh missing');
+
 // Production order and release packaging.
 const challengePos = loader.indexOf("loadScript('challenge-pressure.js'");
 const i18nPos = loader.indexOf("loadScript('i18n.js'");
+const runtimePos = loader.indexOf("loadScript('i18n-runtime.js'");
 const controlsPos = loader.indexOf("loadScript('combat-controls.js'");
-assert(challengePos >= 0 && i18nPos > challengePos && controlsPos > i18nPos, 'production order challenge -> i18n -> controls broken');
-for (const f of ['challenge-pressure.js','i18n.js']) assert(release.includes(f), `release manifest missing ${f}`);
+assert(challengePos >= 0 && i18nPos > challengePos && runtimePos > i18nPos && controlsPos > runtimePos, 'production order challenge -> i18n -> runtime -> controls broken');
+for (const f of ['challenge-pressure.js','i18n.js','i18n-runtime.js']) assert(release.includes(f), `release manifest missing ${f}`);
 
 console.log('i18n_challenge_v1=PASS');
