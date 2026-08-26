@@ -27,7 +27,7 @@ global.window={DE_TEST:api,addEventListener(type,fn){(listeners.window[type] ||=
 vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','commerce-system.js'),'utf8'),{filename:'commerce-system.js'});
 const C=window.DE_COMMERCE;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
-ok(C&&C.version==='v3','commerce v3 boots');
+ok(C&&C.version==='v4','commerce v4 boots');
 const t0=turns,e0=player.escapes;
 ok(C.beginExtraction()===true,'extraction channel starts');
 ok(turns===t0+1,'starting extraction costs exactly one turn');

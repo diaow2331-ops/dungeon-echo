@@ -1,6 +1,6 @@
-/* Dungeon Echo production commerce v3.
- * Owns town supply stock / chapter-scaled pricing and closes underground service exploits
- * for classic-100 without changing the core save schema.
+/* Dungeon Echo production commerce v4.
+ * Owns town supply stock / chapter-scaled pricing, underground service safety,
+ * extraction pressure and baseline dungeon resource pressure for classic-100.
  */
 (() => {
   'use strict';
@@ -8,12 +8,41 @@
   if (window.__DE_COMMERCE_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_COMMERCE_SYSTEM = 'v3';
+  window.__DE_COMMERCE_SYSTEM = 'v4';
 
   const STORAGE_KEY = 'de-town-commerce-v1';
   const META_KEY = 'de-greedy-meta-v1';
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const shopCfg = (api.runProfile && api.runProfile.shop) || {};
+  const floorRules = api.runProfile && api.runProfile.floorRules;
+  const RESOURCE_PRESSURE = Object.freeze({ floorPotions: 1, killPotionChance: 0.07 });
+
+  function applyResourcePressure() {
+    if (!floorRules || !floorRules.killLoot || !floorRules.lootCounts || floorRules.__deResourcePressureV1) return false;
+    const gold = Number(floorRules.killLoot.gold) || 0;
+    const equip = Number(floorRules.killLoot.equip) || 1;
+    floorRules.killLoot.potion = clamp(gold + RESOURCE_PRESSURE.killPotionChance, gold + 0.01, equip - 0.01);
+    floorRules.lootCounts.potionLo = RESOURCE_PRESSURE.floorPotions;
+    floorRules.lootCounts.potionHi = RESOURCE_PRESSURE.floorPotions;
+    floorRules.minPotions = RESOURCE_PRESSURE.floorPotions;
+    floorRules.__deResourcePressureV1 = true;
+    return true;
+  }
+
+  function expectedFloorPotionSupply(depth) {
+    if (!floorRules || !floorRules.killLoot) return 0;
+    const d = Math.max(1, Number(depth) || 1);
+    const want = Math.min(
+      Math.max((Number(floorRules.baseMonsterCount) || 0) + d * (Number(floorRules.monsterPerDepth) || 0), Number(floorRules.minMonsters) || 5),
+      Number(floorRules.maxMonsters) || 24
+    );
+    const eliteChance = clamp(Number(floorRules.eliteChance) || 0, 0, 1);
+    const killChance = Math.max(0,
+      (Number(floorRules.killLoot.potion) || 0) - (Number(floorRules.killLoot.gold) || 0));
+    return (Number(floorRules.minPotions) || 0) + want * (1 - eliteChance) * killChance;
+  }
+
+  applyResourcePressure();
 
   const SUPPLIES = {
     potion: {
@@ -393,10 +422,13 @@
   window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); }, { once: true });
 
   window.DE_COMMERCE = {
-    version: 'v3',
+    version: 'v4',
     tier: townTier,
     priceScale,
     priceFor,
+    applyResourcePressure,
+    expectedFloorPotionSupply,
+    resourcePressure: RESOURCE_PRESSURE,
     dungeonTier,
     dungeonHealPrice,
     activeDungeonThreats,
