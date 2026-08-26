@@ -4,6 +4,7 @@ const assert = require('assert');
 
 const index = fs.readFileSync('index.html','utf8');
 const readme = fs.readFileSync('README.txt','utf8');
+const projectPage = fs.readFileSync('ops/home-mount/public/toys/dungeon-echo/index.html','utf8');
 const runtime = fs.readFileSync('i18n-runtime.js','utf8');
 const desktop = fs.readFileSync('desktop-controls.js','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/);
@@ -23,6 +24,15 @@ assert(readme.includes('职业技能   K（消耗蓝量）'), 'README K/mana con
 assert(readme.includes('/?lang=en'), 'README English direct route missing');
 assert(readme.includes('背景音乐与游戏音效可分别按 0–100% 调节'), 'README independent mixer description missing');
 assert(!readme.includes('仍只使用 C 键') && !readme.includes('职业技能   C'), 'README legacy C contract returned');
+
+// 91hwl project page is part of the promotion funnel and must not advertise obsolete controls.
+assert(projectPage.includes('J 普攻、K 技能'), 'project page J/K contract missing');
+assert(projectPage.includes('Play in English'), 'project page English CTA missing');
+assert(projectPage.includes('https://github.com/diaow2331-ops/dungeon-echo'), 'project page GitHub CTA missing');
+assert(projectPage.includes('背景音乐与音效可分别按 0–100% 调节'), 'project page independent audio controls missing');
+assert(projectPage.includes('专门设计的手机触控布局'), 'project page mobile support missing');
+assert(!projectPage.includes('始终保持同一个 C 键') && !projectPage.includes('C 职业技能'), 'project page legacy C contract returned');
+assert(!projectPage.includes('主要面向电脑端浏览器'), 'project page obsolete desktop-only claim returned');
 
 // Language follower must own visible help/footer plus tooltip/accessibility attributes.
 assert(runtime.includes('function syncHelp()'), 'bilingual help follower missing');
