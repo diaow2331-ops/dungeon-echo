@@ -8,7 +8,8 @@ const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const version = read('VERSION').trim();
+const gameVersion = read('VERSION').trim();
+const siteVersion = read('ops/home-mount/SITE_VERSION').trim();
 const home = read('ops/home-mount/public/index.html');
 const detail = read('ops/home-mount/public/toys/dungeon-echo/index.html');
 const deploy = read('ops/home-mount/deploy.sh');
@@ -16,6 +17,9 @@ const health = read('ops/home-mount/healthcheck.sh');
 const builder = path.join(root, 'ops/release/build-home-mount-bundle.sh');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-home-mount-'));
 const archive = path.join(temp, 'mount.zip');
+
+assert.match(gameVersion, /^1\.2\.\d+$/);
+assert.match(siteVersion, /^1\.2\.\d+$/);
 
 // Homepage conversion contract: product-first, bilingual, real Dungeon Echo art.
 assert.match(home, /02 WEB TOYS/);
@@ -28,16 +32,18 @@ assert.match(home, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/class-roster\.
 assert.match(home, /href="https:\/\/play\.91hwl\.cn\/dungeon-echo\//);
 assert.match(home, /href="\/toys\/dungeon-echo\//);
 assert.match(home, /https:\/\/github\.com\/diaow2331-ops\/dungeon-echo/);
-assert.match(home, /v1\.2\.2/);
 assert.match(home, /twitter:card/);
 assert.match(home, /hreflang="en"/);
 assert.match(home, /"@type": "WebSite"/);
 assert.match(home, /摸鱼到下班/);
 
-// Dungeon Echo project page must carry the current product/release story itself.
+// The website candidate has an explicit site version. A game-only hotfix must not silently
+// relabel this page before the site files themselves are updated and reviewed.
+const escapedSite = siteVersion.replace(/\./g, '\\.');
 assert.match(detail, /<title>Dungeon Echo · 地牢回响 \| 91hwl<\/title>/);
-assert.match(detail, new RegExp(`data-site-version="${version.replace(/\./g, '\\.')}"`));
-assert.match(detail, new RegExp(`Dungeon Echo v${version.replace(/\./g, '\\.')}`));
+assert.match(detail, new RegExp(`data-site-version="${escapedSite}"`));
+assert.match(detail, new RegExp(`Dungeon Echo v${escapedSite}`));
+assert.match(detail, new RegExp(`"softwareVersion":"${escapedSite}"`));
 assert.match(detail, /data-lang-choice="zh"/);
 assert.match(detail, /data-lang-choice="en"/);
 assert.match(detail, /href="https:\/\/play\.91hwl\.cn\/dungeon-echo\/\?lang=en"/);
@@ -47,7 +53,6 @@ assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/class-roster
 assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/town-backdrop-v11\.webp/);
 assert.match(detail, /https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/final-boss-v11\.png/);
 assert.match(detail, /"@type":"VideoGame"/);
-assert.match(detail, /"softwareVersion":"1\.2\.2"/);
 assert.match(detail, /LOCALSTORAGE/);
 assert.match(detail, /MIT/);
 
@@ -63,6 +68,7 @@ assert.match(health, /play\.91hwl\.cn\/dungeon-echo\//);
 
 let result = spawnSync('bash', [builder, archive], { cwd: root, encoding: 'utf8' });
 assert.equal(result.status, 0, result.stderr);
+assert.match(result.stdout, new RegExp(`site_version=${escapedSite}`));
 result = spawnSync('unzip', ['-Z1', archive], { encoding: 'utf8' });
 assert.equal(result.status, 0, result.stderr);
 const files = result.stdout.trim().split(/\r?\n/);

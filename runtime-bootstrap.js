@@ -1,4 +1,4 @@
-/* Dungeon Echo production UX bootstrap v2.
+/* Dungeon Echo production UX bootstrap v3.
  * Core gameplay/input/balance are synchronous in index.html.
  * Locale is one stable event-driven owner; late followers are presentation-only.
  */
@@ -7,7 +7,7 @@
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
   const chain = Object.freeze([
-    ['release-stamp-v122.js', 'data-de-release-stamp-v122', () => !!window.__DE_RELEASE_STAMP_V122],
+    ['release-stamp-v123.js', 'data-de-release-stamp-v123', () => !!window.__DE_RELEASE_STAMP_V123],
     ['locale-runtime-v122.js', 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     ['character-art-cleanup-v122.js', 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
     ['world-loot-polish-v122.js', 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
@@ -38,7 +38,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v2');
+      script.setAttribute(marker, 'v3');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -65,5 +65,5 @@
   if (document.body) start();
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v2', start, loadScript, chain };
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v3', start, loadScript, chain };
 })();

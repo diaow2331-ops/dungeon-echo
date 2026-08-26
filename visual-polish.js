@@ -1,6 +1,7 @@
-/* Dungeon Echo desktop visual polish v5.
+/* Dungeon Echo visual polish v6.
  * Presentation-only overlay for the public classic-100 route.
- * Owns atmosphere, v13 equipment art, tier identity, character gear and town art parity.
+ * Owns atmosphere, v13 equipment art, tier identity and town art parity.
+ * v6 makes overlay entity coordinates camera-aware and removes the obsolete player halo.
  * It never changes combat, map state, RNG, save data, item stats or equipment identities.
  */
 (() => {
@@ -15,7 +16,7 @@
   if (!stage || !game || typeof game.getContext !== 'function') return;
 
   const style = document.createElement('style');
-  style.id = 'de-visual-polish-v5';
+  style.id = 'de-visual-polish-v6';
   style.textContent = `
     #stage{position:relative;isolation:isolate;background:#080706}
     #game{position:relative;z-index:1;filter:saturate(1.07) contrast(1.045) brightness(.985)}
@@ -78,6 +79,8 @@
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const rgba = (rgb, a) => `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
   const classId = () => api.classId || (api.meta && api.meta.classId) || 'warrior';
+  const isMobileUi = () => typeof innerWidth === 'number' && innerWidth <= 900 ||
+    (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches);
   const tierIndex = (min, thresholds) => {
     const value = Math.max(1, Number(min) || 1);
     let i = 0;
@@ -143,11 +146,21 @@
 
   function dims() {
     const grid = api.mapGrid;
-    const cols = Array.isArray(grid) && grid[0] ? grid[0].length : 40;
-    const rows = Array.isArray(grid) && grid.length ? grid.length : 28;
+    const mapCols = Array.isArray(grid) && grid[0] ? grid[0].length : 40;
+    const mapRows = Array.isArray(grid) && grid.length ? grid.length : 28;
     const width = Number(game.width) || 1280;
     const height = Number(game.height) || 896;
-    return { cols,rows,width,height,tw:width/Math.max(1,cols),th:height/Math.max(1,rows) };
+    const cols = clamp(Math.round(width / 32), 1, mapCols);
+    const rows = clamp(Math.round(height / 32), 1, mapRows);
+    const p = api.player;
+    const px = p && Number.isFinite(Number(p.x)) ? Number(p.x) : 0;
+    const py = p && Number.isFinite(Number(p.y)) ? Number(p.y) : 0;
+    const vx = clamp(px - Math.floor(cols / 2), 0, Math.max(0, mapCols - cols));
+    const vy = clamp(py - Math.floor(rows / 2), 0, Math.max(0, mapRows - rows));
+    return {
+      cols, rows, mapCols, mapRows, vx, vy, width, height,
+      tw:width/Math.max(1,cols), th:height/Math.max(1,rows),
+    };
   }
 
   function position(entity,d) {
@@ -155,7 +168,7 @@
     const x = Number.isFinite(Number(entity.fx)) ? Number(entity.fx) : Number(entity.x);
     const y = Number.isFinite(Number(entity.fy)) ? Number(entity.fy) : Number(entity.y);
     if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-    return { x:(x+.5)*d.tw, y:(y+.52)*d.th };
+    return { x:(x-d.vx+.5)*d.tw, y:(y-d.vy+.52)*d.th };
   }
 
   function radial(x,y,inner,outer,rgb,alpha) {
@@ -238,7 +251,7 @@
   }
 
   function syncTownRows(rootSelector,buttonSelector,attr,items) {
-    const root = document.querySelector && document.querySelector(rootSelector);
+    const root=document.querySelector && document.querySelector(rootSelector);
     if (!root || !Array.isArray(items) || typeof root.querySelectorAll !== 'function') return 0;
     let changed = 0;
     for (const row of Array.from(root.querySelectorAll('.town-row'))) {
@@ -307,6 +320,7 @@
   }
 
   function drawDust(now,d,depth){
+    if(isMobileUi()) return;
     const count=depth>=70?18:depth>=30?14:10;
     const t=reduceMotion?0:now/1000;
     const pulseSpeed=depth>=80?1:.65;
@@ -322,25 +336,6 @@
       ctx.fill();
     }
     ctx.restore();
-  }
-
-  function drawPlayerPresence(now,d){
-    const p=api.player;
-    const pos=position(p,d);
-    if(!p||!pos) return;
-    const rgb=CLASS_GLOW[classId()]||CLASS_GLOW.warrior;
-    const pulse=reduceMotion ? .5 : .5+.5*Math.sin(now*.0042);
-    radial(pos.x,pos.y+d.th*.18,d.tw*.12,d.tw*(1.05+pulse*.10),rgb,.12+pulse*.035);
-    if((Number(p.skillCd)||0)<=0){
-      ctx.save();
-      ctx.globalAlpha=.16+pulse*.08;
-      ctx.strokeStyle=rgba(rgb,1);
-      ctx.lineWidth=1.25;
-      ctx.beginPath();
-      ctx.ellipse(pos.x,pos.y+d.th*.26,d.tw*(.48+pulse*.025),d.th*.17,0,0,Math.PI*2);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 
   function drawEnemyPresence(now,d){
@@ -403,7 +398,6 @@
     if(api.state!=='playing') return;
 
     drawDepthAtmosphere(now,d);
-    drawPlayerPresence(now,d);
     drawCharacterGear(now,d);
     drawEnemyPresence(now,d);
   }
@@ -411,7 +405,7 @@
   let lastPaint=-Infinity;
   function frame(now){
     const t=Number(now)||0;
-    const interval=reduceMotion?120:33;
+    const interval=reduceMotion?120:(isMobileUi()?50:33);
     if(t-lastPaint>=interval){draw(t);lastPaint=t;}
     requestAnimationFrame(frame);
   }
@@ -427,6 +421,6 @@
   window.__DE_TOWN_EQUIPMENT_ART = {
     version:'v1', ensureTownRowIcon, syncTownRows, syncTownEquipmentUi,
   };
-  window.__DE_VISUAL_POLISH = { version:'v5', draw, dims, classGlow:{...CLASS_GLOW} };
+  window.__DE_VISUAL_POLISH = { version:'v6', draw, dims, classGlow:{...CLASS_GLOW} };
   requestAnimationFrame(frame);
 })();
