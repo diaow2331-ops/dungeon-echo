@@ -9,6 +9,7 @@ const content = fs.readFileSync('i18n-content.js','utf8');
 const loader = fs.readFileSync('runtime-bootstrap.js','utf8');
 const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
 const tutorial = fs.readFileSync('combat-hint-polish.js','utf8');
+const html = fs.readFileSync('index.html','utf8');
 const release = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/);
 
 // Mild challenge: raise mistake cost, not encounter duration.
@@ -65,9 +66,14 @@ assert(content.includes('Lord of the Final Abyss enters Phase III'), 'finale pha
 assert(content.includes('let out=src;') && content.includes('return replaceNames(out);'), 'sentence grammar must translate before entity names');
 assert(!/\.name\s*=\s*translateEn|\.name\s*=\s*nameEn/.test(content), 'content localization must not mutate saved/gameplay names');
 
-// Production load order belongs to the dedicated runtime bootstrap, never optional shop art.
+// Balance is the last synchronous gameplay layer; late bootstrap owns presentation/control only.
+const desktopPos = html.indexOf('<script src="desktop-controls.js"></script>');
+const challengePos = html.indexOf('<script src="challenge-pressure.js"></script>');
+const bootstrapPos = html.indexOf('<script src="runtime-bootstrap.js"></script>');
+assert(desktopPos >= 0 && challengePos > desktopPos && bootstrapPos > challengePos,
+  'challenge pressure must be final synchronous gameplay layer immediately before UX bootstrap');
+assert(!loader.includes("'challenge-pressure.js'"), 'late UX bootstrap must not own gameplay balance');
 assert(loader.includes('window.__DE_PRODUCTION_UX_BOOTSTRAP'), 'production UX bootstrap owner missing');
-const challengePos = loader.indexOf("'challenge-pressure.js'");
 const i18nPos = loader.indexOf("'i18n.js'");
 const runtimePos = loader.indexOf("'i18n-runtime.js'");
 const contentPos = loader.indexOf("'i18n-content.js'");
@@ -75,8 +81,8 @@ const controlsPos = loader.indexOf("'combat-controls.js'");
 const hintPos = loader.indexOf("'combat-hint-polish.js'");
 const audioPos = loader.indexOf("'audio-director.js'");
 const mobilePos = loader.indexOf("'mobile-ux.js'");
-assert(challengePos >= 0 && i18nPos > challengePos && runtimePos > i18nPos && contentPos > runtimePos && controlsPos > contentPos && hintPos > controlsPos && audioPos > hintPos && mobilePos > audioPos,
-  'production UX chain challenge -> i18n -> runtime -> content -> controls -> hint -> audio -> mobile broken');
+assert(i18nPos >= 0 && runtimePos > i18nPos && contentPos > runtimePos && controlsPos > contentPos && hintPos > controlsPos && audioPos > hintPos && mobilePos > audioPos,
+  'production UX chain i18n -> runtime -> content -> controls -> hint -> audio -> mobile broken');
 assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('i18n.js'"), 'optional shop art must not own production UX boot');
 for (const f of ['runtime-bootstrap.js','challenge-pressure.js','i18n.js','i18n-runtime.js','i18n-content.js','combat-controls.js','combat-hint-polish.js','audio-director.js','mobile-ux.js']) {
   assert(release.includes(f), `release manifest missing ${f}`);
