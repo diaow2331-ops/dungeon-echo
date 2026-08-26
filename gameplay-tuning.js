@@ -146,8 +146,8 @@
         if (!m || (!m.midBoss && !m.boss)) continue;
         if (m.slow) { m.slow=false; changed=true; }
         if (Number(m.skip)) { m.skip=0; changed=true; }
-        if (Number(m.armorBreakCharge)>0) { m.armorBreakCharge=0; changed=true; }
-        if (m.armorBreakMode) { m.armorBreakMode=null; changed=true; }
+        // Floor-10 armorBreakCharge/mode are core telegraph state and must survive reload.
+        // Only content-system's transient slow/skip reservation fields are sanitized here.
       }
       if (changed) localStorage.setItem(RUN_KEY, JSON.stringify(raw));
       return changed;

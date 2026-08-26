@@ -88,6 +88,18 @@ monsters = [];
 ok(I && I.canLeaveDepth() === true, 'observed defeated guardian unlocks descent');
 ok(I && I.guardianCleared(10) && I.allowedCheckpoints().includes(11), 'guardian proof unlocks checkpoint 11');
 
+storage.set('de-run-v6', JSON.stringify({
+  profileId: 'classic-100',
+  monsters: [{ midBoss: true, hp: 20, slow: true, skip: 1, armorBreakCharge: 2, armorBreakMode: 'melee' }],
+}));
+ok(I && I.sanitizeGuardianSave() === true, 'resume sanitizer repairs only transient guardian reservation state');
+{
+  const saved = JSON.parse(storage.get('de-run-v6'));
+  const g = saved.monsters[0];
+  ok(g.slow === false && g.skip === 0, 'content-system transient slow/skip reservation is cleared on resume');
+  ok(g.armorBreakCharge === 2 && g.armorBreakMode === 'melee', 'floor-10 armor-break telegraph survives resume');
+}
+
 let plan = I && I.attackPlan('ranger', new Set(['se_r60_marksman', 'se_r80_phantom']), false);
 ok(plan && plan.scale === 0.35, '60F marksman follow-up is not weakened by 80F phantom');
 plan = I && I.attackPlan('ranger', new Set(['se_r80_chain']), true);
