@@ -1,8 +1,8 @@
 # AI-assisted development record
 
-Dungeon Echo is a human-directed project that has used **OpenAI ChatGPT as an AI engineering collaborator** during development, debugging, release preparation and post-launch refinement.
+Dungeon Echo is a human-directed project that has used **OpenAI ChatGPT as an AI engineering collaborator** during development, debugging, release preparation, art integration, repository governance and post-launch refinement.
 
-This document exists to make that collaboration explicit without overstating authorship or implying endorsement.
+This document makes that collaboration explicit without overstating authorship or implying endorsement.
 
 ## Collaboration model
 
@@ -14,133 +14,93 @@ The repository maintainer owns the project and is responsible for:
 - repository permissions, merges and releases;
 - live deployment and operational decisions.
 
-ChatGPT has been used to accelerate engineering work by inspecting the actual repository state, reasoning across systems, proposing or applying focused changes, and helping turn observations into testable implementation plans.
+ChatGPT has been used to inspect the actual repository state, reason across systems, propose or apply focused changes, and turn observations into reviewable implementation plans and regression contracts.
 
-AI output is treated as **engineering input that must be inspected and validated**, not as an authority.
+AI output is treated as engineering input that must be inspected and validated, not as an authority.
 
 ## Areas where ChatGPT has contributed
 
-### 1. Repository and architecture analysis
+### Repository and architecture
 
-AI-assisted review has been used to understand the interaction between the core `game.js` engine and the gradually extracted production modules.
+AI-assisted work has included tracing the interaction between `game.js` and the extracted production modules, preserving the rule that modularization must reduce risk rather than exist for its own sake.
 
-The collaboration has emphasized incremental modularization: move a system only when it has a real responsibility and a stable boundary, rather than rewriting the game to make the architecture look newer.
+Current examples include gameplay/equipment/town/commerce/forge/progression/content modules, J/K + Mana controls, pressure/defense layers, presentation followers and the v1.2.2 locale/art cleanup runtime.
 
-Relevant current modules include:
+### Gameplay and systems reasoning
 
-- `gameplay-tuning.js`
-- `equipment-system.js`
-- `progression-system.js`
-- `town-system.js`
-- `commerce-system.js`
-- `forge-system.js`
-- `content-system.js`
-- `desktop-controls.js`
-
-### 2. Gameplay and systems reasoning
-
-ChatGPT has been used to reason about gameplay problems that were not well explained by a single number, including:
+Examples include:
 
 - replacing hidden/random anti-defense behavior with readable counterplay;
 - separating class-relative equipment fit from class-independent economic value;
 - turning high-rarity equipment into behavior-changing build choices;
-- keeping forging bounded instead of introducing unlimited random reroll loops;
-- analyzing the interaction between gold income, finite supplies, checkpoints, forging, selling and the fortune wheel;
-- identifying the gap between generic guardian trait combinations and truly bespoke boss encounters;
-- defining milestone skill evolution that changes behavior without expanding the hotkey bar;
-- defining a town direction that behaves like a persistent progression hub rather than a storage spreadsheet.
+- keeping forging bounded instead of creating unlimited reroll loops;
+- analyzing gold, finite supplies, checkpoints, forging, selling and the fortune wheel as one economy;
+- replacing generic guardian trait piles with readable encounter mechanics;
+- defining milestone skill evolution without expanding the hotkey bar;
+- improving town risk/preparation clarity without forcing unnecessary avatar walking.
 
-The aim has been to improve player decisions, not merely increase the number of systems.
+The aim has been to improve player decisions, not merely increase system count.
 
-### 3. Debugging and regression strategy
+### Debugging and regression strategy
 
-AI-assisted debugging has focused on finding structural causes before repeatedly changing balance numbers.
-
-The workflow favors:
+The collaboration favors:
 
 - deterministic reproduction where possible;
-- narrow tests that can actually falsify a proposed fix;
-- preserving compatible saves;
-- separating production `classic-100` behavior from short development fixtures;
-- using simulation as diagnostic evidence rather than treating bot win rate as the product goal;
-- avoiding large unrelated test runs when a smaller check is sufficient.
+- narrow tests that can falsify a proposed fix;
+- compatible-save preservation;
+- explicit separation of production `classic-100` from development fixtures;
+- simulation as diagnostic evidence rather than a substitute for human play;
+- avoiding large unrelated test runs when a smaller contract is sufficient.
 
-### 4. Release and deployment reasoning
+### Release, deployment and governance
 
-ChatGPT has also been used during release/deployment work to reason about:
+AI-assisted work has also covered:
 
-- static production packaging;
-- explicit public-file allowlists;
-- deployment verification;
-- preserving the existing 91hwl Web Toys tree;
+- static production packaging and allowlists;
+- 91hwl deployment topology and rollback paths;
 - origin/public health checks;
-- rollback-oriented deployment paths;
-- keeping the core game independent from unnecessary runtime backend services.
+- release/version documentation;
+- branch/PR/Issue hygiene;
+- protecting current repository truth from stale historical documentation.
 
 The resulting public game remains a static browser application.
 
-### 5. Documentation and project communication
+### Art and presentation integration
 
-AI-assisted documentation work has included turning implementation history into clearer public project communication:
+AI-assisted integration/review has included:
 
-- explaining the 1→100 product loop before internal engineering detail;
-- separating production behavior from regression fixtures;
-- distinguishing completed v1.0.0 work from post-launch priorities;
-- replacing temporary transition-oriented documentation with a durable maintenance guide;
-- correcting stale balance/security/contribution wording after production behavior changed;
-- documenting known limitations instead of hiding them;
-- recording AI collaboration transparently for reviewers and contributors.
+- class hero, monster, guardian, final-boss and town art integration;
+- equipment atlas continuity across dungeon, inventory, town and shop;
+- desktop atmosphere and combat-presence polish;
+- removal of detached/obsolete character-equipment overlays;
+- ground-loot presentation and forge feedback cleanup;
+- preserving presentation-only boundaries so art work does not silently mutate gameplay state.
 
-## Current documented pass
+The visual direction and acceptance decisions remain maintainer-controlled.
 
-On **2026-08-26**, the public-repository documentation/refinement pass was assisted by **GPT-5.6 Sol**.
+## 2026-08-26 documentation and v1.1 integration passes
 
-That pass updated or introduced the project-facing and maintenance documentation, including:
+GPT-5.6 Sol assisted with the public-repository documentation/refinement and v1.1 integration work, including repository analysis, conflict resolution, current-state documentation, the art/town remaster merge and production/release boundary review.
 
-- `README.md`
-- `PRODUCTION_ROADMAP.md`
-- `RELEASE_NOTES_v1.0.0.md`
-- `DEVELOPMENT.md`
-- `README.txt`
-- `MAINTENANCE.md`
-- `BALANCE_NOTES.md`
-- `CONTRIBUTING.md`
-- `SECURITY.md`
-- `.github/ISSUE_TEMPLATE/gameplay_balance.yml`
-- `AI_COLLABORATION.md`
+The v1.1 gameplay refinement work also included readable guardian state machines and four-class skill evolution at floors 20 / 40 / 60 / 80. The current active-skill input is **K**, not the historical C binding. Later v1.2 work separated movement from explicit **J Attack / K Skill** control and added Mana.
 
-The purpose of the pass was to align documentation with the actual live product, remove stale transition-era framing from current project surfaces, document the next engineering priorities, and make the human/AI collaboration model explicit.
+## v1.2 / v1.2.2 refinement
 
-## v1.1 integration pass
+On **2026-08-26–27**, GPT-5.6 Sol assisted with the v1.2 release line and v1.2.2 final game-polish/governance work.
 
-On **2026-08-26**, GPT-5.6 Sol also assisted with integrating the v1.1 art/town remaster into the current mainline.
+This included:
 
-The work included:
+- J Attack / K Skill + class-specific Mana and persistence reasoning;
+- mobile portrait/landscape UX and audio-resume hardening;
+- Chinese / English presentation work;
+- later replacement of the layered localization chain with the stable `locale-runtime-v122.js` per-page model after human testing exposed stalls;
+- character-art residual cleanup so obsolete equipment geometry no longer competes with the hero atlas;
+- ground-loot presentation and forge feedback polish;
+- release/deployment verification improvements;
+- repository documentation alignment after v1.2.2;
+- classification of accumulated merged branches and release-boundary debt.
 
-- diagnosing why the art branch had become unmergeable after later documentation/governance commits;
-- comparing the branch and current `main` to prove the intervening changes were documentation/governance only;
-- constructing a resolved merge tree that preserved current README, maintenance, security and AI-collaboration documents instead of overwriting them with older branch copies;
-- retaining the v1.1 hero, monster, guardian, final-boss and town assets plus their runtime fallbacks, UI integration and release allowlist changes;
-- restoring PR #26 to a clean, reviewable state and merging it through a squash commit;
-- aligning the repository-facing v1.1 status and release notes with the actual mainline state without claiming deployment before health checks succeed.
-
-The v1.1 visual concepts and product direction remained maintainer-controlled; the AI contribution here was repository analysis, integration reasoning, conflict resolution and implementation assistance.
-
-## v1.1 gameplay refinement pass
-
-On **2026-08-26**, GPT-5.6 Sol assisted with the gameplay-focused portion of the v1.1 release candidate.
-
-The work included:
-
-- replacing floors 20–100 guardian trait piles with incremental, readable state machines rather than rewriting the core combat engine;
-- designing and integrating one-turn telegraphs and explicit counterplay for Frost Ring, Ember Mark, Hunter Line, Mending Channel, Blood Tether, Rupture Cross, Arcane Strip, Echo Trial and the three-phase End-Abyss Sovereign finale;
-- keeping guardian specials from stacking with a normal attack on the same turn;
-- adding focused deterministic guardian transition coverage that reached **37/37** for the completed 10→100 encounter set;
-- reviewing and integrating four-class skill evolution at floors 20 / 40 / 60 / 80 while preserving the single `C` skill input and existing save schema;
-- adding focused skill-evolution coverage that reached **9/9**, including milestone catch-up and temporary-stat leakage protection;
-- keeping Issues #4 and #5 open for human-play validation after the code-side implementation was complete, rather than treating automated tests as proof of final balance.
-
-These changes were implemented through focused branches and pull requests, preserving the existing static deployment topology and local-save contracts.
+The v1.2.2 art/UX pass is treated as the end of this broad game-polish cycle. Further game/art changes should be driven by concrete player-facing evidence rather than a need to keep increasing version scope.
 
 ## What this disclosure does not mean
 
