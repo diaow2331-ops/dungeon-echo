@@ -1,12 +1,12 @@
 # Dungeon Echo Maintenance Guide
 
-This document describes the current production and repository contract for **v1.2.2**.
+This document describes the current production and repository contract for **v1.2.3**.
 
 For product-facing information, start with `README.md`. For current priorities, use `PRODUCTION_ROADMAP.md`. Historical release notes preserve old implementation context; current documents must describe the product as it exists now.
 
 ## Current release contract
 
-- Repository release line: **v1.2.2**.
+- Repository release line: **v1.2.3**.
 - `VERSION` is the repository version authority; deployment is only proven after the normal activation and health checks pass.
 - Production journey: **floor 1 → floor 100**.
 - Play: `https://play.91hwl.cn/dungeon-echo/`
@@ -48,10 +48,10 @@ Changes to combat, equipment, return scrolls, death risk, town economy, forging 
 
 ## Controls and mana
 
-- Movement/facing: WASD / arrows / map click; mobile D-pad.
+- Movement/facing: WASD / arrows / map click; mobile four-way D-pad.
 - Attack: **J** / mobile Attack.
 - Active skill: **K** / mobile Skill.
-- Wait/focus: Space or `.` / D-pad center.
+- Wait/focus: Space or `.` on keyboard; deliberately not exposed on the mobile D-pad because the center target caused accidental turn consumption.
 - Potion: Q.
 - Scroll: E.
 - Return: T.
@@ -85,7 +85,7 @@ Six slots: weapon, armor, helmet, boots, ring and amulet.
 
 The production contract includes class-relative combat fit, class-independent intrinsic value, Epic/Legendary mechanic traits, deterministic +1…+5 forging, +3 refinement choices and +5 masterwork completion.
 
-Tier-specific v13 equipment art is authoritative for item presentation. v1.2.2 deliberately suppresses obsolete equipment-derived hero geometry/overlays so the hero atlas remains the sole character-art owner. Do not restore those retired character overlay paths.
+Tier-specific v13 equipment art is authoritative for item presentation. The current line deliberately suppresses obsolete equipment-derived hero geometry/overlays so the hero atlas remains the sole character-art owner. Do not restore those retired character overlay paths.
 
 ### Guardians and finale
 
@@ -138,14 +138,14 @@ Core/shared gameplay:
 
 Presentation/runtime followers:
 
-- `visual-polish.js` — atmosphere and town/equipment presentation.
+- `visual-polish.js` — camera-aware atmosphere and town/equipment presentation; it must not restore an always-on player halo.
 - `equipment-shop-ui.js` — equipment/shop presentation bridge.
 - `locale-runtime-v122.js` — stable zh/en locale runtime.
 - `character-art-cleanup-v122.js` — presentation-only hero cleanup.
 - `world-loot-polish-v122.js` — visible ground-loot presentation.
 - `forge-feedback-v122.js` — post-result forge feedback.
 - `audio-director.js` — music/SFX mixer.
-- `mobile-ux.js` — mobile layout/haptics/hold-to-walk.
+- `mobile-ux.js` — mobile layout/haptics/direct pointer-down movement; it owns non-fullscreen browser-chrome stabilization and the four-way D-pad.
 - `runtime-bootstrap.js` — late presentation/runtime followers.
 
 Profiles:
@@ -157,7 +157,7 @@ The architecture rule is incremental extraction, not rewrite for rewrite's sake.
 
 ## Save compatibility
 
-v1.2.2 intentionally preserves:
+v1.2.3 intentionally preserves:
 
 - run key `de-run-v6`, save version 2;
 - town/meta key `de-greedy-meta-v1`;
@@ -197,9 +197,9 @@ Expected markers include:
 
 If deployment disconnects or fails, identify the last proven PASS marker before rerunning anything. Do not bypass checksum guards or rollback protection simply to force a release through.
 
-## Repository governance after v1.2.2
+## Repository governance after v1.2.3
 
-The game/art line is intentionally frozen unless human evidence finds a concrete defect.
+The broad game/art line remains frozen. v1.2.3 is a narrow device/visual defect patch, not a reopened redesign cycle.
 
 Current order of work:
 
@@ -227,7 +227,7 @@ Merged feature branches are historical pointers, not permanent development lines
 ## Recommended reading order
 
 1. `README.md`
-2. `RELEASE_NOTES_v1.2.2.md`
+2. `RELEASE_NOTES_v1.2.3.md`
 3. `PRODUCTION_ROADMAP.md`
 4. current open Issues
 5. `DEVELOPMENT.md`
