@@ -16,6 +16,7 @@ visual-polish.js
 equipment-shop-ui.js
 i18n.js
 i18n-runtime.js
+i18n-content.js
 combat-controls.js
 combat-hint-polish.js
 audio-director.js
