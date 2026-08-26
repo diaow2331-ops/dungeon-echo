@@ -16,9 +16,6 @@
     wearable: { url: 'art/equipment-wearables-v13.png', cols: 6, rows: 5 },
   });
 
-  // Warm both v13 atlases as soon as the visual layer is ready. They are reused by the
-  // dungeon bag, equipment bar, character overlay, town and merchant UI, so starting the
-  // requests here avoids a visible first-open decode/load flash without touching gameplay.
   const preload = [];
   if (typeof Image !== 'undefined') {
     for (const sheet of Object.values(SHEETS)) {
@@ -88,16 +85,23 @@
     observer.observe(root, { childList: true, subtree: true });
   }
 
-  // combat-controls must run after gameplay-tuning/defense/desktop controls have completed
-  // their synchronous bootstrap. Loading it at window.load gives the new J/K input layer the
-  // final capture-stage ownership without reordering the stable production script chain.
-  function loadCombatControls() {
-    if (window.__DE_COMBAT_CONTROLS_V1 || document.querySelector('script[data-de-combat-controls]')) return;
+  // Late presentation/input layers intentionally load after the stable synchronous core chain.
+  // Combat controls owns final J/K capture semantics; hint/audio are presentation-only followers.
+  function loadScript(src, marker, ready, done) {
+    if (ready() || document.querySelector(`script[${marker}]`)) { if (done) done(); return; }
     const script = document.createElement('script');
-    script.src = 'combat-controls.js';
+    script.src = src;
     script.async = false;
-    script.dataset.deCombatControls = 'v1';
+    script.setAttribute(marker, 'v1');
+    if (done) { script.addEventListener('load', done, { once:true }); script.addEventListener('error', done, { once:true }); }
     document.body.appendChild(script);
+  }
+
+  function loadCombatControls() {
+    loadScript('combat-controls.js', 'data-de-combat-controls', () => !!window.__DE_COMBAT_CONTROLS_V1, () => {
+      loadScript('combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH);
+      loadScript('audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR);
+    });
   }
   if (document.readyState === 'complete') setTimeout(loadCombatControls, 0);
   else window.addEventListener('load', () => setTimeout(loadCombatControls, 0), { once: true });
