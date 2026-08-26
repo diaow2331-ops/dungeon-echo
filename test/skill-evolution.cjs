@@ -42,6 +42,10 @@ const source = fs.readFileSync(path.resolve(__dirname, '..', 'progression-system
 vm.runInThisContext(source, { filename: 'progression-system.js' });
 
 ok(window.__DE_PROGRESSION_SYSTEM === 'v2', 'progression bridge reports v2');
+ok((listeners.keydown || []).length === 1 && (listeners.click || []).length === 1,
+  'progression no longer registers a second keyboard-only follow-up attack listener');
+ok(window.DE_SKILL_EVOLUTION.nextAttackOwner === 'mechanics-integrity',
+  'cross-input mechanics layer is the single owner of next-attack consumption');
 ok(api.TALENTS.length === 2 && api.TALENTS.every(t => t.id.startsWith('se_w20_')),
   'floor 20 exposes exactly two warrior skill evolutions');
 

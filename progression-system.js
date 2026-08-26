@@ -86,7 +86,7 @@
         ['se_r60_sustain', '猎手续命', '疾步击杀敌人时恢复最大生命，提升连续猎杀续航。'],
       ],
       80: [
-        ['se_r80_chain', '无尽追猎', '疾步只要完成击杀就维持零冷却，形成高风险追猎链。'],
+        ['se_r80_chain', '无尽追猎', '疾步造成击杀时保持零冷却，并强化下一次方向攻击，形成高风险追猎链。'],
         ['se_r80_phantom', '幻步', '疾步回合获得更强减伤，并为下一次方向攻击留下较小增幅。'],
       ],
     },
@@ -246,40 +246,11 @@
     for (const [m, scale] of rows) if (m && m.hp > 0) api.applyDamageToMonster(m, Math.max(1, Math.round(base * scale) - Math.floor((Number(m.def) || 0) * .4)), false);
   }
 
-  let armedAttack = null;
-  function armNextAttack(scale, label) {
-    armedAttack = { scale, label };
+  // The cross-input follow-up state lives in gameplay-tuning. Progression only announces
+  // the buff here; keeping a second keyboard-only state caused mouse/touch users to consume
+  // one boost while leaving a stale keyboard boost available for a later extra hit.
+  function announceNextAttack(label) {
     announce(`${label}已蓄势：下一次方向攻击获得强化。`);
-  }
-
-  function directionForKey(key) {
-    return ({ ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0], w:[0,-1], W:[0,-1], s:[0,1], S:[0,1], a:[-1,0], A:[-1,0], d:[1,0], D:[1,0] })[key] || null;
-  }
-
-  function hasDirectionalTarget(dx, dy) {
-    const p = api.player;
-    if (!p) return false;
-    if (monsterAt(p.x + dx, p.y + dy)) return true;
-    if (api.classId !== 'ranger') return false;
-    let x = p.x, y = p.y;
-    for (let i = 0; i < 5; i++) {
-      x += dx; y += dy;
-      if (!inBounds(x, y) || api.mapGrid[y][x] === 0) return false;
-      if (monsterAt(x, y)) return true;
-    }
-    return false;
-  }
-
-  function temporarilyBoostNextAttack(e) {
-    if (!armedAttack || !api.player || api.state !== 'playing') return;
-    const dir = directionForKey(e.key);
-    if (!dir || !hasDirectionalTarget(dir[0], dir[1])) return;
-    const bonus = Math.max(1, Math.round(attack() * armedAttack.scale));
-    api.player.atkBase += bonus;
-    const label = armedAttack.label;
-    armedAttack = null;
-    queueMicrotask(() => { if (api.player) api.player.atkBase -= bonus; });
-    announce(`${label}释放：本次方向攻击获得强化。`);
   }
 
   function evolveSkill() {
@@ -337,14 +308,14 @@
       else if (has('se_r40_hunt') && killed) p.skillCd = 0;
       if (has('se_r40_flow') && !killed) p.skillCd = Math.max(0, (p.skillCd || 0) - 2);
       if (has('se_r60_sustain') && killed) p.hp = Math.min(maxHp(), p.hp + Math.max(2, Math.round(maxHp() * .10)));
-      if (has('se_r60_marksman')) armNextAttack(.35, '拉弦余势');
-      if (has('se_r80_phantom')) armNextAttack(.20, '幻步余势');
+      if (has('se_r60_marksman')) announceNextAttack('拉弦余势');
+      if (has('se_r80_phantom')) announceNextAttack('幻步余势');
     } else if (cid === 'assassin') {
       if (has('se_a80_chain') && killed) p.skillCd = 0;
       else if (has('se_a40_tempo') && killed) p.skillCd = Math.max(0, (p.skillCd || 0) - 2);
       if (has('se_a40_blood') && killed) p.hp = Math.min(maxHp(), p.hp + Math.max(2, Math.round(maxHp() * .12)));
-      if (has('se_a60_mark')) armNextAttack(.40, '死亡标记');
-      if (has('se_a80_predator') && !killed) { p.skillCd = Math.max(0, (p.skillCd || 0) - 2); armNextAttack(.25, '猎物未死'); }
+      if (has('se_a60_mark')) announceNextAttack('死亡标记');
+      if (has('se_a80_predator') && !killed) { p.skillCd = Math.max(0, (p.skillCd || 0) - 2); announceNextAttack('猎物未死'); }
     }
 
     if ((Number(p.hp) || 0) > beforeHp) announce('技能进化触发了额外续航。');
@@ -363,12 +334,17 @@
   syncPool();
   const timer = setInterval(syncPool, 250);
   if (typeof document !== 'undefined' && document.addEventListener) {
-    document.addEventListener('keydown', temporarilyBoostNextAttack, true);
     document.addEventListener('keydown', skillInput, true);
     document.addEventListener('click', skillInput, true);
   }
   window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
 
   window.DE_TALENT_RANKS = { caps: { ...CAP }, counts: rankCounts, eligible: eligiblePool };
-  window.DE_SKILL_EVOLUTION = { choices: evolution, pending: pendingEvolution, has, cast: evolveSkill };
+  window.DE_SKILL_EVOLUTION = {
+    choices: evolution,
+    pending: pendingEvolution,
+    has,
+    cast: evolveSkill,
+    nextAttackOwner: 'mechanics-integrity',
+  };
 })();
