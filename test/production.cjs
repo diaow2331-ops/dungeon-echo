@@ -23,12 +23,12 @@ const expectedScripts = [
   'progression-system.js',
   'content-system.js',
   'combat-pressure.js',
-  'challenge-pressure.js',
   'visual-polish.js',
   'equipment-shop-ui.js',
   'gameplay-tuning.js',
   'defense-system.js',
   'desktop-controls.js',
+  'challenge-pressure.js',
   'runtime-bootstrap.js',
 ];
 
