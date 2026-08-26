@@ -50,6 +50,14 @@ assert(content.includes("ctx.fillText=function"), 'Canvas fillText translation w
 assert(content.includes("equipmentName(text)"), 'equipment-name localization parser missing');
 for (const name of ['Iron Sword','Chaos Staff','Void Sovereign','Lord of the Final Abyss']) assert(content.includes(name), `English dynamic content missing: ${name}`);
 assert(content.includes("replace(/攻击 \\+(\\d+)/g,'ATK +$1')"), 'equipment stat localization missing');
+assert(content.includes("'已征服检查点':'Conquered Checkpoints'"), 'checkpoint localization missing');
+assert(content.includes("'保险符':'Insurance Charm'"), 'town supply localization missing');
+assert(content.includes("'锋锐':'Keen'") && content.includes("'凝神':'Focus'"), 'forge path localization missing');
+assert(content.includes("Depart from conquered Floor $1"), 'checkpoint departure copy missing');
+assert(content.includes("Town Tier $1 · Claimed $2/8 slots"), 'wheel-state localization missing');
+assert(content.includes("Owned $1 · Stock $2"), 'town commerce inventory localization missing');
+assert(content.includes("Bind Wounds (Full heal · Missing $1)"), 'dungeon merchant service localization missing');
+assert(content.includes("+3 Refinement: choose a path"), 'forge refinement dialog localization missing');
 assert(!/\.name\s*=\s*translateEn|\.name\s*=\s*nameEn/.test(content), 'content localization must not mutate saved/gameplay names');
 
 // Production order and release packaging.
