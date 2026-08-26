@@ -4,6 +4,8 @@
  * gain the existing one-turn telegraphed armor-break attack so standing still is not immunity.
  * Supply pressure is deliberately mild: floors still roll 1-2 potions, but are no longer
  * force-filled to two and kill drops stop turning deep monster packs into potion farms.
+ * Late guardian telegraphs are true armor-break commitments: dodge them completely, or take
+ * a hit that ignores armor while still respecting fixed mitigation.
  */
 (() => {
   'use strict';
@@ -12,6 +14,11 @@
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !api.runProfile) return;
 
+  // Capture the untouched core combat entries now. gameplay-tuning loads later and wraps the
+  // public API references used by content-system; ordinary monster AI calls lexical core funcs.
+  const coreMeleeAttack = typeof api.monsterAttack === 'function' ? api.monsterAttack : null;
+  const coreRangedAttack = typeof api.monsterRangedAttack === 'function' ? api.monsterRangedAttack : null;
+  const BREAK_SPECIAL_DEPTHS = new Set([40, 60, 70, 80, 90, 100]);
   const profile = api.runProfile;
   const SUPPLY_POLICY = Object.freeze({ minPotions: 1, killPotionThreshold: 0.67 });
   const GUARDIAN_TARGETS = Object.freeze({
@@ -26,6 +33,10 @@
     90:  { hp: 1400, atk: 91,  def: 30 },
     100: { hp: 2200, atk: 104, def: 34 },
   });
+
+  function stackText() {
+    try { return String(new Error().stack || ''); } catch (e) { return ''; }
+  }
 
   function applyTarget(base, depth) {
     const target = GUARDIAN_TARGETS[depth];
@@ -96,7 +107,69 @@
     return true;
   }
 
+  function isBreakingSpecialCall() {
+    if (api.state !== 'playing' || !BREAK_SPECIAL_DEPTHS.has(Number(api.depth) || 0)) return false;
+    return stackText().indexOf('resolveSpecial') >= 0;
+  }
+
+  function installGuardianSpecialBridge() {
+    if (window.__DE_GUARDIAN_SPECIAL_PRESSURE_V1) return true;
+    if (!coreMeleeAttack || !coreRangedAttack) return false;
+    const tunedMelee = api.monsterAttack;
+    const tunedRanged = api.monsterRangedAttack;
+    if (typeof tunedMelee !== 'function' || typeof tunedRanged !== 'function') return false;
+    // Wait until gameplay-tuning has replaced the public special references; otherwise we
+    // would capture ourselves and create recursion on a later retry.
+    if (tunedMelee === coreMeleeAttack && tunedRanged === coreRangedAttack) return false;
+
+    api.monsterAttack = function(m, ...args) {
+      if (isBreakingSpecialCall()) return coreMeleeAttack.call(this, m, true);
+      return tunedMelee.call(this, m, ...args);
+    };
+    api.monsterRangedAttack = function(m, ...args) {
+      if (isBreakingSpecialCall()) return coreRangedAttack.call(this, m, true);
+      return tunedRanged.call(this, m, ...args);
+    };
+    window.__DE_GUARDIAN_SPECIAL_PRESSURE_V1 = {
+      version: 'v1',
+      depths: [...BREAK_SPECIAL_DEPTHS],
+      isBreakingSpecialCall,
+    };
+    return true;
+  }
+
+  let breakBadge = null;
+  function syncSpecialWarning() {
+    const encounter = window.DE_GUARDIAN_ENCOUNTER;
+    const active = encounter && encounter.active;
+    const show = api.state === 'playing' && BREAK_SPECIAL_DEPTHS.has(Number(api.depth) || 0) && !!active;
+    if (!show) {
+      if (breakBadge) breakBadge.hidden = true;
+      return false;
+    }
+    const stage = typeof document !== 'undefined' && document.getElementById('stage');
+    if (!stage) return false;
+    if (!breakBadge) {
+      breakBadge = document.createElement('div');
+      breakBadge.id = 'guardian-break-warning';
+      breakBadge.setAttribute('aria-live', 'polite');
+      breakBadge.textContent = '破甲大招 · 命中无视护甲';
+      Object.assign(breakBadge.style, {
+        position: 'absolute', left: '50%', top: '54px', transform: 'translateX(-50%)',
+        zIndex: '6', pointerEvents: 'none', padding: '5px 9px', borderRadius: '6px',
+        border: '1px solid rgba(255,116,82,.72)', background: 'rgba(34,8,7,.88)',
+        color: '#ffb08d', font: '700 12px/1.35 "Segoe UI","Microsoft YaHei",sans-serif',
+        boxShadow: '0 6px 18px rgba(0,0,0,.35)',
+      });
+      stage.appendChild(breakBadge);
+    }
+    breakBadge.hidden = false;
+    return true;
+  }
+
   function syncExisting() {
+    installGuardianSpecialBridge();
+    syncSpecialWarning();
     if (api.state !== 'playing') return 0;
     const depth = Math.max(1, Number(api.depth) || 1);
     let changed = 0;
@@ -118,7 +191,8 @@
 
   patchProfile();
   syncExisting();
-  const timer = setInterval(syncExisting, 250);
+  setTimeout(installGuardianSpecialBridge, 0);
+  const timer = setInterval(syncExisting, 100);
   if (typeof window.addEventListener === 'function') {
     window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
   }
@@ -129,6 +203,8 @@
     heavyBreakCandidate,
     patchProfile,
     patchSupply,
+    installGuardianSpecialBridge,
+    syncSpecialWarning,
     syncExisting,
   };
   window.__DE_SUSTAIN_PRESSURE_V1 = {
