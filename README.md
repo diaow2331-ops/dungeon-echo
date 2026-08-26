@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/?lang=en) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.2.0 is frozen as the current release candidate. The public site remains on the previously deployed build until the v1.2.0 file-upload deployment is activated and its health checks pass. Existing browser saves remain compatible unless a release note explicitly says otherwise.
+> **Status:** v1.2.0 is the current public build. v1.2.1 is the focused language/hint stability hotfix candidate and is not public until the normal file-upload deployment health checks pass. Existing browser saves remain compatible.
 
 Dungeon Echo is a vanilla HTML/CSS/JavaScript roguelike built around one continuous journey from **floor 1 to floor 100**.
 
@@ -25,7 +25,7 @@ No account is required. Saves live in the browser. The production game is static
 - Adaptive procedural BGM plus independent **Music / SFX 0–100%** controls and persistent master mute.
 - Desktop keyboard/mouse, native Gamepad API and mobile-first portrait/landscape touch controls.
 - Progressive onboarding that teaches mechanics when they become relevant without covering the mobile action deck.
-- Chinese / English localization with automatic browser-language selection, direct language URLs and an in-game language switch.
+- Chinese / English localization with automatic browser-language selection, direct language URLs and a title-screen language selector.
 
 The project deliberately favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -54,9 +54,9 @@ The production UI supports **中文 / English**.
 - `?lang=en` opens the English presentation directly.
 - `?lang=zh` opens Chinese directly.
 - Without a language parameter, the browser language is used on first visit.
-- A manual language switch is persisted locally.
+- v1.2.1 moves manual language choice to the **title screen**. Choosing 中文 / English persists the preference and reloads into that locale instead of translating a live dungeon session in place.
 
-Localization has one language owner (`i18n.js`) with dynamic followers rather than scattered language conditionals. Shell UI, controls, onboarding, sound settings, class identity, equipment, monsters, guardians/finale, town commerce, forging and high-value combat messages all follow the same reversible display-only contract; save/profile identities remain unchanged.
+Localization keeps gameplay/save identities language-independent. Shell UI, controls, onboarding, sound settings, class identity, equipment, monsters, guardians/finale, town commerce, forging and high-value combat messages use display-only localization; saved item/profile identities remain unchanged.
 
 ## Run locally
 
@@ -78,6 +78,7 @@ Then open `http://localhost:8000/`.
 ├── i18n.js                     # Chinese / English language owner
 ├── i18n-runtime.js             # dynamic shell/help/accessibility follower
 ├── i18n-content.js             # display-only gameplay/content localization
+├── ux-hotfix-v121.js           # title-only language + mixed-log/hint stability
 ├── audio-director.js           # adaptive BGM + Music/SFX mixer
 ├── mobile-ux.js                # mobile-first control layout
 ├── equipment-system.js         # equipment generation / fit / value
@@ -100,13 +101,13 @@ Engineering checks protect contracts; they do **not** replace human playtesting.
 
 High-value checks cover production entry, 1→100 descent, guardian state machines, skill evolution, save compatibility, deployment boundaries, input/mana, equipment art, mobile UX, localization and human-play pressure. GitHub Actions is not treated as the only release path; production uses a prepared file-upload / staging / checksum / atomic activation / rollback flow.
 
-The v1.2.0 freeze does not claim a fresh full-suite GitHub Actions run. Actions quota was exhausted during this release line, so v1.2 changes were kept as focused reviewable diffs with targeted static regression contracts. Human play remains the source of truth for feel and long-run balance.
+The v1.2 release line does not claim a fresh full-suite GitHub Actions run. Actions quota was exhausted during this line, so changes are kept as focused reviewable diffs with targeted static regression contracts. Human play remains the source of truth for feel and long-run balance.
 
 ## Save compatibility
 
 Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
 
-v1.2.0 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. It does not require a migration or progress reset.
+v1.2.1 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. It does not require a migration or progress reset.
 
 ## AI-assisted development
 
