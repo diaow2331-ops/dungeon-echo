@@ -4,7 +4,8 @@
  * - reduces non-essential overlay work on mobile where the overlay has no camera transform;
  * - breaks the mobile action MutationObserver self-trigger loop without replacing buttons;
  * - removes sticky/backdrop-filter pressure in non-fullscreen mobile browser chrome;
- * - makes touch gameplay actions fire on pointer-down instead of waiting for pointer-up click.
+ * - makes touch gameplay actions fire on pointer-down instead of waiting for pointer-up click;
+ * - disables the low-value center Wait target on the mobile D-pad to prevent movement mis-taps.
  * Gameplay rules, RNG, saves, keyboard controls and the production 1->100 route are unchanged.
  */
 (() => {
@@ -23,6 +24,7 @@
     html.de-mobile-ui #wrap{overflow-anchor:none}
     html.de-mobile-ui #stage{contain:paint}
     html.de-mobile-ui #dpad button{touch-action:none;user-select:none;-webkit-user-select:none}
+    html.de-mobile-ui #dpad [data-act="wait"]{visibility:hidden!important;pointer-events:none!important}
     html.de-mobile-ui #actions button{touch-action:manipulation;user-select:none;-webkit-user-select:none}
     html.de-mobile-ui.de-browser-chrome #stats{
       position:relative!important;top:auto!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important
@@ -53,6 +55,24 @@
     fresh.dataset.v123ObserverDetached = '1';
     while (oldRoot.firstChild) fresh.appendChild(oldRoot.firstChild);
     oldRoot.replaceWith(fresh);
+    return true;
+  }
+
+  function disableMobileWait() {
+    const wait = document.querySelector('#dpad [data-act="wait"]');
+    if (!wait) return false;
+    if (coarse()) {
+      wait.disabled = true;
+      wait.tabIndex = -1;
+      wait.setAttribute('aria-hidden','true');
+      wait.setAttribute('aria-label','');
+      wait.dataset.v123MobileWaitDisabled = '1';
+    } else if (wait.dataset.v123MobileWaitDisabled === '1') {
+      wait.disabled = false;
+      wait.removeAttribute('aria-hidden');
+      wait.setAttribute('aria-label','等待一回合');
+      wait.removeAttribute('data-v123-mobile-wait-disabled');
+    }
     return true;
   }
 
@@ -104,7 +124,7 @@
 
   function installImmediateTouch() {
     if (!coarse()) return;
-    document.querySelectorAll('#dpad button').forEach(btn => ownPointerButton(btn, true));
+    document.querySelectorAll('#dpad button:not([data-act="wait"])').forEach(btn => ownPointerButton(btn, true));
     const immediate = new Set(['attack','skill','potion','descend','escape','scroll']);
     document.querySelectorAll('#actions button[data-act]').forEach(btn => {
       if (immediate.has(btn.dataset.act)) ownPointerButton(btn, false);
@@ -184,12 +204,14 @@
   function install() {
     syncBrowserChromeClass();
     detachActionObserverLoop();
+    disableMobileWait();
     installImmediateTouch();
     patchVisualOverlay();
   }
 
   document.addEventListener('fullscreenchange', () => {
     syncBrowserChromeClass();
+    disableMobileWait();
     requestAnimationFrame(installImmediateTouch);
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) install(); });
@@ -199,6 +221,7 @@
   setTimeout(install, 80);
 
   window.__DE_MOBILE_VISUAL_FINAL_V123 = {
-    version:'v1', coarse, install, patchVisualOverlay, detachActionObserverLoop, installImmediateTouch,
+    version:'v1', coarse, install, patchVisualOverlay, detachActionObserverLoop,
+    disableMobileWait, installImmediateTouch,
   };
 })();
