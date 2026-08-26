@@ -1,14 +1,13 @@
 /* Dungeon Echo production UX bootstrap v1.
  * Owns the late presentation/control chain independently of optional art/shop modules.
- * Core production scripts are already available when this file runs at the end of index.html,
- * so UX followers can start immediately without waiting for heavyweight image/window load.
+ * Gameplay/balance layers load synchronously from index.html before this file; these UX
+ * followers can start immediately without waiting for heavyweight image/window load.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
   const chain = Object.freeze([
-    ['challenge-pressure.js', 'data-de-challenge-pressure', () => !!window.__DE_CHALLENGE_PRESSURE_V1],
     ['i18n.js', 'data-de-i18n', () => !!window.DE_I18N],
     ['i18n-runtime.js', 'data-de-i18n-runtime', () => !!window.__DE_I18N_RUNTIME_V1],
     ['i18n-content.js', 'data-de-i18n-content', () => !!window.__DE_I18N_CONTENT_V2],
@@ -25,8 +24,6 @@
       if (ready()) { resolve('ready'); return; }
       const existing = document.querySelector(`script[${marker}]`);
       if (existing) {
-        // A duplicate owner should never block the chain forever, but dependency order
-        // still matters. Wait for its outcome, with a bounded fallback for stale nodes.
         if (existing.dataset && existing.dataset.deSettled === '1') { resolve(ready() ? 'ready' : 'existing'); return; }
         let done = false;
         const settle = () => {
