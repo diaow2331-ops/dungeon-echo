@@ -1,6 +1,6 @@
 /* Dungeon Echo production UX bootstrap v2.
  * Core gameplay/input/balance are synchronous in index.html.
- * Locale is now one stable event-driven owner; late UX followers are tutorial/audio/mobile only.
+ * Locale is one stable event-driven owner; late followers are presentation-only.
  */
 (() => {
   'use strict';
@@ -8,6 +8,8 @@
 
   const chain = Object.freeze([
     ['locale-runtime-v122.js', 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
+    ['world-loot-polish-v122.js', 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
+    ['forge-feedback-v122.js', 'data-de-forge-feedback-v122', () => !!window.__DE_FORGE_FEEDBACK_V122],
     ['combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
     ['audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     ['mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
