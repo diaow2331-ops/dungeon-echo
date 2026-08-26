@@ -55,6 +55,7 @@
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
       script.addEventListener('error', () => settle('error'), { once:true });
       document.body.appendChild(script);
+      setTimeout(() => settle('timeout'), 4000);
     });
   }
 
