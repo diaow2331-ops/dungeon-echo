@@ -9,6 +9,7 @@ v1.2.3 is a narrow mobile-responsiveness and visual-cleanup patch on top of the 
 - Reduced non-fullscreen Android browser jitter by taking the mobile HUD/control dock out of sticky/backdrop-filter composition while browser chrome is present.
 - Stopped the mobile action-bar MutationObserver from repeatedly triggering itself through `textContent` rewrites.
 - Made primary touch actions respond on pointer-down rather than waiting for the browser's pointer-up click; directional hold-repeat also starts earlier.
+- Disabled the center mobile D-pad Wait target while keeping its grid position empty, so directional movement cannot accidentally consume a turn through a center-button mis-tap. Desktop Space / `.` wait remains available.
 - Reduced optional mobile overlay paint work while preserving the correctly camera-translated core canvas, guardian telegraphs, gameplay state and map rendering.
 
 ## Unchanged
