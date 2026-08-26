@@ -21,8 +21,10 @@ assert(hotfix.includes("syncEmptyEquipmentSlots"), 'empty equipment-slot languag
 assert(hotfix.includes("syncStandingHint"), 'standing hint language consistency missing');
 
 assert(hotfix.includes("hint.mark('skill')"), 'real successful skill feedback must complete tutorial skill step');
-assert(hotfix.includes('skillFeedbackSeen'), 'routine repeated skill feedback suppression missing');
-assert(hotfix.includes("el.hidden = true"), 'repeated routine prompt suppression missing');
+assert(hotfix.includes('tutorialWasDone'), 'already-completed tutorial state must suppress skill toast immediately');
+assert(hotfix.includes('tutorialWasDone || skillFeedbackSeen'), 'skill toast suppression contract missing');
+assert(hotfix.includes('skillFeedbackSeen'), 'new-player first skill acknowledgement missing');
+assert(hotfix.includes("el.hidden = true"), 'routine prompt suppression missing');
 
 const iContent = runtime.indexOf("['i18n-content.js'");
 const iHotfix = runtime.indexOf("['ux-hotfix-v121.js'");
