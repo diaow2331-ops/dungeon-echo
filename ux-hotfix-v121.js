@@ -58,8 +58,6 @@
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     }
-    // Keep the legacy live-switch button inaccessible. i18n.js may still maintain it internally,
-    // but the player can only choose language from the title screen and selection reloads the page.
     const legacy = document.getElementById('de-lang-toggle');
     if (legacy) { legacy.hidden = true; legacy.tabIndex = -1; legacy.setAttribute('aria-hidden','true'); }
   }
@@ -108,8 +106,7 @@
       .replace(/站在楼梯上按 Enter 下潜/g,'Stand on stairs and press Enter to descend')
       .replace(/点击已探索地块可移动/g,'click explored tiles to move')
       .replace(/J 攻击/g,'J Attack')
-      .replace(/K 技能/g,'K Skill')
-      .replace(/ · /g,' · ');
+      .replace(/K 技能/g,'K Skill');
     if (out !== raw) hint.textContent = out;
   }
 
@@ -171,12 +168,15 @@
     if (!el || el.hidden) return;
     const hint = window.__DE_COMBAT_HINT_POLISH;
     if (isSuccessfulSkillFeedback(el)) {
+      const tutorialState = hint && hint.state;
+      const tutorialWasDone = !!(tutorialState && tutorialState.done && tutorialState.done.skill);
       if (hint && typeof hint.mark === 'function') hint.mark('skill');
-      if (skillFeedbackSeen) el.hidden = true;
+      if (tutorialWasDone || skillFeedbackSeen) el.hidden = true;
       else skillFeedbackSeen = true;
       return;
     }
-    const tutorialDone = hint && hint.state && hint.state.done && hint.state.done.skill;
+    const tutorialState = hint && hint.state;
+    const tutorialDone = !!(tutorialState && tutorialState.done && tutorialState.done.skill);
     if (tutorialDone && /(?:J\s*攻击\s*·\s*K\s*技能|J\s*Attack\s*·\s*K\s*Skill)/i.test(String(el.textContent || ''))) el.hidden = true;
   }
 
@@ -189,8 +189,6 @@
     handleCombatFeedback();
   }
 
-  // Public callers also get safe reload semantics. The old hidden button closes over the original
-  // i18n setter, so it remains hidden and unreachable instead of being used for live switching.
   L.setLang = navigateLanguage;
 
   const log = document.getElementById('log');
