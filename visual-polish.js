@@ -190,8 +190,14 @@
     drawEnemyPresence(now, d);
   }
 
+  let lastPaint = -Infinity;
   function frame(now) {
-    draw(Number(now) || 0);
+    const t = Number(now) || 0;
+    const interval = reduceMotion ? 120 : 33;
+    if (t - lastPaint >= interval) {
+      draw(t);
+      lastPaint = t;
+    }
     requestAnimationFrame(frame);
   }
 
