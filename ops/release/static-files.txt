@@ -22,6 +22,7 @@ combat-controls.js
 combat-hint-polish.js
 audio-director.js
 mobile-ux.js
+ux-hotfix-v121.js
 gameplay-tuning.js
 defense-system.js
 desktop-controls.js
