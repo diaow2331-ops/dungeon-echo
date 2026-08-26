@@ -347,8 +347,11 @@
     if (before) queueMicrotask(() => settleEquipChange(before));
   }
 
-  document.addEventListener('click', armSwapWatch, true);
+  // Keep this on window capture. equipment-system loads before gameplay-tuning, so its
+  // microtask settles the authoritative turn first; the older progression fallback then
+  // observes the advanced turn and exits instead of charging a second turn.
+  window.addEventListener('click', armSwapWatch, true);
   window.__DE_EQUIPMENT_SWAP_TURN = {
-    version: 'v1', snapshotEquip, equipChanged, settleEquipChange,
+    version: 'v1', owner: 'equipment-system', snapshotEquip, equipChanged, settleEquipChange,
   };
 })();
