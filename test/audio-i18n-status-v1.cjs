@@ -2,14 +2,18 @@
 const fs = require('fs');
 const assert = require('assert');
 
-const runtime = fs.readFileSync('i18n-runtime.js','utf8');
+const locale = fs.readFileSync('locale-runtime-v122.js','utf8');
 const audio = fs.readFileSync('audio-director.js','utf8');
+const bootstrap = fs.readFileSync('runtime-bootstrap.js','utf8');
 
 assert(audio.includes("btn.textContent = muted ? '⚙ 静音'"), 'source audio status contract unexpectedly changed');
-assert(runtime.includes("const director=window.__DE_AUDIO_DIRECTOR,audioBtn=document.getElementById('de-audio-settings-btn')"), 'i18n follower must own visible audio status');
-assert(runtime.includes("L.isEnglish?'⚙ Muted':'⚙ 静音'"), 'bilingual muted label missing');
-assert(runtime.includes('`⚙ ${director.musicVolume}/${director.sfxVolume}`'), 'audio volume status must remain visible when unmuted');
-assert(runtime.includes("new MutationObserver(sync)"), 'dynamic audio status must refresh from DOM mutations');
-assert(runtime.includes("de:languagechange"), 'audio status must refresh on language switching');
+assert(locale.includes("'声音设置':'Sound Settings'"), 'sound settings localization missing');
+assert(locale.includes("'背景音乐':'Music'"), 'Music localization missing');
+assert(locale.includes("'游戏音效':'SFX'"), 'SFX localization missing');
+assert(locale.includes("'总开关：开':'Master: On'"), 'master-on localization missing');
+assert(locale.includes("'总开关：关':'Master: Off'"), 'master-off localization missing');
+assert(!locale.includes('setInterval('), 'audio localization must not depend on locale polling');
+assert(bootstrap.includes("'audio-director.js'"), 'audio director missing from late UX chain');
+assert(bootstrap.indexOf("'locale-runtime-v122.js'") < bootstrap.indexOf("'audio-director.js'"), 'locale must exist before audio UI is created');
 
-console.log('audio_i18n_status_v1=PASS');
+console.log('audio_i18n_status_v122=PASS');
