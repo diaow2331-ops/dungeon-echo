@@ -247,7 +247,7 @@
   function dungeonMessage(text, cls = 'bad') {
     const log = document.getElementById && document.getElementById('log');
     if (log && typeof log.insertAdjacentHTML === 'function') {
-      const safe = String(text).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+      const safe = String(text).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
       log.insertAdjacentHTML('afterbegin', `<div class="${cls}">${safe}</div>`);
     }
     const hint = document.getElementById && document.getElementById('hint');
