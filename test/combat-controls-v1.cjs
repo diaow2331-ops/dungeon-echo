@@ -21,6 +21,9 @@ assert(controls.includes('attackFacing()'), 'facing attack path missing');
 assert(controls.includes('data-act="attack"'), 'touch attack control missing');
 assert(controls.includes('api.useSkill = function'), 'skill resource wrapper missing');
 assert(controls.includes('manaMax') && controls.includes('manaCost'), 'mana resource missing');
+assert(controls.includes('dataset.deLocale') && controls.includes("version:'v2'"), 'combat controls fixed-route v2 locale owner missing');
+assert(!controls.includes('DE_I18N'), 'combat controls must not depend on runtime translator');
+assert(controls.includes("'Face an enemy and press J to attack'") && controls.includes("'The skill hotkey is now K'"), 'English combat feedback must be source-owned');
 for (const cls of ['warrior','ranger','mage','assassin']) assert(new RegExp(`${cls}:\\s*\\{\\s*max:`).test(controls), `${cls} mana profile missing`);
 assert(/warrior:\s*\{ max:60, cost:30, regen:2, attackGain:2, focusGain:3 \}/.test(controls), 'warrior mana contract changed');
 assert(/ranger:\s*\{ max:70, cost:32, regen:2, attackGain:3, focusGain:4 \}/.test(controls), 'ranger mana contract changed');
@@ -54,6 +57,8 @@ assert(controls.includes('suppressCharacterEquipmentImages'), 'v13 character gea
 assert(!desktop.includes('de-gear-overlay'), 'legacy desktop character gear overlay returned');
 assert(desktop.includes("edgeButton(pad, 2, 'k')"), 'gamepad skill must follow K contract');
 assert(desktop.includes("edgeButton(pad, 7, 'j')"), 'gamepad RT attack must follow J contract');
+assert(desktop.includes('dataset.deLocale') && !desktop.includes('URLSearchParams') && !desktop.includes("localStorage.getItem('de-language-v1')"),
+  'gamepad locale must come from the fixed route instead of query/storage inference');
 assert(desktop.includes('Gamepad connected') && desktop.includes('RT Attack') && desktop.includes('Return command'),
   'gamepad status and return feedback must honor English sessions');
 assert(!desktop.includes("edgeButton(pad, 2, 'c')"), 'legacy C gamepad skill returned');
@@ -126,6 +131,7 @@ for (const file of ['combat-controls.js','combat-hint-polish.js','audio-director
     cancelAnimationFrame(){},
     window:{addEventListener(){}},
     document:{
+      documentElement:{dataset:{deLocale:'en'}},
       hidden:false,activeElement:null,head:{appendChild(){}},body:{appendChild(el){appended.push(el)}},
       getElementById(){return null},createElement(){return makeEl()},addEventListener(){},
       dispatchEvent(event){emitted.push(event.key);return true},
@@ -137,10 +143,10 @@ for (const file of ['combat-controls.js','combat-hint-polish.js','audio-director
   buttons[7].pressed=true;buttons[7].value=1;frame(20);frame(40);
   assert.deepEqual(emitted, ['j'], 'held RT must emit exactly one J attack edge');
   assert(appended.some(el => el.id === 'gamepad-badge' && el.innerHTML.includes('Gamepad connected') && el.innerHTML.includes('RT Attack')),
-    'already-connected gamepad must render English controls before late locale followers load');
+    'already-connected gamepad must render English controls from fixed route identity');
   buttons[7].pressed=false;buttons[7].value=0;frame(60);
   buttons[7].pressed=true;buttons[7].value=1;frame(80);
   assert.deepEqual(emitted, ['j','j'], 'RT release/re-press must emit the next attack');
 }
 
-console.log('combat_controls_v1=PASS');
+console.log('combat_controls_v2=PASS');
