@@ -1,7 +1,9 @@
-/* Dungeon Echo fixed locale entry owner v1.3.0.
+/* Dungeon Echo fixed locale entry owner v1.3.8.
  * Route identity chooses language before locale presentation boots. Chinese and English pages stay
  * on the same origin and therefore share the existing run/meta/stash/equipment localStorage.
  * Legacy ?lang= links are redirected to the matching fixed route.
+ * The route owner also owns the title language selector so removing the transitional translator
+ * stack later cannot remove or change language navigation behavior.
  */
 (() => {
   'use strict';
@@ -43,12 +45,12 @@
   let legacy = '';
   try { legacy = String(new URL(location.href).searchParams.get('lang') || '').toLowerCase(); } catch (_e) {}
   if (legacy === 'en' && lang !== 'en') {
-    window.__DE_FIXED_LOCALE_ENTRY = { version:'v130', lang, targetUrl, navigate, redirected:true };
+    window.__DE_FIXED_LOCALE_ENTRY = { version:'v138', lang, targetUrl, navigate, redirected:true };
     navigate('en', true);
     return;
   }
   if ((legacy === 'zh' || legacy === 'zh-cn') && lang === 'en') {
-    window.__DE_FIXED_LOCALE_ENTRY = { version:'v130', lang, targetUrl, navigate, redirected:true };
+    window.__DE_FIXED_LOCALE_ENTRY = { version:'v138', lang, targetUrl, navigate, redirected:true };
     navigate('zh-CN', true);
     return;
   }
@@ -56,8 +58,34 @@
   try { localStorage.setItem(storageKey, lang); } catch (_e) {}
   if (rootEl) rootEl.lang = lang === 'en' ? 'en' : 'zh-CN';
 
-  // locale-runtime-v122 creates the language buttons later. Capture their clicks so the
-  // selector changes fixed routes rather than reintroducing a query-driven mixed mode.
+  function installLanguageEntry() {
+    const title = document.querySelector('#title-screen .title-card');
+    if (!title) return false;
+    let box = document.getElementById('de-title-language');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'de-title-language';
+      box.setAttribute('aria-label', 'Language / 语言');
+      box.innerHTML = '<span>Language / 语言</span><button type="button" data-lang="zh-CN">中文</button><button type="button" data-lang="en">English</button>';
+      const actions = title.querySelector('.title-actions');
+      actions ? title.insertBefore(box, actions) : title.appendChild(box);
+    }
+    for (const button of box.querySelectorAll('button[data-lang]')) {
+      const active = (String(button.dataset.lang || '').toLowerCase() === 'en' ? 'en' : 'zh-CN') === lang;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    }
+    if (!document.getElementById('de-fixed-locale-entry-style')) {
+      const style = document.createElement('style');
+      style.id = 'de-fixed-locale-entry-style';
+      style.textContent = '#de-lang-toggle{display:none!important}#de-title-language{display:flex;align-items:center;justify-content:center;gap:7px;margin:13px 0 5px;color:#9ba9bd;font:600 11px/1.2 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}#de-title-language>span{margin-right:3px}#de-title-language button{min-width:70px;border:1px solid rgba(132,157,196,.32);border-radius:7px;background:rgba(8,12,19,.78);color:#b9c6d7;padding:6px 10px;cursor:pointer}#de-title-language button.active{border-color:rgba(224,167,58,.58);background:rgba(60,42,18,.62);color:#f2d695}@media(max-width:700px){#de-title-language{flex-wrap:wrap}#de-title-language>span{width:100%;text-align:center;margin:0}}';
+      document.head.appendChild(style);
+    }
+    return true;
+  }
+
+  // The selector is route-owned. Transitional locale-runtime may still discover the same DOM
+  // while it exists, but it no longer creates the control or owns navigation.
   document.addEventListener('click', e => {
     const target = e && e.target;
     const button = target && typeof target.closest === 'function'
@@ -70,12 +98,15 @@
     navigate(next, false);
   }, true);
 
+  installLanguageEntry();
+
   window.__DE_FIXED_LOCALE_ENTRY = {
-    version:'v130',
+    version:'v138',
     lang,
     owner:'fixed-locale-entry-v130',
     targetUrl,
     navigate,
+    installLanguageEntry,
     redirected:false,
   };
 })();
