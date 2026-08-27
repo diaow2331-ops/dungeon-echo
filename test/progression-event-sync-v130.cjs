@@ -5,15 +5,18 @@ const vm = require('vm');
 const assert = require('assert');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'progression-system.js'), 'utf8');
-assert(!/setInterval\s*\(/.test(source), 'progression-system must not keep a 250ms polling interval');
+assert(!/setInterval\s*\(/.test(source), 'progression-system must not keep a polling interval');
 assert(!/function\s+skillInput\s*\(/.test(source), 'progression must not own legacy C/touch skill input');
 assert(source.includes("inputOwner: 'combat-controls'"), 'public skill input ownership must be explicit');
+assert(source.includes('dataset.deLocale'), 'progression must read fixed route locale identity');
+assert(!source.includes('window.DE_I18N'), 'progression must not depend on the runtime translator');
 
 const listeners = { document: {}, window: {} };
 const microtasks = [];
 global.queueMicrotask = fn => microtasks.push(fn);
 global.setInterval = () => { throw new Error('polling interval must not be created'); };
 global.document = {
+  documentElement:{dataset:{deLocale:'zh-CN'}},
   getElementById() { return null; },
   addEventListener(type, fn) { (listeners.document[type] ||= []).push(fn); },
 };
@@ -33,8 +36,8 @@ global.window = {
 };
 
 vm.runInThisContext(source, { filename:'progression-system.js' });
-assert.equal(window.__DE_PROGRESSION_SYSTEM, 'v2');
-assert(window.DE_TALENT_RANKS && typeof window.DE_TALENT_RANKS.scheduleSync === 'function');
+assert.equal(window.__DE_PROGRESSION_SYSTEM, 'v3');
+assert(window.DE_TALENT_RANKS && window.DE_TALENT_RANKS.version === 'v3');
 assert(window.DE_SKILL_EVOLUTION && window.DE_SKILL_EVOLUTION.inputOwner === 'combat-controls');
 assert.equal((listeners.document.keydown || []).length, 1, 'one key listener should schedule pool sync only');
 assert.equal((listeners.document.click || []).length, 1, 'one click listener should schedule pool sync only');
@@ -47,7 +50,6 @@ while (microtasks.length) microtasks.shift()();
 assert.equal(api.TALENTS.length, 2, 'floor 20 should switch to exactly two evolution choices');
 assert(api.TALENTS.every(t => String(t.id).startsWith('se_w20_')), 'floor 20 pool must contain only warrior evolution choices');
 
-// Multiple events in one turn coalesce into one queued sync.
 api.depth = 40;
 for (const fn of listeners.document.keydown || []) fn({ type:'keydown', key:'x' });
 for (const fn of listeners.document.click || []) fn({ type:'click', target:null });
