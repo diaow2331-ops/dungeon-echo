@@ -5,6 +5,7 @@
  * - K uses the class skill and consumes mana.
  * - Touch controls mirror the same attack/skill contract.
  * - Official K/touch skill actions route through the 20/40/60/80 evolution owner when present.
+ * - HUD/resource synchronization is action-driven; no permanent DOM requestAnimationFrame follower.
  * - Ground equipment uses the real v13 tier art even when production rewrites the old atlas path.
  * - All legacy character equipment geometry/image overlays are suppressed so the hero atlas stays authoritative.
  */
@@ -39,6 +40,7 @@
   let lastTurn = Number(api.turns) || 0;
   let lastPlayer = null;
   let waitPrimed = false;
+  let syncQueued = false;
 
   function ensureMana(p = api.player) {
     if (!p) return null;
@@ -134,6 +136,7 @@
       gainMana(c.regen + c.attackGain);
       lastTurn = after;
       waitPrimed = false;
+      scheduleSync();
       return true;
     }
     return false;
@@ -148,6 +151,7 @@
     const cost = manaCost();
     if (p.mana < cost) {
       feedback(`蓝量不足：${p.mana}/${cost} · 原地等待可更快恢复`, 'bad', 1500);
+      scheduleSync();
       return false;
     }
     const before = Number(api.turns) || 0;
@@ -161,6 +165,7 @@
       waitPrimed = false;
       feedback(`${api.CLASSES[classId()].skill.name} −${cost} 蓝量`, 'skill', 900);
     }
+    scheduleSync();
     return out;
   };
 
@@ -213,11 +218,13 @@
     if (lower === 'j') {
       e.preventDefault(); e.stopImmediatePropagation();
       attackFacing();
+      scheduleSync();
       return;
     }
     if (lower === 'k') {
       e.preventDefault(); e.stopImmediatePropagation();
       castSkillAction();
+      scheduleSync();
       return;
     }
     if (lower === 'c') {
@@ -236,12 +243,14 @@
     if (attack) {
       e.preventDefault(); e.stopImmediatePropagation();
       attackFacing();
+      scheduleSync();
       return;
     }
     const skill = t.closest('[data-act="skill"]');
     if (skill) {
       e.preventDefault(); e.stopImmediatePropagation();
       castSkillAction();
+      scheduleSync();
       return;
     }
     const move = t.closest('[data-act="up"],[data-act="down"],[data-act="left"],[data-act="right"]');
@@ -295,23 +304,32 @@
     const p = ensureMana();
     const text = document.getElementById('de-manatext');
     const fill = document.getElementById('de-manafill');
-    if (p && text) text.textContent = `${p.mana}/${p.manaMax}`;
-    if (p && fill) fill.style.width = `${p.manaMax ? p.mana/p.manaMax*100 : 0}%`;
+    if (p && text) {
+      const next = `${p.mana}/${p.manaMax}`;
+      if (text.textContent !== next) text.textContent = next;
+    }
+    if (p && fill) {
+      const next = `${p.manaMax ? p.mana/p.manaMax*100 : 0}%`;
+      if (fill.style.width !== next) fill.style.width = next;
+    }
 
     const sk = document.getElementById('st-skill');
     if (sk && p) {
       const cost = manaCost();
       if ((Number(p.skillCd)||0) <= 0 && p.mana < cost) {
-        sk.textContent = `${api.CLASSES[classId()].skill.name} · ${p.mana}/${cost}`;
-        sk.className = 'cd';
+        const next = `${api.CLASSES[classId()].skill.name} · ${p.mana}/${cost}`;
+        if (sk.textContent !== next) sk.textContent = next;
+        if (sk.className !== 'cd') sk.className = 'cd';
       }
     }
 
     const hint = document.getElementById('hint');
     if (hint && hint.textContent) {
-      hint.textContent = hint.textContent
+      const before = hint.textContent;
+      const next = before
         .replace(/ · J 快速下潜（[^）]*）/g,' · J 攻击 · K 技能')
         .replace(/C 技能/g,'J 攻击 · K 技能');
+      if (next !== before) hint.textContent = next;
     }
   }
 
@@ -460,17 +478,36 @@
     }
   }
 
-  function loop() {
+  function syncNow() {
     syncTurnResource();
     syncUi();
     patchGroundEquipmentArt();
     suppressCharacterEquipmentImages();
     patchLogCopy();
-    requestAnimationFrame(loop);
   }
 
+  function scheduleSync() {
+    if (syncQueued) return;
+    syncQueued = true;
+    queueMicrotask(() => {
+      syncQueued = false;
+      syncNow();
+    });
+  }
+
+  // Core Q/E/T/Enter/movement handlers are registered later in the event path. Queueing a
+  // microtask from document capture lets their synchronous turn/state changes settle first.
+  document.addEventListener('keydown', scheduleSync, true);
+  document.addEventListener('click', scheduleSync, true);
+  document.addEventListener('visibilitychange', scheduleSync);
+  window.addEventListener('focus', scheduleSync);
+  window.addEventListener('load', syncNow, { once:true });
+
+  syncNow();
+  queueMicrotask(syncNow);
+
   window.__DE_COMBAT_CONTROLS_V1 = {
-    version:'v1', resource:RESOURCE, attackFacing, castSkillAction, targetInDirection, ensureMana, manaCost,
+    version:'v1', resource:RESOURCE, attackFacing, castSkillAction, targetInDirection,
+    ensureMana, manaCost, syncNow, scheduleSync,
   };
-  requestAnimationFrame(loop);
 })();
