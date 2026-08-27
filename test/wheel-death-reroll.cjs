@@ -10,7 +10,7 @@ global.document={
   addEventListener(type,fn){(listeners.document[type] ||= []).push(fn);},
   head:{appendChild(){}},
 };
-global.setInterval=()=>0; global.clearInterval=()=>{};
+global.MutationObserver=undefined;
 
 const board=(prefix)=>Array.from({length:8},(_,i)=>({kind:i===0?'gold':'nothing',amount:i===0?10:undefined,label:`${prefix}${i}`}));
 const meta={
@@ -24,12 +24,16 @@ const api={
   departTown(){}, descend(){},
 };
 global.window={DE_TEST:api,addEventListener(type,fn){(listeners.window[type] ||= []).push(fn);}};
-vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','town-system.js'),'utf8'),{filename:'town-system.js'});
+const src=fs.readFileSync(require('path').join(__dirname,'..','town-system.js'),'utf8');
+vm.runInThisContext(src,{filename:'town-system.js'});
 const E=window.DE_TOWN_ECONOMY;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
 const sig=()=>JSON.stringify(meta.wheelSlots);
 
-ok(E&&E.version==='v3','town economy v3 boots');
+ok(E&&E.version==='v4','town economy v4 boots');
+ok(!/setInterval\s*\(/.test(src),'town system has no polling render loop');
+ok(src.includes("attributeFilter:['class','hidden','aria-hidden']"),'town lifecycle observes only visibility attributes');
+ok(src.includes('deCheckpointSig'),'checkpoint DOM is signature-guarded against redundant rewrites');
 ok(E.snapshotWheel()===true,'initial wheel snapshot saves');
 const original=sig();
 let shadow=E.wheelShadowRow();
