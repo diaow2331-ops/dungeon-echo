@@ -31,6 +31,7 @@ version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
 [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || fail 'bundle revision is invalid'
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'bundle version is invalid'
 release_stamp="release-stamp-v${version//./}.js"
+asset_version="${version//./}"
 
 release_name="$(date -u +%Y%m%dT%H%M%SZ)-de-${revision:0:12}"
 release_dir="$RELEASES_DIR/$release_name"
@@ -71,16 +72,27 @@ test -r "$tmp_dir/dungeon-echo/$release_stamp" || fail "release stamp missing fr
 grep -Fq "$release_stamp" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load current release stamp'
 grep -Fq "const version = '$version'" "$tmp_dir/dungeon-echo/$release_stamp" || fail 'release stamp version does not match bundle VERSION'
 
-if test "$version" = '1.2.4' || test "$version" = '1.2.5'; then
+if test "$version" = '1.2.4' || test "$version" = '1.2.5' || test "$version" = '1.2.6'; then
   test -r "$tmp_dir/dungeon-echo/style.css" || fail 'navigation stylesheet missing'
   grep -Fq '#achv-screen, #help-screen {' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log fixed-screen selector missing'
   grep -Fq '#help-screen > .title-card { margin: auto; }' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log card scroll-centering contract missing'
 fi
 
-if test "$version" = '1.2.5'; then
-  grep -Fq 'style.css?v=125' "$tmp_dir/dungeon-echo/index.html" || fail 'v1.2.5 stylesheet cache fingerprint missing'
-  grep -Fq 'runtime-bootstrap.js?v=125' "$tmp_dir/dungeon-echo/index.html" || fail 'v1.2.5 runtime bootstrap cache fingerprint missing'
-  grep -Fq "const assetVersion = '125'" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'v1.2.5 follower cache fingerprint missing'
+if test "$version" = '1.2.5' || test "$version" = '1.2.6'; then
+  grep -Fq "style.css?v=$asset_version" "$tmp_dir/dungeon-echo/index.html" || fail 'stylesheet cache fingerprint missing'
+  grep -Fq "runtime-bootstrap.js?v=$asset_version" "$tmp_dir/dungeon-echo/index.html" || fail 'runtime bootstrap cache fingerprint missing'
+  grep -Fq "const assetVersion = '$asset_version'" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'follower cache fingerprint missing'
+fi
+
+if test "$version" = '1.2.6'; then
+  test -r "$tmp_dir/dungeon-echo/help-copy-v126.js" || fail 'v1.2.6 help copy owner missing'
+  test -r "$tmp_dir/dungeon-echo/expedition-record-v126.js" || fail 'v1.2.6 expedition record owner missing'
+  grep -Fq 'help-copy-v126.js' "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load help copy owner'
+  grep -Fq 'expedition-record-v126.js' "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load expedition record owner'
+  grep -Fq "catalogSize:CATALOG.length" "$tmp_dir/dungeon-echo/expedition-record-v126.js" || fail 'expedition record catalog contract missing'
+  grep -Fq 'No expedition profile yet' "$tmp_dir/dungeon-echo/expedition-record-v126.js" || fail 'expedition record zero-state copy missing'
+  grep -Fq 'Mobile:' "$tmp_dir/dungeon-echo/help-copy-v126.js" || fail 'English device help copy missing'
+  grep -Fq '手机：' "$tmp_dir/dungeon-echo/help-copy-v126.js" || fail 'Chinese device help copy missing'
 fi
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +

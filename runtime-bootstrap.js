@@ -1,15 +1,15 @@
-/* Dungeon Echo production UX bootstrap v5.
+/* Dungeon Echo production UX bootstrap v6.
  * Core gameplay/input/balance are synchronous in index.html.
- * Release-critical followers use a version query so one deployment cannot mix cached generations.
+ * Release-critical followers use one version query so deployments cannot mix cached generations.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '125';
+  const assetVersion = '126';
   const fresh = src => `${src}?v=${assetVersion}`;
   const chain = Object.freeze([
-    [fresh('release-stamp-v125.js'), 'data-de-release-stamp-v125', () => !!window.__DE_RELEASE_STAMP_V125],
+    [fresh('release-stamp-v126.js'), 'data-de-release-stamp-v126', () => !!window.__DE_RELEASE_STAMP_V126],
     [fresh('locale-runtime-v122.js'), 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     [fresh('character-art-cleanup-v122.js'), 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
     [fresh('world-loot-polish-v122.js'), 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
@@ -17,6 +17,8 @@
     [fresh('combat-hint-polish.js'), 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
     [fresh('audio-director.js'), 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     [fresh('mobile-ux.js'), 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
+    [fresh('help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],
+    [fresh('expedition-record-v126.js'), 'data-de-expedition-record-v126', () => !!window.__DE_EXPEDITION_RECORD_V126],
   ]);
 
   let started = false;
@@ -40,7 +42,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v5');
+      script.setAttribute(marker, 'v6');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -67,5 +69,5 @@
   if (document.body) start();
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v5', assetVersion, start, loadScript, chain };
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v6', assetVersion, start, loadScript, chain };
 })();

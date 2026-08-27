@@ -50,16 +50,33 @@ ok(/SITE_ROOT=\/srv\/91hwl-play/.test(deploy) && /previous_release\/moyu\/index\
 ok(/mv -Tf "\$next_link" "\$CURRENT_LINK"/.test(deploy) && /ROLLED_BACK/.test(deploy),
   '整站 current 指针原子切换且失败可回滚');
 
-if (version === '1.2.5') {
+if (['1.2.5','1.2.6'].includes(version)) {
   const releaseCriticalRefs = localRefs.filter(ref => /(?:\.css|\.js)(?:\?|$)/.test(ref));
   ok(releaseCriticalRefs.length > 0 && releaseCriticalRefs.every(ref => ref.endsWith(`?v=${assetVersion}`)),
     '生产入口的 CSS/JS 全部带当前发布缓存指纹');
-  ok(bootstrap.includes(`const assetVersion = '${assetVersion}'`) && bootstrap.includes("fresh('release-stamp-v125.js')"),
+  ok(bootstrap.includes(`const assetVersion = '${assetVersion}'`) && bootstrap.includes(`fresh('${releaseStampName}')`),
     '后加载运行时资源共享同一缓存指纹');
   ok(style.includes('#achv-screen, #help-screen {') && style.includes('position: fixed') && style.includes('#help-screen > .title-card { margin: auto; }'),
     '玩法说明与远征录仍由原生样式层拥有');
-  ok(deploy.includes("grep -Fq '#achv-screen, #help-screen {'") && deploy.includes("grep -Fq '#help-screen > .title-card { margin: auto; }'"),
-    '部署前继续验证导航样式合同');
+}
+
+if (version === '1.2.6') {
+  const helpCopy = read('help-copy-v126.js');
+  const record = read('expedition-record-v126.js');
+  ok(manifest.includes('help-copy-v126.js') && manifest.includes('expedition-record-v126.js'),
+    'v1.2.6 双语说明与远征档案进入发布白名单');
+  ok(bootstrap.includes("fresh('help-copy-v126.js')") && bootstrap.includes("fresh('expedition-record-v126.js')"),
+    '运行时按 locale → mobile → help/record 顺序加载 v1.2.6 UI owners');
+  ok(helpCopy.includes('Desktop:') && helpCopy.includes('Mobile:') && helpCopy.includes('电脑：') && helpCopy.includes('手机：'),
+    '玩法说明具有完整双语双端操作文案');
+  ok(record.includes("CATALOG = Object.freeze([") && record.includes("catalogSize:CATALOG.length") && record.includes('No expedition profile yet'),
+    '远征档案具有完整成就目录与无存档零状态');
+  ok(record.includes("depth_100") && record.includes("kills_500") && record.includes("legend") && record.includes("win"),
+    '远征档案保留核心深度/击杀/传说/通关成就');
+  ok(record.includes("Achievements · ${gotCount}/${CATALOG.length}") && record.includes('已解锁 ${gotCount} / ${CATALOG.length}'),
+    '远征档案明确显示解锁数与中英状态');
+  ok(deploy.includes('expedition record zero-state copy missing') && deploy.includes('English device help copy missing'),
+    '部署前验证远征档案零状态与英文说明');
 }
 
 console.log(`\nRESULT  ${pass} 通过 / ${fail} 失败`);

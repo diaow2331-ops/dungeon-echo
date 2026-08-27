@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/?lang=en) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.2.4 is the current repository release line. Public deployment is only considered complete after the normal file-upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
+> **Status:** v1.2.6 is the current repository release line. Public deployment is only considered complete after the normal file-upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -20,7 +20,7 @@ No account is required. Saves live in the browser. The production game is static
 | --- | --- | --- |
 | ![Warrior, Ranger, Arcanist and Assassin](art/class-roster.webp) | ![Dungeon Echo town](art/town-backdrop-v11.webp) | ![Dungeon Echo final boss](art/final-boss-v11.png) |
 
-The launch media intentionally uses current shipped art. A fresh post-v1.2.4 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
+The launch media intentionally uses current shipped art. A fresh post-v1.2.6 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
 
 ## Why play it?
 
@@ -37,7 +37,9 @@ The launch media intentionally uses current shipped art. A fresh post-v1.2.4 rea
 - Progressive onboarding that teaches mechanics without covering the mobile action deck.
 - Chinese / English sessions with automatic browser-language selection, direct language URLs and a title-screen language selector.
 - v1.2.3 device/presentation cleanup: no always-on player halo, camera-aware visual overlays, steadier non-fullscreen mobile layout, faster pointer-down touch response and a four-way D-pad without the accidental center Wait target.
-- v1.2.4 navigation hotfix: **How to Play / 玩法说明** and **Expedition Log / 远征录** are restored as native top-level UI screens, including the town → log → town return path.
+- v1.2.4 navigation hotfix: **How to Play / 玩法说明** and **Expedition Record / 远征录** are restored as native top-level UI screens, including the town → record → town return path.
+- v1.2.5 cache-coherence hotfix: release-critical CSS/JS use a shared version fingerprint so a new HTML release cannot silently run against old cached presentation assets.
+- v1.2.6 record/localization polish: Help control copy stays in the selected language on both desktop and mobile, while Expedition Record always exposes the full 12-achievement catalog with progress, locked goals and a zero-state before the first Greedy Expedition.
 
 The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -67,7 +69,8 @@ The production UI supports **中文 / English**.
 - `?lang=zh` opens Chinese directly.
 - Without a language parameter, the browser language is used on first visit.
 - Manual language choice lives on the **title screen** and reloads into the selected locale instead of translating a live dungeon session in place.
-- `locale-runtime-v122.js` is the stable per-page locale owner. The retired layered `i18n.js` / `i18n-runtime.js` / `i18n-content.js` / `ux-hotfix-v121.js` production chain is no longer shipped.
+- `locale-runtime-v122.js` remains the stable per-page locale owner. v1.2.6 adds a narrow device-copy coherence follower so mobile guidance cannot overwrite an English Help screen after locale application.
+- Expedition Record uses display-only localization and reads the existing Greedy Expedition meta save without mutating it.
 
 Localization keeps gameplay/save identities language-independent. Shell UI, controls, onboarding, sound settings, class identity, equipment, monsters, guardians/finale, town commerce, forging and high-value combat messages use display-only localization; saved item/profile identities remain unchanged.
 
@@ -90,7 +93,7 @@ http://localhost:8000/dev.html
 
 ```text
 .
-├── index.html                     # production entry
+├── index.html                     # production entry + release cache fingerprints
 ├── dev.html                       # internal multi-profile development harness
 ├── game.js                        # core state / map / turn engine
 ├── production-bootstrap.js        # production-only profile/runtime guards
@@ -108,14 +111,16 @@ http://localhost:8000/dev.html
 ├── desktop-controls.js            # desktop + gamepad input adapter
 ├── combat-controls.js             # J/K controls + mana resource
 ├── challenge-pressure.js          # mild human-play pressure follow-up
-├── runtime-bootstrap.js           # late presentation/runtime followers
-├── release-stamp-v124.js          # visible v1.2.4 release marker
+├── runtime-bootstrap.js           # versioned late presentation/runtime followers
+├── release-stamp-v126.js          # visible v1.2.6 release marker
 ├── locale-runtime-v122.js         # stable zh/en per-page locale runtime
 ├── character-art-cleanup-v122.js  # presentation-only hero cleanup
 ├── world-loot-polish-v122.js      # visible ground-loot presentation
 ├── forge-feedback-v122.js         # post-result forge feedback
 ├── audio-director.js              # adaptive BGM + Music/SFX mixer
 ├── mobile-ux.js                   # stable mobile layout + direct touch input owner
+├── help-copy-v126.js              # locale-aware desktop/mobile Help copy coherence
+├── expedition-record-v126.js      # localized full achievement catalog + progress UI
 ├── profiles/                      # production + deterministic fixtures
 ├── art/                           # production art assets
 ├── test/                          # targeted deterministic contracts
@@ -135,13 +140,13 @@ The v1.2 release line does not claim a fresh complete GitHub Actions suite becau
 
 Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
 
-v1.2.4 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. It does not require a migration or progress reset.
+v1.2.6 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The new record UI is read-only and does not require a migration or progress reset.
 
 ## Release boundary
 
-`VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. Deployment verification checks the HTML route and the deployed `/dungeon-echo/VERSION` endpoint separately before activation.
+`VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. Deployment verification checks the HTML route, current cache fingerprint, v1.2.6 UI owners and the deployed `/dungeon-echo/VERSION` endpoint before activation.
 
-Release notes: [`RELEASE_NOTES_v1.2.4.md`](RELEASE_NOTES_v1.2.4.md).
+Release notes: [`RELEASE_NOTES_v1.2.6.md`](RELEASE_NOTES_v1.2.6.md).
 
 ## AI-assisted development
 

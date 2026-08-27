@@ -15,7 +15,7 @@ runtime-bootstrap.js
 challenge-pressure.js
 visual-polish.js
 equipment-shop-ui.js
-release-stamp-v125.js
+release-stamp-v126.js
 locale-runtime-v122.js
 character-art-cleanup-v122.js
 world-loot-polish-v122.js
@@ -24,6 +24,8 @@ combat-controls.js
 combat-hint-polish.js
 audio-director.js
 mobile-ux.js
+help-copy-v126.js
+expedition-record-v126.js
 gameplay-tuning.js
 defense-system.js
 desktop-controls.js
