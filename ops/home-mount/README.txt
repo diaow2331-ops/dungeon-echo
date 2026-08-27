@@ -1,25 +1,35 @@
-Dungeon Echo 91hwl homepage mount
+91hwl Browser Web Toys homepage mount
 
-This package updates the existing 91hwl.cn homepage with the Dungeon Echo
-project entry at /toys/dungeon-echo/ while preserving the Moyu game/detail
-page. It verifies the current homepage hash before writing, keeps a server-side
-backup, and rolls back both files when any origin or public check fails.
+This package updates the existing 91hwl.cn homepage plus both project pages:
 
-The homepage/project-page package has its own `SITE_VERSION`. It is intentionally
-independent from the playable game's root `VERSION`, so a game-only hotfix cannot
-silently relabel an older website candidate.
+  /toys/dungeon-echo/
+  /toys/moyu/
 
-Current site candidate: 1.2.3
+It does not deploy the playable games themselves. Game binaries are deployed by
+the Dungeon Echo and Moyu play-tree bundles under /srv/91hwl-play.
 
-The v1.2.3 candidate is product-first and bilingual, uses the shipped Dungeon Echo
-art instead of placeholder visuals, exposes Play / Details / GitHub routes clearly,
-and documents the final mobile/visual cleanup without reopening gameplay balance.
+Safety properties:
 
-Server usage:
-  unzip 91hwl-home-dungeon-echo-v1.2.3.zip -d /tmp/91hwl-home-dungeon-echo-v1.2.3
-  cd /tmp/91hwl-home-dungeon-echo-v1.2.3
-  sudo ./ops/deploy.sh
+- verifies the live homepage against EXPECTED_INDEX_SHA256 before writing;
+- backs up the homepage and both project-page directories;
+- installs all three site pages before running health checks;
+- validates origin and public routes for both games;
+- rolls all three pages back together when a check fails.
+
+SITE_VERSION is independent from either game's VERSION.
+
+Current site release: 1.3.0
+Current product versions shown by the site:
+  Dungeon Echo 1.2.6
+  Clock Out Alive / 摸鱼到下班 1.11.0
+
+Build:
+  ./ops/release/build-home-mount-bundle.sh /tmp/91hwl-home-web-toys-v1.3.0.zip
+
+Deploy:
+  unzip /tmp/91hwl-home-web-toys-v1.3.0.zip -d /tmp/91hwl-home-web-toys-v1.3.0
+  sudo /tmp/91hwl-home-web-toys-v1.3.0/ops/deploy.sh
 
 Success markers:
-  dungeon_echo_home_health=PASS
-  dungeon_echo_home_mount=PASS
+  web_toys_home_health=PASS
+  web_toys_home_mount=PASS
