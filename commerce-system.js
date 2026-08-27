@@ -1,4 +1,4 @@
-/* Dungeon Echo production commerce v4.
+/* Dungeon Echo production commerce v5.
  * Owns town supply stock / chapter-scaled pricing, underground service safety,
  * extraction pressure and baseline dungeon resource pressure for classic-100.
  */
@@ -8,7 +8,7 @@
   if (window.__DE_COMMERCE_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_COMMERCE_SYSTEM = 'v4';
+  window.__DE_COMMERCE_SYSTEM = 'v5';
 
   const STORAGE_KEY = 'de-town-commerce-v1';
   const META_KEY = 'de-greedy-meta-v1';
@@ -247,7 +247,7 @@
   function dungeonMessage(text, cls = 'bad') {
     const log = document.getElementById && document.getElementById('log');
     if (log && typeof log.insertAdjacentHTML === 'function') {
-      const safe = String(text).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      const safe = String(text).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
       log.insertAdjacentHTML('afterbegin', `<div class="${cls}">${safe}</div>`);
     }
     const hint = document.getElementById && document.getElementById('hint');
@@ -318,6 +318,9 @@
     });
   }
 
+  // Extraction is an explicit single-owner state machine. The first T arms and pays
+  // one enemy turn; the second T completes the return. Repeated keydown events and
+  // re-entrant completion are consumed without running the town transition twice.
   let extraction = null;
   const EXTRACTION_KEYS = new Set([
     'ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
@@ -329,7 +332,7 @@
   ]);
 
   function extractionReady() {
-    return !!(extraction && extraction.ready && extraction.player === api.player &&
+    return !!(extraction && extraction.phase === 'ready' && extraction.player === api.player &&
       api.state === 'playing' && api.player && Number(api.player.hp) > 0);
   }
 
@@ -343,24 +346,34 @@
   function beginExtraction() {
     const p = api.player;
     if (!api.greedy || api.state !== 'playing' || !p || (Number(p.escapes) || 0) <= 0) return false;
-    extraction = { player:p, startTurn:Number(api.turns) || 0, ready:false };
+    if (extraction && extraction.player === p) {
+      if (extraction.phase === 'ready') return true;
+      if (extraction.phase === 'arming' || extraction.phase === 'completing') return false;
+    }
+    const token = { player:p, startTurn:Number(api.turns) || 0, phase:'arming' };
+    extraction = token;
     dungeonMessage('回城卷轴开始共鸣：你必须先撑过敌人的一个完整回合。', 'gold');
     if (typeof api.endTurn === 'function') api.endTurn();
-    if (api.state === 'playing' && api.player === p && Number(p.hp) > 0) {
-      extraction.ready = true;
+    if (extraction === token && api.state === 'playing' && api.player === p && Number(p.hp) > 0) {
+      token.phase = 'ready';
       dungeonMessage('回城共鸣已经稳定。再次按 T 即可撤离；任何其他回合行动都会打断。', 'gold');
       if (typeof api.persistRun === 'function') api.persistRun();
       return true;
     }
-    extraction = null;
+    if (extraction === token) extraction = null;
     return false;
   }
 
   function completeExtraction() {
     if (!extractionReady() || typeof api.useEscape !== 'function') return false;
-    extraction = null;
-    api.useEscape();
-    return true;
+    const token = extraction;
+    token.phase = 'completing';
+    try {
+      api.useEscape();
+      return api.state === 'town';
+    } finally {
+      if (extraction === token) extraction = null;
+    }
   }
 
   function isExtractionInput(e) {
@@ -386,9 +399,15 @@
       return;
     }
     if (isExtractionInput(e)) {
+      if (e.type === 'keydown' && e.repeat) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        return;
+      }
       if (!api.player || (Number(api.player.escapes) || 0) <= 0) return;
       if (e.preventDefault) e.preventDefault();
       if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      if (extraction && extraction.phase === 'completing') return;
       if (extractionReady()) completeExtraction();
       else beginExtraction();
       return;
@@ -411,18 +430,20 @@
   document.addEventListener('keydown', guardExtractionInput, true);
   document.addEventListener('click', guardExtractionInput, true);
 
-  const town = document.getElementById('town-screen');
+  // Only the shop subtree needs observation. Watching the entire animated town multiplies
+  // unrelated DOM work during extraction and can interact badly with other presentation observers.
+  const townShop = document.getElementById('town-shop');
   let observer = null;
-  if (town && typeof MutationObserver !== 'undefined') {
+  if (townShop && typeof MutationObserver !== 'undefined') {
     observer = new MutationObserver(() => renderShop(false));
-    observer.observe(town, { childList: true, subtree: true });
+    observer.observe(townShop, { childList: true, subtree: true });
   }
 
   renderShop(true);
   window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); }, { once: true });
 
   window.DE_COMMERCE = {
-    version: 'v4',
+    version: 'v5',
     tier: townTier,
     priceScale,
     priceFor,
