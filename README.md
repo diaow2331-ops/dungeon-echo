@@ -37,7 +37,7 @@ The launch media intentionally uses current shipped art. A fresh post-v1.2.4 rea
 - Progressive onboarding that teaches mechanics without covering the mobile action deck.
 - Chinese / English sessions with automatic browser-language selection, direct language URLs and a title-screen language selector.
 - v1.2.3 device/presentation cleanup: no always-on player halo, camera-aware visual overlays, steadier non-fullscreen mobile layout, faster pointer-down touch response and a four-way D-pad without the accidental center Wait target.
-- v1.2.4 navigation hotfix: **How to Play / 玩法说明** and **Expedition Log / 远征录** are restored as proper top-level overlays, including the town → log → town return path.
+- v1.2.4 navigation hotfix: **How to Play / 玩法说明** and **Expedition Log / 远征录** are restored as native top-level UI screens, including the town → log → town return path.
 
 The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -110,7 +110,6 @@ http://localhost:8000/dev.html
 ├── challenge-pressure.js          # mild human-play pressure follow-up
 ├── runtime-bootstrap.js           # late presentation/runtime followers
 ├── release-stamp-v124.js          # visible v1.2.4 release marker
-├── modal-navigation-fix.js        # Help / Expedition Log overlay repair
 ├── locale-runtime-v122.js         # stable zh/en per-page locale runtime
 ├── character-art-cleanup-v122.js  # presentation-only hero cleanup
 ├── world-loot-polish-v122.js      # visible ground-loot presentation
