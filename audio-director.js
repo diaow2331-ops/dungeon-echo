@@ -305,6 +305,7 @@
 
   function startPump() {
     if (!ctx || timer || document.hidden) return false;
+    nextBeat = Math.max(Number(nextBeat) || 0, ctx.currentTime + .08);
     pump();
     timer = window.setInterval(pump, 70);
     return true;
