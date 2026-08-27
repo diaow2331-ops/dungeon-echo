@@ -2,7 +2,7 @@
  * Owns class-fit valuation, class-facing affix identity, deep rarity curve and the
  * 8→100 progression bridge for helmet/boots/amulet. Existing saved item stats are
  * never retroactively inflated; only newly generated production loot receives the
- * deep-slot base bonus.
+ * deep-slot base bonus. Equipment synchronization is action-driven rather than polled.
  */
 (() => {
   'use strict';
@@ -17,6 +17,8 @@
   const profile = api.runProfile;
   const currentClass = () => api.classId || (api.meta && api.meta.classId) || 'warrior';
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let syncQueued = false;
 
   // ---------- Class identity ----------
   // DEF affinity stays deliberately conservative until the next human-play pass.
@@ -286,11 +288,34 @@
     }
   }
 
-  syncEquipment();
-  const timer = setInterval(syncEquipment, 400);
-  if (typeof window.addEventListener === 'function') {
-    window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
+  function scheduleEquipmentSync() {
+    if (syncQueued) return;
+    syncQueued = true;
+    defer(() => {
+      syncQueued = false;
+      syncEquipment();
+    });
   }
+
+  syncEquipment();
+  if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    // Queue after synchronous gameplay/town actions so newly created/picked/equipped items
+    // are normalized before the next player action, without a permanent 400ms follower.
+    document.addEventListener('keydown', scheduleEquipmentSync, true);
+    document.addEventListener('click', scheduleEquipmentSync, true);
+    document.addEventListener('visibilitychange', scheduleEquipmentSync);
+  }
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('focus', scheduleEquipmentSync);
+    window.addEventListener('load', scheduleEquipmentSync, { once: true });
+  }
+  window.DE_EQUIPMENT_SYNC = {
+    version: 'v1',
+    sync: syncEquipment,
+    scheduleSync: scheduleEquipmentSync,
+    score: classFitScore,
+    prepareFreshItem,
+  };
 })();
 
 /* Tactical gear commitment: changing equipped slots in the dungeon costs one real turn. */
@@ -302,6 +327,8 @@
   if (!api || api.profileId !== 'classic-100') return;
 
   const SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet'];
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  const ui = (zh, en) => window.DE_I18N && window.DE_I18N.isEnglish ? en : zh;
 
   function snapshotEquip() {
     const p = api.player;
@@ -332,24 +359,31 @@
     if (!equipChanged(before)) return false;
     const commerce = window.DE_COMMERCE;
     if (commerce && typeof commerce.clearExtraction === 'function') {
-      commerce.clearExtraction('换装打断了回城共鸣。需要重新使用回城卷轴。');
+      commerce.clearExtraction(ui(
+        '换装打断了回城共鸣。需要重新使用回城卷轴。',
+        'Changing gear interrupted Return resonance. Use a Return Scroll again.'
+      ));
     }
-    surfaceMessage('你重新调整了装备；换装耗去一个回合。');
+    surfaceMessage(ui(
+      '你重新调整了装备；换装耗去一个回合。',
+      'You changed equipment; swapping gear costs one turn.'
+    ));
     if (api.state === 'playing' && typeof api.endTurn === 'function') api.endTurn();
     if (typeof api.persistRun === 'function' && (api.state === 'playing' || api.state === 'town')) {
       api.persistRun();
     }
+    const sync = window.DE_EQUIPMENT_SYNC;
+    if (sync && typeof sync.scheduleSync === 'function') sync.scheduleSync();
     return true;
   }
 
   function armSwapWatch() {
     const before = snapshotEquip();
-    if (before) queueMicrotask(() => settleEquipChange(before));
+    if (before) defer(() => settleEquipChange(before));
   }
 
-  // Keep this on window capture. equipment-system loads before gameplay-tuning, so its
-  // microtask settles the authoritative turn first; the older progression fallback then
-  // observes the advanced turn and exits instead of charging a second turn.
+  // Keep this on window capture so the snapshot is taken before the core bag/equipment
+  // click mutates slots. The microtask settles one authoritative turn after the click.
   window.addEventListener('click', armSwapWatch, true);
   window.__DE_EQUIPMENT_SWAP_TURN = {
     version: 'v1', owner: 'equipment-system', snapshotEquip, equipChanged, settleEquipChange,
