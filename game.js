@@ -22,6 +22,16 @@ const caf = typeof cancelAnimationFrame !== 'undefined'
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[ch]));
+const LOCALE_DATA = typeof window !== 'undefined' && window.DE_LOCALE_DATA || null;
+const ENGLISH_ROUTE = !!(LOCALE_DATA ? LOCALE_DATA.isEnglish :
+  (typeof document !== 'undefined' && String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase() === 'en'));
+const ui = (zh, en) => ENGLISH_ROUTE ? en : zh;
+const visibleWorldName = value => LOCALE_DATA && typeof LOCALE_DATA.worldName === 'function'
+  ? LOCALE_DATA.worldName(value) : String(value || '');
+const visibleItemName = item => LOCALE_DATA && typeof LOCALE_DATA.itemName === 'function'
+  ? LOCALE_DATA.itemName(item) : String(item && item.name || '');
+const visibleSlotName = slot => LOCALE_DATA && typeof LOCALE_DATA.slotName === 'function'
+  ? LOCALE_DATA.slotName(slot) : String(slot || '');
 
 const $ = id => document.getElementById(id);
 const canvas = $('game');
@@ -474,24 +484,43 @@ const SHOP = RUN_PROFILE.shop || { potionPrice: 16, scrollPrice: 28, keyPrice: 2
 const ENDLESS_AFTER = !!(RUN_PROFILE.floorRules && RUN_PROFILE.floorRules.endlessAfter);
 const themeIdx = d => Math.min(THEMES.length - 1,
   Math.floor((Math.max(1, d) - 1) / RUN_PROFILE.floorRules.themeBandSize));
+const PROFILE_TEXT_EN = Object.freeze({
+  intro:'A hundred-floor abyss opens below. Choose an echo, cut through {maxDepth} floors, reclaim the {heart} from {boss} — or descend forever.',
+  bossGate:'{boss} seals the final stairs. Defeat it and reclaim the {heart}!',
+  bossFloorArrive:'The stars die overhead… {boss} is on this floor!',
+  maxDepthArrive:'You enter Floor {maxDepth} — the hollowed-out end of the abyss.',
+  bossDeath:'{boss} falls! The {heart} it guarded drops to the floor!',
+  winBody:'You claimed the <b>{heart}</b>. The hundred-floor dungeon collapses behind you!<br>',
+  midBossArrive:'A deep guardian seals this floor.',
+  midBossDeath:'{midBoss} dissolves. The stairs into the depths light again.',
+  shopArrive:'A masked merchant opens a stall beneath the torchlight. Gold can buy survival.',
+  restArrive:'An ember camp. You can dress your wounds here.',
+  shrineArrive:'A nameless shrine glows in the dark. Touch it and accept the echo\'s wager.',
+  endlessArrive:'You refuse the road home. Echoes stack floor upon floor — no end, only deeper.',
+  floorClear:'The floor is clear. Gold floods the stairs as the clear bonus enters your pouch.',
+});
+const runText = (key, fallback='') => ui(
+  RUN_PROFILE.texts && RUN_PROFILE.texts[key] || fallback,
+  PROFILE_TEXT_EN[key] || fallback
+);
 const fmtText = s => String(s)
-  .replace('{boss}', BOSS_BASE.name)
-  .replace('{midBoss}', MID_BOSS ? MID_BOSS.name : BOSS_BASE.name)
-  .replace('{heart}', RUN_PROFILE.terminalReward.name)
+  .replace('{boss}', visibleWorldName(BOSS_BASE.name))
+  .replace('{midBoss}', visibleWorldName(MID_BOSS ? MID_BOSS.name : BOSS_BASE.name))
+  .replace('{heart}', visibleWorldName(RUN_PROFILE.terminalReward.name))
   .replace('{maxDepth}', String(MAX_DEPTH))
   .replace('{depth}', String(depth))
-  .replace('{theme}', THEMES[themeIdx(depth)] ? THEMES[themeIdx(depth)].name : '');
+  .replace('{theme}', THEMES[themeIdx(depth)] ? visibleWorldName(THEMES[themeIdx(depth)].name) : '');
 
 
 const AFFIX_LABEL = {
-  atk:   v => `攻击 +${v}`,
-  def:   v => `防御 +${v}`,
-  hp:    v => `生命 +${v}`,
-  crit:  v => `暴击 +${v}%`,
-  leech: v => `吸血 +${v}%`,
-  gold:  v => `金币获取 +${v}%`,
-  thorns: v => `反伤 +${v}`,
-  regen:  v => `击杀回复 +${v}`,
+  atk:   v => LOCALE_DATA ? LOCALE_DATA.affixText('atk', v) : `攻击 +${v}`,
+  def:   v => LOCALE_DATA ? LOCALE_DATA.affixText('def', v) : `防御 +${v}`,
+  hp:    v => LOCALE_DATA ? LOCALE_DATA.affixText('hp', v) : `生命 +${v}`,
+  crit:  v => LOCALE_DATA ? LOCALE_DATA.affixText('crit', v) : `暴击 +${v}%`,
+  leech: v => LOCALE_DATA ? LOCALE_DATA.affixText('leech', v) : `吸血 +${v}%`,
+  gold:  v => LOCALE_DATA ? LOCALE_DATA.affixText('gold', v) : `金币获取 +${v}%`,
+  thorns: v => LOCALE_DATA ? LOCALE_DATA.affixText('thorns', v) : `反伤 +${v}`,
+  regen:  v => LOCALE_DATA ? LOCALE_DATA.affixText('regen', v) : `击杀回复 +${v}`,
 };
 
 // Epic / Legendary 机制词缀：不增加新按键，只改变现有动作的决策价值。
@@ -528,6 +557,7 @@ function mechanicForFreshItem(slot, rarity, d, base, affixes) {
   return { id, power: rarity >= 4 ? 2 : 1 };
 }
 function mechanicDescription(it) {
+  if (LOCALE_DATA && typeof LOCALE_DATA.mechanicText === 'function') return LOCALE_DATA.mechanicText(it);
   const def = it && MECHANIC_TRAITS[it.mechanic];
   if (!def) return '';
   const p = Math.max(1, Math.min(2, Number(it.mechanicPower) || 1));
@@ -1298,13 +1328,13 @@ function applyDirectHitMechanic(dmg) {
   if (after) {
     player.afterimageTurn = -1;
     out = Math.max(1, Math.round(out * (after >= 2 ? 0.60 : 0.75)));
-    floater(player, '残影卸力', '#9fd7ff');
-    msg(`【残影】削减了这次直击伤害。`, 'good');
+    floater(player, ui('残影卸力','Afterimage'), '#9fd7ff');
+    msg(ui('【残影】削减了这次直击伤害。','[Afterimage] reduced this direct hit.'), 'good');
   } else if (brace) {
     player.braceTurn = -1;
     out = Math.max(1, Math.round(out * (brace >= 2 ? 0.50 : 0.65)));
-    floater(player, '镇守', '#f2d27b');
-    msg(`【镇守】挡下了部分直击伤害。`, 'good');
+    floater(player, ui('镇守','Brace'), '#f2d27b');
+    msg(ui('【镇守】挡下了部分直击伤害。','[Brace] absorbed part of the direct hit.'), 'good');
   }
   return out;
 }
@@ -1339,10 +1369,10 @@ function beginArmorBreak(m, mode) {
   if (!m || !m.armorBreak || (m.armorBreakCooldown || 0) > 0 || (m.armorBreakCharge || 0) > 0) return false;
   m.armorBreakCharge = 1;
   m.armorBreakMode = mode === 'ranged' ? 'ranged' : 'melee';
-  floater(m, '破甲蓄力', '#e0a73a');
+  floater(m, ui('破甲蓄力','Armor Break'), '#e0a73a');
   msg(m.armorBreakMode === 'ranged'
-    ? `${m.name} 锁定了你，下一回合将射出破甲重击——离开视线或射程！`
-    : `${m.name} 举起武器蓄力，下一回合将发动破甲重击——拉开距离！`, 'bad');
+    ? ui(`${m.name} 锁定了你，下一回合将射出破甲重击——离开视线或射程！`, `${visibleWorldName(m.name)} locked on. Break line of sight or leave range before the next-turn Armor Break!`)
+    : ui(`${m.name} 举起武器蓄力，下一回合将发动破甲重击——拉开距离！`, `${visibleWorldName(m.name)} is charging Armor Break. Create distance before the next turn!`), 'bad');
   sfx.skill();
   return true;
 }
@@ -1350,7 +1380,7 @@ function beginArmorBreak(m, mode) {
 const healMult = () => ((player.grievous || 0) > 0 ? 0.5 : 1);
 function applyGrievous() {
   const dur = Math.max(1, 3 - (player.grivResist || 0));
-  if ((player.grievous || 0) < dur) msg('伤口崩裂——短时间内治疗效果减半！', 'bad');
+  if ((player.grievous || 0) < dur) msg(ui('伤口崩裂——短时间内治疗效果减半！','Wounds reopen — healing is temporarily halved!'), 'bad');
   player.grievous = dur;
 }
 const classDef = () => CLASSES[classId] || CLASSES.warrior;
@@ -1572,14 +1602,14 @@ function spawnMonsters(rooms, lastRoom) {
     const p = randomFloorIn([lastRoom], 0) || pickSpawn(4);
     if (p) {
       monsters.push(makeMonster({ ...mb, midBoss: true }, p));
-      msg(fmtText(RUN_PROFILE.texts.midBossArrive || RUN_PROFILE.texts.bossFloorArrive), 'bad');
+      msg(fmtText(runText('midBossArrive', runText('bossFloorArrive'))), 'bad');
     }
   }
   if (isFinalFloor()) {
     const p = randomFloorIn([lastRoom], 0) || pickSpawn(3);
     if (p) {
       monsters.push(makeMonster({ ...BOSS_BASE, boss: true }, p));
-      msg(fmtText(RUN_PROFILE.texts.bossFloorArrive), 'bad');
+      msg(fmtText(runText('bossFloorArrive')), 'bad');
     }
   } else if (player && player.echoMode && depth > MAX_DEPTH && depth % 5 === 0) {
     const p = pickSpawn(5);
@@ -1595,7 +1625,7 @@ function spawnMonsters(rooms, lastRoom) {
         midBoss: true,
       };
       monsters.push(makeMonster(echoBoss, p));
-      msg('一层回响凝聚成了守卫。', 'bad');
+      msg(ui('一层回响凝聚成了守卫。','The floor echo condenses into a guardian.'), 'bad');
     }
   }
 }
@@ -1646,7 +1676,7 @@ function spawnShop(rooms) {
   const eq = shopStock[shopStock.length - 1];
   eq.name = eq.item.name;
   eq.price = Math.max(18, itemValueScore(eq.item) * (SHOP.equipMult || 3));
-  msg(fmtText(RUN_PROFILE.texts.shopArrive || '商人在此等候。'), 'gold');
+  msg(fmtText(runText('shopArrive', ui('商人在此等候。','The merchant is waiting.'))), 'gold');
 }
 
 function spawnRest(rooms) {
@@ -1654,7 +1684,7 @@ function spawnRest(rooms) {
   const p = randomFloorIn(rooms.slice(1), 4) || pickSpawn(4);
   if (!p) return;
   npcs.push({ type: 'rest', x: p.x, y: p.y, fx: p.x, fy: p.y, name: '余烬营地' });
-  msg(fmtText(RUN_PROFILE.texts.restArrive || '一处营地。'), 'good');
+  msg(fmtText(runText('restArrive', ui('一处营地。','A camp waits here.'))), 'good');
 }
 
 function spawnChest(rooms) {
@@ -1673,7 +1703,7 @@ function spawnShrine(rooms) {
   const p = pickSpawn(6) || randomFloorIn(rooms.slice(1), 5);
   if (!p) return;
   npcs.push({ type: 'shrine', x: p.x, y: p.y, fx: p.x, fy: p.y, name: '无名神龛', used: false });
-  msg(fmtText(RUN_PROFILE.texts.shrineArrive || '一座神龛在此。'), 'epic');
+  msg(fmtText(runText('shrineArrive', ui('一座神龛在此。','A shrine waits here.'))), 'epic');
 }
 
 function spawnTraps() {
@@ -1727,7 +1757,7 @@ function revealSecret(s) {
   dropAt(s.rx, s.ry, { type: 'equip', item: genEquip(depth, 2), emoji: '', name: '装备' });
   dropAt(s.rx, s.ry, { type: 'gold', icon: C.gold.icon, val: 20 + depth * 4, name: C.gold.name });
   if (rng() < 0.5 && C.key) dropAt(s.rx, s.ry, { type: 'key', icon: C.key.icon, name: C.key.name });
-  msg('墙面裂开，露出一间密室！', 'gold');
+  msg(ui('墙面裂开，露出一间密室！','The wall splits open, revealing a secret room!'), 'gold');
   sfx.chest();
   computeFov();
 }
@@ -1837,8 +1867,8 @@ function applyDamageToMonster(m, dmg, crit) {
   if (m.enrage && !m.enraged && m.hp > 0 && m.hp <= m.maxHp * 0.5) {
     m.enraged = true;
     m.atk = Math.round(m.atkOrigin * 1.35);
-    floater(m, '狂暴!', '#ff6b5b');
-    msg(`${m.name} 陷入狂暴，攻势暴涨！`, 'bad');
+    floater(m, ui('狂暴!','ENRAGED!'), '#ff6b5b');
+    msg(ui(`${m.name} 陷入狂暴，攻势暴涨！`, `${visibleWorldName(m.name)} became enraged!`), 'bad');
     sfx.skill();
   }
   if (m.hp <= 0) killMonster(m);
@@ -1866,10 +1896,10 @@ function playerAttack(m) {
     if (reaper && player.skillCd > 0) {
       const refund = reaper >= 2 ? 2 : 1;
       player.skillCd = Math.max(0, player.skillCd - refund);
-      msg(`【收割】斩杀返还 ${refund} 回合技能冷却。`, 'good');
+      msg(ui(`【收割】斩杀返还 ${refund} 回合技能冷却。`, `[Reaper] Kill refunded ${refund} turn${refund === 1 ? '' : 's'} of skill cooldown.`), 'good');
     }
   }
-  if (m.hp > 0) msg(`${crit ? '暴击！' : ''}你击中${m.name}，造成 ${dmg} 点伤害。`);
+  if (m.hp > 0) msg(ui(`${crit ? '暴击！' : ''}你击中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}You hit ${visibleWorldName(m.name)} for ${dmg} damage.`));
 }
 // 沿玩家面向方向（dx,dy 为单位步长，四方向）寻找视线内、射程内的敌人，
 // 中途遇墙则视线被挡，返回 null。用于游侠等具备 rangedRange 的职业。
@@ -1903,27 +1933,27 @@ function playerRangedAttack(m) {
     if (reaper && player.skillCd > 0) {
       const refund = reaper >= 2 ? 2 : 1;
       player.skillCd = Math.max(0, player.skillCd - refund);
-      msg(`【收割】远射斩杀返还 ${refund} 回合技能冷却。`, 'good');
+      msg(ui(`【收割】远射斩杀返还 ${refund} 回合技能冷却。`, `[Reaper] Ranged kill refunded ${refund} turn${refund === 1 ? '' : 's'} of skill cooldown.`), 'good');
     }
   }
-  if (m.hp > 0) msg(`${crit ? '暴击！' : ''}你射中${m.name}，造成 ${dmg} 点伤害。`);
+  if (m.hp > 0) msg(ui(`${crit ? '暴击！' : ''}你射中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}You shot ${visibleWorldName(m.name)} for ${dmg} damage.`));
 }
 function monsterAttack(m, armorBreak = false) {
   lunge(m, player.x, player.y);
   // 游侠被动「灵巧」：一成几率闪开近战攻击（不挡远程——远程是游侠的克制面）
   if (classId === 'ranger' && player.hp > 0 && rng() < 0.10) {
-    floater(player, '闪避', '#7ec8e3');
-    msg(`${m.name}的攻击被你灵巧闪开。`);
+    floater(player, ui('闪避','Dodge'), '#7ec8e3');
+    msg(ui(`${m.name}的攻击被你灵巧闪开。`, `You dodged ${visibleWorldName(m.name)}'s attack.`));
     return;
   }
   const raw = m.atk + ri(-1, 1);
   let dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - pDef());
   dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
-    floater(player, '破甲重击!', '#e0a73a');
-    msg(`${m.name} 的蓄力破甲命中，造成 ${dmg} 点无视护甲伤害！`, 'bad');
+    floater(player, ui('破甲重击!','ARMOR BREAK!'), '#e0a73a');
+    msg(ui(`${m.name} 的蓄力破甲命中，造成 ${dmg} 点无视护甲伤害！`, `${visibleWorldName(m.name)}'s Armor Break hit for ${dmg} armor-piercing damage!`), 'bad');
   } else {
-    msg(`${m.name}击中你，造成 ${dmg} 点伤害！`, 'bad');
+    msg(ui(`${m.name}击中你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you for ${dmg} damage!`), 'bad');
   }
   player.hp -= dmg;
   armReprisal();
@@ -1931,7 +1961,7 @@ function monsterAttack(m, armorBreak = false) {
   addTrauma(armorBreak ? 0.48 : 0.35); sfx.hurt();
   if (m.poison) {
     player.poison = Math.max(player.poison || 0, 3);
-    msg('毒素渗进伤口。', 'bad');
+    msg(ui('毒素渗进伤口。','Poison seeps into the wound.'), 'bad');
   }
   if ((m.elite || m.boss || m.midBoss) && player.hp > 0) applyGrievous();
   if (m.leech) {
@@ -1944,10 +1974,10 @@ function monsterAttack(m, armorBreak = false) {
     floater(m, `-${th}`, '#c9a7ff');
     burst(m.fx, m.fy, '#c9a7ff', 4);
     if (m.hp <= 0) {
-      msg(`${m.name} 撞上荆棘，被反噬而死！`, 'good');
+      msg(ui(`${m.name} 撞上荆棘，被反噬而死！`, `${visibleWorldName(m.name)} died on your thorns!`), 'good');
       killMonster(m);
     } else {
-      msg(`荆棘反噬${m.name} ${th} 点。`);
+      msg(ui(`荆棘反噬${m.name} ${th} 点。`, `Thorns dealt ${th} damage to ${visibleWorldName(m.name)}.`));
     }
   }
   if (player.hp <= 0) die();
@@ -1979,13 +2009,13 @@ function killMonster(m) {
   player.kills++; player.xp += m.xp;
   burst(m.fx, m.fy, m.color, 14);
   addDecal(m.x, m.y);
-  msg(`${m.name}被消灭了！（+${m.xp} 经验）`, 'good');
+  msg(ui(`${m.name}被消灭了！（+${m.xp} 经验）`, `${visibleWorldName(m.name)} was slain! (+${m.xp} XP)`), 'good');
   if (boomHit) {
     const dmg = Math.max(2, Math.round(m.atk * 0.55) - Math.floor(pDef() / 2));
     player.hp -= dmg;
     floater(player, `-${dmg}`, '#e0a73a');
     burst(m.fx, m.fy, '#e0a73a', 22);
-    msg(`${m.name} 炸裂开来，你受到 ${dmg} 点溅射伤害！`, 'bad');
+    msg(ui(`${m.name} 炸裂开来，你受到 ${dmg} 点溅射伤害！`, `${visibleWorldName(m.name)} exploded, dealing ${dmg} splash damage to you!`), 'bad');
     sfx.hurt();
     if (player.hp <= 0) { die(); updateHud(); return; }
   }
@@ -1996,7 +2026,7 @@ function killMonster(m) {
     dropAt(m.x, m.y, { type: 'gold', icon: C.gold.icon,
       val: tr.bossGoldBase + depth * tr.bossGoldPerDepth,
       name: C.gold.name });
-    msg(fmtText(RUN_PROFILE.texts.bossDeath), 'gold');
+    msg(fmtText(runText('bossDeath')), 'gold');
   } else if (m.midBoss) {
     const C = RUN_PROFILE.consumables;
     dropAt(m.x, m.y, { type: 'equip', item: genEquip(depth, 3), emoji: '', name: '装备' });
@@ -2004,9 +2034,10 @@ function killMonster(m) {
     if (C.key) dropAt(m.x, m.y, { type: 'key', icon: C.key.icon, name: C.key.name });
     dropAt(m.x, m.y, { type: 'potion', icon: C.potion.icon, name: C.potion.name });
     if (greedyMode) dropAt(m.x, m.y, { type: 'escape', icon: C.scroll.icon, name: '回城卷轴' });
-    msg(fmtText(RUN_PROFILE.texts.midBossDeath || '中层守卫倒下了。'), 'gold');
-    msg(`守卫的战利品散落一地：史诗装备 · 金币` +
-      (C.key ? ' · 钥匙' : '') + ` · ${C.potion.name}！`, 'good');
+    msg(fmtText(runText('midBossDeath', ui('中层守卫倒下了。','The deep guardian has fallen.'))), 'gold');
+    msg(ui(`守卫的战利品散落一地：史诗装备 · 金币` +
+      (C.key ? ' · 钥匙' : '') + ` · ${C.potion.name}！`,
+      `The guardian's loot spills across the floor: Epic gear · Gold${C.key ? ' · Key' : ''} · ${visibleWorldName(C.potion.name)}!`), 'good');
   } else if (m.elite) {
     dropAt(m.x, m.y, { type: 'equip', item: genEquip(depth, 2), emoji: '', name: '装备' });
   } else {
@@ -2037,14 +2068,14 @@ function killMonster(m) {
     floater(player, 'LEVEL UP!', '#eda23a');
     burst(player.fx, player.fy, '#eda23a', 16);
     sfx.levelup();
-    msg(`你升到了 ${player.lvl} 级！攻击+1，生命上限+6。`, 'gold');
+    msg(ui(`你升到了 ${player.lvl} 级！攻击+1，生命上限+6。`, `Level ${player.lvl}! ATK +1, Max HP +6.`), 'gold');
     if (player.lvl % 3 === 0) pendingTalent = true;
   }
   if (!floorCleared && monsters.length === 0) {
     floorCleared = true;
     const bonus = 12 + depth * 3;
     player.gold += bonus;
-    msg(fmtText(RUN_PROFILE.texts.floorClear || `本层肃清。清场赏金 ${bonus}。`) + `（+${bonus} 金）`, 'gold');
+    msg(fmtText(runText('floorClear', ui(`本层肃清。清场赏金 ${bonus}。`,`The floor is clear. Clear bonus: ${bonus} Gold.`))) + ui(`（+${bonus} 金）`, ` (+${bonus} Gold)`), 'gold');
     sfx.win();
   }
   if (pendingTalent) openTalent();
@@ -2060,8 +2091,8 @@ function die() {
       syncMetaFromPlayer('insured');
       meta.wheelSpins = 0; meta.wheelResets = 0; meta.wheelSlots = null;
       enterTown();
-      msg(`保险符碎裂成金光！背包里的 ${player.inv.length} 件物品完好无损。`, 'gold');
-      msg(`但随身携带的 ${lostGold} 金币还是掉进了深渊。`, 'bad');
+      msg(ui(`保险符碎裂成金光！背包里的 ${player.inv.length} 件物品完好无损。`, `The Insurance Charm shatters into golden light! All ${player.inv.length} backpack items are safe.`), 'gold');
+      msg(ui(`但随身携带的 ${lostGold} 金币还是掉进了深渊。`, `But ${lostGold} carried Gold still fell into the abyss.`), 'bad');
     } else {
       greedyDeathReturn(player.inv.length, lostGold);
     }
@@ -2083,8 +2114,9 @@ function winGame() {
   }
   state = 'won'; sfx.win(); saveBest(); clearRun();
   showOverlay('win',
-    `${fmtText(RUN_PROFILE.texts.winBody)}` +
-    `下潜 <b>${depth}</b> 层 · ${esc(classDef().name)} · 等级 <b>${player.lvl}</b> · 击杀 <b>${player.kills}</b> · 金币 <b>${player.gold}</b>`);
+    `${fmtText(runText('winBody'))}` +
+    ui(`下潜 <b>${depth}</b> 层 · ${esc(classDef().name)} · 等级 <b>${player.lvl}</b> · 击杀 <b>${player.kills}</b> · 金币 <b>${player.gold}</b>`,
+      `Floor <b>${depth}</b> · ${esc(classDef().name)} · Level <b>${player.lvl}</b> · Kills <b>${player.kills}</b> · Gold <b>${player.gold}</b>`));
 }
 
 function pickupHere() {
@@ -2093,22 +2125,22 @@ function pickupHere() {
   let bagChanged = false;
   switch (it.type) {
     case 'potion':
-      player.potions++; msg('你捡起了一瓶治疗药水。', 'good'); break;
+      player.potions++; msg(ui('你捡起了一瓶治疗药水。','Picked up a Healing Potion.'), 'good'); break;
     case 'scroll':
-      player.scrolls++; msg('你捡起了一张传送卷轴。', 'good'); break;
+      player.scrolls++; msg(ui('你捡起了一张传送卷轴。','Picked up a Teleport Scroll.'), 'good'); break;
     case 'escape':
       player.escapes = (player.escapes || 0) + 1;
-      msg('你捡起了一张回城卷轴——按 T 即可带着战利品平安回镇！', 'gold');
+      msg(ui('你捡起了一张回城卷轴——按 T 即可带着战利品平安回镇！','Picked up a Return Scroll — press T to bring your loot safely back to town!'), 'gold');
       break;
     case 'key':
-      player.keys++; msg('你捡起了一把锈蚀钥匙。', 'gold'); break;
+      player.keys++; msg(ui('你捡起了一把锈蚀钥匙。','Picked up a Rusty Key.'), 'gold'); break;
     case 'gold': {
       const amt = Math.max(1, Math.round(it.val * (1 + pGoldBonus() / 100)));
-      player.gold += amt; msg(`你捡起了 ${amt} 枚金币。`, 'gold'); break;
+      player.gold += amt; msg(ui(`你捡起了 ${amt} 枚金币。`, `Picked up ${amt} Gold.`), 'gold'); break;
     }
     case 'chest': {
       if (it.locked && player.keys <= 0) {
-        msg('宝箱锁着。你需要一把钥匙。', 'bad');
+        msg(ui('宝箱锁着。你需要一把钥匙。','The chest is locked. You need a key.'), 'bad');
         return;
       }
       if (it.locked) player.keys--;
@@ -2117,15 +2149,15 @@ function pickupHere() {
       const loot = genEquip(depth, 2);
       if (player.inv.length >= BAG_CAP) {
         dropAt(player.x, player.y, { type: 'equip', item: loot, emoji: '', name: '装备' });
-        msg(`你打开宝箱，【${loot.name}】掉在地上。`, rarityLogCls(loot.rarity));
+        msg(ui(`你打开宝箱，【${loot.name}】掉在地上。`, `You opened the chest. [${visibleItemName(loot)}] fell to the ground.`), rarityLogCls(loot.rarity));
       } else {
         player.inv.push(loot);
         bagChanged = true;
-        msg(`你打开宝箱，获得【${loot.name}】。`, rarityLogCls(loot.rarity));
+        msg(ui(`你打开宝箱，获得【${loot.name}】。`, `You opened the chest and obtained [${visibleItemName(loot)}].`), rarityLogCls(loot.rarity));
       }
       if (rng() < 0.5) {
         player.gold += 12 + depth * 3;
-        msg('箱底还有一撮金币。', 'gold');
+        msg(ui('箱底还有一撮金币。','There is more Gold at the bottom of the chest.'), 'gold');
       }
       if (bagChanged) renderBag();
       sfx.pickup();
@@ -2139,26 +2171,26 @@ function pickupHere() {
       if (roll < 0.45) {
         const amt = Math.max(1, Math.round((4 + depth * 2 + ri(0, 4)) * (1 + pGoldBonus() / 100)));
         player.gold += amt;
-        msg(`木桶裂开，滚出 ${amt} 枚金币。`, 'gold');
+        msg(ui(`木桶裂开，滚出 ${amt} 枚金币。`, `The cask split open and spilled ${amt} Gold.`), 'gold');
         sfx.pickup();
       } else if (roll < 0.65) {
         player.potions++;
-        msg('木桶里藏着一眼治疗药水！', 'good');
+        msg(ui('木桶里藏着一眼治疗药水！','A Healing Potion was hidden in the cask!'), 'good');
         sfx.potion();
       } else if (roll < 0.76) {
         const loot = genEquip(depth, 1);
         if (player.inv.length >= BAG_CAP) {
           dropAt(player.x, player.y, { type: 'equip', item: loot, emoji: '', name: '装备' });
-          msg(`木桶里藏着【${loot.name}】，但它掉落在了地上。`, rarityLogCls(loot.rarity));
+          msg(ui(`木桶里藏着【${loot.name}】，但它掉落在了地上。`, `The cask held [${visibleItemName(loot)}], but it fell to the ground.`), rarityLogCls(loot.rarity));
         } else {
           player.inv.push(loot);
           bagChanged = true;
-          msg(`木桶里藏着【${loot.name}】！`, rarityLogCls(loot.rarity));
+          msg(ui(`木桶里藏着【${loot.name}】！`, `The cask held [${visibleItemName(loot)}]!`), rarityLogCls(loot.rarity));
         }
       } else if (roll < 0.85) {
-        msg('木桶碎片下空空如也。', 'dim');
+        msg(ui('木桶碎片下空空如也。','Nothing but splinters inside the cask.'), 'dim');
       } else {
-        msg('木桶里积满了陈年灰尘。', 'dim');
+        msg(ui('木桶里积满了陈年灰尘。','The cask was filled with ancient dust.'), 'dim');
       }
       if (bagChanged) renderBag();
       persistRun();
@@ -2166,11 +2198,11 @@ function pickupHere() {
     }
     case 'equip':
       if (player.inv.length >= BAG_CAP) {
-        msg('背包已满，无法拾取装备！'); return;
+        msg(ui('背包已满，无法拾取装备！','Backpack full — cannot pick up gear!')); return;
       }
       player.inv.push(it.item);
       bagChanged = true;
-      msg(`拾取【${it.item.name}】`, rarityLogCls(it.item.rarity));
+      msg(ui(`拾取【${it.item.name}】`, `Picked up [${visibleItemName(it.item)}]`), rarityLogCls(it.item.rarity));
       break;
     case 'amulet':
       items.splice(items.indexOf(it), 1);
@@ -2188,8 +2220,8 @@ function pickupHere() {
 }
 function usePotion() {
   if (state !== 'playing') return;
-  if (player.potions <= 0) { msg('你没有药水了。'); return; }
-  if (player.hp >= pMaxHp()) { msg('你现在状态很好，不需要喝药水。'); return; }
+  if (player.potions <= 0) { msg(ui('你没有药水了。','You have no potions left.')); return; }
+  if (player.hp >= pMaxHp()) { msg(ui('你现在状态很好，不需要喝药水。','You are already healthy enough; no potion needed.')); return; }
   player.potions--;
   // 回复量随最大生命保底（18%），修正深层「药水越来越不解渴」的衰减
   const heal = Math.min(pMaxHp() - player.hp,
@@ -2201,16 +2233,18 @@ function usePotion() {
   if (clarity && player.grievous > 0) {
     const before = player.grievous;
     player.grievous = clarity >= 2 ? 0 : Math.max(0, player.grievous - 1);
-    msg(clarity >= 2 ? '【清创】药力洗净了重伤。' : `【清创】重伤缩短 ${before - player.grievous} 回合。`, 'good');
+    msg(clarity >= 2
+      ? ui('【清创】药力洗净了重伤。','[Clarity] The potion cleared Grievous Wounds.')
+      : ui(`【清创】重伤缩短 ${before - player.grievous} 回合。`, `[Clarity] Grievous Wounds shortened by ${before - player.grievous} turn.`), 'good');
   }
   floater(player, `+${heal}`, '#7dd87d');
   sfx.potion();
-  msg(`你喝下药水，恢复了 ${heal} 点生命。`, 'good');
+  msg(ui(`你喝下药水，恢复了 ${heal} 点生命。`, `You drank a potion and restored ${heal} HP.`), 'good');
   endTurn();
 }
 function useScroll() {
   if (state !== 'playing') return;
-  if (player.scrolls <= 0) { msg('你没有卷轴了。'); return; }
+  if (player.scrolls <= 0) { msg(ui('你没有卷轴了。','You have no scrolls left.')); return; }
   player.scrolls--;
   for (let t = 0; t < 300; t++) {
     const x = rnd(MAP_W), y = rnd(MAP_H);
@@ -2219,24 +2253,24 @@ function useScroll() {
       break;
     }
   }
-  msg('卷轴的光芒将你传送到了未知之处……');
+  msg(ui('卷轴的光芒将你传送到了未知之处……','The scroll carries you to an unknown place…'));
   endTurn();
 }
 function useSkill() {
   if (state !== 'playing') return;
-  if (player.skillCd > 0) { msg(`技能冷却中（${player.skillCd} 回合）。`); return; }
+  if (player.skillCd > 0) { msg(ui(`技能冷却中（${player.skillCd} 回合）。`, `Skill cooldown: ${player.skillCd} turns.`)); return; }
   const sk = classDef().skill;
   const mobsBeforeSkill = monsters.length;
   let used = false;
   if (sk.id === 'cleave') {
     const adj = monsters.filter(m => Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1);
-    if (!adj.length) { msg('附近没有可以横扫的敌人。'); return; }
+    if (!adj.length) { msg(ui('附近没有可以横扫的敌人。','No adjacent enemies to Cleave.')); return; }
     const dmg = Math.max(1, Math.round(pAtk() * 1.5));
     sfx.skill();
     for (const m of [...adj]) {
       if (monsters.includes(m)) applyDamageToMonster(m, Math.max(1, dmg - m.def), false);
     }
-    msg(`横扫命中 ${adj.length} 个敌人！`, 'gold');
+    msg(ui(`横扫命中 ${adj.length} 个敌人！`, `Cleave hit ${adj.length} enemies!`), 'gold');
     used = true;
   } else if (sk.id === 'dash') {
     const [dx, dy] = player.facing || [1, 0];
@@ -2252,16 +2286,18 @@ function useSkill() {
       }
       nx = tx; ny = ty;
     }
-    if (nx === player.x && ny === player.y && !hits) { msg('这个方向无法疾步。'); return; }
+    if (nx === player.x && ny === player.y && !hits) { msg(ui('这个方向无法疾步。','Dash is blocked in that direction.')); return; }
     player.x = nx; player.y = ny;
     sfx.skill();
     triggerTrap(nx, ny);
     pickupHere();
-    msg(hits ? `疾步穿过 ${hits} 个敌人。` : '你向前疾步。', 'good');
+    msg(hits
+      ? ui(`疾步穿过 ${hits} 个敌人。`, `Dash crossed ${hits} enemies.`)
+      : ui('你向前疾步。','You dash forward.'), 'good');
     used = true;
   } else if (sk.id === 'bolt') {
     const vis = monsters.filter(m => visible[m.y] && visible[m.y][m.x]);
-    if (!vis.length) { msg('视野内没有可以点射的敌人。'); return; }
+    if (!vis.length) { msg(ui('视野内没有可以点射的敌人。','No visible target for Arcane Bolt.')); return; }
     vis.sort((a, b) =>
       (Math.abs(a.x - player.x) + Math.abs(a.y - player.y)) -
       (Math.abs(b.x - player.x) + Math.abs(b.y - player.y)));
@@ -2274,11 +2310,11 @@ function useSkill() {
     if (m.hp > 0 && walkable(bx, by) && !monsterAt(bx, by) && !npcAt(bx, by)) {
       m.x = bx; m.y = by;
     }
-    msg(`奥术弹击中${m.name}，造成 ${dmg} 点伤害。`, 'epic');
+    msg(ui(`奥术弹击中${m.name}，造成 ${dmg} 点伤害。`, `Arcane Bolt hit ${visibleWorldName(m.name)} for ${dmg} damage.`), 'epic');
     used = true;
   } else if (sk.id === 'backstab') {
     const vis = monsters.filter(m => visible[m.y] && visible[m.y][m.x]);
-    if (!vis.length) { msg('视野内没有可以偷袭的目标。'); return; }
+    if (!vis.length) { msg(ui('视野内没有可以偷袭的目标。','No visible target for Shadowstrike.')); return; }
     vis.sort((a, b) =>
       (Math.abs(a.x - player.x) + Math.abs(a.y - player.y)) -
       (Math.abs(b.x - player.x) + Math.abs(b.y - player.y)));
@@ -2292,14 +2328,14 @@ function useSkill() {
     ];
     const spot = spots.find(s => (s.x !== m.x || s.y !== m.y) &&
       walkable(s.x, s.y) && !monsterAt(s.x, s.y) && !npcAt(s.x, s.y));
-    if (!spot) { msg('目标周围没有落脚点，偷袭失败。'); return; }
+    if (!spot) { msg(ui('目标周围没有落脚点，偷袭失败。','No safe landing tile beside the target; Shadowstrike failed.')); return; }
     player.x = spot.x; player.y = spot.y;
     const dmg = Math.max(2, Math.round((pAtk() + 2 - m.def) * 2.2));
     sfx.skill();
     applyDamageToMonster(m, dmg, true);
     triggerTrap(spot.x, spot.y);
     pickupHere();
-    msg(`你欺入${m.name}身侧，偷袭暴击造成 ${dmg} 点伤害！`, 'epic');
+    msg(ui(`你欺入${m.name}身侧，偷袭暴击造成 ${dmg} 点伤害！`, `Shadowstrike hits ${visibleWorldName(m.name)} for ${dmg} critical damage!`), 'epic');
     used = true;
   }
   if (!used) return;
@@ -2312,25 +2348,25 @@ function useSkill() {
   if (overclock && monsters.length < mobsBeforeSkill) {
     const refund = overclock >= 2 ? 2 : 1;
     player.skillCd = Math.max(0, player.skillCd - refund);
-    msg(`【回路超频】技能击杀返还 ${refund} 回合冷却。`, 'good');
+    msg(ui(`【回路超频】技能击杀返还 ${refund} 回合冷却。`, `[Overclock] Skill kill refunded ${refund} turn${refund === 1 ? '' : 's'} of cooldown.`), 'good');
   }
   if (state !== 'playing') { updateHud(); return; }
   endTurn();
 }
 function descend() {
   if (state !== 'playing') return;
-  if (!canDescendNow()) { msg(fmtText(RUN_PROFILE.texts.bossGate), 'bad'); return; }
-  if (map[player.y][player.x] !== STAIRS) { msg('这里没有向下的楼梯。站上去再按 Enter。'); return; }
+  if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
+  if (map[player.y][player.x] !== STAIRS) { msg(ui('这里没有向下的楼梯。站上去再按 Enter。','There are no stairs here. Stand on them and press Enter.')); return; }
   depth++;
   buildThemeTex(depth);
   genLevel(); computeFov(); sfx.stairs();
-  const themeName = THEMES[themeIdx(depth)] ? THEMES[themeIdx(depth)].name : '未知层域';
+  const themeName = THEMES[themeIdx(depth)] ? visibleWorldName(THEMES[themeIdx(depth)].name) : ui('未知层域','Unknown Depths');
   msg(isFinalFloor()
-    ? fmtText(RUN_PROFILE.texts.maxDepthArrive)
+    ? fmtText(runText('maxDepthArrive'))
     : player.echoMode
-      ? `回响第 ${depth} 层——${themeName}。怪物随着深度一同苏醒。`
-      : `你沿着螺旋阶梯下到了第 ${depth} 层——${themeName}。`, 'gold');
-  msg(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, 'good');
+      ? ui(`回响第 ${depth} 层——${themeName}。怪物随着深度一同苏醒。`, `Echo Floor ${depth} — ${themeName}. The monsters awaken with the depth.`)
+      : ui(`你沿着螺旋阶梯下到了第 ${depth} 层——${themeName}。`, `You descended the spiral stairs to Floor ${depth} — ${themeName}.`), 'gold');
+  msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); updateHud();
   persistRun();
 }
@@ -2343,14 +2379,14 @@ function quickDiveCost(fromDepth, n) {
 }
 function quickDive(n) {
   if (state !== 'playing') return;
-  if (!canDescendNow()) { msg(fmtText(RUN_PROFILE.texts.bossGate), 'bad'); return; }
-  if (!map || map[player.y][player.x] !== STAIRS) { msg('站到楼梯上才能快速下潜（Enter 是下一层）。'); return; }
+  if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
+  if (!map || map[player.y][player.x] !== STAIRS) { msg(ui('站到楼梯上才能快速下潜（Enter 是下一层）。','Stand on the stairs before descending.')); return; }
   let skip = Math.floor(Number(n) || QUICK_DIVE_STEP);
   if (!Number.isFinite(skip)) skip = QUICK_DIVE_STEP;
   skip = Math.max(1, Math.min(skip, MAX_DEPTH - depth));
   const cost = quickDiveCost(depth, skip);
   if ((player.gold || 0) < cost) {
-    msg(`金币不够——向回响支付 ${cost} G 才能直坠 ${skip} 层。`, 'bad');
+    msg(ui(`金币不够——向回响支付 ${cost} G 才能直坠 ${skip} 层。`, `Not enough Gold — the Echo demands ${cost} G to dive ${skip} floors.`), 'bad');
     return;
   }
   player.gold -= cost;
@@ -2358,9 +2394,9 @@ function quickDive(n) {
   buildThemeTex(depth);
   genLevel(); computeFov(); sfx.stairs();
   msg(isFinalFloor()
-    ? fmtText(RUN_PROFILE.texts.maxDepthArrive)
-    : `你向回响支付了 ${cost} G，沿捷径直坠 ${skip} 层——来到第 ${depth} 层。`, 'gold');
-  msg(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, 'good');
+    ? fmtText(runText('maxDepthArrive'))
+    : ui(`你向回响支付了 ${cost} G，沿捷径直坠 ${skip} 层——来到第 ${depth} 层。`, `You paid the Echo ${cost} G and plunged ${skip} floors — arriving at Floor ${depth}.`), 'gold');
+  msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); updateHud();
   persistRun();
 }
@@ -2375,31 +2411,31 @@ function triggerTrap(x, y) {
   burst(x, y, '#e0a73f', 8);
   addTrauma(0.2);
   sfx.hurt();
-  msg(`你踩上了陷阱，受到 ${dmg} 点伤害！`, 'bad');
+  msg(ui(`你踩上了陷阱，受到 ${dmg} 点伤害！`, `You stepped on a trap and took ${dmg} damage!`), 'bad');
   if (player.hp <= 0) die();
 }
 
 function useRest(npc) {
-  if (npc.used) { msg('余烬已经冷了。'); return; }
+  if (npc.used) { msg(ui('余烬已经冷了。','The embers have gone cold.')); return; }
   npc.used = true;
   const heal = Math.min(pMaxHp() - player.hp, Math.max(4, Math.floor(pMaxHp() * 0.45 * healMult())));
   player.hp = Math.min(pMaxHp(), player.hp + heal);
   player.poison = 0;
   floater(player, `+${heal}`, '#7dd87d');
   sfx.potion();
-  msg(`你在营地包扎伤口，恢复了 ${heal} 点生命。`, 'good');
+  msg(ui(`你在营地包扎伤口，恢复了 ${heal} 点生命。`, `You rest at camp and recover ${heal} HP.`), 'good');
   persistRun();
   updateHud();
 }
 
 function openShrine(npc) {
-  if (npc.used) { msg('神龛已经沉寂。'); return; }
+  if (npc.used) { msg(ui('神龛已经沉寂。','The shrine has gone silent.')); return; }
   shrineTarget = npc;
   state = 'shrine';
   const title = $('shrine-title');
   const copy = $('shrine-copy');
-  if (title) title.textContent = '无名神龛';
-  if (copy) copy.textContent = '祈祷可能赐福，也可能索取代价。你要碰它吗？';
+  if (title) title.textContent = ui('无名神龛','Nameless Shrine');
+  if (copy) copy.textContent = ui('祈祷可能赐福，也可能索取代价。你要碰它吗？','Prayer may grant a blessing or demand a price. Touch the shrine?');
   showUi('shrine-screen');
 }
 
@@ -2414,22 +2450,22 @@ function applyShrine() {
     const heal = Math.min(pMaxHp() - player.hp, Math.floor(pMaxHp() * 0.5 * healMult()));
     player.hp = Math.min(pMaxHp(), player.hp + heal);
     player.poison = 0;
-    msg(`神龛涌出温水，你恢复了 ${heal} 点生命。`, 'good');
+    msg(ui(`神龛涌出温水，你恢复了 ${heal} 点生命。`, `Warm water flows from the shrine. You recover ${heal} HP.`), 'good');
     sfx.potion();
   } else if (roll < 0.5) {
     player.atkBase += 1;
-    msg('一柄无形的刃在你掌心成形。基础攻击 +1。', 'gold');
+    msg(ui('一柄无形的刃在你掌心成形。基础攻击 +1。','An unseen blade forms in your palm. Base ATK +1.'), 'gold');
     sfx.levelup();
   } else if (roll < 0.68) {
     player.hpBase += 8;
     player.hp = Math.min(pMaxHp(), player.hp + 8);
-    msg('石像把血肉还你。生命上限 +8。', 'good');
+    msg(ui('石像把血肉还你。生命上限 +8。','The statue restores your flesh. Max HP +8.'), 'good');
     sfx.equip();
   } else if (roll < 0.82) {
     const loot = genEquip(depth, 2);
     if (player.inv.length < BAG_CAP) player.inv.push(loot);
     else dropAt(player.x, player.y, { type: 'equip', item: loot, emoji: '', name: '装备' });
-    msg(`神龛吐出一件祭品：【${loot.name}】。`, rarityLogCls(loot.rarity));
+    msg(ui(`神龛吐出一件祭品：【${loot.name}】。`, `The shrine yields an offering: [${visibleItemName(loot)}].`), rarityLogCls(loot.rarity));
     renderBag();
     sfx.chest();
   } else {
@@ -2442,7 +2478,7 @@ function applyShrine() {
       spawned++;
     }
     player.gold += 25 + depth * 2;
-    msg(`暗影祭坛裂开，涌出 ${spawned} 个敌人。你同时摸到了金币。`, 'bad');
+    msg(ui(`暗影祭坛裂开，涌出 ${spawned} 个敌人。你同时摸到了金币。`, `The shadow altar splits open and releases ${spawned} enemies. You snatch some Gold.`), 'bad');
     sfx.hurt();
   }
   state = 'playing';
@@ -2476,7 +2512,7 @@ function pickTalent(id) {
     t.apply(player);
     player.talents = player.talents || [];
     player.talents.push(t.id);
-    msg(`回响觉醒：【${t.name}】。${t.desc}`, 'gold');
+    msg(ui(`回响觉醒：【${t.name}】。${t.desc}`, `Echo awakened: [${t.name}]. ${t.desc}`), 'gold');
     sfx.levelup();
   }
   state = 'playing';
@@ -2502,7 +2538,7 @@ function chooseEchoStay() {
   hideUi('echo-screen');
   player.echoMode = true;
   state = 'playing';
-  msg(fmtText(RUN_PROFILE.texts.endlessArrive || '你踏入无尽回响。'), 'epic');
+  msg(fmtText(runText('endlessArrive', ui('你踏入无尽回响。','You enter the Endless Echo.'))), 'epic');
   if (map[player.y][player.x] !== STAIRS) map[player.y][player.x] = STAIRS;
   sfx.stairs();
   persistRun();
@@ -2570,8 +2606,8 @@ function equipFromBag(i) {
   player.hp = Math.min(player.hp, pMaxHp());
   selectedBagIndex = -1;
   sfx.equip();
-  if ((it.rarity || 0) >= 4 && greedyMode && meta) { meta.gotLegend = 1; msg('传说藏品入账！远征录已记录。', 'gold'); }
-  msg(`你装备了【${it.name}】。`, rarityLogCls(it.rarity));
+  if ((it.rarity || 0) >= 4 && greedyMode && meta) { meta.gotLegend = 1; msg(ui('传说藏品入账！远征录已记录。','Legendary item acquired! The Expedition Record has been updated.'), 'gold'); }
+  msg(ui(`你装备了【${it.name}】。`, `You equipped [${visibleItemName(it)}].`), rarityLogCls(it.rarity));
   renderBag(); renderEquip(); updateHud();
   persistRun();
 }
@@ -2579,7 +2615,7 @@ function unequip(slot) {
   if (state !== 'playing') return;
   const it = player.equip[slot];
   if (!it) return;
-  if (player.inv.length >= BAG_CAP) { msg('背包已满，无法卸下装备！'); return; }
+  if (player.inv.length >= BAG_CAP) { msg(ui('背包已满，无法卸下装备！','Backpack full — cannot unequip this item!')); return; }
   player.equip[slot] = null;
   clearMechanicWindows();
   player.inv.push(it);
@@ -2593,7 +2629,7 @@ function discardFromBag(i) {
   dropAt(player.x, player.y, { type: 'equip', item: it, emoji: '', name: '装备' });
   player.inv.splice(i, 1);
   selectedBagIndex = -1;
-  msg(`你把【${it.name}】丢在了地上。`);
+  msg(ui(`你把【${it.name}】丢在了地上。`, `You dropped [${visibleItemName(it)}] on the ground.`));
   renderBag(); updateHud();
 }
 function renderBag() {
@@ -2603,7 +2639,7 @@ function renderBag() {
     const it = player.inv[i];
     const icon = it ? lootMarkup(it.icon) : '';
     html += it
-      ? `<div class="bagcell r${it.rarity}${i === selectedBagIndex ? ' selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(it.name)}">${icon}<span class="dropx" data-drop="${i}" aria-label="丢弃">✕</span></div>`
+      ? `<div class="bagcell r${it.rarity}${i === selectedBagIndex ? ' selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(visibleItemName(it))}">${icon}<span class="dropx" data-drop="${i}" aria-label="${ui('丢弃','Drop')}">✕</span></div>`
       : `<div class="bagcell empty"></div>`;
   }
   $('bag').innerHTML = html;
@@ -2618,11 +2654,10 @@ function renderEquip() {
     iconEl.innerHTML = it ? lootMarkup(it.icon) : '<span aria-hidden="true">◇</span>';
     const nameEl = el.querySelector('.eqname');
     if (it) {
-      nameEl.textContent = it.name;
+      nameEl.textContent = visibleItemName(it);
       nameEl.style.color = RARITIES[it.rarity].color;
     } else {
-      nameEl.textContent = slot === 'weapon' ? '武器' : slot === 'armor' ? '护甲' :
-        slot === 'helmet' ? '头盔' : slot === 'boots' ? '靴子' : slot === 'ring' ? '戒指' : '项链';
+      nameEl.textContent = visibleSlotName(slot);
       nameEl.style.color = '';
     }
   }
@@ -2638,10 +2673,10 @@ function renderEquip() {
 
 function tooltipHtml(it, compareSlot) {
   const r = RARITIES[it.rarity];
-  let html = `<div class="tname r${it.rarity}">${esc(it.name)}</div>`;
-  if (it.stats.atk) html += `<div>攻击 +${it.stats.atk}</div>`;
-  if (it.stats.def) html += `<div>防御 +${it.stats.def}</div>`;
-  if (it.stats.hp)  html += `<div>生命 +${it.stats.hp}</div>`;
+  let html = `<div class="tname r${it.rarity}">${esc(visibleItemName(it))}</div>`;
+  if (it.stats.atk) html += `<div>${esc(AFFIX_LABEL.atk(it.stats.atk))}</div>`;
+  if (it.stats.def) html += `<div>${esc(AFFIX_LABEL.def(it.stats.def))}</div>`;
+  if (it.stats.hp)  html += `<div>${esc(AFFIX_LABEL.hp(it.stats.hp))}</div>`;
   for (const a of (it.affixes || [])) {
     const label = AFFIX_LABEL[a.k];
     if (label) html += `<div class="affix">${esc(label(a.v))}</div>`;
@@ -2650,22 +2685,22 @@ function tooltipHtml(it, compareSlot) {
   if (mechanicText) html += `<div class="affix">${esc(mechanicText)}</div>`;
   const fit = Number(it.score) || 0;
   const value = itemValueScore(it);
-  html += `<div style="color:${r.color}">适配评分 ${fit} · 内在价值 ${value}</div>`;
+  html += `<div style="color:${r.color}">${ui(`适配评分 ${fit} · 内在价值 ${value}`, `Build Fit ${fit} · Item Value ${value}`)}</div>`;
   if (compareSlot) {
     const cur = player.equip[compareSlot];
     if (cur) {
       const fitDelta = fit - (Number(cur.score) || 0);
       const valueDelta = value - itemValueScore(cur);
       html += fitDelta > 0
-        ? `<div class="cmp-up">▲ 适配 +${fitDelta}</div>`
+        ? `<div class="cmp-up">${ui(`▲ 适配 +${fitDelta}`, `▲ Fit +${fitDelta}`)}</div>`
         : fitDelta < 0
-          ? `<div class="cmp-down">▼ 适配 ${fitDelta}</div>`
-          : '<div>＝ 适配评分持平</div>';
+          ? `<div class="cmp-down">${ui(`▼ 适配 ${fitDelta}`, `▼ Fit ${fitDelta}`)}</div>`
+          : `<div>${ui('＝ 适配评分持平', '= Same build fit')}</div>`;
       html += valueDelta > 0
-        ? `<div class="cmp-up">◆ 价值 +${valueDelta}</div>`
+        ? `<div class="cmp-up">${ui(`◆ 价值 +${valueDelta}`, `◆ Value +${valueDelta}`)}</div>`
         : valueDelta < 0
-          ? `<div class="cmp-down">◇ 价值 ${valueDelta}</div>`
-          : '<div>◇ 内在价值持平</div>';
+          ? `<div class="cmp-down">${ui(`◇ 价值 ${valueDelta}`, `◇ Value ${valueDelta}`)}</div>`
+          : `<div>${ui('◇ 内在价值持平', '◇ Same item value')}</div>`;
     }
   }
   return html;
@@ -2681,7 +2716,7 @@ function renderBagDetail() {
     if (equip) equip.disabled = false;
     if (drop) drop.disabled = false;
   } else {
-    copy.textContent = '轻触物品查看属性，再选择装备或丢弃。';
+    copy.textContent = ui('轻触物品查看属性，再选择装备或丢弃。','Select an item to inspect it, then equip or drop it.');
     if (equip) equip.disabled = true;
     if (drop) drop.disabled = true;
   }
@@ -2737,15 +2772,15 @@ function waitTurn() {
   const brace = mechanicPower('brace');
   if (brace) {
     player.braceTurn = turns + 1;
-    msg('【镇守】你稳住架势，准备承受下一次直击。', 'good');
+    msg(ui('【镇守】你稳住架势，准备承受下一次直击。','[Brace] You steady your stance for the next direct hit.'), 'good');
   }
   const meditate = mechanicPower('meditate');
   if (meditate && player.skillCd > 0) {
     const refund = meditate >= 2 ? 2 : 1;
     player.skillCd = Math.max(0, player.skillCd - refund);
-    msg(`【凝息】额外恢复 ${refund} 回合技能冷却。`, 'good');
+    msg(ui(`【凝息】额外恢复 ${refund} 回合技能冷却。`, `[Meditate] Restored ${refund} extra turn${refund === 1 ? '' : 's'} of skill cooldown.`), 'good');
   }
-  msg('你原地观察四周。');
+  msg(ui('你原地观察四周。','You wait and watch your surroundings.'));
   endTurn();
 }
 let flowDist = null;
@@ -2775,7 +2810,7 @@ function endTurn() {
     const pd = 1 + Math.floor(depth / 8);
     player.hp -= pd;
     floater(player, `-${pd}`, '#7dcc91');
-    msg(`毒素发作，失去 ${pd} 点生命。`, 'bad');
+    msg(ui(`毒素发作，失去 ${pd} 点生命。`, `Poison deals ${pd} damage.`), 'bad');
     if (player.hp <= 0) { die(); updateHud(); return; }
   }
   if (state !== 'playing') { updateHud(); return; }
@@ -2818,9 +2853,9 @@ function monsterRangedAttack(m, armorBreak = false) {
   dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
     floater(player, '破甲重击!', '#e0a73a');
-    msg(`${m.name} 的蓄力射击命中，造成 ${dmg} 点无视护甲伤害！`, 'bad');
+    msg(ui(`${m.name} 的蓄力射击命中，造成 ${dmg} 点无视护甲伤害！`, `${visibleWorldName(m.name)}'s charged shot hit for ${dmg} armor-piercing damage!`), 'bad');
   } else {
-    msg(`${m.name} 远程袭击你，造成 ${dmg} 点伤害！`, 'bad');
+    msg(ui(`${m.name} 远程袭击你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you from range for ${dmg} damage!`), 'bad');
   }
   player.hp -= dmg;
   armReprisal();
@@ -2829,7 +2864,7 @@ function monsterRangedAttack(m, armorBreak = false) {
   if ((m.elite || m.boss || m.midBoss) && player.hp > 0) applyGrievous();
   if (m.poison) {
     player.poison = Math.max(player.poison || 0, 3);
-    msg('毒素渗进伤口。', 'bad');
+    msg(ui('毒素渗进伤口。','Poison seeps into the wound.'), 'bad');
   }
   if (player.hp <= 0) die();
 }
@@ -2865,7 +2900,7 @@ function monstersTurn() {
       } else {
         m.armorBreakCooldown = 1;
         floater(m, '蓄力落空', '#9b8d78');
-        msg(`你避开了${m.name}的破甲重击窗口。`, 'good');
+        msg(ui(`你避开了${m.name}的破甲重击窗口。`, `You avoided ${visibleWorldName(m.name)}'s Armor Break window.`), 'good');
       }
       continue;
     }
@@ -3411,7 +3446,7 @@ function updateHud() {
   if (!player || !$('st-depth')) return;
   $('st-depth').textContent = player && player.echoMode ? depth + '∞' : depth;
   const themeEl = $('st-theme');
-  if (themeEl) themeEl.textContent = ' · ' + (THEMES[themeIdx(depth)] ? THEMES[themeIdx(depth)].name : '');
+  if (themeEl) themeEl.textContent = ' · ' + (THEMES[themeIdx(depth)] ? visibleWorldName(THEMES[themeIdx(depth)].name) : '');
   $('st-hptext').textContent = `${Math.max(0, player.hp)}/${pMaxHp()}`;
   $('st-hpfill').style.width = Math.max(0, player.hp / pMaxHp() * 100) + '%';
   const lowHp = state === 'playing' && player.hp > 0 && player.hp / pMaxHp() <= 0.25;
@@ -3435,7 +3470,7 @@ function updateHud() {
   const skEl = $('st-skill');
   if (skEl) {
     if (player.skillCd > 0) {
-      skEl.textContent = `${player.skillCd}回合`;
+      skEl.textContent = ui(`${player.skillCd}回合`, `CD ${player.skillCd}`);
       skEl.className = 'cd';
     } else {
       skEl.textContent = classDef().skill.name;
@@ -3446,14 +3481,14 @@ function updateHud() {
   const shopHere = npcAt(player.x + (player.facing ? player.facing[0] : 0), player.y + (player.facing ? player.facing[1] : 0));
   $('hint').classList.toggle('active', onStairs);
   $('hint').textContent = onStairs
-    ? (canDescendNow() ? `> Enter 下潜 · J 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）` : '> 击败本层首领才能离开。')
+    ? (canDescendNow() ? ui(`> Enter 下潜 · J 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, '> Press Enter to descend') : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
     : shopHere && shopHere.type === 'shop'
-      ? '> 撞向商人即可交易'
+      ? ui('> 撞向商人即可交易','> Walk into the merchant to trade')
       : shopHere && shopHere.type === 'shrine'
-        ? '> 撞向神龛即可祈祷'
+        ? ui('> 撞向神龛即可祈祷','> Walk into the shrine to pray')
         : shopHere && shopHere.type === 'rest'
-          ? '> 撞向营地即可包扎'
-          : '> 站在楼梯上按 Enter 下潜 · 点击已探索地块移动 · C 技能';
+          ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
+          : ui('> 站在楼梯上按 Enter 下潜 · 点击已探索地块移动 · C 技能','> Stand on the stairs and press Enter to descend · click explored tiles to move · J Attack · K Skill');
   const fab = $('descend-fab');
   if (fab) fab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
   const qfab = $('quickdive-fab');
@@ -3553,7 +3588,7 @@ function restoreRun(raw) {
   computeFov();
   if ((!monsters || monsters.length === 0) && (!items || items.length === 0) && !isFinalFloor()) {
     ensureFloorContent([{ x: 1, y: 1, w: MAP_W - 2, h: MAP_H - 2 }]);
-    msg('空荡的回响被重新填满了。', 'good');
+    msg(ui('空荡的回响被重新填满了。','The empty echo fills with danger again.'), 'good');
   }
   renderBag(); renderEquip(); updateHud();
   const logEl = $('log');
@@ -3573,7 +3608,7 @@ function restoreRun(raw) {
     showTown();
     return;
   }
-  msg('你从火堆旁醒来，记忆尚未散尽。', 'good');
+  msg(ui('你从火堆旁醒来，记忆尚未散尽。','You wake beside the fire with your memories intact.'), 'good');
 }
 
 // 弹窗打开期间锁定页面滚动，防止背景画布跟着滚动条上下摆动
@@ -3653,8 +3688,8 @@ function renderShop() {
 function buyShop(i) {
   const row = shopStock[i];
   if (!row) return;
-  if (player.gold < row.price) { msg('金币不够。', 'bad'); return; }
-  if (row.kind === 'equip' && player.inv.length >= BAG_CAP) { msg('背包已满。'); return; }
+  if (player.gold < row.price) { msg(ui('金币不够。','Not enough Gold.'), 'bad'); return; }
+  if (row.kind === 'equip' && player.inv.length >= BAG_CAP) { msg(ui('背包已满。','Backpack full.')); return; }
   player.gold -= row.price;
   if (row.kind === 'potion') player.potions++;
   else if (row.kind === 'scroll') player.scrolls++;
@@ -3667,7 +3702,7 @@ function buyShop(i) {
     renderBag();
   }
   sfx.pickup();
-  msg(`你买下了【${row.name}】。`, 'gold');
+  msg(ui(`你买下了【${row.name}】。`, `You bought [${row.item ? visibleItemName(row.item) : visibleWorldName(row.name)}].`), 'gold');
   renderShop(); updateHud(); persistRun();
 }
 function closeShop() {
@@ -3732,7 +3767,7 @@ function checkAchv() {
     if (!meta.achv[a.id] && a.test(meta)) {
       meta.achv[a.id] = 1;
       newly.push(a);
-      msg(`成就达成：【${a.name}】——${a.desc}。`, 'gold');
+      msg(ui(`成就达成：【${a.name}】——${a.desc}。`, `Achievement unlocked: [${a.name}] — ${a.desc}.`), 'gold');
     }
   }
   if (newly.length) sfx.levelup();
@@ -3828,34 +3863,34 @@ function applyWheelPrize(p) {
   switch (p.kind) {
     case 'gold':
       meta.gold += p.amount;
-      msg(`转出 ${p.amount} 金币，直接入账金库！`, 'gold');
+      msg(ui(`转出 ${p.amount} 金币，直接入账金库！`, `Won ${p.amount} Gold, deposited directly into the vault!`), 'gold');
       break;
-    case 'potion': meta.potions++; msg('转出一瓶治疗药水。', 'good'); break;
-    case 'scroll': meta.scrolls++; msg('转出一张传送卷轴。', 'good'); break;
-    case 'key': meta.keys++; msg('转出一把锈蚀钥匙。', 'good'); break;
-    case 'escape': meta.escapes++; msg('转出一张回城卷轴！', 'gold'); break;
-    case 'insurance': meta.insurance = (meta.insurance || 0) + 1; msg('转出一张保险符！', 'gold'); break;
+    case 'potion': meta.potions++; msg(ui('转出一瓶治疗药水。','Won a Healing Potion.'), 'good'); break;
+    case 'scroll': meta.scrolls++; msg(ui('转出一张传送卷轴。','Won a Teleport Scroll.'), 'good'); break;
+    case 'key': meta.keys++; msg(ui('转出一把锈蚀钥匙。','Won a Rusty Key.'), 'good'); break;
+    case 'escape': meta.escapes++; msg(ui('转出一张回城卷轴！','Won a Return Scroll!'), 'gold'); break;
+    case 'insurance': meta.insurance = (meta.insurance || 0) + 1; msg(ui('转出一张保险符！','Won an Insurance Charm!'), 'gold'); break;
     case 'equip': {
       const it = p.item;
-      if (meta.bag.length < BAG_CAP) { meta.bag.push(it); msg(`转出装备【${it.name}】(${it.score} 分)，放进背包。`, 'good'); }
-      else { meta.stash.push(it); msg(`背包已满，【${it.name}】直接寄存进仓库。`, 'good'); }
+      if (meta.bag.length < BAG_CAP) { meta.bag.push(it); msg(ui(`转出装备【${it.name}】(${it.score} 分)，放进背包。`, `Won [${visibleItemName(it)}] (Score ${it.score}); sent to backpack.`), 'good'); }
+      else { meta.stash.push(it); msg(ui(`背包已满，【${it.name}】直接寄存进仓库。`, `Backpack full; [${visibleItemName(it)}] was sent directly to the stash.`), 'good'); }
       break;
     }
-    default: msg('空门……回响今天不想理你。', 'bad');
+    default: msg(ui('空门……回响今天不想理你。','Empty slot… the Echo ignores you today.'), 'bad');
   }
 }
 function spinWheel() {
   if (state !== 'town' || !meta) return;
   ensureWheel();
   const cost = spinCost();
-  if (meta.gold < cost) { msg(`金库金币不够——抽奖需要 ${cost} G。`, 'bad'); return; }
+  if (meta.gold < cost) { msg(ui(`金库金币不够——抽奖需要 ${cost} G。`, `Not enough vault Gold — spinning costs ${cost} G.`), 'bad'); return; }
   meta.gold -= cost;
   const idx = rnd(WHEEL_SLOTS);
   const prize = meta.wheelSlots[idx];
   meta.wheelSpins++;
   meta.wheelTotal = (meta.wheelTotal || 0) + 1;
   sfx.chest();
-  msg(`轮盘停在第 ${idx + 1} 槽——`, 'info');
+  msg(ui(`轮盘停在第 ${idx + 1} 槽——`, `The wheel stops on slot ${idx + 1} —`), 'info');
   applyWheelPrize(prize);
   startWheelSpin(idx);
   saveMeta(); renderTown();
@@ -3863,12 +3898,12 @@ function spinWheel() {
 function resetWheel() {
   if (state !== 'town' || !meta) return;
   const cost = resetWheelCost();
-  if (meta.gold < cost) { msg(`金库金币不够——重置轮盘需要 ${cost} G。`, 'bad'); return; }
+  if (meta.gold < cost) { msg(ui(`金库金币不够——重置轮盘需要 ${cost} G。`, `Not enough vault Gold — resetting costs ${cost} G.`), 'bad'); return; }
   meta.gold -= cost;
   meta.wheelResets++;
   meta.wheelSlots = rollWheelSlots();
   sfx.skill();
-  msg(`轮盘已重摇（第 ${meta.wheelResets} 次），看看新的八格。`, 'info');
+  msg(ui(`轮盘已重摇（第 ${meta.wheelResets} 次），看看新的八格。`, `Wheel reset ${meta.wheelResets} times. Check the new eight slots.`), 'info');
   startWheelKick();
   saveMeta(); renderTown();
 }
@@ -4235,16 +4270,16 @@ function depositStash(i) {
   meta.bag.splice(i, 1);
   meta.stash.push(it);
   sfx.pickup();
-  msg(`【${it.name}】已存入仓库。死亡也夺不走仓库里的东西。`, 'good');
+  msg(ui(`【${it.name}】已存入仓库。死亡也夺不走仓库里的东西。`, `[${visibleItemName(it)}] stored safely. Death cannot take stash items.`), 'good');
   saveMeta(); renderTown();
 }
 function depositAllBag() {
   if (state !== 'town' || !meta) return;
   const n = meta.bag.length;
-  if (!n) { msg('背包里没有可存入的装备。'); return; }
+  if (!n) { msg(ui('背包里没有可存入的装备。','No backpack gear to store.')); return; }
   while (meta.bag.length) meta.stash.push(meta.bag.pop());
   sfx.chest();
-  msg(`已把 ${n} 件装备全部存入仓库。`, 'gold');
+  msg(ui(`已把 ${n} 件装备全部存入仓库。`, `Stored all ${n} items in the stash.`), 'gold');
   saveMeta(); renderTown();
 }
 function sellItem(where, i) {
@@ -4256,7 +4291,7 @@ function sellItem(where, i) {
   arr.splice(i, 1);
   meta.gold += g;
   sfx.pickup();
-  msg(`卖出了【${it.name}】，入账 ${g} 金币。`, 'gold');
+  msg(ui(`卖出了【${it.name}】，入账 ${g} 金币。`, `Sold [${visibleItemName(it)}] for ${g} Gold.`), 'gold');
   saveMeta(); renderTown();
 }
 function forgeItem(where, i) {
@@ -4265,10 +4300,10 @@ function forgeItem(where, i) {
   const it = arr[i];
   if (!it) return;
   const lvl = it.forge || 0;
-  if (lvl >= FORGE_MAX) { msg('这件装备已经强化到极致（+5）。'); return; }
+  if (lvl >= FORGE_MAX) { msg(ui('这件装备已经强化到极致（+5）。','This item is already maxed at +5.')); return; }
   const cost = forgeCost(it);
   if (meta.gold < cost) {
-    msg(`金库金币不够——强化到 +${lvl + 1} 需要 ${cost} G。去地牢里再搜刮一番！`, 'bad');
+    msg(ui(`金库金币不够——强化到 +${lvl + 1} 需要 ${cost} G。去地牢里再搜刮一番！`, `Not enough vault Gold — forging to +${lvl + 1} costs ${cost} G.`), 'bad');
     return;
   }
   meta.gold -= cost;
@@ -4278,17 +4313,17 @@ function forgeItem(where, i) {
   it.stats[k] = (it.stats[k] || 0) + v;
   it.score = eqScoreOf(it.stats);
   sfx.levelup();
-  msg(`锻造成功！【${it.name}】强化至 +${it.forge}，花费 ${cost} G。`, 'epic');
+  msg(ui(`锻造成功！【${it.name}】强化至 +${it.forge}，花费 ${cost} G。`, `Forge success! [${visibleItemName(it)}] reached +${it.forge} for ${cost} G.`), 'epic');
   saveMeta(); renderTown();
 }
 function withdrawStash(i) {
   if (state !== 'town' || !meta) return;
-  if (meta.bag.length >= BAG_CAP) { msg('背包已满，先存点东西进去。'); return; }
+  if (meta.bag.length >= BAG_CAP) { msg(ui('背包已满，先存点东西进去。','Backpack full — store something first.')); return; }
   const it = meta.stash.splice(i, 1)[0];
   if (!it) return;
   meta.bag.push(it);
   sfx.pickup();
-  msg(`【${it.name}】已从仓库取出。`, 'good');
+  msg(ui(`【${it.name}】已从仓库取出。`, `[${visibleItemName(it)}] withdrawn from the stash.`), 'good');
   saveMeta(); renderTown();
 }
 function buyTown(id) {
@@ -4296,7 +4331,7 @@ function buyTown(id) {
   const prices = { potion: SHOP.potionPrice, escape: SHOP.escapePrice || 26, key: SHOP.keyPrice, insurance: SHOP.insurancePrice || 120 };
   const price = prices[id];
   if (!price) return;
-  if (meta.gold < price) { msg('金库里的金币不够。', 'bad'); return; }
+  if (meta.gold < price) { msg(ui('金库里的金币不够。','Not enough Gold in the vault.'), 'bad'); return; }
   meta.gold -= price;
   if (id === 'potion') meta.potions++;
   else if (id === 'escape') meta.escapes++;
@@ -4357,30 +4392,30 @@ function departTown() {
   genLevel();
   applyViewport();
   computeFov();
-  msg(fmtText(RUN_PROFILE.texts.intro));
-  msg(`第 ${meta.runs} 次下潜：搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, 'gold');
-  msg(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, 'good');
+  msg(fmtText(runText('intro')));
+  msg(ui(`第 ${meta.runs} 次下潜：搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, `Descent ${meta.runs}: loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!`), 'gold');
+  msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
 }
 function useEscape() {
   if (!greedyMode || state !== 'playing') return;
   if ((player.escapes || 0) <= 0) {
-    msg('没有回城卷轴了——镇上商店有售，中层守卫也会掉落。', 'bad');
+    msg(ui('没有回城卷轴了——镇上商店有售，中层守卫也会掉落。','No Return Scrolls left — buy one in town or defeat a deep guardian.'), 'bad');
     return;
   }
   player.escapes--;
   const banked = player.gold;
   syncMetaFromPlayer(false);
   enterTown();
-  msg(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, 'gold');
+  msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
 }
 function greedyDeathReturn(lostInv, lostGold) {
   syncMetaFromPlayer(true);
   meta.wheelSpins = 0; meta.wheelResets = 0; meta.wheelSlots = null;
   enterTown();
-  msg(`你倒在第 ${depth} 层……失去了背包里的 ${lostInv} 件物品和随身 ${lostGold} 金币。`, 'bad');
-  msg('好在穿在身上的装备还在。整备一番，再下去！', 'gold');
+  msg(ui(`你倒在第 ${depth} 层……失去了背包里的 ${lostInv} 件物品和随身 ${lostGold} 金币。`, `You fell on Floor ${depth} and lost ${lostInv} backpack items and ${lostGold} carried Gold.`), 'bad');
+  msg(ui('好在穿在身上的装备还在。整备一番，再下去！','Your equipped gear survived. Prepare and descend again!'), 'gold');
 }
 
 const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
@@ -4408,14 +4443,14 @@ async function toggleFullscreen() {
     if (!fullscreenElement()) {
       const request = root && (root.requestFullscreen || root.webkitRequestFullscreen);
       if (!request) {
-        msg('当前浏览器不支持页面全屏，请使用浏览器自身的全屏功能。', 'bad');
+        msg(ui('当前浏览器不支持页面全屏，请使用浏览器自身的全屏功能。','This browser does not support page fullscreen. Use the browser\'s fullscreen mode.'), 'bad');
         return false;
       }
       await request.call(root);
     } else {
       const exit = document.exitFullscreen || document.webkitExitFullscreen;
       if (!exit) {
-        msg('当前浏览器无法退出页面全屏，请按 Esc。', 'bad');
+        msg(ui('当前浏览器无法退出页面全屏，请按 Esc。','The page cannot exit fullscreen automatically. Press Esc.'), 'bad');
         return false;
       }
       await exit.call(document);
@@ -4425,7 +4460,7 @@ async function toggleFullscreen() {
     return true;
   } catch (error) {
     const detail = error && error.message ? `：${error.message}` : '';
-    msg(`全屏切换失败${detail}`, 'bad');
+    msg(ui(`全屏切换失败${detail}`, `Fullscreen toggle failed${detail}`), 'bad');
     syncFullscreenUi();
     return false;
   }
@@ -4465,10 +4500,12 @@ function newGame(chosen) {
   genLevel();
   applyViewport();
   computeFov();
-  msg(fmtText(RUN_PROFILE.texts.intro));
-  msg(`你选择了${c.name}。技能「${c.skill.name}」按 C 释放。撞向敌人即攻击。` +
-    (c.rangedRange ? `面朝敌人所在直线（射程 ${c.rangedRange} 格内、无遮挡）移动即可射箭。` : ''));
-  msg(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。站上楼梯按 Enter 下潜。`, 'good');
+  msg(fmtText(runText('intro')));
+  msg(ui(`你选择了${c.name}。技能「${c.skill.name}」按 C 释放。撞向敌人即攻击。` +
+    (c.rangedRange ? `面朝敌人所在直线（射程 ${c.rangedRange} 格内、无遮挡）移动即可射箭。` : ''),
+    `You chose ${c.name}. Press J to attack in your facing direction. Press K to use ${c.skill.name}.` +
+    (c.rangedRange ? ` Ranged attacks reach ${c.rangedRange} unobstructed tiles along your facing line.` : '')));
+  msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。站上楼梯按 Enter 下潜。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots. Stand on the stairs and press Enter to descend.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
 }
@@ -4508,7 +4545,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'm' || e.key === 'M') {
     muted = !muted;
-    msg(muted ? '音效已关闭。' : '音效已开启。');
+    msg(muted ? ui('音效已关闭。','Sound muted.') : ui('音效已开启。','Sound enabled.'));
     return;
   }
   if (state !== 'playing') return;
@@ -4544,7 +4581,7 @@ document.querySelectorAll('#touch button[data-act]').forEach(btn => {
     else if (act === 'pause') { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); }
     else if (act === 'mute') {
       muted = !muted;
-      msg(muted ? '音效已关闭。' : '音效已开启。');
+      msg(muted ? ui('音效已关闭。','Sound muted.') : ui('音效已开启。','Sound enabled.'));
     }
   });
 });
@@ -4613,7 +4650,9 @@ document.querySelectorAll('.depth-opt').forEach(btn => {
 if ($('btn-greedy')) $('btn-greedy').addEventListener('click', () => {
   ensureAudio();
   setGreedy(!greedyMode);
-  msg(greedyMode ? '贪婪远征已开启：死亡会失去背包与随身金币，回城卷轴可保住一切。' : '已切回经典回响模式。');
+  msg(greedyMode
+    ? ui('贪婪远征已开启：死亡会失去背包与随身金币，回城卷轴可保住一切。','Greedy Expedition enabled: death loses backpack items and carried Gold; Return Scrolls secure your haul.')
+    : ui('已切回经典回响模式。','Classic Echo mode restored.'));
   refreshTitle();
 });
 if ($('town-screen')) $('town-screen').addEventListener('click', e => {
