@@ -4,6 +4,8 @@ const storage=new Map();
 const listeners={document:{},window:{}};
 global.localStorage={getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v))};
 global.document={
+  documentElement:{dataset:{deLocale:'zh-CN'}},
+  hidden:false,
   getElementById(){return null;},
   querySelector(){return null;},
   createElement(){return {style:{},dataset:{}};},
@@ -30,10 +32,13 @@ const E=window.DE_TOWN_ECONOMY;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
 const sig=()=>JSON.stringify(meta.wheelSlots);
 
-ok(E&&E.version==='v4','town economy v4 boots');
+ok(E&&E.version==='v5'&&E.owner==='town-system','town economy v5 boots with explicit owner');
 ok(!/setInterval\s*\(/.test(src),'town system has no polling render loop');
-ok(src.includes("attributeFilter:['class','hidden','aria-hidden']"),'town lifecycle observes only visibility attributes');
+ok(!/MutationObserver/.test(src),'town system has no DOM observer');
+ok(/addEventListener\('keydown',\s*scheduleRender,\s*false\)/.test(src),'town lifecycle follows real key transitions');
+ok(src.includes('Conquered Checkpoints')&&src.includes('All prizes claimed'),'town dynamic policy copy is bilingual at render source');
 ok(src.includes('deCheckpointSig'),'checkpoint DOM is signature-guarded against redundant rewrites');
+ok(E.locale==='zh-CN','fixed route identity is exposed by town owner');
 ok(E.snapshotWheel()===true,'initial wheel snapshot saves');
 const original=sig();
 let shadow=E.wheelShadowRow();

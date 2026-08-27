@@ -1,4 +1,4 @@
-/* Dungeon Echo production town systems v4.
+/* Dungeon Echo production town systems v5.
  * Owns conquered-depth checkpoint return and production wheel lifecycle/economy policy.
  *
  * Checkpoints unlock only AFTER crossing each 10-floor guardian: 11/21/.../91.
@@ -8,6 +8,9 @@
  * adds the missing production rules around it: a landed prize slot is consumed exactly
  * once, claimed state persists in meta saves, spin/reset prices receive a chapter-scaled
  * surcharge, and death can no longer reroll the visible board for free.
+ *
+ * v5 renders its own Chinese/English copy from the fixed route identity and follows
+ * real input/page transitions; it owns no polling loop and no MutationObserver.
  */
 (() => {
   'use strict';
@@ -15,11 +18,15 @@
   if (window.__DE_TOWN_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_TOWN_SYSTEM = 'v4';
+  window.__DE_TOWN_SYSTEM = 'v5';
 
   const META_KEY = 'de-greedy-meta-v1';
   const WHEEL_STATE_KEY = 'de-town-wheel-state-v1';
   const CHECKPOINTS = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91];
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
+  const floorLabel = d => english ? `Floor ${d}` : `第 ${d} 层`;
   let selected = 1;
 
   // ---------- Shared town progression ----------
@@ -38,8 +45,6 @@
   // ---------- Conquered-depth checkpoints ----------
   function unlockedCheckpoints() {
     const best = Number(api.meta && api.meta.bestDepth) || 0;
-    // A checkpoint at N+1 is proof that the guardian on N was passed. Reaching the
-    // guardian floor alone does not unlock a skip around that fight.
     return CHECKPOINTS.filter(d => d === 1 || best >= d);
   }
 
@@ -82,21 +87,23 @@
     const unlocked = unlockedCheckpoints();
     if (!unlocked.includes(selected)) selected = deepestUnlocked();
     const best = Number(api.meta.bestDepth) || 0;
-    const sig = `${best}|${selected}|${unlocked.join(',')}`;
+    const sig = `${english ? 'en' : 'zh'}|${best}|${selected}|${unlocked.join(',')}`;
     if (!panel.dataset || panel.dataset.deCheckpointSig !== sig) {
       panel.innerHTML = `
         <div class="checkpoint-head">
-          <b>已征服检查点</b>
-          <small>最深到达 ${best} 层 · 通过十层守卫后解锁下一段</small>
+          <b>${copy('已征服检查点', 'Conquered Checkpoints')}</b>
+          <small>${copy(`最深到达 ${best} 层 · 通过十层守卫后解锁下一段`, `Deepest Floor ${best} · clear each 10-floor guardian to unlock the next segment`)}</small>
         </div>
         <div class="checkpoint-grid">${unlocked.map(d =>
-          `<button type="button" data-checkpoint="${d}" class="${d === selected ? 'active' : ''}">${d === 1 ? '第 1 层' : `第 ${d} 层`}</button>`
+          `<button type="button" data-checkpoint="${d}" class="${d === selected ? 'active' : ''}">${floorLabel(d)}</button>`
         ).join('')}</div>`;
       if (panel.dataset) panel.dataset.deCheckpointSig = sig;
     }
     const depart = document.getElementById('btn-depart');
     if (depart) {
-      const text = selected === 1 ? '从第 1 层出发' : `从已征服区 · 第 ${selected} 层出发`;
+      const text = selected === 1
+        ? copy('从第 1 层出发', 'Depart for Floor 1')
+        : copy(`从已征服区 · 第 ${selected} 层出发`, `Depart from conquered ground · Floor ${selected}`);
       if (depart.textContent !== text) depart.textContent = text;
     }
   }
@@ -105,9 +112,6 @@
     target = Number(target) || 1;
     if (!unlockedCheckpoints().includes(target)) return false;
 
-    // Let the core create a normal new greedy run first so player/meta/save state stay
-    // canonical. Then reuse core descend() once to build the requested theme, map, FOV,
-    // HUD and persistence instead of duplicating those internals here.
     api.departTown();
     if (target <= 1) return true;
     if (!api.player || !api.mapGrid) return false;
@@ -119,9 +123,6 @@
   }
 
   // ---------- Fortune wheel production policy ----------
-  // Core keeps the exact seeded spin animation. We observe the first `kind` read after a
-  // spin is armed; that read happens inside applyWheelPrize() for the selected slot.
-  // This lets us consume the exact landed slot without introducing a second RNG.
   let wheelArmed = false;
   let landedIndex = -1;
   let pendingWheelAction = null;
@@ -218,7 +219,7 @@
           },
           set(v) { currentKind = String(v || 'nothing'); },
         });
-      } catch (e) { /* plain objects should be configurable; fail closed if not */ }
+      } catch (e) { /* fail closed */ }
     });
   }
 
@@ -238,8 +239,6 @@
     slot.claimed = true;
     slot.claimedKind = prizeKind;
     slot.claimedAtSpin = Number(meta.wheelTotal) || 0;
-    // The core treats unknown/nothing kinds as an empty sector. Removing payload fields
-    // guarantees an equipment object or gold amount cannot be paid again from this slot.
     slot.kind = 'nothing';
     if ('item' in slot) delete slot.item;
     if ('amount' in slot) delete slot.amount;
@@ -250,16 +249,11 @@
 
   function spinTotalCost() {
     const base = typeof api.spinCost === 'function' ? Number(api.spinCost()) || 0 : 40;
-    // Chapter surcharge is intentionally simple until the full commerce rebuild (#10).
-    // Tier 1 first spin: ~60G. Tier 10 first spin: ~240G. Existing per-spin escalation
-    // still stacks on top, so death/reset cannot restore a trivially cheap late-game spin.
     return base + townTier() * 20;
   }
 
   function resetTotalCost() {
     const base = typeof api.resetWheelCost === 'function' ? Number(api.resetWheelCost()) || 0 : 60;
-    // Reset fishing is more dangerous than a single spin because the board is visible.
-    // Tier 1 starts around 105G; tier 10 around 510G before the core reset escalation.
     return base + townTier() * 45;
   }
 
@@ -289,15 +283,17 @@
     const exhausted = claimed >= 8;
 
     if (spinBtn) {
-      const text = exhausted ? '本轮已全部领取' : `抽奖 ${sc} G`;
-      const title = exhausted ? '重置轮盘后才能开启新一轮奖池' : `本阶段实际抽奖成本 ${sc} G`;
+      const text = exhausted ? copy('本轮已全部领取', 'All prizes claimed') : copy(`抽奖 ${sc} G`, `Spin ${sc} G`);
+      const title = exhausted
+        ? copy('重置轮盘后才能开启新一轮奖池', 'Reset the wheel to open a new prize pool')
+        : copy(`本阶段实际抽奖成本 ${sc} G`, `Actual spin cost for this town tier: ${sc} G`);
       if (spinBtn.textContent !== text) spinBtn.textContent = text;
       if (spinBtn.title !== title) spinBtn.title = title;
       setPolicyDisabled(spinBtn, exhausted || Number(meta.gold) < sc);
     }
     if (resetBtn) {
-      const text = `重置轮盘 ${rc} G`;
-      const title = `本阶段重摇全部八格，实际成本 ${rc} G`;
+      const text = copy(`重置轮盘 ${rc} G`, `Reset Wheel ${rc} G`);
+      const title = copy(`本阶段重摇全部八格，实际成本 ${rc} G`, `Reroll all eight slots at this town tier: ${rc} G`);
       if (resetBtn.textContent !== text) resetBtn.textContent = text;
       if (resetBtn.title !== title) resetBtn.title = title;
       setPolicyDisabled(resetBtn, Number(meta.gold) < rc);
@@ -313,8 +309,12 @@
       ? meta.wheelSlots.map((s, i) => s && s.claimed ? i + 1 : 0).filter(Boolean)
       : [];
     const text = claimedIndexes.length
-      ? `城镇阶段 ${townTier()} · 已领取 ${claimed}/8 格（${claimedIndexes.join('、')}）；已领取格再次停中不会重复发奖。`
-      : `城镇阶段 ${townTier()} · 八格奖池每格最多领取一次；重置会整盘换新。`;
+      ? copy(
+          `城镇阶段 ${townTier()} · 已领取 ${claimed}/8 格（${claimedIndexes.join('、')}）；已领取格再次停中不会重复发奖。`,
+          `Town Tier ${townTier()} · ${claimed}/8 slots claimed (${claimedIndexes.join(', ')}); claimed slots never pay twice.`)
+      : copy(
+          `城镇阶段 ${townTier()} · 八格奖池每格最多领取一次；重置会整盘换新。`,
+          `Town Tier ${townTier()} · each of the eight prize slots can pay once; reset replaces the full board.`);
     if (state.textContent !== text) state.textContent = text;
   }
 
@@ -332,7 +332,7 @@
     if (isSpin && claimedCount() >= 8) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      flashWheelNote('这一轮八格都已经领取，先重置轮盘再继续。');
+      flashWheelNote(copy('这一轮八格都已经领取，先重置轮盘再继续。', 'All eight slots are claimed. Reset the wheel before spinning again.'));
       return false;
     }
 
@@ -343,7 +343,9 @@
     if (Number(meta.gold) < total) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      flashWheelNote(`金币不足：本阶段${isSpin ? '抽奖' : '重置'}需要 ${total} G。`);
+      flashWheelNote(copy(
+        `金币不足：本阶段${isSpin ? '抽奖' : '重置'}需要 ${total} G。`,
+        `Not enough Gold: this town tier requires ${total} G to ${isSpin ? 'spin' : 'reset'}.`));
       return false;
     }
 
@@ -372,12 +374,10 @@
       : (Number(meta.wheelResets) || 0) === pending.beforeResets + 1;
 
     if (!success) {
-      // Fail closed: if the core rejected/broke the action, return only our surcharge.
       if (pending.extra) meta.gold += pending.extra;
     } else if (kind === 'spin' && landedIndex >= 0) {
       consumeWheelSlot(landedIndex);
     } else if (kind === 'reset') {
-      // A paid reset is the only legal way to replace the whole board.
       wrapWheelSlots();
       persistMeta();
       snapshotWheel();
@@ -390,9 +390,6 @@
     syncWheelUi();
   }
 
-  // Capture before game.js' bubbling town handlers. Checkpoint buttons are module-owned;
-  // wheel clicks continue into the core after this layer charges the chapter surcharge and
-  // arms exact-slot observation, preserving the existing animation/RNG implementation.
   document.addEventListener('click', e => {
     const cp = e.target && e.target.closest ? e.target.closest('[data-checkpoint]') : null;
     if (cp) {
@@ -418,8 +415,6 @@
     if (wrs) beginWheelAction('reset', e);
   }, true);
 
-  // Registered after game.js, so this bubble listener runs after the core town handler.
-  // At that point counters and rewards reveal whether the action really completed.
   document.addEventListener('click', e => {
     const wsp = e.target && e.target.closest ? e.target.closest('[data-wheelspin]') : null;
     if (wsp) { settleWheelAction('spin'); return; }
@@ -429,23 +424,20 @@
   }, false);
 
   function render() {
-    if (api.state !== 'town' || !api.meta) return;
+    if (api.state !== 'town' || !api.meta) return false;
     renderCheckpoints();
     syncWheelUi();
+    return true;
   }
 
-  // Town entry is observable at the town-screen visibility boundary. Rendering once on
-  // that transition and after town clicks replaces the old 350ms polling loop, which
-  // repeatedly rewrote localized DOM and amplified other observers while the town was open.
-  const town = document.getElementById('town-screen');
-  let observer = null;
-  if (town && typeof MutationObserver !== 'undefined') {
-    observer = new MutationObserver(() => queueMicrotask(render));
-    observer.observe(town, { attributes:true, attributeFilter:['class','hidden','aria-hidden'] });
-  }
-  queueMicrotask(render);
-  window.addEventListener('pageshow', () => queueMicrotask(render));
-  window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); }, { once: true });
+  const scheduleRender = () => queueMicrotask(render);
+  // T return is completed by a capture owner before the normal bubbling keydown phase,
+  // so this runs after the state transition without observing town DOM mutations.
+  document.addEventListener('keydown', scheduleRender, false);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleRender(); });
+  window.addEventListener('focus', scheduleRender);
+  window.addEventListener('pageshow', scheduleRender);
+  scheduleRender();
 
   window.DE_TOWN_CHECKPOINTS = {
     unlocked: unlockedCheckpoints,
@@ -453,7 +445,9 @@
     get selected() { return selected; },
   };
   window.DE_TOWN_ECONOMY = {
-    version: 'v4',
+    version: 'v5',
+    owner: 'town-system',
+    locale: english ? 'en' : 'zh-CN',
     tier: townTier,
     wheelSpinCost: spinTotalCost,
     wheelResetCost: resetTotalCost,
