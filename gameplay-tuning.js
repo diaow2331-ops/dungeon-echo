@@ -285,7 +285,7 @@
   window.DE_MECHANICS_INTEGRITY={version:'p0-v1',guardianCleared,markGuardianClear,allowedCheckpoints,canLeaveDepth,sanitizeGuardianSave,attackPlan};
 })();
 
-/* P0 progression commitment: equipment actions spend turns; permanent growth has a compatibility-safe ceiling. */
+/* P0 progression commitment: permanent growth guard plus compatibility fallback for equipment turn cost. */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -384,25 +384,39 @@
     if (!target || typeof target.closest !== 'function') return false;
     return !!target.closest('#bag [data-i],#bag [data-drop],[data-bag-equip],[data-bag-drop],#equipbar .eqslot');
   }
-  window.addEventListener('click', e => {
-    if (api.state !== 'playing' || !api.player || !equipmentActionTarget(e.target)) return;
-    const before = loadoutSig();
-    const turn = Number(api.turns) || 0;
-    const p = api.player;
-    queueMicrotask(() => {
-      if (api.player !== p || api.state !== 'playing' || (Number(api.turns) || 0) !== turn) return;
-      if (loadoutSig() === before) return;
-      const synthetic = (p.grievous || 0) <= 0;
-      if (synthetic) p.grievous = 1;
-      if (typeof api.endTurn === 'function') api.endTurn();
-      if (synthetic && p.grievous === 1) p.grievous = 0;
-      const hint = document.getElementById('hint');
-      if (hint && api.state === 'playing') hint.textContent = '› 战斗中整理装备消耗 1 回合 · 深层换装需要承担风险';
-    });
-  }, true);
+  function hasAuthoritativeEquipmentTurnOwner() {
+    const owner = window.__DE_EQUIPMENT_SWAP_TURN;
+    return !!(owner && owner.owner === 'equipment-system');
+  }
+
+  // Production loads equipment-system first, so gameplay-tuning must not install a second
+  // swap-turn observer. Keep the old signature-based guard only as a dev/harness fallback.
+  if (!hasAuthoritativeEquipmentTurnOwner()) {
+    window.addEventListener('click', e => {
+      if (api.state !== 'playing' || !api.player || !equipmentActionTarget(e.target)) return;
+      const before = loadoutSig();
+      const turn = Number(api.turns) || 0;
+      const p = api.player;
+      queueMicrotask(() => {
+        // If the authoritative owner appeared after this fallback was armed, yield to it.
+        if (hasAuthoritativeEquipmentTurnOwner()) return;
+        if (api.player !== p || api.state !== 'playing' || (Number(api.turns) || 0) !== turn) return;
+        if (loadoutSig() === before) return;
+        const synthetic = (p.grievous || 0) <= 0;
+        if (synthetic) p.grievous = 1;
+        if (typeof api.endTurn === 'function') api.endTurn();
+        if (synthetic && p.grievous === 1) p.grievous = 0;
+        const hint = document.getElementById('hint');
+        if (hint && api.state === 'playing') hint.textContent = '› 战斗中整理装备消耗 1 回合 · 深层换装需要承担风险';
+      });
+    }, true);
+  }
 
   syncGrowth();
   const timer = setInterval(syncGrowth, 150);
   window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
-  window.__DE_PROGRESSION_COMMITMENT = { version:'p0-v1', capsFor, clampGrowth, loadoutSig };
+  window.__DE_PROGRESSION_COMMITMENT = {
+    version:'p0-v2', capsFor, clampGrowth, loadoutSig,
+    equipmentTurnOwner: hasAuthoritativeEquipmentTurnOwner() ? 'equipment-system' : 'gameplay-tuning-fallback',
+  };
 })();
