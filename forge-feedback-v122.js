@@ -1,6 +1,7 @@
 /* Dungeon Echo v1.2.2 forge feedback layer.
  * Presentation only: forge stage badges + success/refinement/masterwork feedback.
  * Core forge cost/stat mutation remains owned by game.js + forge-system.js.
+ * Town decoration is synchronized from real transitions instead of observing town DOM churn.
  */
 (() => {
   'use strict';
@@ -10,6 +11,7 @@
 
   let pending = null;
   let toastTimer = 0;
+  let decorateQueued = false;
   const L = () => window.DE_I18N;
   const isEn = () => !!(L() && L().isEnglish);
   const translate = text => L() && typeof L().translate === 'function' ? L().translate(text) : text;
@@ -63,16 +65,25 @@
   }
 
   function decorateRows(){
-    if(api.state!=='town'||!api.meta)return;
+    decorateQueued=false;
+    if(api.state!=='town'||!api.meta)return false;
+    let changed=0;
     for(const btn of document.querySelectorAll('[data-forge]')){
       const [where,raw]=String(btn.dataset.forge||'').split(':');const item=itemAt(where,Number(raw));const row=btn.closest('.town-row');if(!item||!row)continue;
       const label=row.children&&row.children[0];if(!label)continue;
-      let badge=label.querySelector('.de-forge-stage');if(!badge){badge=document.createElement('small');badge.className='de-forge-stage';label.appendChild(badge)}
-      badge.textContent=stageText(item);badge.classList.toggle('master',!!item.masterworked);
+      let badge=label.querySelector('.de-forge-stage');if(!badge){badge=document.createElement('small');badge.className='de-forge-stage';label.appendChild(badge);changed++}
+      const text=stageText(item);if(badge.textContent!==text){badge.textContent=text;changed++}badge.classList.toggle('master',!!item.masterworked);
     }
+    return changed>0;
+  }
+  function scheduleDecorate(){
+    if(decorateQueued)return;
+    decorateQueued=true;
+    requestAnimationFrame(decorateRows);
   }
 
   document.addEventListener('click',e=>{
+    scheduleDecorate();
     const btn=e.target&&e.target.closest?e.target.closest('[data-forge]'):null;if(!btn||api.state!=='town')return;
     const [where,raw]=String(btn.dataset.forge||'').split(':');const index=Number(raw),item=itemAt(where,index);if(!item)return;
     pending={where,index,before:snapshot(item)};
@@ -89,7 +100,7 @@
     let sub=isEn()?`Spent ${spent} Gold`:`消耗 ${spent} 金币`;
     if(after.forge===3&&!after.path)sub+=isEn()?' · Refinement unlocked':' · 已解锁精炼方向';
     if(after.masterworked&&!p.before.masterworked)sub+=isEn()?' · Masterwork completed':' · 淬炼完成';
-    showToast(title,detail,sub);requestAnimationFrame(decorateRows);
+    showToast(title,detail,sub);scheduleDecorate();
   },false);
 
   // Forge-system handles refinement on document capture and stops the click there.
@@ -100,10 +111,12 @@
     requestAnimationFrame(()=>{showToast(isEn()?'Refinement locked in':'精炼路线已确定',translate(choice),isEn()?'This path receives its final bonus at +5.':'该路线会在 +5 时完成最终淬炼。');decorateRows()});
   },true);
 
-  const town=document.getElementById('town-screen');
-  if(town&&typeof MutationObserver!=='undefined')new MutationObserver(records=>{if(records.some(r=>r.addedNodes&&r.addedNodes.length))decorateRows()}).observe(town,{childList:true,subtree:true});
-  document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.closest('#btn-depart,#btn-town-exit,[data-deposit],[data-withdraw],[data-sell]'))requestAnimationFrame(decorateRows)},false);
+  document.addEventListener('keydown',scheduleDecorate,true);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleDecorate()});
+  window.addEventListener('focus',scheduleDecorate);
+  window.addEventListener('pageshow',scheduleDecorate);
+  window.addEventListener('de:languagechange',scheduleDecorate);
 
-  ensureStyle();decorateRows();
-  window.__DE_FORGE_FEEDBACK_V122={version:'v1',decorateRows,stageText,statDelta,showToast};
+  ensureStyle();scheduleDecorate();
+  window.__DE_FORGE_FEEDBACK_V122={version:'v2',owner:'forge-feedback-v122',decorateRows,scheduleDecorate,stageText,statDelta,showToast};
 })();

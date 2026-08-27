@@ -2,6 +2,8 @@
  * Presentation-only: reuses the shipped v13 tier resolver to preview the actual
  * equipment offered by the dungeon merchant. It never changes stock, price, purchases
  * or production UX boot order.
+ *
+ * Shop art is synchronized after real input/page transitions; no subtree observer is needed.
  */
 (() => {
   'use strict';
@@ -52,6 +54,7 @@
   }
 
   function sync() {
+    queued = false;
     if (api.state !== 'shop') return 0;
     const root = document.getElementById('shop-list');
     if (!root) return 0;
@@ -79,12 +82,19 @@
     return changed;
   }
 
-  const root = document.getElementById('shop-list');
-  let observer = null;
-  if (root && typeof MutationObserver !== 'undefined') {
-    observer = new MutationObserver(sync);
-    observer.observe(root, { childList: true, subtree: true });
+  let queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(sync);
   }
 
-  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v1', sync, applyArt, preload };
+  document.addEventListener('keydown', schedule, true);
+  document.addEventListener('click', schedule, true);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(); });
+  window.addEventListener('focus', schedule);
+  window.addEventListener('pageshow', schedule);
+  schedule();
+
+  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v2', owner:'equipment-shop-ui', sync, schedule, applyArt, preload };
 })();

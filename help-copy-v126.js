@@ -1,5 +1,6 @@
 /* Dungeon Echo v1.2.6 Help controls copy coherence.
  * Runs after locale + mobile owners so device-specific control guidance never overwrites the selected language.
+ * Presentation sync is transition-driven; this module does not watch the DOM for class mutations.
  */
 (() => {
   'use strict';
@@ -35,11 +36,11 @@
 
   window.addEventListener('resize', schedule, { passive:true });
   window.addEventListener('orientationchange', schedule, { passive:true });
+  window.addEventListener('focus', schedule);
+  window.addEventListener('pageshow', schedule);
+  window.addEventListener('de:languagechange', schedule);
   document.addEventListener('fullscreenchange', schedule);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(); });
-  if (typeof MutationObserver !== 'undefined') {
-    new MutationObserver(schedule).observe(document.documentElement, { attributes:true, attributeFilter:['class'] });
-  }
   schedule();
-  window.__DE_HELP_COPY_V126 = { version:'1.2.6', sync };
+  window.__DE_HELP_COPY_V126 = { version:'1.2.6', owner:'help-copy-v126', sync, schedule };
 })();
