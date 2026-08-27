@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/?lang=en) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.2.3 is the current repository release line. Public deployment is only considered complete after the normal file-upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
+> **Status:** v1.2.4 is the current repository release line. Public deployment is only considered complete after the normal file-upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -20,7 +20,7 @@ No account is required. Saves live in the browser. The production game is static
 | --- | --- | --- |
 | ![Warrior, Ranger, Arcanist and Assassin](art/class-roster.webp) | ![Dungeon Echo town](art/town-backdrop-v11.webp) | ![Dungeon Echo final boss](art/final-boss-v11.png) |
 
-The launch media intentionally uses current shipped art. A fresh post-v1.2.3 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
+The launch media intentionally uses current shipped art. A fresh post-v1.2.4 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
 
 ## Why play it?
 
@@ -36,7 +36,8 @@ The launch media intentionally uses current shipped art. A fresh post-v1.2.3 rea
 - Desktop keyboard/mouse, native Gamepad API and portrait/landscape touch controls.
 - Progressive onboarding that teaches mechanics without covering the mobile action deck.
 - Chinese / English sessions with automatic browser-language selection, direct language URLs and a title-screen language selector.
-- v1.2.3 final device/presentation cleanup: no always-on player halo, camera-aware visual overlays, steadier non-fullscreen mobile layout, faster pointer-down touch response and a four-way D-pad without the accidental center Wait target.
+- v1.2.3 device/presentation cleanup: no always-on player halo, camera-aware visual overlays, steadier non-fullscreen mobile layout, faster pointer-down touch response and a four-way D-pad without the accidental center Wait target.
+- v1.2.4 navigation hotfix: **How to Play / 玩法说明** and **Expedition Log / 远征录** are restored as proper top-level overlays, including the town → log → town return path.
 
 The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -108,7 +109,8 @@ http://localhost:8000/dev.html
 ├── combat-controls.js             # J/K controls + mana resource
 ├── challenge-pressure.js          # mild human-play pressure follow-up
 ├── runtime-bootstrap.js           # late presentation/runtime followers
-├── release-stamp-v123.js          # visible v1.2.3 release marker
+├── release-stamp-v124.js          # visible v1.2.4 release marker
+├── modal-navigation-fix.js        # Help / Expedition Log overlay repair
 ├── locale-runtime-v122.js         # stable zh/en per-page locale runtime
 ├── character-art-cleanup-v122.js  # presentation-only hero cleanup
 ├── world-loot-polish-v122.js      # visible ground-loot presentation
@@ -134,13 +136,13 @@ The v1.2 release line does not claim a fresh complete GitHub Actions suite becau
 
 Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
 
-v1.2.3 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. It does not require a migration or progress reset.
+v1.2.4 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. It does not require a migration or progress reset.
 
 ## Release boundary
 
 `VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. Deployment verification checks the HTML route and the deployed `/dungeon-echo/VERSION` endpoint separately before activation.
 
-Release notes: [`RELEASE_NOTES_v1.2.3.md`](RELEASE_NOTES_v1.2.3.md).
+Release notes: [`RELEASE_NOTES_v1.2.4.md`](RELEASE_NOTES_v1.2.4.md).
 
 ## AI-assisted development
 
