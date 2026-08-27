@@ -1,4 +1,4 @@
-/* Dungeon Echo human-pressure balance v2.
+/* Dungeon Echo human-pressure balance v3.
  * Re-aligns monster/guardian pressure with real 1-100 equipment growth.
  * Philosophy: no hidden random pierce. High armor remains valuable, but dangerous enemies
  * gain the existing one-turn telegraphed armor-break attack so standing still is not immunity.
@@ -6,6 +6,7 @@
  * force-filled to two and kill drops stop turning deep monster packs into potion farms.
  * Late guardian telegraphs are true armor-break commitments: dodge them completely, or take
  * a hit that ignores armor while still respecting fixed mitigation.
+ * v3 removes permanent pressure polling and synchronizes on real game/resume transitions.
  */
 (() => {
   'use strict';
@@ -33,6 +34,8 @@
     90:  { hp: 1400, atk: 91,  def: 30 },
     100: { hp: 2200, atk: 104, def: 34 },
   });
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let syncQueued = false;
 
   function stackText() {
     try { return String(new Error().stack || ''); } catch (e) { return ''; }
@@ -153,7 +156,6 @@
       breakBadge = document.createElement('div');
       breakBadge.id = 'guardian-break-warning';
       breakBadge.setAttribute('aria-live', 'polite');
-      breakBadge.textContent = '破甲大招 · 命中无视护甲';
       Object.assign(breakBadge.style, {
         position: 'absolute', left: '50%', top: '54px', transform: 'translateX(-50%)',
         zIndex: '6', pointerEvents: 'none', padding: '5px 9px', borderRadius: '6px',
@@ -163,6 +165,9 @@
       });
       stage.appendChild(breakBadge);
     }
+    breakBadge.textContent = window.DE_I18N && window.DE_I18N.isEnglish
+      ? 'Armor Break Special · hit ignores Armor'
+      : '破甲大招 · 命中无视护甲';
     breakBadge.hidden = false;
     return true;
   }
@@ -189,16 +194,29 @@
     return changed;
   }
 
-  patchProfile();
-  syncExisting();
-  setTimeout(installGuardianSpecialBridge, 0);
-  const timer = setInterval(syncExisting, 100);
-  if (typeof window.addEventListener === 'function') {
-    window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
+  function scheduleSync() {
+    if (syncQueued) return false;
+    syncQueued = true;
+    defer(() => { syncQueued = false; syncExisting(); });
+    return true;
   }
 
+  patchProfile();
+  syncExisting();
+  // gameplay-tuning is loaded later in the same parser turn; one task-boundary retry is enough
+  // to install the special bridge without maintaining a permanent follower.
+  setTimeout(() => { installGuardianSpecialBridge(); scheduleSync(); }, 0);
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', scheduleSync, true);
+    document.addEventListener('click', scheduleSync, true);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSync(); });
+  }
+  window.addEventListener('focus', scheduleSync);
+  window.addEventListener('pageshow', scheduleSync);
+
   window.__DE_HUMAN_PRESSURE_V2 = {
-    version: 'v2',
+    version: 'v3',
+    owner: 'combat-pressure',
     guardianTargets: GUARDIAN_TARGETS,
     heavyBreakCandidate,
     patchProfile,
@@ -206,6 +224,7 @@
     installGuardianSpecialBridge,
     syncSpecialWarning,
     syncExisting,
+    schedule: scheduleSync,
   };
   window.__DE_SUSTAIN_PRESSURE_V1 = {
     version: 'v1',
