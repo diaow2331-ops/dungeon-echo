@@ -1,12 +1,14 @@
-/* Dungeon Echo v1.2.6 expedition record presentation.
+/* Dungeon Echo expedition record presentation v1.3.4.
  * Read-only UI owner for the Greedy Expedition record: full catalog, progress and zero-state.
- * Never mutates gameplay, balance or save data.
+ * Fixed-route locale owns every visible label; this module never mutates gameplay, balance or save data.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_EXPEDITION_RECORD_V126) return;
 
   const META_KEY = 'de-greedy-meta-v1';
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
   const CATALOG = Object.freeze([
     { id:'first_run', zh:['初次远征','出发进行一次贪婪远征'], en:['First Expedition','Begin a Greedy Expedition.'], value:m=>m.runs, target:1, unit:['次','run'] },
     { id:'depth_10', zh:['深入地底','到达第 10 层'], en:['Below the Threshold','Reach Floor 10.'], value:m=>m.bestDepth, target:10, unit:['层','floors'] },
@@ -24,7 +26,6 @@
 
   const num = v => Number.isFinite(Number(v)) && Number(v) > 0 ? Math.floor(Number(v)) : 0;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const isEnglish = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
 
   function readMeta() {
     let raw = null;
@@ -75,7 +76,6 @@
     const root = document.getElementById('achv-screen');
     if (!root) return false;
     injectStyle();
-    const en = isEnglish();
     const meta = readMeta();
     const gotCount = CATALOG.filter(item => unlocked(item, meta)).length;
 
@@ -83,13 +83,13 @@
     const title = root.querySelector('.title-card > h2');
     const section = root.querySelector('.title-card > h3');
     const close = document.getElementById('btn-achv-close');
-    if (kicker) kicker.textContent = en ? 'GREEDY EXPEDITION · RECORD' : '贪婪远征 · 远征录';
-    if (title) title.textContent = en ? 'Expedition Record' : '远征档案';
-    if (section) section.textContent = en ? `Achievements · ${gotCount}/${CATALOG.length}` : `成就 · ${gotCount}/${CATALOG.length}`;
-    if (close) close.textContent = en ? 'Close' : '关闭';
+    if (kicker) kicker.textContent = english ? 'GREEDY EXPEDITION · RECORD' : '贪婪远征 · 远征录';
+    if (title) title.textContent = english ? 'Expedition Record' : '远征档案';
+    if (section) section.textContent = english ? `Achievements · ${gotCount}/${CATALOG.length}` : `成就 · ${gotCount}/${CATALOG.length}`;
+    if (close) close.textContent = english ? 'Close' : '关闭';
 
     const statsEl = document.getElementById('achv-stats');
-    const stats = en ? [
+    const stats = english ? [
       ['Deepest Floor', meta.bestDepth], ['Expeditions', meta.runs], ['Total Kills', meta.totalKills],
       ['Deaths', meta.deaths], ['Vault Gold', `${meta.gold} G`], ['Wheel Spins', meta.wheelTotal],
     ] : [
@@ -97,10 +97,10 @@
       ['死亡次数', meta.deaths], ['金库金币', `${meta.gold} G`], ['转盘总抽数', meta.wheelTotal],
     ];
     if (statsEl) {
-      const summary = en
+      const summary = english
         ? `<div class="de-record-summary"><strong>${gotCount} / ${CATALOG.length} unlocked</strong><span>${meta.hasProfile ? 'Progress is read from this browser’s Greedy Expedition save.' : 'No expedition profile yet — the full catalog is still visible below.'}</span></div>`
         : `<div class="de-record-summary"><strong>已解锁 ${gotCount} / ${CATALOG.length}</strong><span>${meta.hasProfile ? '进度读取自当前浏览器的贪婪远征存档。' : '尚未建立远征档案——仍可先查看下方完整成就目录。'}</span></div>`;
-      const note = meta.hasProfile ? '' : `<div class="de-record-empty-note">${en ? 'Start a Greedy Expedition to begin recording progress. Locked achievements are shown in advance so the route is never hidden.' : '开始一次贪婪远征后即可记录进度。未完成成就会提前显示，不再把成长目标藏起来。'}</div>`;
+      const note = meta.hasProfile ? '' : `<div class="de-record-empty-note">${english ? 'Start a Greedy Expedition to begin recording progress. Locked achievements are shown in advance so the route is never hidden.' : '开始一次贪婪远征后即可记录进度。未完成成就会提前显示，不再把成长目标藏起来。'}</div>`;
       statsEl.innerHTML = summary + note + `<div class="de-record-stats">${stats.map(([k,v])=>`<div class="de-record-stat"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`;
     }
 
@@ -110,14 +110,14 @@
       const value = Math.max(0, num(item.value(meta)));
       const shown = Math.min(value, item.target);
       const pct = Math.max(0, Math.min(100, Math.round((shown / item.target) * 100)));
-      const copy = en ? item.en : item.zh;
-      const unit = en ? item.unit[1] : item.unit[0];
-      const progress = got ? (en ? 'Unlocked' : '已解锁') : `${shown} / ${item.target}${unit ? ` ${unit}` : ''}`;
-      return `<article class="class-card achv-card ${got ? 'achv-unlocked' : 'achv-locked'}" data-achv-id="${item.id}" aria-label="${esc(copy[0])}">` +
-        `<h3>${got ? '◆' : '◇'} ${esc(copy[0])}</h3><p>${esc(copy[1])}</p>` +
+      const text = english ? item.en : item.zh;
+      const unit = english ? item.unit[1] : item.unit[0];
+      const progress = got ? (english ? 'Unlocked' : '已解锁') : `${shown} / ${item.target}${unit ? ` ${unit}` : ''}`;
+      return `<article class="class-card achv-card ${got ? 'achv-unlocked' : 'achv-locked'}" data-achv-id="${item.id}" aria-label="${esc(text[0])}">` +
+        `<h3>${got ? '◆' : '◇'} ${esc(text[0])}</h3><p>${esc(text[1])}</p>` +
         `<div class="de-achv-progress">${esc(progress)}<div class="de-achv-bar" aria-hidden="true"><i style="width:${got ? 100 : pct}%"></i></div></div></article>`;
     }).join('');
-    root.dataset.recordUi = '1.2.6';
+    root.dataset.recordUi = '1.3.4';
     return true;
   }
 
@@ -133,5 +133,5 @@
   const screen = document.getElementById('achv-screen');
   if (screen && !screen.classList.contains('hidden')) scheduleRender();
 
-  window.__DE_EXPEDITION_RECORD_V126 = { version:'1.2.6', render, catalogSize:CATALOG.length };
+  window.__DE_EXPEDITION_RECORD_V126 = { version:'1.3.4', owner:'expedition-record-v126', locale:english?'en':'zh-CN', render, catalogSize:CATALOG.length };
 })();

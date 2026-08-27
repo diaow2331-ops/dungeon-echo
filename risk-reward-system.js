@@ -1,7 +1,8 @@
-/* Dungeon Echo risk/reward interactions v2.
+/* Dungeon Echo risk/reward interactions v3.
  * Owns shrine wagers and cask downside resolution for the classic-100 production route.
  * Loaded after the synchronous gameplay stack so it wraps the final public gameplay API,
  * rather than hiding gameplay ownership inside production-bootstrap.js.
+ * Fixed Chinese/English routes own all visible copy directly; no runtime translator is used.
  */
 (() => {
   'use strict';
@@ -10,6 +11,14 @@
 
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
+
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
+  const localeData = window.DE_LOCALE_DATA || null;
+  const displayItemName = item => localeData && typeof localeData.itemName === 'function'
+    ? localeData.itemName(item)
+    : String(item && item.name || copy('装备', 'Equipment'));
 
   const resolvedCasks = new WeakSet();
   const originalTryMove = api.tryMove;
@@ -67,7 +76,7 @@
       return true;
     }
     if (Array.isArray(api.items)) {
-      api.items.push({ type:'equip', item:loot, emoji:'', name:'装备', x, y });
+      api.items.push({ type:'equip', item:loot, emoji:'', name:copy('装备','Equipment'), x, y });
     }
     return false;
   }
@@ -85,7 +94,9 @@
       if (!m) continue;
       if (opts.elite) {
         m.elite = true;
-        m.name = `祭坛守卫·${String(m.name || '怪物').replace(/^精英·/, '')}`;
+        m.name = english
+          ? 'Shrine Guardian'
+          : `祭坛守卫·${String(m.name || '怪物').replace(/^精英·/, '')}`;
         m.maxHp = Math.max(1, Math.round((Number(m.maxHp) || Number(m.hp) || 1) * 1.25));
         m.hp = m.maxHp;
         m.atk = Math.max(1, Math.round((Number(m.atk) || 1) * 1.15));
@@ -125,10 +136,10 @@
       if (heal > 0) {
         p.hp += heal;
         p.poison = 0;
-        text = `神龛洗净伤口，恢复 ${heal} 点生命。`;
+        text = copy(`神龛洗净伤口，恢复 ${heal} 点生命。`, `The shrine cleanses your wounds and restores ${heal} HP.`);
       } else {
         p.potions = (Number(p.potions) || 0) + 1;
-        text = '神龛的余辉凝成一瓶药水。';
+        text = copy('神龛的余辉凝成一瓶药水。', 'The shrine\'s afterglow condenses into a potion.');
       }
     } else if (outcome === 'blood-offering') {
       const maxHp = typeof api.pMaxHp === 'function'
@@ -139,25 +150,28 @@
       const loot = typeof api.genEquip === 'function' ? api.genEquip(api.depth, 2) : null;
       if (loot) dropEquip(loot, npc.x, npc.y);
       text = loot
-        ? `神龛索取 ${cost} 点生命，吐出祭品【${loot.name}】。`
-        : `神龛索取 ${cost} 点生命，却只留下空响。`;
+        ? copy(`神龛索取 ${cost} 点生命，吐出祭品【${displayItemName(loot)}】。`, `The shrine takes ${cost} HP and yields [${displayItemName(loot)}].`)
+        : copy(`神龛索取 ${cost} 点生命，却只留下空响。`, `The shrine takes ${cost} HP and leaves only an empty echo.`);
       cls = 'epic';
     } else if (outcome === 'greed-contract') {
       const gold = 18 + Math.max(1, Number(api.depth) || 1) * 3;
       p.gold = (Number(p.gold) || 0) + gold;
       const spawned = spawnThreat(2, { minDist:3, tag:`shrine-greed:${npc.x}:${npc.y}` });
-      text = `你从祭坛夺走 ${gold} 金币，${spawned} 个被惊醒的敌人开始追来。`;
+      text = copy(
+        `你从祭坛夺走 ${gold} 金币，${spawned} 个被惊醒的敌人开始追来。`,
+        `You seize ${gold} Gold from the altar; ${spawned} awakened ${spawned === 1 ? 'enemy' : 'enemies'} begin the chase.`
+      );
       cls = 'bad';
     } else if (outcome === 'guardian-trial') {
       const spawned = spawnThreat(1, { minDist:4, elite:true, tag:`shrine-elite:${npc.x}:${npc.y}` });
       text = spawned
-        ? '神龛唤来一名祭坛守卫——击败它，史诗战利品才真正属于你。'
-        : '神龛震动片刻，挑战却没有成形。';
+        ? copy('神龛唤来一名祭坛守卫——击败它，史诗战利品才真正属于你。', 'The shrine summons a Shrine Guardian. Defeat it to earn the epic reward.')
+        : copy('神龛震动片刻，挑战却没有成形。', 'The shrine trembles, but the challenge fails to take shape.');
       cls = spawned ? 'bad' : 'dim';
     } else {
       p.grievous = Math.max(Number(p.grievous) || 0, 4);
       p.poison = Math.max(Number(p.poison) || 0, 3);
-      text = '神龛反噬：重伤与毒素同时缠上身体。';
+      text = copy('神龛反噬：重伤与毒素同时缠上身体。', 'The shrine lashes back: Grievous Wounds and poison take hold at once.');
       cls = 'bad';
     }
 
@@ -178,13 +192,13 @@
       const spawned = spawnThreat(1, { minDist:3, tag:`cask-ambush:${cask.x}:${cask.y}` });
       if (spawned) {
         outcome = 'ambush';
-        surfaceMessage('木桶底板突然弹开——一只潜伏的怪物被惊醒了。', 'bad');
+        surfaceMessage(copy('木桶底板突然弹开——一只潜伏的怪物被惊醒了。', 'The cask bottom bursts open—a lurking monster wakes up.'), 'bad');
       }
     } else if (r < .30) {
       p.poison = Math.max(Number(p.poison) || 0, 3);
       p.grievous = Math.max(Number(p.grievous) || 0, 2);
       outcome = 'contamination';
-      surfaceMessage('腐败粉尘扑了一脸：你中了毒，伤口也开始恶化。', 'bad');
+      surfaceMessage(copy('腐败粉尘扑了一脸：你中了毒，伤口也开始恶化。', 'Rotten dust erupts in your face: you are poisoned and your wounds worsen.'), 'bad');
     }
     if (outcome !== 'none' && typeof api.persistRun === 'function' && api.state === 'playing') api.persistRun();
     return outcome;
@@ -214,10 +228,13 @@
 
   function syncShrineCopy() {
     if (api.state !== 'shrine') return;
-    const copy = document.getElementById && document.getElementById('shrine-copy');
+    const shrineCopy = document.getElementById && document.getElementById('shrine-copy');
     const ok = document.getElementById && document.getElementById('btn-shrine-ok');
-    if (copy) copy.textContent = '这是一次真正的赌注：可能治愈、以血换祭品、唤来追兵或遭受诅咒。仍要触碰吗？';
-    if (ok) ok.textContent = '接受赌注';
+    if (shrineCopy) shrineCopy.textContent = copy(
+      '这是一次真正的赌注：可能治愈、以血换祭品、唤来追兵或遭受诅咒。仍要触碰吗？',
+      'This is a real wager: healing, a blood-for-loot offering, pursuers, or a curse. Touch it anyway?'
+    );
+    if (ok) ok.textContent = copy('接受赌注', 'Accept Wager');
   }
 
   function interceptShrine(e) {
@@ -272,8 +289,9 @@
   }
 
   window.__DE_RISK_REWARD_INTERACTIONS = {
-    version:'p0-v2',
+    version:'p0-v3',
     owner:'risk-reward-system',
+    locale:english ? 'en' : 'zh-CN',
     rollFor,
     shrineOutcomeFor,
     resolveShrine,

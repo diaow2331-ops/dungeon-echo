@@ -1,7 +1,7 @@
-/* Dungeon Echo production defense semantics v2.
+/* Dungeon Echo production defense semantics v3.
  * Keeps equipment DEF as armor and applies flat reduction / Warrior Ironhide as a
  * separate mitigation layer without rewriting the large legacy combat core.
- * v2 removes permanent defense/talent polling and synchronizes from real state transitions.
+ * v2 removed permanent defense/talent polling; v3 makes visible defense copy fixed-route.
  */
 (() => {
   'use strict';
@@ -10,6 +10,8 @@
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
 
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
   const players = new WeakMap();
   const monsters = new WeakMap();
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
@@ -20,7 +22,6 @@
   }
   const inStack = (stack, name) => stack.indexOf(name) >= 0;
   const classId = () => api.classId || (api.meta && api.meta.classId) || 'warrior';
-  const isEnglish = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
 
   function warriorReduction(p = api.player) {
     if (!p || classId() !== 'warrior') return 0;
@@ -123,7 +124,7 @@
     const def = document.getElementById && document.getElementById('st-def');
     if (def && p) {
       const host = def.parentElement || (typeof def.closest === 'function' ? def.closest('.stat') : null);
-      if (host) host.title = isEnglish()
+      if (host) host.title = english
         ? `Armor ${armor()} · Fixed DR ${fixedReduction(p)} (ranged uses 50% Armor; Armor Break ignores Armor only)`
         : `护甲 ${armor()} · 固定减伤 ${fixedReduction(p)}（远程只按 50% 护甲；破甲仅忽略护甲）`;
     }
@@ -145,8 +146,9 @@
   syncDefenseModel();
 
   window.__DE_DEFENSE_MODEL = {
-    version: 'v2',
+    version: 'v3',
     owner: 'defense-system',
+    locale: english ? 'en' : 'zh-CN',
     armor,
     fixedReduction,
     warriorReduction,
@@ -159,9 +161,10 @@
   };
 })();
 
-/* P0 talent exhaustion safety.
+/* P0 talent exhaustion safety v2.
  * The legacy core enters the talent screen even when TALENTS is empty. Progression owns
  * finite rank caps, so long-lived saves eventually need a repeatable non-power fallback.
+ * Visible overflow copy is fixed-route and no longer depends on runtime translation state.
  */
 (() => {
   'use strict';
@@ -170,13 +173,14 @@
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !Array.isArray(api.TALENTS)) return;
 
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
   let syncQueued = false;
-  const english = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
   const OVERFLOW = {
     id: 'overflow_supply',
-    get name() { return english() ? 'Ember Resupply' : '余烬整备'; },
-    get desc() { return english() ? 'All scalable talents are capped: gain +1 Potion and +1 Teleport Scroll.' : '可成长天赋已达上限：获得药水 +1、卷轴 +1。'; },
+    get name() { return english ? 'Ember Resupply' : '余烬整备'; },
+    get desc() { return english ? 'All scalable talents are capped: gain +1 Potion and +1 Teleport Scroll.' : '可成长天赋已达上限：获得药水 +1、卷轴 +1。'; },
     apply(p) {
       p.potions = (Number(p.potions) || 0) + 1;
       p.scrolls = (Number(p.scrolls) || 0) + 1;
@@ -238,8 +242,9 @@
   sync();
 
   window.__DE_TALENT_SAFETY = {
-    version: 'v1',
+    version: 'v2',
     owner: 'defense-system',
+    locale: english ? 'en' : 'zh-CN',
     overflow: OVERFLOW,
     eligible,
     desiredPool,

@@ -5,6 +5,7 @@ style.css
 production-bootstrap.js
 profiles/classic-100.profile.js
 save-integrity-system.js
+locale-data-v134.js
 game.js
 npc-stability-system.js
 equipment-system.js

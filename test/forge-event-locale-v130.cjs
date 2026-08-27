@@ -8,6 +8,8 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'forge-system.js'), 'u
 assert(!/setInterval\s*\(/.test(source), 'forge-system must not keep a polling interval');
 assert(source.includes('schedulePendingScan'), 'event-driven pending scan owner missing');
 assert(source.includes('Fit ${fit} · Value ${value}'), 'explicit English forge metric missing');
+assert(source.includes('window.DE_LOCALE_DATA'), 'forge must consume fixed locale data');
+assert(!source.includes('window.DE_I18N'), 'forge must not depend on runtime translator state');
 
 const listeners = { document: {}, window: {} };
 const nodes = new Map();
@@ -35,7 +37,7 @@ forgeBtn.dataset.forge = 'bag:0';
 forgeBtn.closest = sel => sel === '.town-row' ? row : null;
 
 const pendingItem = {
-  name: '铁剑', slot: 'weapon', forge: 3, refinePending: true, stats: { atk: 1 }, score: 1,
+  name: '铁剑', slot: 'weapon', rarity: 0, forge: 3, refinePending: true, stats: { atk: 1 }, score: 1,
 };
 const meta = { bag: [pendingItem], stash: [] };
 const api = {
@@ -50,6 +52,7 @@ global.queueMicrotask = fn => fn();
 global.setInterval = () => { throw new Error('polling interval must not be created'); };
 global.localStorage = { setItem() {} };
 global.document = {
+  documentElement: { dataset: { deLocale: 'en' } },
   head: { appendChild(el) { headChildren.push(el); if (el.id) nodes.set(el.id, el); } },
   body: { appendChild(el) { bodyChildren.push(el); if (el.id) nodes.set(el.id, el); } },
   getElementById(id) { return nodes.get(id) || null; },
@@ -59,17 +62,21 @@ global.document = {
 };
 global.window = {
   DE_TEST: api,
-  DE_I18N: {
+  DE_LOCALE_DATA: {
     isEnglish: true,
-    translate(value) { return String(value) === '铁剑' ? 'Iron Sword' : String(value); },
+    itemName() { return 'Common·Iron Sword'; },
+    refineName(id) { return id === 'keen' ? 'Keen' : id; },
+    affixText(key, value) { return `${key === 'atk' ? 'ATK' : key} +${value}`; },
   },
   addEventListener(type, fn) { (listeners.window[type] ||= []).push(fn); },
 };
 
 vm.runInThisContext(source, { filename: 'forge-system.js' });
 
-assert.equal(window.__DE_FORGE_SYSTEM, 'v2', 'forge v2 owner must boot');
+assert.equal(window.__DE_FORGE_SYSTEM, 'v3', 'forge v3 owner must boot');
 assert(window.DE_FORGE_REFINEMENT, 'forge refinement API missing');
+assert.equal(window.DE_FORGE_REFINEMENT.owner, 'forge-system', 'explicit forge owner missing');
+assert.equal(window.DE_FORGE_REFINEMENT.locale, 'en', 'fixed English route not adopted');
 assert((listeners.document.keydown || []).length >= 1, 'keydown lifecycle sync missing');
 assert((listeners.document.click || []).length >= 3, 'forge/refine + lifecycle click owners missing');
 assert((listeners.window.focus || []).length === 1, 'focus lifecycle sync missing');
@@ -81,9 +88,9 @@ assert(modal.innerHTML.includes('Keen'), 'English refinement path label missing'
 assert(!modal.innerHTML.includes('+3 精炼'), 'English refinement modal leaked Chinese heading');
 
 window.DE_FORGE_REFINEMENT.syncTownRows();
-assert(label.innerHTML.includes('Iron Sword'), 'town forge row must localize the item at render boundary');
+assert(label.innerHTML.includes('Common·Iron Sword'), 'town forge row must localize the item at render boundary');
 assert(label.innerHTML.includes('Fit 1 · Value 4'), 'town forge row must render a complete English metric');
 assert.equal(sell.textContent, 'Sell 7G', 'English sell button copy mismatch');
 assert.equal(forgeBtn.title, 'Forge to +4 · Cost 12 G', 'English forge tooltip mismatch');
 
-console.log('forge_event_locale_v130=PASS');
+console.log('forge_event_locale_v134=PASS');

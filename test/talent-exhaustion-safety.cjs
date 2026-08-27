@@ -4,6 +4,7 @@ const listeners={document:{},window:{}};
 let state='playing';
 const grid={innerHTML:'',querySelector(sel){return sel==='button[data-talent]'&&this.innerHTML.includes('data-talent=')?{}:null;}};
 global.document={
+  documentElement:{dataset:{deLocale:'zh-CN'}},
   getElementById(id){return id==='talent-grid'?grid:null;},
   addEventListener(type,fn){(listeners.document[type] ||= []).push(fn);},
 };
@@ -25,7 +26,7 @@ vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','defense
 const S=window.__DE_TALENT_SAFETY;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
 
-ok(S&&S.version==='v1','talent safety boots');
+ok(S&&S.version==='v2'&&S.locale==='zh-CN','talent safety boots on fixed-route v2 contract');
 ok(api.TALENTS.length===1&&api.TALENTS[0].id==='overflow_supply','empty eligible pool is preseeded before next level-up');
 const p0=player.potions,s0=player.scrolls;api.TALENTS[0].apply(player);
 ok(player.potions===p0+1&&player.scrolls===s0+1,'overflow reward is finite supplies, not permanent combat power');

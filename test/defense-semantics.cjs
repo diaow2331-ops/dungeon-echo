@@ -2,6 +2,7 @@
 const fs=require('fs'),vm=require('vm');
 const listeners={document:{},window:{}};
 global.document={
+  documentElement:{dataset:{deLocale:'zh-CN'}},
   getElementById(){return null;},
   addEventListener(type,fn){(listeners.document[type] ||= []).push(fn);},
 };
@@ -35,7 +36,7 @@ function monsterRangedAttack(m,armorBreak=false){
 function killMonster(m){return Math.max(2,Math.round(m.atk*.55)-Math.floor(api.pDef()/2));}
 
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
-ok(D&&D.version==='v2'&&D.owner==='defense-system','defense model boots as event-driven owner');
+ok(D&&D.version==='v3'&&D.owner==='defense-system'&&D.locale==='zh-CN','defense model boots as fixed-route event owner');
 ok(D.armor()===8,'pDef now exposes equipment armor only');
 ok(D.fixedReduction()===6,'flat DR plus warrior Ironhide remain separate');
 ok(monsterAttack(monster,false)===6,'melee uses full armor plus full fixed reduction');

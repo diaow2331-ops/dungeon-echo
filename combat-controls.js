@@ -1,4 +1,4 @@
-/* Dungeon Echo combat controls + mana resource v1.
+/* Dungeon Echo combat controls + mana resource v2.
  * Presentation/input/resource layer for the classic-100 public route.
  * - WASD/arrow keys move/turn only; adjacent enemies block movement.
  * - J attacks in the current facing direction (ranged classes use their line range).
@@ -8,6 +8,7 @@
  * - HUD/resource synchronization is action-driven; no permanent DOM requestAnimationFrame follower.
  * - Ground equipment uses the real v13 tier art even when production rewrites the old atlas path.
  * - All legacy character equipment geometry/image overlays are suppressed so the hero atlas stays authoritative.
+ * - Fixed Chinese/English routes own this module's visible combat copy directly.
  */
 (() => {
   'use strict';
@@ -17,6 +18,10 @@
   const api = window.DE_TEST;
   const tierArt = window.__DE_EQUIPMENT_TIER_ART;
   if (!api || api.profileId !== 'classic-100' || typeof api.tryMove !== 'function' || typeof api.useSkill !== 'function') return;
+
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
 
   const DIR = Object.freeze({
     ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
@@ -33,6 +38,9 @@
   const classId = () => api.classId || (api.meta && api.meta.classId) || 'warrior';
   const cfg = () => RESOURCE[classId()] || RESOURCE.warrior;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const skillLabel = () => english
+    ? ({warrior:'Warrior Skill',ranger:'Ranger Skill',mage:'Arcanist Skill',assassin:'Assassin Skill'}[classId()] || 'Class Skill')
+    : String(api.CLASSES && api.CLASSES[classId()] && api.CLASSES[classId()].skill && api.CLASSES[classId()].skill.name || '技能');
   const persistResourceState = () => {
     if (typeof api.persistRun === 'function') api.persistRun();
   };
@@ -62,7 +70,7 @@
     p.mana = clamp(before + amount, 0, p.manaMax);
     const gain = p.mana - before;
     if (gain > 0) {
-      if (reason === 'focus') feedback(`凝神 +${gain} 蓝量`, 'good', 800);
+      if (reason === 'focus') feedback(copy(`凝神 +${gain} 蓝量`, `Focus +${gain} Mana`), 'good', 800);
       persistResourceState();
     }
     return gain;
@@ -125,7 +133,7 @@
     const dx = Number(facing[0]) || 0, dy = Number(facing[1]) || 0;
     const target = targetInDirection(dx,dy);
     if (!target) {
-      feedback('面向敌人后按 J 攻击', 'info');
+      feedback(copy('面向敌人后按 J 攻击', 'Face an enemy and press J to attack'), 'info');
       return false;
     }
     const before = Number(api.turns) || 0;
@@ -150,7 +158,10 @@
     if ((Number(p.skillCd) || 0) > 0) return coreSkill.apply(this,args);
     const cost = manaCost();
     if (p.mana < cost) {
-      feedback(`蓝量不足：${p.mana}/${cost} · 原地等待可更快恢复`, 'bad', 1500);
+      feedback(copy(
+        `蓝量不足：${p.mana}/${cost} · 原地等待可更快恢复`,
+        `Not enough Mana: ${p.mana}/${cost} · Wait in place to recover faster`
+      ), 'bad', 1500);
       scheduleSync();
       return false;
     }
@@ -163,7 +174,7 @@
       persistResourceState();
       lastTurn = after;
       waitPrimed = false;
-      feedback(`${api.CLASSES[classId()].skill.name} −${cost} 蓝量`, 'skill', 900);
+      feedback(copy(`${skillLabel()} −${cost} 蓝量`, `${skillLabel()} −${cost} Mana`), 'skill', 900);
     }
     scheduleSync();
     return out;
@@ -192,7 +203,7 @@
     if (adjacent) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      feedback('J 攻击 · K 技能', 'info', 700);
+      feedback(copy('J 攻击 · K 技能', 'J Attack · K Skill'), 'info', 700);
       return true;
     }
     const target = targetInDirection(dx,dy);
@@ -229,7 +240,7 @@
     }
     if (lower === 'c') {
       e.preventDefault(); e.stopImmediatePropagation();
-      feedback('技能热键已改为 K', 'info');
+      feedback(copy('技能热键已改为 K', 'The skill hotkey is now K'), 'info');
       return;
     }
     if (key === ' ' || key === '.') waitPrimed = true;
@@ -272,17 +283,21 @@
     }
     const skillBtn = document.querySelector('#actions [data-act="skill"]');
     if (skillBtn) {
-      skillBtn.innerHTML = '技能 <span>K</span>';
+      skillBtn.innerHTML = copy('技能 <span>K</span>', 'Skill <span>K</span>');
       if (!document.querySelector('#actions [data-act="attack"]')) {
         const attack = document.createElement('button');
         attack.type = 'button';
         attack.dataset.act = 'attack';
-        attack.innerHTML = '攻击 <span>J</span>';
+        attack.innerHTML = copy('攻击 <span>J</span>', 'Attack <span>J</span>');
         skillBtn.parentNode.insertBefore(attack, skillBtn);
       }
     }
     const footer = document.getElementById('help');
-    if (footer) footer.innerHTML = footer.innerHTML.replace('C 职业技能','J 攻击 · K 职业技能');
+    if (footer) {
+      footer.innerHTML = english
+        ? footer.innerHTML.replace('C Class Skill','J Attack · K Class Skill')
+        : footer.innerHTML.replace('C 职业技能','J 攻击 · K 职业技能');
+    }
 
     const style = document.createElement('style');
     style.id = 'de-combat-controls-style';
@@ -317,7 +332,7 @@
     if (sk && p) {
       const cost = manaCost();
       if ((Number(p.skillCd)||0) <= 0 && p.mana < cost) {
-        const next = `${api.CLASSES[classId()].skill.name} · ${p.mana}/${cost}`;
+        const next = `${skillLabel()} · ${p.mana}/${cost}`;
         if (sk.textContent !== next) sk.textContent = next;
         if (sk.className !== 'cd') sk.className = 'cd';
       }
@@ -326,9 +341,9 @@
     const hint = document.getElementById('hint');
     if (hint && hint.textContent) {
       const before = hint.textContent;
-      const next = before
-        .replace(/ · J 快速下潜（[^）]*）/g,' · J 攻击 · K 技能')
-        .replace(/C 技能/g,'J 攻击 · K 技能');
+      const next = english
+        ? before.replace(/ · J Quick Dive \([^)]*\)/g,' · J Attack · K Skill').replace(/C Skill/g,'J Attack · K Skill')
+        : before.replace(/ · J 快速下潜（[^）]*）/g,' · J 攻击 · K 技能').replace(/C 技能/g,'J 攻击 · K 技能');
       if (next !== before) hint.textContent = next;
     }
   }
@@ -469,7 +484,7 @@
 
   function patchLogCopy() {
     const log = document.getElementById('log');
-    if (!log) return;
+    if (!log || english) return;
     for (const node of Array.from(log.children || [])) {
       const text = node.textContent || '';
       if (text.includes('按 C 释放') || text.includes('撞向敌人即攻击')) {
@@ -507,7 +522,7 @@
   queueMicrotask(syncNow);
 
   window.__DE_COMBAT_CONTROLS_V1 = {
-    version:'v1', resource:RESOURCE, attackFacing, castSkillAction, targetInDirection,
+    version:'v2', owner:'combat-controls', locale:english ? 'en' : 'zh-CN', resource:RESOURCE, attackFacing, castSkillAction, targetInDirection,
     ensureMana, manaCost, syncNow, scheduleSync,
   };
 })();

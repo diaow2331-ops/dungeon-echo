@@ -1,7 +1,7 @@
-/* Dungeon Echo mobile UX v2.
+/* Dungeon Echo mobile UX v3.
  * Touch ergonomics only: responsive HUD, thumb-zone controls, hold-to-walk and haptics.
- * v2 stabilizes non-fullscreen browser chrome, removes the center Wait mis-tap target,
- * and makes high-frequency touch input react on pointer-down.
+ * v3 renders all mobile-specific accessibility/help copy from the fixed route identity,
+ * so resize/orientation transitions can never re-inject Chinese text into the English build.
  * Desktop keyboard/mouse behavior and gameplay rules are unchanged.
  */
 (() => {
@@ -11,6 +11,9 @@
   const api=window.DE_TEST;
   if(!api||api.profileId!=='classic-100')return;
 
+  const routeLang=String(document.documentElement&&document.documentElement.dataset&&document.documentElement.dataset.deLocale||'').toLowerCase();
+  const english=routeLang==='en';
+  const copy=(zh,en)=>english?en:zh;
   const coarse=()=>innerWidth<=900||(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches);
   const originals=new WeakMap();
   const optionalIds=['st-xp','st-crit','st-key','st-mobs','st-scroll'];
@@ -18,7 +21,7 @@
   let active=false,applying=false,applyQueued=false,lastWidth=innerWidth;
 
   const style=document.createElement('style');
-  style.id='de-mobile-ux-v2';
+  style.id='de-mobile-ux-v3';
   style.textContent=`
     html.de-mobile-ui body{overscroll-behavior:none}
     html.de-mobile-ui #wrap{padding:6px 7px calc(8px + env(safe-area-inset-bottom));max-width:100%;overflow-anchor:none}
@@ -94,7 +97,7 @@
   function syncMobileWait(on){
     const wait=document.querySelector('#dpad [data-act="wait"]');if(!wait)return;
     if(on){wait.disabled=true;wait.tabIndex=-1;wait.setAttribute('aria-hidden','true');wait.setAttribute('aria-label','')}
-    else{wait.disabled=false;wait.removeAttribute('aria-hidden');wait.setAttribute('aria-label','等待一回合')}
+    else{wait.disabled=false;wait.removeAttribute('aria-hidden');wait.setAttribute('aria-label',copy('等待一回合','Wait one turn'))}
   }
 
   function installFastPress(btn,repeat=false){
@@ -122,8 +125,11 @@
   }
 
   function syncMobileHelp(){
-    const help=document.querySelector('#help-screen .help-cols');if(!help||help.dataset.mobileCopy==='1')return;help.dataset.mobileCopy='1';
-    const first=help.querySelector('p');if(first)first.innerHTML='电脑：<b>WASD / 方向键</b>移动与转向，<b>J</b>攻击，<b>K</b>技能，<b>空格 / .</b>等待。<br>手机：<b>左侧四向方向盘</b>移动与转向，右侧<b>攻击 / 技能</b>为主操作；中央等待键已移除以避免误触。<br>药水 Q · 卷轴 E · 回城 T · 下楼 Enter · 暂停 Esc。';
+    const help=document.querySelector('#help-screen .help-cols');if(!help)return;
+    const marker=english?'en':'zh-CN';if(help.dataset.mobileCopy===marker)return;help.dataset.mobileCopy=marker;
+    const first=help.querySelector('p');if(first)first.innerHTML=english
+      ? 'Desktop: <b>WASD / arrow keys</b> move and face; <b>J</b> attacks, <b>K</b> uses a skill, <b>Space / .</b> waits.<br>Mobile: use the <b>four-way D-pad</b> to move and face; <b>Attack / Skill</b> are the primary right-side actions. The center Wait target is intentionally removed to prevent mis-taps.<br>Potion Q · Scroll E · Return T · Descend Enter · Pause Esc.'
+      : '电脑：<b>WASD / 方向键</b>移动与转向，<b>J</b>攻击，<b>K</b>技能，<b>空格 / .</b>等待。<br>手机：<b>左侧四向方向盘</b>移动与转向，右侧<b>攻击 / 技能</b>为主操作；中央等待键已移除以避免误触。<br>药水 Q · 卷轴 E · 回城 T · 下楼 Enter · 暂停 Esc。';
   }
 
   function syncBrowserChrome(on){document.documentElement.classList.toggle('de-browser-chrome',on&&!document.fullscreenElement)}
@@ -133,7 +139,9 @@
     try{
       const on=coarse();active=on;document.documentElement.classList.toggle('de-mobile-ui',on);syncBrowserChrome(on);
       markOptional();prepareActions(on);syncMobileWait(on);installHaptics();syncMobileHelp();
-      const game=document.getElementById('game');if(game)game.setAttribute('aria-label',on?'地牢地图：使用下方四向方向盘移动，也可点已探索地块':'地牢地图：使用方向键、WASD 或点击已探索地块移动');
+      const game=document.getElementById('game');if(game)game.setAttribute('aria-label',on
+        ? copy('地牢地图：使用下方四向方向盘移动，也可点已探索地块','Dungeon map: use the four-way D-pad below, or tap explored tiles')
+        : copy('地牢地图：使用方向键、WASD 或点击已探索地块移动','Dungeon map: move with arrow keys, WASD, or click explored tiles'));
     }finally{applying=false}
   }
 
@@ -147,5 +155,5 @@
   document.addEventListener('fullscreenchange',queueApply);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)apply()});
   apply();setTimeout(apply,80);
-  window.__DE_MOBILE_UX={version:'v2',apply,get active(){return active},coarse};
+  window.__DE_MOBILE_UX={version:'v3',owner:'mobile-ux',locale:english?'en':'zh-CN',apply,get active(){return active},coarse};
 })();
