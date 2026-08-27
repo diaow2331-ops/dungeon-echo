@@ -1,35 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BASE=https://play.91hwl.cn/moyu
-DUNGEON=https://play.91hwl.cn/dungeon-echo/
-RESOLVE=play.91hwl.cn:443:127.0.0.1
-ATTEMPTS=6
-DELAY=2
+BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; GAME_URL=https://play.91hwl.cn/moyu/; VERSION_URL=https://play.91hwl.cn/moyu/VERSION; ORIGIN=play.91hwl.cn:443:127.0.0.1
 fail(){ echo "MOYU_HEALTHCHECK_ERROR: $*" >&2; exit 1; }
-version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"
-work="$(mktemp -d /tmp/moyu-health.XXXXXX)"; trap 'rm -rf -- "$work"' EXIT
-fetch(){ curl --fail --silent --show-error --location --noproxy '*' "$@"; }
-check_set(){
-  prefix="$1"; shift
-  fetch "$@" "$BASE/?release=$revision" > "$work/$prefix.html" || return 1
-  grep -Fq 'Clock Out Alive' "$work/$prefix.html" || return 1
-  grep -Fq 'style.css?v=1110' "$work/$prefix.html" || return 1
-  grep -Fq 'game.js?v=1110' "$work/$prefix.html" || return 1
-  fetch "$@" "$BASE/style.css?v=1110&release=$revision" > "$work/$prefix.css" || return 1
-  grep -Fq 'safe-area-inset-bottom' "$work/$prefix.css" || return 1
-  fetch "$@" "$BASE/game.js?v=1110&release=$revision" > "$work/$prefix.js" || return 1
-  grep -Fq "dataset.gameVersion='1.11.0'" "$work/$prefix.js" || return 1
-  fetch "$@" "$BASE/VERSION?release=$revision" > "$work/$prefix.version" || return 1
-  test "$(tr -d '\r\n[:space:]' < "$work/$prefix.version")" = "$version" || return 1
-}
-check_set origin --resolve "$RESOLVE" || fail 'origin Moyu asset set failed'
-fetch --resolve "$RESOLVE" "$DUNGEON" >/dev/null || fail 'Dungeon Echo preservation check failed'
-public_ok=false
-for ((i=1;i<=ATTEMPTS;i++)); do if check_set public; then public_ok=true; break; fi; ((i<ATTEMPTS)) && sleep "$DELAY"; done
-test "$public_ok" = true || fail "public Moyu asset set failed after $ATTEMPTS attempts"
-echo "public_url=$BASE/"
-echo "public_version=$version"
-echo 'moyu_healthcheck=PASS'
+version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"; revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"; work="$(mktemp -d /tmp/moyu-health.XXXXXX)"; trap 'rm -rf -- "$work"' EXIT
+probe(){ prefix="$1"; shift; curl -fsSL --noproxy '*' "$@" -o "$work/$prefix.html"; grep -Fq '<meta name="version" content="1.11.1"' "$work/$prefix.html"; grep -Fq 'style.css?v=1111' "$work/$prefix.html"; grep -Fq 'game.js?v=1111' "$work/$prefix.html"; }
+probe origin --resolve "$ORIGIN" "$GAME_URL" || fail 'origin HTML check failed'
+curl -fsSL --noproxy '*' --resolve "$ORIGIN" "https://play.91hwl.cn/moyu/style.css?v=1111" -o "$work/style.css" || fail 'origin CSS missing'
+curl -fsSL --noproxy '*' --resolve "$ORIGIN" "https://play.91hwl.cn/moyu/game.js?v=1111" -o "$work/game.js" || fail 'origin JS missing'
+grep -Fq 'groundTakeoff=before===0' "$work/game.js" || fail 'visual cleanup runtime missing'
+! grep -Fq 'drawPlayerFocus(drawX,footY,altitude);' "$work/game.js" || fail 'player halo still active'
+! grep -Fq 'drawBackground();drawAmbientOfficeLife();drawRunAtmosphere();' "$work/game.js" || fail 'drifting ambient coworkers still active'
+actual="$(curl -fsSL --noproxy '*' --resolve "$ORIGIN" "$VERSION_URL" | tr -d '\r\n[:space:]')"; test "$actual" = "$version" || fail 'origin VERSION mismatch'
+public_ok=false; for i in 1 2 3 4 5 6; do if probe public "${GAME_URL}?release=$revision" && test "$(curl -fsSL "${VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = "$version"; then public_ok=true; break; fi; sleep 2; done
+test "$public_ok" = true || fail 'public Moyu check failed'
+curl -fsSL --noproxy '*' --resolve "$ORIGIN" https://play.91hwl.cn/dungeon-echo/ -o /dev/null || fail 'Dungeon Echo preservation check failed'
+echo "public_url=$GAME_URL"; echo "public_version=$version"; echo 'moyu_healthcheck=PASS'
