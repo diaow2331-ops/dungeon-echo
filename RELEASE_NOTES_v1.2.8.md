@@ -10,6 +10,7 @@ v1.2.8 is an English-locale completeness and pre-deployment robustness hotfix on
 - Legacy core hints are normalized to the actual production controls: **J Attack / K Skill**, not the retired C-skill / J-quick-dive wording.
 - The English gameplay header no longer appends the Chinese `地牢回响` subtitle beside `Dungeon Echo`.
 - Malformed or HTML-like Dungeon Echo run/meta blobs are rejected before `game.js` restores them, preventing corrupted local saves from reaching legacy HTML interpolation paths or invalid map/coordinate state.
+- The core `game.js` HTML escaping helper now encodes ampersands, angle brackets and quotes correctly across Adventure Log, backpack labels, shops, achievements and town inventory rendering.
 
 ## Implementation
 
@@ -20,11 +21,8 @@ v1.2.8 is an English-locale completeness and pre-deployment robustness hotfix on
 - Adds `save-integrity-system.js` as a synchronous pre-game owner between the production profile and `game.js`.
 - The integrity guard only inspects `de-run-v6`, `de-greedy-meta-v1` and the Greedy toggle; valid compatible saves remain byte-for-byte untouched.
 - Legacy v2 classic saves without a `mode` field remain supported, and arbitrary safe run seeds remain allowed because seeds do not enter HTML sinks.
+- Keeps the integrity guard as structural defense in depth while fixing the shared `esc()` helper at the actual rendering boundary.
 - Neither v1.2.8 owner uses polling.
-
-## Known core hardening debt
-
-- The legacy `game.js` HTML escaping helper still does not correctly encode every HTML metacharacter. v1.2.8 blocks the currently reachable persisted-save path before boot, but the helper itself should still be corrected when a safe targeted core-file patch workflow is available.
 
 ## Release contract
 
