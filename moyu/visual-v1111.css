@@ -1,0 +1,21 @@
+/* v1.11.1 visual cleanup: stable result typography across languages and viewports. */
+.card h1{
+  max-width:18ch;
+  margin-left:auto;
+  margin-right:auto;
+  font-size:clamp(32px,3.5vw,46px);
+  line-height:1.04;
+  letter-spacing:-.04em;
+  white-space:normal;
+  text-wrap:balance;
+}
+html[data-lang="zh"] .card h1{
+  max-width:18ch;
+  white-space:normal;
+  font-size:clamp(32px,3.5vw,46px);
+}
+.scene-toast,.tutorial-toast,.ticker{font-size:11px}
+.scene-toast small{font-size:9px}
+@media(max-width:560px){
+  .card h1{max-width:16ch;font-size:clamp(25px,7.2vw,34px);line-height:1.02}
+}
