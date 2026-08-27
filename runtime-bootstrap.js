@@ -1,15 +1,18 @@
-/* Dungeon Echo production UX bootstrap v8.
+/* Dungeon Echo production UX bootstrap v9.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
+ * Locale presentation is event-owned: legacy locale observers are virtualized only while the
+ * locale pair boots, then the native MutationObserver is restored before later followers load.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '128';
+  const assetVersion = '130';
   const fresh = src => `${src}?v=${assetVersion}`;
   const chain = Object.freeze([
     [fresh('release-stamp-v128.js'), 'data-de-release-stamp-v128', () => !!window.__DE_RELEASE_STAMP_V128],
+    [fresh('locale-event-owner-v130.js'), 'data-de-locale-event-owner-v130', () => !!window.__DE_LOCALE_EVENT_OWNER],
     [fresh('locale-runtime-v122.js'), 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     [fresh('locale-completeness-v128.js'), 'data-de-locale-completeness-v128', () => !!window.__DE_LOCALE_COMPLETENESS_V128],
     [fresh('character-art-cleanup-v122.js'), 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
@@ -43,7 +46,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v8');
+      script.setAttribute(marker, 'v9');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -57,12 +60,29 @@
     });
   }
 
+  function localeOwner() { return window.__DE_LOCALE_EVENT_OWNER || null; }
+  function afterFollower(src) {
+    const owner = localeOwner();
+    if (!owner) return;
+    if (String(src).includes('locale-completeness-v128.js')) {
+      if (typeof owner.activate === 'function') owner.activate();
+      return;
+    }
+    if (owner.active && typeof owner.afterFollower === 'function') owner.afterFollower();
+  }
+
   async function start() {
     if (started) return false;
     started = true;
-    for (const [src, marker, ready] of chain) {
-      try { await loadScript(src, marker, ready); }
-      catch (_err) { /* optional presentation layers must not block later followers */ }
+    try {
+      for (const [src, marker, ready] of chain) {
+        try { await loadScript(src, marker, ready); }
+        catch (_err) { /* optional presentation layers must not block later followers */ }
+        afterFollower(src);
+      }
+    } finally {
+      const owner = localeOwner();
+      if (owner && !owner.active && typeof owner.activate === 'function') owner.activate();
     }
     return true;
   }
@@ -70,5 +90,5 @@
   if (document.body) start();
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v8', assetVersion, start, loadScript, chain };
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v9', assetVersion, start, loadScript, chain, afterFollower };
 })();
