@@ -25,6 +25,27 @@ Include, when possible:
 - whether the issue affects only local game state or can affect hosted visitors/deployment;
 - whether the issue requires a crafted save, URL/query input, repository action or deployment step.
 
+## Public-repository data hygiene
+
+This repository is public. Treat every committed byte, commit author field, Issue/PR comment and uploaded attachment as internet-visible and potentially copied immediately.
+
+Never commit or paste:
+
+- API keys, access/refresh tokens, passwords or Authorization headers;
+- authentication cookies or browser/session exports;
+- private SSH/TLS keys, keystores or service-account credentials;
+- `.env`, `.npmrc`, `.netrc` or machine-specific credential files;
+- personal email addresses, phone numbers, addresses or other nonessential personal identifiers;
+- private infrastructure identifiers or access details that are not required to build or review the public project.
+
+Use environment variables or server-local configuration for deployment secrets. Public deployment scripts may describe architecture, but must not contain credentials.
+
+Run `node test/public-repo-safety.cjs` before changes that touch operations, configuration, release packaging or repository governance. `.gitignore` blocks common secret/export files, but ignore rules are not a security boundary: files can still be force-added or uploaded through the web UI.
+
+If a real credential has ever entered Git history, assume it was copied. Rotate/revoke it first; deleting the current file or adding a later revert does not remove the old object from history. History rewriting is a separate disruptive operation and must be coordinated deliberately.
+
+Commit author identity is also public metadata. Contributors who do not want a personal address exposed should use GitHub's no-reply commit address and enable email privacy before making public commits.
+
 ## Current security boundaries
 
 ### Browser game
