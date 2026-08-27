@@ -70,10 +70,17 @@ test -r "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap 
 test -r "$tmp_dir/dungeon-echo/$release_stamp" || fail "release stamp missing from staged entry: $release_stamp"
 grep -Fq "$release_stamp" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load current release stamp'
 grep -Fq "const version = '$version'" "$tmp_dir/dungeon-echo/$release_stamp" || fail 'release stamp version does not match bundle VERSION'
-if test "$version" = '1.2.4'; then
-  test -r "$tmp_dir/dungeon-echo/style.css" || fail 'v1.2.4 stylesheet missing'
+
+if test "$version" = '1.2.4' || test "$version" = '1.2.5'; then
+  test -r "$tmp_dir/dungeon-echo/style.css" || fail 'navigation stylesheet missing'
   grep -Fq '#achv-screen, #help-screen {' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log fixed-screen selector missing'
   grep -Fq '#help-screen > .title-card { margin: auto; }' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log card scroll-centering contract missing'
+fi
+
+if test "$version" = '1.2.5'; then
+  grep -Fq 'style.css?v=125' "$tmp_dir/dungeon-echo/index.html" || fail 'v1.2.5 stylesheet cache fingerprint missing'
+  grep -Fq 'runtime-bootstrap.js?v=125' "$tmp_dir/dungeon-echo/index.html" || fail 'v1.2.5 runtime bootstrap cache fingerprint missing'
+  grep -Fq "const assetVersion = '125'" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'v1.2.5 follower cache fingerprint missing'
 fi
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +
