@@ -1,5 +1,9 @@
 /* Dungeon Echo production gameplay tuning.
  * Public route policy + human-play class balance only. Equipment/town/commerce/forge/progression/content own modules.
+ *
+ * v9 removes permanent balance/mechanics polling. Compatibility migration and guardian/checkpoint
+ * maintenance now run after real UI/state transitions, while progression growth remains solely owned
+ * by progression-guard-system.js.
  */
 (() => {
   'use strict';
@@ -8,7 +12,7 @@
 
   const api = window.DE_TEST;
   if (!api || !api.CLASSES) return;
-  window.__DE_GAMEPLAY_TUNING = 'prod-v8';
+  window.__DE_GAMEPLAY_TUNING = 'prod-v9';
 
   if (api.profileId !== 'classic-100') {
     throw new Error('生产入口必须使用 classic-100 Profile。');
@@ -47,15 +51,35 @@
 
   // Safe migration for untouched old greedy bases. Exact base values only: a player who
   // already gained permanent HP from shrines/talents is not altered retroactively.
-  const migrateTimer = setInterval(() => {
+  const META_KEY = 'de-greedy-meta-v1';
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let migrationQueued = false;
+  function migrateLegacyBase() {
     const m = api.meta;
-    if (!m) return;
-    if (m.classId === 'warrior' && m.hpBase === 38) m.hpBase = 40;
-    if (m.classId === 'assassin' && m.hpBase === 24) m.hpBase = 26;
-  }, 500);
-  window.addEventListener('beforeunload', () => clearInterval(migrateTimer), { once: true });
+    if (!m) return false;
+    let changed = false;
+    if (m.classId === 'warrior' && m.hpBase === 38) { m.hpBase = 40; changed = true; }
+    if (m.classId === 'assassin' && m.hpBase === 24) { m.hpBase = 26; changed = true; }
+    if (changed && typeof localStorage !== 'undefined') {
+      try { localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (_e) { /* storage unavailable */ }
+    }
+    return changed;
+  }
+  function scheduleMigration() {
+    if (migrationQueued) return;
+    migrationQueued = true;
+    defer(() => { migrationQueued = false; migrateLegacyBase(); });
+  }
 
-  window.__DE_BALANCE_PATCH = 'human-v1';
+  migrateLegacyBase();
+  document.addEventListener('keydown', scheduleMigration, true);
+  document.addEventListener('click', scheduleMigration, true);
+  window.addEventListener('focus', scheduleMigration);
+  window.addEventListener('pageshow', scheduleMigration);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleMigration(); });
+
+  window.__DE_BALANCE_PATCH = 'human-v2';
+  window.DE_BALANCE_MIGRATION = { version:'v2', migrate:migrateLegacyBase, schedule:scheduleMigration };
 })();
 
 
@@ -72,8 +96,10 @@
   const GATES = [10,20,30,40,50,60,70,80,90];
   const CPS = [1,11,21,31,41,51,61,71,81,91];
   const DIR = { ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],w:[0,-1],W:[0,-1],s:[0,1],S:[0,1],a:[-1,0],A:[-1,0],d:[1,0],D:[1,0] };
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
   let lastDepth = Number(api.depth) || 0;
   let sawGuardian = false;
+  let syncQueued = false;
   const sessionClears = new Set();
   let pendingAttack = null;
   let keyCtx = null;
@@ -84,6 +110,12 @@
   const equipAtk = () => Object.values((api.player && api.player.equip) || {}).reduce((n,it) => n + (it && it.stats ? Number(it.stats.atk) || 0 : 0), 0);
   const atk = () => Math.max(1, (Number(api.player && api.player.atkBase) || 0) + equipAtk());
   const mobHp = () => (api.monsters || []).reduce((n,m) => n + Math.max(0, Number(m && m.hp) || 0), 0);
+  const isEnglish = () => {
+    if (window.DE_I18N) return !!window.DE_I18N.isEnglish;
+    try { return String(new URL(location.href).searchParams.get('lang') || '').toLowerCase() === 'en'; }
+    catch (_e) { return false; }
+  };
+  const ui = (zh, en) => isEnglish() ? en : zh;
 
   function loadClears() {
     try {
@@ -130,12 +162,20 @@
     if (api.state !== 'playing' || canLeaveDepth()) return false;
     if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
     const h = document.getElementById('hint');
-    if (h) h.textContent = `› 第 ${api.depth} 层守卫仍在。击败守卫后出口才会稳定。`;
+    if (h) h.textContent = ui(
+      `› 第 ${api.depth} 层守卫仍在。击败守卫后出口才会稳定。`,
+      `› Floor ${api.depth} guardian still blocks the exit. Defeat it before descending.`
+    );
     return true;
   }
 
   const coreDescend = api.descend;
-  if (typeof coreDescend === 'function') api.descend = function(...args) { if (blockDescent(null)) return false; return coreDescend.apply(this,args); };
+  if (typeof coreDescend === 'function') api.descend = function(...args) {
+    if (blockDescent(null)) return false;
+    const out = coreDescend.apply(this,args);
+    scheduleSync();
+    return out;
+  };
 
   function sanitizeGuardianSave() {
     try {
@@ -161,7 +201,7 @@
     for (const b of buttons) {
       const d = Number(b.dataset && b.dataset.checkpoint) || 1, ok = allowed.has(d);
       b.disabled = !ok; b.hidden = !ok;
-      if (!ok) b.title = `先击败第 ${d-1} 层守卫才能解锁`;
+      if (!ok) b.title = ui(`先击败第 ${d-1} 层守卫才能解锁`, `Defeat the Floor ${d-1} guardian to unlock this checkpoint`);
     }
     const selected = window.DE_TOWN_CHECKPOINTS && Number(window.DE_TOWN_CHECKPOINTS.selected) || 1;
     if (!allowed.has(selected) && buttons.length) {
@@ -174,7 +214,12 @@
     if (api.state !== 'talent') return;
     const grid = document.getElementById('talent-grid');
     if (!grid || grid.querySelector('button[data-talent]') || (api.TALENTS || []).length) return;
-    const t = { id:'overflow_supply', name:'余烬整备', desc:'可成长天赋已达上限：获得药水 +1、卷轴 +1。', apply(p){ p.potions=(p.potions||0)+1; p.scrolls=(p.scrolls||0)+1; } };
+    const t = {
+      id:'overflow_supply',
+      name:ui('余烬整备','Ember Resupply'),
+      desc:ui('可成长天赋已达上限：获得药水 +1、卷轴 +1。','All scalable talents are capped: gain +1 Potion and +1 Teleport Scroll.'),
+      apply(p){ p.potions=(p.potions||0)+1; p.scrolls=(p.scrolls||0)+1; }
+    };
     api.TALENTS.push(t);
     grid.innerHTML = `<button type="button" class="class-card" data-talent="${t.id}"><h3>${t.name}</h3><p>${t.desc}</p></button>`;
   }
@@ -209,6 +254,7 @@
     const turn=Number(api.turns)||0, count=(api.monsters||[]).length;
     const out=coreSkill.apply(this,args), p=api.player;
     if (p && (Number(api.turns)||0)>turn) pendingAttack=attackPlan(cid(),new Set(p.talents||[]),(api.monsters||[]).length<count);
+    scheduleSync();
     return out;
   };
 
@@ -221,7 +267,7 @@
     if (!arm) return;
     const p=api.player, base=Number(p.atkBase)||0, hp=mobHp(), count=(api.monsters||[]).length;
     p.atkBase=base+Math.max(1,Math.round(atk()*pendingAttack.scale));
-    queueMicrotask(()=>{ if(api.player===p)p.atkBase=base; if((api.monsters||[]).length<count||mobHp()<hp)pendingAttack=null; });
+    defer(()=>{ if(api.player===p)p.atkBase=base; if((api.monsters||[]).length<count||mobHp()<hp)pendingAttack=null; });
   }
 
   function suppressIdleRegen(force,key) {
@@ -229,10 +275,11 @@
     if (!p || api.state!=='playing' || (p.grievous||0)>0) return;
     if (!force && DIR[key] && directionalTarget(DIR[key][0],DIR[key][1])) return;
     p.grievous=1;
-    queueMicrotask(()=>{ if(api.player===p && p.grievous===1)p.grievous=0; });
+    defer(()=>{ if(api.player===p && p.grievous===1)p.grievous=0; });
   }
 
   window.addEventListener('keydown',e=>{
+    scheduleSync();
     const key=String(e.key||''); if(api.state!=='playing')return;
     if(['Enter','n','N','PageDown','>'].includes(key)&&blockDescent(e))return;
     if(key===' '||key==='.')suppressIdleRegen(true,key); else if(DIR[key]&&!directionalTarget(DIR[key][0],DIR[key][1]))suppressIdleRegen(false,key);
@@ -244,10 +291,11 @@
     const c=keyCtx; keyCtx=null; const p=api.player;
     const legacy=(Number(p.atkBase)||0)-c.base, desired=Math.max(1,Math.round(c.attack*c.plan.scale));
     p.atkBase+=desired-legacy; pendingAttack=null;
-    queueMicrotask(()=>{ if(api.player===p)p.atkBase=c.base; });
+    defer(()=>{ if(api.player===p)p.atkBase=c.base; });
   },true);
 
   window.addEventListener('click',e=>{
+    scheduleSync();
     const t=e&&e.target; if(!t)return;
     const closest=s=>typeof t.closest==='function'?t.closest(s):null;
     if(closest('#btn-continue'))sanitizeGuardianSave();
@@ -259,7 +307,7 @@
     if(closest('[data-act="wait"]'))suppressIdleRegen(true,'');
     const move=closest('[data-act="up"],[data-act="down"],[data-act="left"],[data-act="right"]');
     if(move){const d={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[move.dataset.act];if(d&&!directionalTarget(d[0],d[1]))suppressIdleRegen(true,'');}
-    else if(t===document.getElementById('game')&&api.player){const p=api.player,turn=Number(api.turns)||0,hp=Number(p.hp)||0,mh=mobHp(),mc=(api.monsters||[]).length;queueMicrotask(()=>{if(api.player!==p||(Number(api.turns)||0)<=turn)return;const hit=(api.monsters||[]).length<mc||mobHp()<mh;if(!hit&&p.hp>hp&&(p.grievous||0)===0)p.hp=Math.max(hp,p.hp-1);});}
+    else if(t===document.getElementById('game')&&api.player){const p=api.player,turn=Number(api.turns)||0,hp=Number(p.hp)||0,mh=mobHp(),mc=(api.monsters||[]).length;defer(()=>{if(api.player!==p||(Number(api.turns)||0)<=turn)return;const hit=(api.monsters||[]).length<mc||mobHp()<mh;if(!hit&&p.hp>hp&&(p.grievous||0)===0)p.hp=Math.max(hp,p.hp-1);});}
     pointerAttackBoost(e);
   },true);
 
@@ -276,147 +324,23 @@
     if(api.state==='town')syncCheckpointUi();
     ensureTalentFallback();
     const h=document.getElementById('hint');
-    if(h&&/J\s*快速下潜|快速下潜/.test(String(h.textContent||'')))h.textContent=isGate(d)&&guardian()?`› 第 ${d} 层守卫封锁出口 · 击败后才能下潜`:'› 站在楼梯上按 Enter 下潜 · 未征服区域不能跳层';
+    if(h&&/J\s*快速下潜|快速下潜/.test(String(h.textContent||'')))h.textContent=isGate(d)&&guardian()
+      ? ui(`› 第 ${d} 层守卫封锁出口 · 击败后才能下潜`,`› Floor ${d} guardian blocks the exit · defeat it before descending`)
+      : ui('› 站在楼梯上按 Enter 下潜 · 未征服区域不能跳层','› Stand on stairs and press Enter to descend · unconquered floors cannot be skipped');
+  }
+  function scheduleSync(){
+    if(syncQueued)return;
+    syncQueued=true;
+    defer(()=>{syncQueued=false;sync();});
   }
 
-  sanitizeGuardianSave(); sync();
-  const timer=setInterval(sync,100);
-  window.addEventListener('beforeunload',()=>clearInterval(timer),{once:true});
-  window.DE_MECHANICS_INTEGRITY={version:'p0-v1',guardianCleared,markGuardianClear,allowedCheckpoints,canLeaveDepth,sanitizeGuardianSave,attackPlan};
-})();
-
-/* P0 progression commitment: permanent growth guard plus compatibility fallback for equipment turn cost. */
-(() => {
-  'use strict';
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  if (window.__DE_PROGRESSION_COMMITMENT) return;
-  const api = window.DE_TEST;
-  if (!api || api.profileId !== 'classic-100') return;
-
-  const GUARD_KEY = 'de-progression-guard-v1';
-  const META_KEY = 'de-greedy-meta-v1';
-  const DEFAULT_LEVEL_CAP = 50;
-  const HP_HEADROOM = 160;
-  const ATK_HEADROOM = 24;
-
-  function loadGuard() {
-    try {
-      const raw = JSON.parse(localStorage.getItem(GUARD_KEY));
-      if (raw && raw.v === 1 && raw.classes && typeof raw.classes === 'object') return raw;
-    } catch (e) {}
-    return { v: 1, classes: {} };
-  }
-  function saveGuard(raw) {
-    try { localStorage.setItem(GUARD_KEY, JSON.stringify(raw)); } catch (e) {}
-  }
-  function guardRow() {
-    const meta = api.meta;
-    if (!meta) return null;
-    const id = meta.classId || api.classId || 'warrior';
-    const state = loadGuard();
-    let row = state.classes[id];
-    if (!row) {
-      row = {
-        legacyLvl: Math.max(1, Number(meta.lvl) || 1),
-        legacyHp: Math.max(1, Number(meta.hpBase) || 1),
-        legacyAtk: Math.max(0, Number(meta.atkBase) || 0),
-      };
-      state.classes[id] = row;
-      saveGuard(state);
-    }
-    return { id, row };
-  }
-  function capsFor(level, info) {
-    const c = api.CLASSES[info.id] || api.CLASSES.warrior;
-    const lvl = Math.max(1, Number(level) || 1);
-    return {
-      level: Math.max(DEFAULT_LEVEL_CAP, Number(info.row.legacyLvl) || 1),
-      hp: Math.max(Number(info.row.legacyHp) || 1, (Number(c.hpBase) || 1) + (lvl - 1) * 6 + HP_HEADROOM),
-      atk: Math.max(Number(info.row.legacyAtk) || 0, (Number(c.atkBase) || 0) + (lvl - 1) + ATK_HEADROOM),
-    };
-  }
-  function clampGrowth(obj, info) {
-    if (!obj || !info) return false;
-    let changed = false;
-    let lvl = Math.max(1, Number(obj.lvl) || 1);
-    const preliminary = capsFor(lvl, info);
-    if (lvl > preliminary.level) {
-      const excess = lvl - preliminary.level;
-      obj.hpBase = Math.max(1, (Number(obj.hpBase) || 1) - excess * 6);
-      obj.atkBase = Math.max(0, (Number(obj.atkBase) || 0) - excess);
-      obj.lvl = preliminary.level;
-      obj.xp = Math.min(Math.max(0, Number(obj.xp) || 0), preliminary.level * 15 - 1);
-      lvl = preliminary.level;
-      changed = true;
-    }
-    const caps = capsFor(lvl, info);
-    if ((Number(obj.hpBase) || 0) > caps.hp) { obj.hpBase = caps.hp; changed = true; }
-    if ((Number(obj.atkBase) || 0) > caps.atk) { obj.atkBase = caps.atk; changed = true; }
-    return changed;
-  }
-  function syncGrowth() {
-    const meta = api.meta;
-    if (!meta) return;
-    const info = guardRow();
-    if (!info) return;
-    const metaChanged = clampGrowth(meta, info);
-    const p = api.player;
-    const playerChanged = p ? clampGrowth(p, info) : false;
-    if (p && playerChanged && typeof api.pMaxHp === 'function') p.hp = Math.min(Number(p.hp) || 0, api.pMaxHp());
-    if (metaChanged) {
-      try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch (e) {}
-    }
-  }
-
-  const slots = ['weapon','armor','helmet','boots','ring','amulet'];
-  function itemSig(it) {
-    if (!it) return '-';
-    return [it.name || '', Number(it.forge) || 0, Number(it.score) || 0, Number(it.originDepth) || 0].join(':');
-  }
-  function loadoutSig() {
-    const p = api.player;
-    if (!p) return '';
-    const eq = slots.map(s => itemSig(p.equip && p.equip[s])).join('|');
-    const bag = (p.inv || []).map(itemSig).join('|');
-    return `${eq}#${bag}`;
-  }
-  function equipmentActionTarget(target) {
-    if (!target || typeof target.closest !== 'function') return false;
-    return !!target.closest('#bag [data-i],#bag [data-drop],[data-bag-equip],[data-bag-drop],#equipbar .eqslot');
-  }
-  function hasAuthoritativeEquipmentTurnOwner() {
-    const owner = window.__DE_EQUIPMENT_SWAP_TURN;
-    return !!(owner && owner.owner === 'equipment-system');
-  }
-
-  // Production loads equipment-system first, so gameplay-tuning must not install a second
-  // swap-turn observer. Keep the old signature-based guard only as a dev/harness fallback.
-  if (!hasAuthoritativeEquipmentTurnOwner()) {
-    window.addEventListener('click', e => {
-      if (api.state !== 'playing' || !api.player || !equipmentActionTarget(e.target)) return;
-      const before = loadoutSig();
-      const turn = Number(api.turns) || 0;
-      const p = api.player;
-      queueMicrotask(() => {
-        // If the authoritative owner appeared after this fallback was armed, yield to it.
-        if (hasAuthoritativeEquipmentTurnOwner()) return;
-        if (api.player !== p || api.state !== 'playing' || (Number(api.turns) || 0) !== turn) return;
-        if (loadoutSig() === before) return;
-        const synthetic = (p.grievous || 0) <= 0;
-        if (synthetic) p.grievous = 1;
-        if (typeof api.endTurn === 'function') api.endTurn();
-        if (synthetic && p.grievous === 1) p.grievous = 0;
-        const hint = document.getElementById('hint');
-        if (hint && api.state === 'playing') hint.textContent = '› 战斗中整理装备消耗 1 回合 · 深层换装需要承担风险';
-      });
-    }, true);
-  }
-
-  syncGrowth();
-  const timer = setInterval(syncGrowth, 150);
-  window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
-  window.__DE_PROGRESSION_COMMITMENT = {
-    version:'p0-v2', capsFor, clampGrowth, loadoutSig,
-    equipmentTurnOwner: hasAuthoritativeEquipmentTurnOwner() ? 'equipment-system' : 'gameplay-tuning-fallback',
+  sanitizeGuardianSave();
+  sync();
+  window.addEventListener('focus',scheduleSync);
+  window.addEventListener('pageshow',scheduleSync);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleSync();});
+  window.DE_MECHANICS_INTEGRITY={
+    version:'p0-v1',guardianCleared,markGuardianClear,allowedCheckpoints,canLeaveDepth,
+    sanitizeGuardianSave,attackPlan,sync,schedule: scheduleSync,owner:'gameplay-tuning'
   };
 })();
