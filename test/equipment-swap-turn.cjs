@@ -4,6 +4,7 @@ const listeners={document:{},window:{}};
 const log={html:'',insertAdjacentHTML(_p,s){this.html=s+this.html;}};
 const hint={textContent:''};
 global.document={
+  documentElement:{dataset:{deLocale:'en'}},
   addEventListener(type,fn){(listeners.document[type] ||= []).push(fn);},
   getElementById(id){return id==='log'?log:id==='hint'?hint:null;},
 };
@@ -30,11 +31,13 @@ global.window={
   addEventListener(type,fn){(listeners.window[type] ||= []).push(fn);},
 };
 
-vm.runInThisContext(fs.readFileSync(path.join(__dirname,'..','equipment-system.js'),'utf8'),{filename:'equipment-system.js'});
+const source=fs.readFileSync(path.join(__dirname,'..','equipment-system.js'),'utf8');
+if(source.includes('window.DE_I18N'))throw new Error('equipment owner must not use runtime translator');
+vm.runInThisContext(source,{filename:'equipment-system.js'});
 const G=window.__DE_EQUIPMENT_SWAP_TURN;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
-ok(G&&G.version==='v1','gear-swap turn guard boots');
-ok(G&&G.owner==='equipment-system','equipment-system is the declared turn owner');
+ok(G&&G.version==='v2','gear-swap turn guard v2 boots');
+ok(G&&G.owner==='equipment-system'&&G.locale==='en','equipment-system is the fixed-route turn owner');
 ok((listeners.window.click||[]).length===1 && !(listeners.document.click||[]).length,'gear-swap guard registers on early window capture');
 let before=G.snapshotEquip();
 ok(before&&before.equip[0]===w1,'snapshot captures equipped object identity');
@@ -44,6 +47,8 @@ before=G.snapshotEquip(); player.equip.weapon=w2;
 ok(G.settleEquipChange(before)===true&&turns===9,'weapon swap costs exactly one turn');
 ok(extractionClears===1,'gear swap interrupts ready extraction channel');
 ok(persisted===1,'real gear swap persists run');
+ok(log.html.includes('You changed equipment; swapping gear costs one turn.'),'English swap feedback is source-owned');
+ok(!/[\u3400-\u9fff]/.test(log.html+hint.textContent),'English gear-swap feedback leaks no CJK');
 
 before=G.snapshotEquip(); player.inv.push({name:'junk'});
 ok(G.settleEquipChange(before)===false&&turns===9,'inventory-only change remains free');
