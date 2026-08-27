@@ -1,33 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SITE_ROOT=/srv/91hwl-play; RELEASES_DIR=$SITE_ROOT/releases; CURRENT_LINK=$SITE_ROOT/current
-SOURCE=$BUNDLE_ROOT/public/moyu; HEALTHCHECK=$BUNDLE_ROOT/ops/healthcheck.sh
+SITE_ROOT=/srv/91hwl-play; RELEASES_DIR=$SITE_ROOT/releases; CURRENT_LINK=$SITE_ROOT/current; SOURCE=$BUNDLE_ROOT/public/moyu; HEALTHCHECK=$BUNDLE_ROOT/ops/healthcheck.sh
 fail(){ echo "MOYU_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
-test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
-test "$#" -eq 0 || fail 'this deployer accepts no arguments'
-for f in "$SOURCE/index.html" "$SOURCE/style.css" "$SOURCE/game.js" "$SOURCE/VERSION" "$BUNDLE_ROOT/VERSION" "$BUNDLE_ROOT/REVISION" "$BUNDLE_ROOT/SHA256SUMS"; do test -r "$f" || fail "missing $f"; done
-test -x "$HEALTHCHECK" || fail 'bundle healthcheck missing'
-(cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
-previous_release="$(readlink -f "$CURRENT_LINK")"; [[ "$previous_release" == "$RELEASES_DIR"/* ]] || fail 'existing 91hwl-play current release is invalid'
-test -r "$previous_release/dungeon-echo/index.html" || fail 'existing Dungeon Echo release is missing'
-revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"; version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.11.1' || fail "unexpected Moyu version: $version"
-test "$(tr -d '\r\n' < "$SOURCE/VERSION")" = "$version" || fail 'Moyu VERSION mismatch'
-grep -Fq '<meta name="version" content="1.11.1"' "$SOURCE/index.html" || fail 'release marker missing'
-grep -Fq 'style.css?v=1111' "$SOURCE/index.html" || fail 'CSS fingerprint missing'
-grep -Fq 'game.js?v=1111' "$SOURCE/index.html" || fail 'JS fingerprint missing'
-grep -Fq "dataset.gameVersion='1.11.1'" "$SOURCE/game.js" || fail 'runtime marker missing'
-grep -Fq 'groundTakeoff=before===0' "$SOURCE/game.js" || fail 'ground-only jump dust guard missing'
-! grep -Fq 'drawPlayerFocus(drawX,footY,altitude);' "$SOURCE/game.js" || fail 'player focus halo still active'
-! grep -Fq 'drawBackground();drawAmbientOfficeLife();drawRunAtmosphere();' "$SOURCE/game.js" || fail 'drifting ambient coworkers still active'
+test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'; test "$#" -eq 0 || fail 'this deployer accepts no arguments'
+for f in "$SOURCE/index.html" "$SOURCE/style.css" "$SOURCE/visual-v1111.css" "$SOURCE/game.js" "$SOURCE/VERSION" "$BUNDLE_ROOT/VERSION" "$BUNDLE_ROOT/REVISION" "$BUNDLE_ROOT/SHA256SUMS"; do test -r "$f" || fail "missing $f"; done
+test -x "$HEALTHCHECK" || fail 'bundle healthcheck missing'; (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
+previous_release="$(readlink -f "$CURRENT_LINK")"; [[ "$previous_release" == "$RELEASES_DIR"/* ]] || fail 'existing 91hwl-play current release is invalid'; test -r "$previous_release/dungeon-echo/index.html" || fail 'existing Dungeon Echo release is missing'
+revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"; version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"; test "$version" = '1.11.1' || fail "unexpected Moyu version: $version"; test "$(tr -d '\r\n' < "$SOURCE/VERSION")" = "$version" || fail 'Moyu VERSION mismatch'
+grep -Fq '<meta name="version" content="1.11.1"' "$SOURCE/index.html" || fail 'release marker missing'; grep -Fq 'style.css?v=1111' "$SOURCE/index.html" || fail 'base CSS fingerprint missing'; grep -Fq 'visual-v1111.css?v=1111' "$SOURCE/index.html" || fail 'visual CSS fingerprint missing'; grep -Fq 'game.js?v=1111' "$SOURCE/index.html" || fail 'JS fingerprint missing'
+grep -Fq "dataset.gameVersion='1.11.1'" "$SOURCE/game.js" || fail 'runtime marker missing'; grep -Fq 'groundTakeoff=before===0' "$SOURCE/game.js" || fail 'ground-only jump dust guard missing'; ! grep -Fq 'drawPlayerFocus(drawX,footY,altitude);' "$SOURCE/game.js" || fail 'player focus halo still active'; ! grep -Fq 'drawBackground();drawAmbientOfficeLife();drawRunAtmosphere();' "$SOURCE/game.js" || fail 'drifting ambient coworkers still active'; grep -Fq 'max-width:18ch' "$SOURCE/visual-v1111.css" || fail 'stable result typography missing'
 release_name="$(date -u +%Y%m%dT%H%M%SZ)-moyu-${revision:0:12}"; release_dir="$RELEASES_DIR/$release_name"; tmp_dir="$(mktemp -d "$RELEASES_DIR/.moyu-${revision:0:12}.XXXXXX")"; next_link="$SITE_ROOT/.current-moyu-${revision:0:12}"; switched=false
 rollback(){ rc=$?; if test "$rc" -ne 0; then if test "$switched" = true; then r="$SITE_ROOT/.rollback-moyu-${revision:0:12}"; ln -s "$previous_release" "$r"; mv -Tf "$r" "$CURRENT_LINK"; systemctl reload nginx >/dev/null 2>&1 || true; fi; rm -rf -- "$tmp_dir"; rm -f -- "$next_link"; echo 'moyu_site_deploy=ROLLED_BACK' >&2; fi; exit "$rc"; }
 trap rollback EXIT
-cp -aL "$previous_release/." "$tmp_dir/"; rm -rf -- "$tmp_dir/moyu"; mkdir -p "$tmp_dir/moyu"; cp -a "$SOURCE/." "$tmp_dir/moyu/"
-test -r "$tmp_dir/dungeon-echo/index.html" || fail 'Dungeon Echo was not preserved'
-find "$tmp_dir" -type d -exec chmod 0755 {} +; find "$tmp_dir" -type f -exec chmod 0644 {} +
-mv "$tmp_dir" "$release_dir"; ln -s "$release_dir" "$next_link"; mv -Tf "$next_link" "$CURRENT_LINK"; switched=true
-nginx -t; systemctl reload nginx; "$HEALTHCHECK"
-trap - EXIT
+cp -aL "$previous_release/." "$tmp_dir/"; rm -rf -- "$tmp_dir/moyu"; mkdir -p "$tmp_dir/moyu"; cp -a "$SOURCE/." "$tmp_dir/moyu/"; test -r "$tmp_dir/dungeon-echo/index.html" || fail 'Dungeon Echo was not preserved'; find "$tmp_dir" -type d -exec chmod 0755 {} +; find "$tmp_dir" -type f -exec chmod 0644 {} +
+mv "$tmp_dir" "$release_dir"; ln -s "$release_dir" "$next_link"; mv -Tf "$next_link" "$CURRENT_LINK"; switched=true; nginx -t; systemctl reload nginx; "$HEALTHCHECK"; trap - EXIT
 echo "site_release=$release_dir"; echo "moyu_revision=$revision"; echo "moyu_version=$version"; echo 'moyu_site_deploy=PASS'
