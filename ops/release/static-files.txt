@@ -1,5 +1,6 @@
 VERSION
 index.html
+en/index.html
 style.css
 production-bootstrap.js
 profiles/classic-100.profile.js
@@ -20,6 +21,7 @@ risk-reward-system.js
 visual-polish.js
 equipment-shop-ui.js
 release-stamp-v128.js
+fixed-locale-entry-v130.js
 locale-event-owner-v130.js
 locale-runtime-v122.js
 locale-completeness-v128.js

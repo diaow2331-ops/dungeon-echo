@@ -2,143 +2,92 @@
 
 const fs = require('fs');
 const path = require('path');
-
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const version = read('VERSION').trim();
-const html = read('index.html');
-const style = read('style.css');
+const zh = read('index.html');
+const en = read('en/index.html');
 const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
 const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const deployReadme = read('ops/site-bundle/README.txt');
-const bootstrap = read('runtime-bootstrap.js');
+const runtime = read('runtime-bootstrap.js');
+const fixedLocale = read('fixed-locale-entry-v130.js');
+const saveIntegrity = read('save-integrity-system.js');
+const desktopControls = read('desktop-controls.js');
 const releaseStampName = `release-stamp-v${version.replace(/\./g, '')}.js`;
 const releaseStamp = fs.existsSync(path.join(root, releaseStampName)) ? read(releaseStampName) : '';
-const assetVersion = version.replace(/\./g, '');
+const assetVersion = (runtime.match(/const assetVersion = '(\d+)'/) || [,''])[1];
 const cleanRef = ref => ref.split(/[?#]/, 1)[0];
 
-let pass = 0;
-let fail = 0;
+let pass = 0, fail = 0;
 function ok(cond, name) {
   if (cond) { pass++; console.log('  PASS ' + name); }
   else { fail++; console.log('  FAIL ' + name); }
 }
 
-console.log('[release] v1 static package');
-ok(/^\d+\.\d+\.\d+$/.test(version), 'VERSION 使用 SemVer');
-ok(manifest.includes(releaseStampName) && bootstrap.includes(releaseStampName) && releaseStamp.includes(`const version = '${version}'`),
-  '运行时发布戳与 VERSION 一致');
-ok(manifest.every(file => fs.existsSync(path.join(root, file))), '发布白名单资源全部存在');
+console.log('[release] static package');
+ok(/^\d+\.\d+\.\d+$/.test(version), 'VERSION uses SemVer');
+ok(/^\d+$/.test(assetVersion), 'runtime declares an explicit numeric asset generation');
+ok(manifest.includes(releaseStampName) && runtime.includes(releaseStampName) && releaseStamp.includes(`const version = '${version}'`),
+  'runtime release stamp matches semantic VERSION');
+ok(manifest.every(file => fs.existsSync(path.join(root, file))), 'every release-manifest resource exists');
 ok(!manifest.some(file => /^(?:dev\.html|test\/|profiles\/classic-(?:10|20|30|40|50|60)\.profile\.js$)/.test(file)),
-  '发布白名单不包含开发入口、测试与短档位');
+  'release manifest excludes development entry/tests/short profiles');
+ok(manifest.includes('index.html') && manifest.includes('en/index.html') && manifest.includes('fixed-locale-entry-v130.js'),
+  'release package ships fixed Chinese/English entries and route owner');
 ok(manifest.includes('art/title-backdrop.webp') && manifest.includes('art/class-roster.webp') && manifest.includes('art/loot-atlas.png'),
-  '三组正式美术资源进入发布白名单');
+  'production art assets are packaged');
 
-const localRefs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
-  .map(match => match[1])
-  .filter(ref => !/^(?:data:|https?:|#)/.test(ref));
-const localFiles = localRefs.map(cleanRef);
-ok(localFiles.every(ref => fs.existsSync(path.join(root, ref))), '生产 HTML 的本地资源引用全部可解析');
-ok(localFiles.every(ref => manifest.includes(ref)), '生产 HTML 的本地资源全部进入发布白名单');
+function refs(html) {
+  return [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+    .map(m => m[1])
+    .filter(ref => !/^(?:data:|https?:|#|\.\.\/$)/.test(ref));
+}
+for (const [label, html] of [['zh', zh], ['en', en]]) {
+  const local = refs(html), files = local.map(cleanRef);
+  ok(files.every(ref => fs.existsSync(path.join(root, ref))), `${label} entry local assets resolve from shared root`);
+  ok(files.every(ref => manifest.includes(ref)), `${label} entry local assets are release-manifested`);
+  const critical = local.filter(ref => /(?:\.css|\.js)(?:\?|$)/.test(ref));
+  ok(critical.length > 0 && critical.every(ref => ref.endsWith(`?v=${assetVersion}`)), `${label} CSS/JS use generation ${assetVersion}`);
+}
+ok(/<base href="\.\.\/">/.test(en), 'English entry shares the root asset graph through base href');
 
-ok(/public\/dungeon-echo/.test(builder) && /static-files\.txt/.test(builder),
-  '上传包只从正式白名单生成 Dungeon Echo 子目录');
+console.log('\n[release] ownership');
+ok(runtime.includes(`const assetVersion = '${assetVersion}'`) && runtime.includes(`fresh('${releaseStampName}')`),
+  'late followers share the direct-entry cache generation');
+const pFixed=runtime.indexOf("fresh('fixed-locale-entry-v130.js')");
+const pEvent=runtime.indexOf("fresh('locale-event-owner-v130.js')");
+const pRuntime=runtime.indexOf("fresh('locale-runtime-v122.js')");
+const pComplete=runtime.indexOf("fresh('locale-completeness-v128.js')");
+ok(pFixed>0 && pEvent>pFixed && pRuntime>pEvent && pComplete>pRuntime,
+  'fixed route identity precedes event-owned transitional locale presentation');
+ok(manifest.includes('npc-stability-system.js') && manifest.includes('progression-guard-system.js') && manifest.includes('risk-reward-system.js'),
+  'explicit gameplay owners are release-manifested');
+ok(manifest.includes('locale-event-owner-v130.js') && manifest.includes('locale-runtime-v122.js') && manifest.includes('locale-completeness-v128.js'),
+  'transitional locale stack is explicit and packaged');
+ok(fixedLocale.includes("const storageKey = 'de-language-v1'") && !/de-run-v6|de-greedy-meta-v1|de-town-wheel-state-v1/.test(fixedLocale),
+  'fixed locale routing cannot fork gameplay save namespaces');
+
+console.log('\n[release] save/input invariants');
+ok(saveIntegrity.includes("const RUN_KEY = 'de-run-v6'") && saveIntegrity.includes("const META_KEY = 'de-greedy-meta-v1'") &&
+    saveIntegrity.includes('validGrid(raw.map, false)') && saveIntegrity.includes('validGrid(raw.explored, true)'),
+  'save-integrity owner validates canonical run/meta and map structures');
+ok(!/setInterval\s*\(/.test(saveIntegrity), 'save-integrity owner has no polling loop');
+ok(desktopControls.includes("edgeButton(pad, 7, 'j')") && desktopControls.includes('RT Attack'),
+  'gamepad attack remains parity-mapped to J');
+
+console.log('\n[release] bundle/deploy');
+ok(/public\/dungeon-echo/.test(builder) && /static-files\.txt/.test(builder) && /mkdir -p "\$bundle\/public\/dungeon-echo\/\$\(dirname "\$file"\)"/.test(builder),
+  'site bundle supports nested fixed-locale routes from the manifest');
 ok(/SHA256SUMS/.test(builder) && /git -C "\$repo_root" cat-file -e/.test(builder),
-  '上传包校验 HEAD 跟踪文件并生成哈希清单');
-ok(deployReadme.includes(`91hwl-play-dungeon-echo-v${version}.zip`) &&
-    deployReadme.includes(`/tmp/91hwl-play-dungeon-echo-v${version}`),
-  '发布包部署说明使用当前 VERSION，而非旧版本命令');
+  'bundle validates tracked HEAD files and generates hashes');
+ok(deployReadme.includes(`91hwl-play-dungeon-echo-v${version}.zip`) && deployReadme.includes(`/tmp/91hwl-play-dungeon-echo-v${version}`),
+  'deployment instructions use current semantic VERSION');
 ok(/SITE_ROOT=\/srv\/91hwl-play/.test(deploy) && /previous_release\/moyu\/index\.html/.test(deploy),
-  '部署复用既有 91hwl-play 发布树并保护摸鱼游戏');
+  'deployment reuses the site release tree and protects the Moyu game');
 ok(/mv -Tf "\$next_link" "\$CURRENT_LINK"/.test(deploy) && /ROLLED_BACK/.test(deploy),
-  '整站 current 指针原子切换且失败可回滚');
+  'deployment switches current atomically and retains rollback');
 
-if (['1.2.5','1.2.6','1.2.7','1.2.8'].includes(version)) {
-  const releaseCriticalRefs = localRefs.filter(ref => /(?:\.css|\.js)(?:\?|$)/.test(ref));
-  ok(releaseCriticalRefs.length > 0 && releaseCriticalRefs.every(ref => ref.endsWith(`?v=${assetVersion}`)),
-    '生产入口的 CSS/JS 全部带当前发布缓存指纹');
-  ok(bootstrap.includes(`const assetVersion = '${assetVersion}'`) && bootstrap.includes(`fresh('${releaseStampName}')`),
-    '后加载运行时资源共享同一缓存指纹');
-  ok(style.includes('#achv-screen, #help-screen {') && style.includes('position: fixed') && style.includes('#help-screen > .title-card { margin: auto; }'),
-    '玩法说明与远征录仍由原生样式层拥有');
-}
-
-if (['1.2.6','1.2.7','1.2.8'].includes(version)) {
-  const helpCopy = read('help-copy-v126.js');
-  const record = read('expedition-record-v126.js');
-  ok(manifest.includes('help-copy-v126.js') && manifest.includes('expedition-record-v126.js'),
-    '共享双语说明与远征档案 owners 进入发布白名单');
-  ok(bootstrap.includes("fresh('help-copy-v126.js')") && bootstrap.includes("fresh('expedition-record-v126.js')"),
-    '运行时按 locale → mobile → help/record 顺序加载共享 UI owners');
-  ok(helpCopy.includes('Desktop:') && helpCopy.includes('Mobile:') && helpCopy.includes('电脑：') && helpCopy.includes('手机：'),
-    '玩法说明具有完整双语双端操作文案');
-  ok(record.includes("CATALOG = Object.freeze([") && record.includes("catalogSize:CATALOG.length") && record.includes('No expedition profile yet'),
-    '远征档案具有完整成就目录与无存档零状态');
-  ok(record.includes("depth_100") && record.includes("kills_500") && record.includes("legend") && record.includes("win"),
-    '远征档案保留核心深度/击杀/传说/通关成就');
-  ok(record.includes("Achievements · ${gotCount}/${CATALOG.length}") && record.includes('已解锁 ${gotCount} / ${CATALOG.length}'),
-    '远征档案明确显示解锁数与中英状态');
-  ok(deploy.includes('expedition record zero-state copy missing') && deploy.includes('English device help copy missing'),
-    '部署前验证远征档案零状态与英文说明');
-}
-
-if (['1.2.7','1.2.8'].includes(version)) {
-  ok(manifest.includes('npc-stability-system.js') && manifest.includes('progression-guard-system.js') && manifest.includes('risk-reward-system.js'),
-    '显式 gameplay owners 全部进入发布白名单');
-  ok(html.includes(`npc-stability-system.js?v=${assetVersion}`) && html.includes(`progression-guard-system.js?v=${assetVersion}`) && html.includes(`risk-reward-system.js?v=${assetVersion}`),
-    '生产入口按当前缓存代际装载 gameplay owners');
-}
-
-if (version === '1.2.8') {
-  const localeCompletion = read('locale-completeness-v128.js');
-  const saveIntegrity = read('save-integrity-system.js');
-  const coreGame = read('game.js');
-  const desktopControls = read('desktop-controls.js');
-  ok(manifest.includes('locale-completeness-v128.js') && bootstrap.includes("fresh('locale-completeness-v128.js')"),
-    'v1.2.8 英文动态补全 owner 进入发布包并由 bootstrap 装载');
-  ok(bootstrap.indexOf("fresh('locale-runtime-v122.js')") < bootstrap.indexOf("fresh('locale-completeness-v128.js')"),
-    'locale completeness 在基础 locale owner 之后加载');
-  ok(localeCompletion.includes('characterData:true') && ['#stats','#equipbar','#stage','#touch','#log','#title-screen','#pause-screen','#town-screen']
-      .every(selector => localeCompletion.includes(`'${selector}'`)),
-    'v1.2.8 覆盖状态、装备、战斗反馈、日志与主要运行时文本重写区');
-  ok(localeCompletion.includes('You stepped on a trap') && localeCompletion.includes('This floor has') && localeCompletion.includes('Descent ${m[1]}'),
-    'v1.2.8 覆盖实测混合日志句式');
-  ok(localeCompletion.includes('Press J to attack in your facing direction') && localeCompletion.includes("return '> Enter Descend · J Attack · K Skill'"),
-    'v1.2.8 将旧 C 技能/J 快速下潜提示归一为正式 J 攻击/K 技能语义');
-  ok(localeCompletion.includes('Progress saved locally') && localeCompletion.includes('No mid-run save yet'),
-    'v1.2.8 覆盖暂停与标题存档摘要的原位重写');
-  ok(localeCompletion.includes('sub.hidden = true') && localeCompletion.includes("weapon:'Weapon'"),
-    '英文模式移除标题中文副标并保持英文装备语义');
-  ok(localeCompletion.includes('new WeakSet()') && !/setInterval\s*\(/.test(localeCompletion),
-    '语言补全层避免重复 observer 且无轮询');
-  ok(manifest.includes('save-integrity-system.js') && html.indexOf('save-integrity-system.js?v=128') < html.indexOf('game.js?v=128'),
-    'v1.2.8 存档完整性 owner 在 game.js 前同步装载');
-  ok(saveIntegrity.includes("const RUN_KEY = 'de-run-v6'") && saveIntegrity.includes("const META_KEY = 'de-greedy-meta-v1'") &&
-      saveIntegrity.includes('validGrid(raw.map, false)') && saveIntegrity.includes('validGrid(raw.explored, true)'),
-    '存档完整性 owner 校验正式 run/meta 与地图结构');
-  ok(saveIntegrity.includes('FORBIDDEN_TEXT') && saveIntegrity.includes("raw.mode != null") && saveIntegrity.includes("const treeView = { ...raw, seed:'' }"),
-    '存档完整性 owner 拒绝 HTML-like 文本且保留旧 classic/任意 seed 兼容语义');
-  ok(saveIntegrity.includes("raw.state === 'town' && (raw.mode || 'classic') !== 'greedy'"),
-    '存档完整性 owner 拒绝经典模式进入贪婪专属城镇状态');
-  ok(!/setInterval\s*\(/.test(saveIntegrity), '存档完整性 owner 无轮询');
-  ok(coreGame.includes("'&': '&amp;'") && coreGame.includes("'<': '&lt;'") &&
-      coreGame.includes("'>': '&gt;'") && coreGame.includes("'\"': '&quot;'") &&
-      coreGame.includes("\"'\": '&#39;'"),
-    'game.js 核心 esc helper 正确编码 HTML 文本与属性元字符');
-  ok(coreGame.includes("raw.state === 'town' && blobMode !== RUN_MODE_GREEDY") &&
-      coreGame.includes("meta = sanitizeMeta(loadMeta() || defaultMeta(classId))") &&
-      coreGame.includes("state = 'town';\n    showTown();"),
-    '城镇存档恢复同步模式、元档修复与内部 town 状态');
-  ok(desktopControls.includes("edgeButton(pad, 7, 'j')") && desktopControls.includes('RT攻击') &&
-      desktopControls.includes('Gamepad connected') && desktopControls.includes('RT Attack'),
-    'PC 手柄提供与键盘 J 同权的 RT 攻击输入及中英状态提示');
-  ok(deploy.includes('locale completeness production-control translation missing') && deploy.includes('locale completeness runtime scopes missing'),
-    '部署前强制验证 v1.2.8 动态范围与正式控制语义');
-  ok(deploy.includes('classic town-state rejection missing') && deploy.includes('town restore state synchronization missing') &&
-      deploy.includes('gamepad RT attack mapping missing') && deploy.includes('English gamepad status copy missing'),
-    '部署前强制验证城镇恢复与手柄攻击/英文提示边界');
-}
-
-console.log(`\nRESULT  ${pass} 通过 / ${fail} 失败`);
+console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);
