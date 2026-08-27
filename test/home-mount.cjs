@@ -15,7 +15,7 @@ const home=read('ops/home-mount/public/index.html');
 const de=read('ops/home-mount/public/toys/dungeon-echo/index.html');
 const moyu=read('ops/home-mount/public/toys/moyu/index.html');
 
-assert.equal(read('VERSION').trim(),'1.2.6');
+assert.equal(read('VERSION').trim(),'1.2.7');
 assert.equal(siteVersion,'1.3.3');
 
 for(const page of [home,de,moyu]){
@@ -39,12 +39,13 @@ assert.match(home,/--fs-section:clamp\(30px,3\.2vw,42px\)/);
 assert.match(home,/--fs-hero:clamp\(50px,6vw,76px\)/);
 assert.match(home,/Dungeon Echo/);
 assert.match(home,/Clock Out Alive/);
-assert.match(de,/softwareVersion":"1\.2\.6"/);
+assert.match(de,/softwareVersion":"1\.2\.7"/);
+assert.match(de,/Dungeon Echo v1\.2\.7/);
 assert.match(de,/href="https:\/\/play\.91hwl\.cn\/dungeon-echo\/" data-carry/);
 assert.match(moyu,/softwareVersion":"1\.11\.3"/);
 assert.match(moyu,/href="https:\/\/play\.91hwl\.cn\/moyu\/" data-carry/);
 
-// Source deployers remain the field-tested v1.3.2 implementation; the builder performs deterministic marker adaptation.
+// Source deployers remain the field-tested v1.3.2 template; the builder performs deterministic marker adaptation.
 for(const script of ['ops/home-mount/deploy.sh','ops/home-mount/healthcheck.sh','ops/release/build-home-mount-bundle.sh']){
   const r=run('bash',['-n',path.join(root,script)]);
   assert.equal(r.status,0,r.stderr);
@@ -58,6 +59,7 @@ const archive=path.join(tmp,'mount.zip');
 let r=run('bash',[path.join(root,'ops/release/build-home-mount-bundle.sh'),archive]);
 assert.equal(r.status,0,r.stderr);
 assert.match(r.stdout,/site_version=1\.3\.3/);
+assert.match(r.stdout,/game_version=1\.2\.7/);
 assert.match(r.stdout,/previous_home_sha256=/);
 assert.match(r.stdout,/site_bundle_build=PASS/);
 
@@ -70,10 +72,12 @@ const unzipText=file=>{const x=run('unzip',['-p',archive,file]);assert.equal(x.s
 const bundledDeploy=unzipText('ops/deploy.sh');
 const bundledHealth=unzipText('ops/healthcheck.sh');
 assert.match(bundledDeploy,/test "\$version" = '1\.3\.3'/);
+assert.match(bundledDeploy,/Dungeon Echo v1\.2\.7 detail marker missing/);
 assert.match(bundledDeploy,/web-toys-v133/);
 assert.match(bundledDeploy,/web_toys_home_mount=ROLLED_BACK/);
 assert.match(bundledDeploy,/web_toys_home_mount=PASS/);
 assert.match(bundledHealth,/public site v1\.3\.3 check failed/);
+assert.match(bundledHealth,/de_origin.*1\.2\.7/s);
 assert.match(bundledHealth,/moyu_origin.*1\.11\.3/s);
 assert.match(bundledHealth,/MAIN_RESOLVE=91hwl\.cn:443:127\.0\.0\.1/);
 assert.match(bundledHealth,/PLAY_RESOLVE=play\.91hwl\.cn:443:127\.0\.0\.1/);
@@ -88,4 +92,4 @@ const expected=crypto.createHash('sha256').update(previous.stdout).digest('hex')
 assert.equal(unzipText('EXPECTED_INDEX_SHA256').trim(),expected,'homepage overwrite guard must pin deployed site v1.3.2');
 
 fs.rmSync(tmp,{recursive:true,force:true});
-console.log('RESULT  91hwl site v1.3.3 prepaint/typography/release contract PASS');
+console.log('RESULT  91hwl site v1.3.3 + Dungeon Echo v1.2.7 release contract PASS');
