@@ -7,6 +7,7 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const src = fs.readFileSync(path.join(root, 'save-integrity-system.js'), 'utf8');
+const gameSrc = fs.readFileSync(path.join(root, 'game.js'), 'utf8');
 
 function storage(seed = {}) {
   const map = new Map(Object.entries(seed).map(([k,v]) => [k, String(v)]));
@@ -43,7 +44,9 @@ function execute(initial) {
   const localStorage = storage(initial);
   const sessionStorage = storage();
   const window = {};
-  const context = {window, localStorage, sessionStorage, console, Object, Set, JSON, Number, Array};
+  // Keep JSON/Object/Array intrinsic to this realm. Injecting host intrinsics makes
+  // Object.getPrototypeOf(value) fail the guard's plain-object check in Node VM tests.
+  const context = {window, localStorage, sessionStorage, console};
   vm.createContext(context);
   vm.runInContext(src, context, {filename:'save-integrity-system.js'});
   return {window, localStorage, sessionStorage};
@@ -115,4 +118,13 @@ assert(src.includes("raw.mode != null"));
 assert(src.includes('FORBIDDEN_TEXT'));
 assert(!/setInterval\s*\(/.test(src));
 
-console.log('RESULT  Dungeon Echo v1.2.8 save integrity preflight PASS');
+{
+  const match = gameSrc.match(/const esc = value =>[\s\S]*?\}\[ch\]\)\);/);
+  assert(match, 'core esc helper must remain directly regression-testable');
+  const probe = String.fromCharCode(38, 60, 62, 34, 39);
+  const escaped = vm.runInNewContext(`${match[0]}\nesc(${JSON.stringify(probe)})`);
+  assert.equal(escaped, '&amp;&lt;&gt;&quot;&#39;',
+    'core esc helper must encode every HTML metacharacter used by text/attribute sinks');
+}
+
+console.log('RESULT  Dungeon Echo v1.2.8 save integrity + core escaping PASS');
