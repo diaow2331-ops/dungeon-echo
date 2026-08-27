@@ -8,7 +8,6 @@
 
   const chain = Object.freeze([
     ['release-stamp-v124.js', 'data-de-release-stamp-v124', () => !!window.__DE_RELEASE_STAMP_V124],
-    ['modal-navigation-fix.js', 'data-de-modal-navigation-fix', () => !!window.__DE_MODAL_NAV_FIX],
     ['locale-runtime-v122.js', 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     ['character-art-cleanup-v122.js', 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
     ['world-loot-polish-v122.js', 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
