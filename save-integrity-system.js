@@ -16,7 +16,9 @@
   const MAP_H = 28;
   const MAX_RAW = 1_500_000;
   const MAX_TEXT = 4096;
-  const FORBIDDEN_TEXT = /[<>&"\u0000-\u0008\u000b\u000c\u000e-\u001f]/;
+  // Raw < > or double quotes can break the current legacy innerHTML/attribute sinks.
+  // Ampersands are allowed: an HTML character reference is not re-tokenized as markup.
+  const FORBIDDEN_TEXT = /[<>"\u0000-\u0008\u000b\u000c\u000e-\u001f]/;
   const BAD_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
   const CLASSES = new Set(['warrior', 'ranger', 'mage', 'assassin']);
 
@@ -26,6 +28,7 @@
   const finite = value => typeof value === 'number' && Number.isFinite(value);
   const intIn = (value, lo, hi) => Number.isInteger(value) && value >= lo && value <= hi;
   const safeText = value => typeof value === 'string' && value.length <= MAX_TEXT && !FORBIDDEN_TEXT.test(value);
+  const safeSeed = value => (typeof value === 'string' && value.length <= MAX_TEXT && !/[\u0000-\u001f]/.test(value)) || finite(value);
 
   function safeTree(value, state = { nodes:0, depth:0 }) {
     state.nodes++;
@@ -88,12 +91,15 @@
 
   function validRun(raw) {
     if (!plain(raw) || raw.version !== RUN_VERSION || raw.profileId !== PROFILE_ID) return false;
-    if (raw.mode !== 'classic' && raw.mode !== 'greedy') return false;
+    // Core compatibility: legacy v2 classic saves may omit mode and are treated as classic.
+    if (raw.mode != null && raw.mode !== 'classic' && raw.mode !== 'greedy') return false;
     if (raw.state !== 'playing' && raw.state !== 'town') return false;
-    if (!CLASSES.has(raw.classId)) return false;
+    // Core also falls back to Warrior when an old save lacks classId.
+    if (raw.classId != null && !CLASSES.has(raw.classId)) return false;
     if (!finite(raw.depth) || raw.depth < 1 || raw.depth > 100000) return false;
     if (!finite(raw.turns) || raw.turns < 0 || raw.turns > 1e9) return false;
     if (!finite(raw.rng)) return false;
+    if (!safeSeed(raw.seed)) return false;
     if (!validPlayer(raw.player)) return false;
     if (!validGrid(raw.map, false) || !validGrid(raw.explored, true)) return false;
     if (!validList(raw.monsters || [], 512)) return false;
@@ -103,7 +109,9 @@
     if (!Array.isArray(raw.secrets || []) || (raw.secrets || []).length > 256) return false;
     if (!Array.isArray(raw.shopStock || []) || (raw.shopStock || []).length > 128) return false;
     if (!Array.isArray(raw.logLines || []) || (raw.logLines || []).length > 30) return false;
-    return safeTree(raw);
+    // Seed is displayed with textContent and used only for hashing; do not subject it to HTML-sink rules.
+    const treeView = { ...raw, seed:'' };
+    return safeTree(treeView);
   }
 
   function validMeta(raw) {
@@ -148,7 +156,7 @@
   } catch (_e) { /* diagnostic only */ }
 
   window.__DE_SAVE_INTEGRITY_V128 = {
-    version:'v1', report, validRun, validMeta, safeTree,
+    version:'v2', report, validRun, validMeta, safeTree,
     limits:{ maxRaw:MAX_RAW, maxText:MAX_TEXT, mapWidth:MAP_W, mapHeight:MAP_H }
   };
 })();
