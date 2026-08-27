@@ -1,13 +1,15 @@
-91hwl home mount · site v1.3.2
+91hwl home mount · site v1.3.3
 
 This package owns the product-facing static homepage and the two project detail pages only. It does not own either game runtime.
 
 Presented releases:
 - Dungeon Echo v1.2.6 — frozen accepted game boundary.
-- Clock Out Alive v1.11.2 — current language/readability release.
+- Clock Out Alive v1.11.3 — current first-paint/typography release.
 
-site v1.3.2 keeps the product-first two-game presentation while unifying language and theme preferences across the homepage and project pages. Play links propagate the active language into each game route, so a Chinese site session opens a Chinese game session and an English site session opens an English one. A parent-domain preference cookie provides a non-sensitive cross-subdomain fallback while each page retains localStorage and URL-query fallbacks.
+site v1.3.3 removes the remaining first-paint inconsistency. Language and theme preferences are resolved in the document head before the main CSS/UI paints, so a stored or explicit English/light choice no longer first flashes the default Chinese/dark state. The pages also carry `translate="no"` / `notranslate` markers so browser auto-translation does not rewrite a deliberately selected English page back into Chinese.
 
-The site restores an explicit dark/light theme switch and normalizes the type scale: hero headings are less oversized, navigation and preference controls are easier to notice, and body/card text is more readable.
+The homepage and both detail pages now share one typography ladder: small supporting copy, navigation/controls, body copy, card headings, section headings and hero headings each use a bounded scale instead of ad-hoc sizes. The light theme also uses the same hierarchy rather than relying on browser/default contrast.
 
-The bundle derives its previous-homepage overwrite guard from the actually deployed site v1.3.1 commit `830ebaf958e4bec71af085f0fa7897edbe8b007d`. Deployment backs up the current homepage/toys tree and restores it if Nginx validation or origin/public health checks fail.
+Language/theme links continue to carry `?lang=` / `?theme=` explicitly, backed by the non-sensitive `.91hwl.cn` preference cookies and localStorage fallbacks.
+
+Release safety deliberately reuses the field-tested site v1.3.2 deploy/health logic. The builder adapts only the final bundle's release markers to v1.3.3/v1.11.3, syntax-checks those bundled scripts, and derives the homepage overwrite guard from the actually deployed site v1.3.2 commit `e15ac9959687dbd47457cd650a0e96f008c151c5`. Deployment still backs up the homepage/toys tree and rolls it back if Nginx validation or origin/public health checks fail.
