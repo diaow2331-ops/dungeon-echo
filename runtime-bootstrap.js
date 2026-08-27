@@ -1,9 +1,9 @@
 /* Dungeon Echo production UX bootstrap v10.
  * Core gameplay/input/balance are synchronous in index.html.
- * The fixed locale route owner is also synchronous and runs before gameplay.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
+ * Fixed route locale identity is established before the transitional locale presentation pair boots.
  * Locale presentation is event-owned: legacy locale observers are virtualized only while the
- * transitional locale pair boots, then native MutationObserver is restored before later followers.
+ * locale pair boots, then the native MutationObserver is restored before later followers load.
  */
 (() => {
   'use strict';
@@ -13,6 +13,7 @@
   const fresh = src => `${src}?v=${assetVersion}`;
   const chain = Object.freeze([
     [fresh('release-stamp-v128.js'), 'data-de-release-stamp-v128', () => !!window.__DE_RELEASE_STAMP_V128],
+    [fresh('fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('locale-event-owner-v130.js'), 'data-de-locale-event-owner-v130', () => !!window.__DE_LOCALE_EVENT_OWNER],
     [fresh('locale-runtime-v122.js'), 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     [fresh('locale-completeness-v128.js'), 'data-de-locale-completeness-v128', () => !!window.__DE_LOCALE_COMPLETENESS_V128],
