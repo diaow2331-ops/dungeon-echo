@@ -23,7 +23,7 @@ const window = {
       const map = {
         '治疗药水':'Healing Potion', '回城卷轴':'Return Scroll', '传送卷轴':'Teleport Scroll',
         '锈蚀钥匙':'Rusty Key', '石砌地窟':'Stone Crypt', '洞穴蝙蝠':'Cave Bat',
-        '恐狼':'Dire Rat', '铁剑':'Iron Sword', '游侠':'Ranger'
+        '恐狼':'Dire Rat', '铁剑':'Iron Sword', '游侠':'Ranger', '木桶':'Cask', '金币':'Gold'
       };
       let out = String(value);
       for (const [zh,en] of Object.entries(map)) out = out.split(zh).join(en);
@@ -45,9 +45,12 @@ assert.equal(api.english, true);
 const cases = [
   ['你踩上了陷阱，受到 2 点伤害！','You stepped on a trap and took 2 damage!'],
   ['木桶裂开，滚出 10 枚金币。','The cask split open and spilled 10 Gold.'],
+  ['Cask裂开，滚出 10 Gold.','The cask split open and spilled 10 Gold.'],
   ['你捡起了一瓶治疗药水。','Picked up a Healing Potion.'],
+  ['Picked up 一瓶Healing Potion.','Picked up a Healing Potion.'],
   ['本层有 7 个敌人、12 处物资。','This floor has 7 enemies and 12 loot spots.'],
   ['第 1 次下潜：搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！','Descent 1: loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!'],
+  ['第 1 次下潜：搜刮战利品，用Return Scroll（T）把一切平安带回小镇——死在这里就会失去背包和Gold!','Descent 1: loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!'],
   ['你沿着螺旋阶梯下到了第 2 层——石砌地窟。','You descended the spiral stairs to Floor 2 — Stone Crypt.'],
   ['你射中洞穴蝙蝠，造成 3 点伤害。','You shot Cave Bat for 3 damage.'],
   ['恐狼被消灭了！（+2 经验）','Dire Rat was slain! (+2 XP)'],
@@ -61,6 +64,7 @@ assert(src.includes("'#log'"));
 assert(src.includes('characterData:true'));
 assert(src.includes("weapon:'Weapon'"));
 assert(src.includes("sub.hidden = true"));
+assert(src.includes("sub.style.display = 'none'"));
 assert(!/setInterval\s*\(/.test(src), 'locale completeness must not poll');
 assert(bootstrap.includes("fresh('locale-runtime-v122.js')"));
 assert(bootstrap.includes("fresh('locale-completeness-v128.js')"));
