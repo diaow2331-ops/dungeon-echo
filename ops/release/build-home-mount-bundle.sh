@@ -5,18 +5,20 @@ repo_root="$(git rev-parse --show-toplevel)"
 source_root="$repo_root/ops/home-mount"
 site_version="$(tr -d '\r\n' < "$source_root/SITE_VERSION")"
 revision="$(git -C "$repo_root" rev-parse HEAD)"
-output="${1:-$repo_root/91hwl-home-dungeon-echo-v$site_version.zip}"
+output="${1:-$repo_root/91hwl-home-web-toys-v$site_version.zip}"
 stage_root="$(mktemp -d)"
-bundle="$stage_root/91hwl-home-dungeon-echo-v$site_version"
+bundle="$stage_root/91hwl-home-web-toys-v$site_version"
 
 cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
 command -v zip >/dev/null
 
 test -n "$site_version" || { echo 'SITE_VERSION is empty' >&2; exit 2; }
-mkdir -p "$bundle/public/toys/dungeon-echo" "$bundle/ops"
+test "$site_version" = '1.3.0' || { echo "unexpected site version: $site_version" >&2; exit 2; }
+mkdir -p "$bundle/public/toys/dungeon-echo" "$bundle/public/toys/moyu" "$bundle/ops"
 install -m 0644 "$source_root/public/index.html" "$bundle/public/index.html"
 install -m 0644 "$source_root/public/toys/dungeon-echo/index.html" "$bundle/public/toys/dungeon-echo/index.html"
+install -m 0644 "$source_root/public/toys/moyu/index.html" "$bundle/public/toys/moyu/index.html"
 install -m 0755 "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
