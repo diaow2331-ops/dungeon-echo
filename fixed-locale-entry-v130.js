@@ -1,6 +1,6 @@
 /* Dungeon Echo fixed locale entry owner v1.3.0.
- * Route identity chooses language before gameplay boots. Chinese and English pages stay on
- * the same origin and therefore share the existing run/meta/stash/equipment localStorage.
+ * Route identity chooses language before locale presentation boots. Chinese and English pages stay
+ * on the same origin and therefore share the existing run/meta/stash/equipment localStorage.
  * Legacy ?lang= links are redirected to the matching fixed route.
  */
 (() => {
