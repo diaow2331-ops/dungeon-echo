@@ -4,6 +4,7 @@ style.css
 production-bootstrap.js
 profiles/classic-100.profile.js
 game.js
+npc-stability-system.js
 equipment-system.js
 town-system.js
 commerce-system.js
