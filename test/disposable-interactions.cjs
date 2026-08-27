@@ -15,8 +15,6 @@ const npcs = [
 
 global.document = {
   readyState: 'complete',
-  head: { appendChild() {} },
-  createElement() { return { style: {}, set id(_v) {}, appendChild() {} }; },
   addEventListener(type, fn) { (listeners[type] ||= []).push(fn); },
 };
 global.localStorage = { getItem() { return null; }, setItem() {} };
@@ -28,11 +26,10 @@ global.window = {
     get meta() { return null; },
     persistRun() { persisted++; },
   },
-  addEventListener() {},
 };
 global.queueMicrotask = global.queueMicrotask || (fn => Promise.resolve().then(fn));
 
-vm.runInThisContext(fs.readFileSync(path.join(root, 'production-bootstrap.js'), 'utf8'), { filename: 'production-bootstrap.js' });
+vm.runInThisContext(fs.readFileSync(path.join(root, 'npc-stability-system.js'), 'utf8'), { filename: 'npc-stability-system.js' });
 
 let pass = 0, fail = 0;
 function ok(cond, name) {
@@ -41,7 +38,7 @@ function ok(cond, name) {
 }
 
 const bridge = window.__DE_DISPOSABLE_NPC_CLEANUP;
-ok(bridge && bridge.version === 'p0-v2', 'disposable NPC cleanup/pathing bridge boots');
+ok(bridge && bridge.version === 'p0-v3' && bridge.owner === 'npc-stability-system', 'NPC stability owner boots explicitly');
 ok(npcs.length === 2, 'already-used shrine and rest are removed at install');
 ok(npcs.some(n => n.type === 'shop'), 'repeatable shop NPC is preserved');
 ok(npcs.some(n => n.type === 'shrine' && !n.used), 'unused shrine remains interactable');
@@ -56,6 +53,8 @@ ok(persisted === 1, 'cleanup persists the collision-state repair');
   await new Promise(resolve => queueMicrotask(resolve));
   ok(!npcs.some(n => n.type === 'shrine'), 'newly consumed shrine clears after the interaction event');
   ok(persisted === 2, 'post-interaction cleanup persists exactly once');
+  const bootstrap = fs.readFileSync(path.join(root, 'production-bootstrap.js'), 'utf8');
+  ok(!bootstrap.includes('__DE_DISPOSABLE_NPC_CLEANUP') && !bootstrap.includes('installDisposableNpcCleanup'), 'production bootstrap no longer owns NPC stability');
   console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();
