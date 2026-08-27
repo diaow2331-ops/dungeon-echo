@@ -16,6 +16,7 @@ const expectedScripts = [
   'production-bootstrap.js',
   'profiles/classic-100.profile.js',
   'game.js',
+  'npc-stability-system.js',
   'equipment-system.js',
   'town-system.js',
   'commerce-system.js',
@@ -181,12 +182,13 @@ ok(T && T.profileId === 'classic-100', '引擎选择 classic-100');
 ok(T && T.runProfile.floorRules.maxDepth === 100, '正式旅程最大深度 100');
 
 const markers = [
-  '__DE_EQUIPMENT_SYSTEM', '__DE_TOWN_SYSTEM', '__DE_COMMERCE_SYSTEM',
+  '__DE_DISPOSABLE_NPC_CLEANUP', '__DE_EQUIPMENT_SYSTEM', '__DE_TOWN_SYSTEM', '__DE_COMMERCE_SYSTEM',
   '__DE_FORGE_SYSTEM', '__DE_PROGRESSION_SYSTEM', '__DE_PROGRESSION_COMMITMENT', '__DE_XP_CAP_GUARD', '__DE_CONTENT_SYSTEM',
   '__DE_COMBAT_CONTROLS_V1', '__DE_CHALLENGE_PRESSURE_V1', '__DE_RISK_REWARD_INTERACTIONS', '__DE_VISUAL_POLISH', '__DE_GAMEPLAY_TUNING',
   '__DE_DEFENSE_MODEL', '__DE_GAMEPAD_BOOTED', '__DE_PRODUCTION_UX_BOOTSTRAP',
 ];
-ok(markers.every(name => !!window[name]), '核心生产系统、进度/风险收益 owner、J/K+Mana、平衡层与独立 UX bootstrap 均同步装载');
+ok(markers.every(name => !!window[name]), '核心生产系统、NPC/进度/风险收益 owner、J/K+Mana、平衡层与独立 UX bootstrap 均同步装载');
+ok(window.__DE_DISPOSABLE_NPC_CLEANUP.owner === 'npc-stability-system', '一次性 NPC 清理与通路稳定由 npc-stability-system 单一负责');
 ok(window.__DE_PROGRESSION_COMMITMENT.owner === 'progression-guard-system' && window.__DE_XP_CAP_GUARD.owner === 'progression-guard-system',
   '永久成长与 XP 暂存由 progression-guard-system 单一负责');
 ok(window.__DE_RISK_REWARD_INTERACTIONS.owner === 'risk-reward-system', '神龛与木桶风险收益由 risk-reward-system 单一负责');
