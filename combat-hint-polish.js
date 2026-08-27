@@ -1,8 +1,7 @@
-/* Dungeon Echo progressive onboarding v3.
+/* Dungeon Echo progressive onboarding v4.
  * Contextual, action-driven and persistent. Progress is inferred from real game outcomes,
  * so keyboard, touch and gamepad all advance the same tutorial contract.
- * v3 removes the permanent 140ms inspector and body MutationObserver; real input/resume
- * transitions now coalesce tutorial inspection and legacy-feedback cleanup.
+ * Fixed-route locale owns tutorial copy directly; no runtime translator dependency remains.
  */
 (() => {
   'use strict';
@@ -11,6 +10,9 @@
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
 
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
   const KEY = 'de-onboarding-v2';
   const OLD_KEY = 'de-combat-hint-jk-v1';
   const ALL = ['move','attack','skill','bag','potion','stairs','escape','guardian'];
@@ -21,24 +23,35 @@
     if (!localStorage.getItem(KEY) && localStorage.getItem(OLD_KEY) === '1') { state.done.move=1; state.done.attack=1; }
   } catch (e) {}
 
-  const i18n = () => window.DE_I18N;
-  const tr = (key, fallback) => i18n() && typeof i18n().t === 'function' ? i18n().t(key) : fallback;
   const coarse = () => innerWidth <= 900 || (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches);
   const text = {
-    move: () => coarse() ? tr('tutorial.move.mobile','移动 · 用左侧方向盘移动；朝向也会跟着改变') : tr('tutorial.move.desktop','移动 · WASD / 方向键移动，同时改变面向'),
-    attack: () => coarse() ? tr('tutorial.attack.mobile','攻击 · 面向敌人后点「攻击」') : tr('tutorial.attack.desktop','攻击 · 面向敌人后按 J'),
+    move: () => coarse()
+      ? copy('移动 · 用左侧方向盘移动；朝向也会跟着改变', 'Move · use the left D-pad; movement also changes facing')
+      : copy('移动 · WASD / 方向键移动，同时改变面向', 'Move · WASD / arrow keys move and change facing'),
+    attack: () => coarse()
+      ? copy('攻击 · 面向敌人后点「攻击」', 'Attack · face an enemy and tap Attack')
+      : copy('攻击 · 面向敌人后按 J', 'Attack · face an enemy and press J'),
     skill: () => {
       const p=api.player,cost=window.__DE_COMBAT_CONTROLS_V1&&window.__DE_COMBAT_CONTROLS_V1.manaCost?window.__DE_COMBAT_CONTROLS_V1.manaCost():null;
-      const base=coarse()?tr('tutorial.skill.mobile','技能 · 点「技能」释放，会消耗蓝量'):tr('tutorial.skill.desktop','技能 · K 释放，会消耗蓝量');
+      const base=coarse()
+        ? copy('技能 · 点「技能」释放，会消耗蓝量', 'Skill · tap Skill; skills consume mana')
+        : copy('技能 · K 释放，会消耗蓝量', 'Skill · press K; skills consume mana');
       if(!p)return base;
-      const en=i18n()&&i18n().isEnglish;
-      return en?`${base} · Mana ${p.mana}/${p.manaMax}${cost?`, cost ${cost}`:''}`:`${base} · ${p.mana}/${p.manaMax}${cost?`，消耗 ${cost}`:''}`;
+      return english?`${base} · Mana ${p.mana}/${p.manaMax}${cost?`, cost ${cost}`:''}`:`${base} · ${p.mana}/${p.manaMax}${cost?`，消耗 ${cost}`:''}`;
     },
-    bag: () => coarse() ? tr('tutorial.bag.mobile','装备 · 点背包物品查看属性，再点「装备」；穿戴不会覆盖角色立绘') : tr('tutorial.bag.desktop','装备 · 点击背包物品查看属性，再决定是否装备'),
-    potion: () => coarse() ? tr('tutorial.potion.mobile','受伤后可点「药水」恢复；深层补给有限') : tr('tutorial.potion.desktop','受伤后按 Q 喝药；深层补给有限'),
-    stairs: () => coarse() ? tr('tutorial.stairs.mobile','下潜 · 站上楼梯后点「下楼」进入下一层') : tr('tutorial.stairs.desktop','下潜 · 站上楼梯后按 Enter'),
-    escape: () => coarse() ? tr('tutorial.escape.mobile','贪婪远征 · 点「回城」把背包和金币安全带回镇上') : tr('tutorial.escape.desktop','贪婪远征 · T 回城，把背包和金币安全带回镇上'),
-    guardian: () => tr('tutorial.guardian','守卫破甲 · 明示的破甲大招命中会无视护甲；看到预警就走位，不要硬吃'),
+    bag: () => coarse()
+      ? copy('装备 · 点背包物品查看属性，再点「装备」；穿戴不会覆盖角色立绘', 'Gear · inspect a backpack item and tap Equip; gear never covers hero art')
+      : copy('装备 · 点击背包物品查看属性，再决定是否装备', 'Gear · inspect backpack items and equip only what fits your build'),
+    potion: () => coarse()
+      ? copy('受伤后可点「药水」恢复；深层补给有限', 'Heal · tap Potion; deep-floor supplies are finite')
+      : copy('受伤后按 Q 喝药；深层补给有限', 'Heal · press Q for a potion; deep-floor supplies are finite'),
+    stairs: () => coarse()
+      ? copy('下潜 · 站上楼梯后点「下楼」进入下一层', 'Descend · stand on stairs and tap Descend')
+      : copy('下潜 · 站上楼梯后按 Enter', 'Descend · stand on stairs and press Enter'),
+    escape: () => coarse()
+      ? copy('贪婪远征 · 点「回城」把背包和金币安全带回镇上', 'Greedy Expedition · tap Return to secure backpack loot and carried Gold')
+      : copy('贪婪远征 · T 回城，把背包和金币安全带回镇上', 'Greedy Expedition · press T to return safely with backpack loot and carried Gold'),
+    guardian: () => copy('守卫破甲 · 明示的破甲大招命中会无视护甲；看到预警就走位，不要硬吃', 'Armor Break · telegraphed guardian specials ignore armor on hit. Read the warning and move.'),
   };
 
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
@@ -64,7 +77,7 @@
   `;document.head.appendChild(style);
   const toast=document.createElement('div');toast.id='de-onboarding';toast.hidden=true;toast.innerHTML='<b></b><span></span><button type="button" data-tutorial-skip></button>';(document.getElementById('stage')||document.body).appendChild(toast);toast.querySelector('[data-tutorial-skip]').addEventListener('click',markAll);
 
-  function syncLabels(){const b=toast.querySelector('b'),s=toast.querySelector('[data-tutorial-skip]');if(b)b.textContent=tr('tutorial.label','新手提示');if(s)s.textContent=tr('tutorial.skip','跳过教学');const r=document.getElementById('de-tutorial-reset');if(r)r.textContent=tr('tutorial.reset','重置教学')}
+  function syncLabels(){const b=toast.querySelector('b'),s=toast.querySelector('[data-tutorial-skip]');if(b)b.textContent=copy('新手提示','Tutorial');if(s)s.textContent=copy('跳过教学','Skip Tutorial');const r=document.getElementById('de-tutorial-reset');if(r)r.textContent=copy('重置教学','Reset Tutorial')}
   function show(id,ttl=0){if(!id||done(id)||!text[id])return false;active=id;toast.querySelector('span').textContent=text[id]();syncLabels();toast.hidden=false;clearTimeout(timer);if(ttl>0)timer=setTimeout(()=>mark(id),ttl);return true}
   function hide(){clearTimeout(timer);timer=0;active='';toast.hidden=true}
   function adjacentEnemy(){const p=api.player;if(!p)return null;return(api.monsters||[]).find(m=>m&&Number(m.hp)>0&&Math.abs(Number(m.x)-p.x)+Math.abs(Number(m.y)-p.y)===1)||null}
@@ -111,8 +124,7 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleInspect()});
 
   function resetTutorial(){state.done={};save();hide();lastPlayer=null;snap=null;inspect()}
-  function attachReset(){const tools=document.querySelector('#de-audio-settings-pop .de-audio-tools');if(!tools||document.getElementById('de-tutorial-reset'))return;const b=document.createElement('button');b.type='button';b.id='de-tutorial-reset';b.textContent=tr('tutorial.reset','重置教学');b.style.cssText='border:1px solid rgba(224,167,58,.3);background:#17100c;color:#d9c7a3;padding:5px 8px;font-size:10px;cursor:pointer;margin-right:auto';b.addEventListener('click',resetTutorial);tools.insertBefore(b,tools.firstChild)}
-  window.addEventListener('de:languagechange',()=>{syncLabels();if(active&&!toast.hidden)toast.querySelector('span').textContent=text[active]();scheduleInspect()});
+  function attachReset(){const tools=document.querySelector('#de-audio-settings-pop .de-audio-tools');if(!tools||document.getElementById('de-tutorial-reset'))return;const b=document.createElement('button');b.type='button';b.id='de-tutorial-reset';b.textContent=copy('重置教学','Reset Tutorial');b.style.cssText='border:1px solid rgba(224,167,58,.3);background:#17100c;color:#d9c7a3;padding:5px 8px;font-size:10px;cursor:pointer;margin-right:auto';b.addEventListener('click',resetTutorial);tools.insertBefore(b,tools.firstChild)}
 
-  syncLabels();inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v3',owner:'combat-hint-polish',key:KEY,show,mark,resetTutorial,inspect,schedule:scheduleInspect,scrubLegacyFeedback,get state(){return JSON.parse(JSON.stringify(state))}};
+  syncLabels();inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v4',owner:'combat-hint-polish',locale:english?'en':'zh-CN',key:KEY,show,mark,resetTutorial,inspect,schedule:scheduleInspect,scrubLegacyFeedback,get state(){return JSON.parse(JSON.stringify(state))}};
 })();

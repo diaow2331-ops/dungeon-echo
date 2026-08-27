@@ -37,7 +37,7 @@ ok((listeners.window.keydown||[]).length&& (listeners.window.click||[]).length &
 const boot=fs.readFileSync(path.join(root,'runtime-bootstrap.js'),'utf8');
 const pFixed=boot.indexOf('fixed-locale-entry-v130.js'),pOwner=boot.indexOf('locale-event-owner-v130.js'),pRuntime=boot.indexOf('locale-runtime-v122.js'),pComplete=boot.indexOf('locale-completeness-v128.js');
 ok(pFixed>0&&pFixed<pOwner&&pOwner<pRuntime&&pRuntime<pComplete,'bootstrap establishes fixed route identity before event-owned legacy locale pair');
-ok(boot.includes("assetVersion = '132'")&&boot.includes("owner.activate()"),'bootstrap cache-busts generation 132 followers and activates owner after locale bootstrap');
+ok(boot.includes("assetVersion = '133'")&&boot.includes("owner.activate()"),'bootstrap cache-busts generation 133 followers and activates owner after locale bootstrap');
 const allow=fs.readFileSync(path.join(root,'ops/release/static-files.txt'),'utf8').split(/\r?\n/);
 ok(allow.includes('fixed-locale-entry-v130.js')&&allow.includes('locale-event-owner-v130.js'),'release allowlist ships fixed route and locale event owners');
 

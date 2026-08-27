@@ -1,7 +1,9 @@
-/* Dungeon Echo adaptive audio director v2.
+/* Dungeon Echo adaptive audio director v3.
  * Pure WebAudio, no external media/copyright dependency.
  * Audio UX follows the proven Moyu mixer contract: independent BGM/SFX 0-100 sliders,
  * persistent recommended mix (30/85), and one-key master mute with M.
+ * Fixed-route locale owns all visible mixer copy; the 70ms scheduler runs only while the
+ * page is active because WebAudio look-ahead requires a real timing loop.
  */
 (() => {
   'use strict';
@@ -10,6 +12,9 @@
 
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
 
   const MUSIC_KEY = 'de-audio-music-vol-v2';
   const SFX_KEY = 'de-audio-sfx-vol-v2';
@@ -298,6 +303,21 @@
     if (state !== lastState || depth !== lastDepth) { lastState = state; lastDepth = depth; syncControls(); }
   }
 
+  function startPump() {
+    if (!ctx || timer || document.hidden) return false;
+    nextBeat = Math.max(Number(nextBeat) || 0, ctx.currentTime + .08);
+    pump();
+    timer = window.setInterval(pump, 70);
+    return true;
+  }
+
+  function stopPump() {
+    if (!timer) return false;
+    window.clearInterval(timer);
+    timer = 0;
+    return true;
+  }
+
   function installUi() {
     if (document.getElementById('de-audio-settings-btn')) return;
     const stats = document.getElementById('stats');
@@ -306,13 +326,13 @@
     const wrap = document.createElement('span');
     wrap.id = 'de-audio-settings-wrap';
     wrap.innerHTML = `
-      <button id="de-audio-settings-btn" type="button" aria-expanded="false">⚙ 声音</button>
-      <span id="de-audio-settings-pop" hidden role="dialog" aria-label="声音设置">
-        <span class="de-audio-head"><b>声音设置</b><button id="de-audio-master" type="button"></button></span>
-        <label><span>背景音乐</span><input id="de-music-vol" type="range" min="0" max="100" step="1"><output id="de-music-out"></output></label>
-        <label><span>游戏音效</span><input id="de-sfx-vol" type="range" min="0" max="100" step="1"><output id="de-sfx-out"></output></label>
-        <span class="de-audio-tools"><button id="de-audio-preset" type="button">恢复推荐 30 / 85</button></span>
-        <small>音乐与音效独立保存 · M 快速静音/恢复</small>
+      <button id="de-audio-settings-btn" type="button" aria-expanded="false">⚙ ${copy('声音', 'Sound')}</button>
+      <span id="de-audio-settings-pop" hidden role="dialog" aria-label="${copy('声音设置', 'Sound Settings')}">
+        <span class="de-audio-head"><b>${copy('声音设置', 'Sound Settings')}</b><button id="de-audio-master" type="button"></button></span>
+        <label><span>${copy('背景音乐', 'Music')}</span><input id="de-music-vol" type="range" min="0" max="100" step="1"><output id="de-music-out"></output></label>
+        <label><span>${copy('游戏音效', 'SFX')}</span><input id="de-sfx-vol" type="range" min="0" max="100" step="1"><output id="de-sfx-out"></output></label>
+        <span class="de-audio-tools"><button id="de-audio-preset" type="button">${copy('恢复推荐 30 / 85', 'Recommended 30 / 85')}</button></span>
+        <small>${copy('音乐与音效独立保存 · M 快速静音/恢复', 'Music and SFX save separately · M toggles mute')}</small>
       </span>`;
     if (full && full.parentNode === stats) stats.insertBefore(wrap, full); else stats.appendChild(wrap);
 
@@ -343,13 +363,13 @@
     const sfx = document.getElementById('de-sfx-vol');
     const preset = document.getElementById('de-audio-preset');
 
-    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); ensureContext(); const open = pop.hidden; pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); syncControls(); });
+    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); ensureContext(); startPump(); const open = pop.hidden; pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); syncControls(); });
     pop.addEventListener('pointerdown', e => e.stopPropagation());
     document.addEventListener('pointerdown', e => { if (!e.target.closest('#de-audio-settings-wrap')) { pop.hidden = true; btn.setAttribute('aria-expanded','false'); } });
     masterBtn.addEventListener('click', e => { e.preventDefault(); setMuted(!muted); });
-    music.addEventListener('input', e => { e.stopPropagation(); ensureContext(); setVolumes(music.value, sfxVolume); });
-    sfx.addEventListener('input', e => { e.stopPropagation(); ensureContext(); setVolumes(musicVolume, sfx.value); clearTimeout(sfx._previewTimer); sfx._previewTimer=setTimeout(previewSfx,80); });
-    preset.addEventListener('click', e => { e.preventDefault(); ensureContext(); setVolumes(RECOMMENDED.music, RECOMMENDED.sfx); previewSfx(); });
+    music.addEventListener('input', e => { e.stopPropagation(); ensureContext(); startPump(); setVolumes(music.value, sfxVolume); });
+    sfx.addEventListener('input', e => { e.stopPropagation(); ensureContext(); startPump(); setVolumes(musicVolume, sfx.value); clearTimeout(sfx._previewTimer); sfx._previewTimer=setTimeout(previewSfx,80); });
+    preset.addEventListener('click', e => { e.preventDefault(); ensureContext(); startPump(); setVolumes(RECOMMENDED.music, RECOMMENDED.sfx); previewSfx(); });
     syncControls();
   }
 
@@ -359,8 +379,8 @@
     const masterBtn = document.getElementById('de-audio-master'), btn = document.getElementById('de-audio-settings-btn');
     if (music) music.value = String(musicVolume); if (sfx) sfx.value = String(sfxVolume);
     if (mout) mout.textContent = musicVolume + '%'; if (sout) sout.textContent = sfxVolume + '%';
-    if (masterBtn) masterBtn.textContent = muted ? '总开关：关' : '总开关：开';
-    if (btn) btn.textContent = muted ? '⚙ 静音' : `⚙ ${musicVolume}/${sfxVolume}`;
+    if (masterBtn) masterBtn.textContent = muted ? copy('总开关：关', 'Master: Off') : copy('总开关：开', 'Master: On');
+    if (btn) btn.textContent = muted ? copy('⚙ 静音', '⚙ Muted') : `⚙ ${musicVolume}/${sfxVolume}`;
   }
 
   function richerActionAccent(key) {
@@ -381,33 +401,37 @@
   function unlock(e) {
     if (e && e.type === 'keydown' && String(e.key || '').toLowerCase() === 'm') return;
     ensureContext();
-    if (ctx && !timer) timer = window.setInterval(pump, 70);
+    startPump();
   }
 
   document.addEventListener('pointerdown', unlock, true);
   document.addEventListener('touchstart', unlock, true);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) resumeContext();
+    if (document.hidden) { stopPump(); return; }
+    resumeContext();
+    if (ctx) startPump();
   });
+  window.addEventListener('pagehide', stopPump);
+  window.addEventListener('pageshow', () => { if (ctx) startPump(); });
   window.addEventListener('click', e => {
     const target = e && e.target;
     if (!target || typeof target.closest !== 'function' || !target.closest('[data-act="mute"]')) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    ensureContext(); setMuted(!muted);
+    ensureContext(); startPump(); setMuted(!muted);
   }, true);
   window.addEventListener('keydown', e => {
     const key = String(e.key || '').toLowerCase();
     if (key === 'm') {
       e.preventDefault(); e.stopImmediatePropagation();
-      ensureContext(); setMuted(!muted); return;
+      ensureContext(); startPump(); setMuted(!muted); return;
     }
-    if (key === 'j' || key === 'k') { ensureContext(); richerActionAccent(key); }
+    if (key === 'j' || key === 'k') { ensureContext(); startPump(); richerActionAccent(key); }
   }, true);
 
   installUi();
   window.__DE_AUDIO_DIRECTOR = {
-    version:'v2', scenes:{...SCENES}, ensureContext, setVolumes, setMuted, previewSfx,
-    mixer:()=>mixer,
+    version:'v3', owner:'audio-director', locale:english?'en':'zh-CN', scenes:{...SCENES}, ensureContext, setVolumes, setMuted, previewSfx,
+    startPump, stopPump, mixer:()=>mixer,
     get scene(){ return scene; }, get musicVolume(){ return musicVolume; }, get sfxVolume(){ return sfxVolume; }, get muted(){ return muted; },
   };
 })();
