@@ -1,4 +1,4 @@
-/* Dungeon Echo production town systems v3.
+/* Dungeon Echo production town systems v4.
  * Owns conquered-depth checkpoint return and production wheel lifecycle/economy policy.
  *
  * Checkpoints unlock only AFTER crossing each 10-floor guardian: 11/21/.../91.
@@ -15,7 +15,7 @@
   if (window.__DE_TOWN_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_TOWN_SYSTEM = 'v3';
+  window.__DE_TOWN_SYSTEM = 'v4';
 
   const META_KEY = 'de-greedy-meta-v1';
   const WHEEL_STATE_KEY = 'de-town-wheel-state-v1';
@@ -78,20 +78,27 @@
 
   function renderCheckpoints() {
     const panel = ensurePanel();
-    if (!panel) return;
+    if (!panel || !api.meta) return;
     const unlocked = unlockedCheckpoints();
     if (!unlocked.includes(selected)) selected = deepestUnlocked();
     const best = Number(api.meta.bestDepth) || 0;
-    panel.innerHTML = `
-      <div class="checkpoint-head">
-        <b>已征服检查点</b>
-        <small>最深到达 ${best} 层 · 通过十层守卫后解锁下一段</small>
-      </div>
-      <div class="checkpoint-grid">${unlocked.map(d =>
-        `<button type="button" data-checkpoint="${d}" class="${d === selected ? 'active' : ''}">${d === 1 ? '第 1 层' : `第 ${d} 层`}</button>`
-      ).join('')}</div>`;
+    const sig = `${best}|${selected}|${unlocked.join(',')}`;
+    if (!panel.dataset || panel.dataset.deCheckpointSig !== sig) {
+      panel.innerHTML = `
+        <div class="checkpoint-head">
+          <b>已征服检查点</b>
+          <small>最深到达 ${best} 层 · 通过十层守卫后解锁下一段</small>
+        </div>
+        <div class="checkpoint-grid">${unlocked.map(d =>
+          `<button type="button" data-checkpoint="${d}" class="${d === selected ? 'active' : ''}">${d === 1 ? '第 1 层' : `第 ${d} 层`}</button>`
+        ).join('')}</div>`;
+      if (panel.dataset) panel.dataset.deCheckpointSig = sig;
+    }
     const depart = document.getElementById('btn-depart');
-    if (depart) depart.textContent = selected === 1 ? '从第 1 层出发' : `从已征服区 · 第 ${selected} 层出发`;
+    if (depart) {
+      const text = selected === 1 ? '从第 1 层出发' : `从已征服区 · 第 ${selected} 层出发`;
+      if (depart.textContent !== text) depart.textContent = text;
+    }
   }
 
   function travelToCheckpoint(target) {
@@ -282,13 +289,17 @@
     const exhausted = claimed >= 8;
 
     if (spinBtn) {
-      spinBtn.textContent = exhausted ? '本轮已全部领取' : `抽奖 ${sc} G`;
-      spinBtn.title = exhausted ? '重置轮盘后才能开启新一轮奖池' : `本阶段实际抽奖成本 ${sc} G`;
+      const text = exhausted ? '本轮已全部领取' : `抽奖 ${sc} G`;
+      const title = exhausted ? '重置轮盘后才能开启新一轮奖池' : `本阶段实际抽奖成本 ${sc} G`;
+      if (spinBtn.textContent !== text) spinBtn.textContent = text;
+      if (spinBtn.title !== title) spinBtn.title = title;
       setPolicyDisabled(spinBtn, exhausted || Number(meta.gold) < sc);
     }
     if (resetBtn) {
-      resetBtn.textContent = `重置轮盘 ${rc} G`;
-      resetBtn.title = `本阶段重摇全部八格，实际成本 ${rc} G`;
+      const text = `重置轮盘 ${rc} G`;
+      const title = `本阶段重摇全部八格，实际成本 ${rc} G`;
+      if (resetBtn.textContent !== text) resetBtn.textContent = text;
+      if (resetBtn.title !== title) resetBtn.title = title;
       setPolicyDisabled(resetBtn, Number(meta.gold) < rc);
     }
 
@@ -301,14 +312,15 @@
     const claimedIndexes = Array.isArray(meta.wheelSlots)
       ? meta.wheelSlots.map((s, i) => s && s.claimed ? i + 1 : 0).filter(Boolean)
       : [];
-    state.textContent = claimedIndexes.length
+    const text = claimedIndexes.length
       ? `城镇阶段 ${townTier()} · 已领取 ${claimed}/8 格（${claimedIndexes.join('、')}）；已领取格再次停中不会重复发奖。`
       : `城镇阶段 ${townTier()} · 八格奖池每格最多领取一次；重置会整盘换新。`;
+    if (state.textContent !== text) state.textContent = text;
   }
 
   function flashWheelNote(text) {
     const hint = document.querySelector('#town-wheel .wheel-hint');
-    if (hint) hint.textContent = text;
+    if (hint && hint.textContent !== text) hint.textContent = text;
   }
 
   function beginWheelAction(kind, e) {
@@ -412,7 +424,8 @@
     const wsp = e.target && e.target.closest ? e.target.closest('[data-wheelspin]') : null;
     if (wsp) { settleWheelAction('spin'); return; }
     const wrs = e.target && e.target.closest ? e.target.closest('[data-wheelreset]') : null;
-    if (wrs) settleWheelAction('reset');
+    if (wrs) { settleWheelAction('reset'); return; }
+    if (api.state === 'town') queueMicrotask(render);
   }, false);
 
   function render() {
@@ -421,11 +434,18 @@
     syncWheelUi();
   }
 
-  // Town can be entered by escape, death, insurance, restore, or title flow. A small
-  // observer keeps this bridge synchronized with core-rendered town HTML without adding
-  // another system timer elsewhere.
-  const timer = setInterval(render, 350);
-  window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
+  // Town entry is observable at the town-screen visibility boundary. Rendering once on
+  // that transition and after town clicks replaces the old 350ms polling loop, which
+  // repeatedly rewrote localized DOM and amplified other observers while the town was open.
+  const town = document.getElementById('town-screen');
+  let observer = null;
+  if (town && typeof MutationObserver !== 'undefined') {
+    observer = new MutationObserver(() => queueMicrotask(render));
+    observer.observe(town, { attributes:true, attributeFilter:['class','hidden','aria-hidden'] });
+  }
+  queueMicrotask(render);
+  window.addEventListener('pageshow', () => queueMicrotask(render));
+  window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); }, { once: true });
 
   window.DE_TOWN_CHECKPOINTS = {
     unlocked: unlockedCheckpoints,
@@ -433,7 +453,7 @@
     get selected() { return selected; },
   };
   window.DE_TOWN_ECONOMY = {
-    version: 'v3',
+    version: 'v4',
     tier: townTier,
     wheelSpinCost: spinTotalCost,
     wheelResetCost: resetTotalCost,
@@ -442,5 +462,6 @@
     restoreWheelShadow,
     reconcileWheelShadow,
     wheelShadowRow,
+    render,
   };
 })();
