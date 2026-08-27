@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-de-locale="en">
+<head>
+<meta charset="UTF-8">
+<base href="../">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#17100b">
+<meta name="description" content="Dungeon Echo is an offline browser roguelike built around a fixed Floor 1 to Floor 100 expedition, four classes, equipment builds, Greedy Expedition risk and Endless Echo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317100b'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23e0a73a'%3EE%3C/text%3E%3C/svg%3E">
+<title>Dungeon Echo · 100-Floor Roguelike</title>
+<link rel="preload" href="art/loot-atlas.png" as="image">
+<link rel="preload" href="art/title-backdrop.webp" as="image" fetchpriority="high">
+<link rel="preload" href="art/class-roster.webp" as="image">
+<link rel="preload" href="art/hero-atlas-v11.png" as="image">
+<link rel="preload" href="art/monster-atlas-v11.png" as="image">
+<link rel="preload" href="art/guardian-atlas-v11.png" as="image">
+<link rel="preload" href="art/final-boss-v11.png" as="image">
+<link rel="preload" href="art/town-backdrop-v11.webp" as="image">
+<link rel="stylesheet" href="style.css?v=131">
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>Dungeon Echo <span class="sub"></span></h1>
+    <div id="stats">
+      <span class="stat">Floor <b id="st-depth">1</b><small id="st-theme"></small></span>
+      <span class="stat hp"><span id="st-hpbar"><i id="st-hpfill"></i></span><b id="st-hptext">30/30</b></span>
+      <span class="stat">Level <b id="st-lvl">1</b> <small id="st-xp"></small></span>
+      <span class="stat">ATK <b id="st-atk">3</b></span>
+      <span class="stat">DEF <b id="st-def">0</b></span>
+      <span class="stat">Crit <b id="st-crit">5%</b></span>
+      <span class="stat">Gold <b id="st-gold">0</b></span>
+      <span class="stat">Potions <b id="st-potion">1</b></span>
+      <span class="stat">Scrolls <b id="st-scroll">0</b></span>
+      <span class="stat">Keys <b id="st-key">0</b></span>
+      <span class="stat" id="st-escape-wrap" title="Return Scroll: press T during Greedy Expedition to bring your loot safely back to town">Return <b id="st-escape">—</b></span>
+      <span class="stat">Enemies <b id="st-mobs">0</b></span>
+      <span class="stat skillstat">Skill <b id="st-skill">Ready</b></span>
+      <button id="fullscreen-toggle" type="button" aria-pressed="false" title="Enter or leave immersive fullscreen (F)"><span aria-hidden="true">⛶</span> Fullscreen <kbd>F</kbd></button>
+    </div>
+    <div id="equipbar">
+      <div class="eqslot" id="eq-weapon" data-slot="weapon"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">Weapon</span></div>
+      <div class="eqslot" id="eq-armor" data-slot="armor"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">Armor</span></div>
+      <div class="eqslot" id="eq-helmet" data-slot="helmet"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">Helmet</span></div>
+      <div class="eqslot" id="eq-boots" data-slot="boots"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">Boots</span></div>
+      <div class="eqslot" id="eq-ring" data-slot="ring"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">Ring</span></div>
+      <div class="eqslot" id="eq-amulet" data-slot="amulet"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">Amulet</span></div>
+      <div class="eqslot class-chip" id="eq-class"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname" id="st-class">Class</span></div>
+    </div>
+  </header>
+
+  <div id="main">
+    <div id="stage">
+      <canvas id="game" width="1280" height="896" aria-label="Dungeon map: move and face with WASD or arrow keys, press J to attack and K to use a skill; explored tiles can also be clicked">Your browser does not support Canvas, so Dungeon Echo cannot run.</canvas>
+      <canvas id="minimap" width="160" height="112" aria-hidden="true"></canvas>
+      <button type="button" id="descend-fab" class="hidden" data-act="descend">Descend to the next floor <kbd>Enter</kbd></button>
+      <div id="lowhp-vignette" class="hidden" aria-hidden="true"></div>
+    </div>
+
+    <div id="touch" aria-label="Touch controls">
+      <div id="dpad">
+        <button type="button" data-act="up" class="pad pu" aria-label="Move up">↑</button>
+        <button type="button" data-act="left" class="pad pl" aria-label="Move left">←</button>
+        <button type="button" data-act="wait" class="pad pw" aria-label="Wait one turn">·</button>
+        <button type="button" data-act="right" class="pad pr" aria-label="Move right">→</button>
+        <button type="button" data-act="down" class="pad pd" aria-label="Move down">↓</button>
+      </div>
+      <div id="actions">
+        <button type="button" data-act="potion">Potion <span>Q</span></button>
+        <button type="button" data-act="scroll">Scroll <span>E</span></button>
+        <button type="button" data-act="escape">Return <span>T</span></button>
+        <button type="button" data-act="skill">Skill <span>K</span></button>
+        <button type="button" data-act="descend">Descend <span>Enter</span></button>
+        <button type="button" data-act="pause">Pause <span>Esc</span></button>
+        <button type="button" data-act="mute">Sound <span>M</span></button>
+      </div>
+    </div>
+
+    <aside id="side">
+      <div id="bagbox">
+        <div class="boxtitle">Backpack <small id="bagcount">0/12</small></div>
+        <div id="bag"></div>
+        <div id="bagdetail" aria-live="polite">
+          <div id="bagdetail-copy">Select an item to inspect it, then equip or drop it.</div>
+          <div id="bagdetail-actions"><button type="button" data-bag-equip>Equip</button><button type="button" data-bag-drop>Drop</button></div>
+        </div>
+      </div>
+      <div id="logbox"><div class="boxtitle">Adventure Log</div><div id="log" aria-live="polite"></div></div>
+      <div id="hint" aria-live="polite">› Stand on the stairs and press Enter to descend · click explored tiles to move</div>
+    </aside>
+  </div>
+
+  <div id="tooltip" class="hidden"></div>
+  <footer id="help">Move: arrows / WASD / click map · J Attack · K Class Skill · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · click backpack to equip · M Sound · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.2.8</b></footer>
+
+  <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">Restart (R)</button></div></div>
+
+  <div id="title-screen">
+    <div class="title-card">
+      <p class="kicker">Dungeon Echo</p>
+      <h2>Dungeon Echo</h2>
+      <p class="lede">Start on Floor 1, cross ten stages and nine deep guardians, then face the Floor 100 finale. Gear, retreat timing and greed decide how deep you survive.</p>
+      <div class="depth-picker">
+        <p class="kicker" style="margin-bottom:6px">100-Floor Expedition</p>
+        <p class="lede" style="margin:0">The production journey is always Floor 1 → 100. There is no paid skip and no starting beyond unconquered ground.</p>
+      </div>
+      <div class="title-actions">
+        <button type="button" id="btn-continue" class="hidden">Continue</button>
+        <button type="button" id="btn-new" class="primary">New Run</button>
+        <button type="button" id="btn-greedy" aria-pressed="false" title="Greedy Expedition: death loses backpack items and carried Gold; Return Scrolls bank loot safely in town, where stash and market are secure">Greedy Expedition: Off</button>
+        <button type="button" id="btn-help">How to Play</button>
+        <button type="button" id="btn-achv">Expedition Record</button>
+      </div>
+      <p class="save-meta" id="save-meta"></p>
+    </div>
+  </div>
+
+  <div id="class-screen" class="hidden"><div class="title-card wide"><p class="kicker">Choose Your Echo</p><h2>Who Are You?</h2><p class="lede class-lede">Choose your combat rhythm. Every class can reach Floor 100, but each accepts risk in a different way.</p><div id="class-grid"></div><button type="button" id="btn-class-back" class="ghost">Back</button></div></div>
+  <div id="pause-screen" class="hidden"><div class="title-card"><h2>Paused</h2><p class="lede" id="pause-copy">Progress is saved locally.</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">Resume</button><button type="button" id="btn-save-quit">Save &amp; Title</button></div></div></div>
+  <div id="shop-screen" class="hidden"><div class="title-card wide"><p class="kicker">Masked Merchant</p><h2>Underground Market</h2><p class="lede" id="shop-gold">Gold 0</p><div id="shop-list"></div><button type="button" id="btn-shop-leave" class="primary">Leave Stall</button></div></div>
+  <div id="talent-screen" class="hidden"><div class="title-card wide"><p class="kicker">Echo Awakening</p><h2>Choose a Talent</h2><p class="lede">Every three levels, the dungeon leaves a new echo inside you.</p><div id="talent-grid"></div></div></div>
+  <div id="shrine-screen" class="hidden"><div class="title-card"><p class="kicker">Nameless Shrine</p><h2 id="shrine-title">Shrine</h2><p class="lede" id="shrine-copy">Touch the shrine and accept the echo's wager.</p><div class="title-actions"><button type="button" id="btn-shrine-ok" class="primary">Pray</button><button type="button" id="btn-shrine-leave" class="ghost">Leave</button></div></div></div>
+
+  <div id="echo-screen" class="hidden"><div class="title-card"><p class="kicker">Final Choice</p><h2>The Dungeon Heart Beats in Your Hand</h2><p class="lede">Take it and complete the Floor 100 expedition, or return it to the altar and let the echo descend forever.</p><div class="title-actions"><button type="button" id="btn-echo-leave" class="primary">Leave with the Heart</button><button type="button" id="btn-echo-stay">Enter Endless Echo</button></div></div></div>
+
+  <div id="town-screen" class="hidden">
+    <div class="title-card wide">
+      <p class="kicker">Greedy Expedition · Echo Town</p><h2>Camp &amp; Market</h2>
+      <p class="lede" id="town-head">Prepare, then descend again.</p>
+      <p class="lede dim-note">Death loses backpack items and carried Gold; stash and vault are safe. Return Scroll (T) is the key to securing loot.</p>
+      <canvas id="town-scene" width="900" height="210"></canvas>
+      <div id="town-growth" class="town-growth" aria-live="polite"></div>
+      <div class="town-cols">
+        <div class="town-service" data-service="bag"><p class="kicker">Backpack <span>carried · at risk</span></p><div id="town-bag"></div></div>
+        <div class="town-service" data-service="stash"><p class="kicker">Stash <span>fully safe</span></p><div id="town-stash"></div></div>
+        <div class="town-service" data-service="market"><p class="kicker">Market <span>limited supplies</span></p><div id="town-shop"></div></div>
+        <div class="town-service town-service-optional" data-service="wheel"><p class="kicker">Fortune Corner <span>optional · does not gate the expedition</span></p><div id="town-wheel"></div></div>
+      </div>
+      <div class="title-actions"><button type="button" id="btn-depart" class="primary">Depart for Floor 1</button><button type="button" id="btn-town-exit" class="ghost" title="Return to title without losing progress">Save &amp; Title</button><button type="button" id="btn-achv-town">Expedition Record</button></div>
+    </div>
+  </div>
+
+  <div id="achv-screen" class="hidden"><div class="title-card wide"><p class="kicker">Greedy Expedition · Record</p><h2>Your Legend</h2><div id="achv-stats"></div><h3 style="margin:14px 0 6px">Achievements</h3><div id="achv-grid"></div><div class="title-actions"><button type="button" id="btn-achv-close" class="primary">Close</button></div></div></div>
+
+  <div id="help-screen" class="hidden">
+    <div class="title-card wide">
+      <p class="kicker">Getting Started · 100-Floor Expedition</p><h2>How to Play</h2>
+      <div class="help-cols">
+        <div>
+          <h3>Controls</h3>
+          <p>Move: <b>arrow keys / WASD / click explored tiles</b><br>Attack: <b>J</b> (current facing) · Wait: <b>Space</b><br>Skill: <b>K</b> (uses mana) · Potion: <b>Q</b> · Scroll: <b>E</b><br>Return: <b>T</b> (Greedy Expedition) · Descend: <b>Enter</b> (on stairs)<br>Pause: <b>Esc</b> · Sound: <b>M</b> · Fullscreen: <b>F</b></p>
+          <h3>100-Floor Journey</h3>
+          <p>Every character starts on Floor 1. Each tenth floor is a major guardian checkpoint and Floor 100 is the production finale; shorter profiles exist only for internal testing.</p>
+        </div>
+        <div>
+          <h3>Greedy Expedition</h3>
+          <p><b>Depart → loot → return safely → prepare → go deeper.</b><br>Death loses backpack items and carried Gold; stash and vault are safe. Deeper gear is stronger, but deciding when to keep pushing and when to retreat is the central risk.</p>
+          <h3>Combat</h3>
+          <p>The four classes use different survival and damage rhythms. Gear is not only a score: ATK, DEF, HP, Crit, Leech, Thorns, Kill Heal and Gold Find have different value for different builds.</p>
+        </div>
+      </div>
+      <div class="title-actions"><button type="button" id="btn-help-close" class="primary">Got It</button></div>
+    </div>
+  </div>
+</div>
+<script src="production-bootstrap.js?v=131"></script>
+<script src="profiles/classic-100.profile.js?v=131"></script>
+<script src="save-integrity-system.js?v=131"></script>
+<script src="game.js?v=131"></script>
+<script src="npc-stability-system.js?v=131"></script>
+<script src="equipment-system.js?v=131"></script>
+<script src="town-system.js?v=131"></script>
+<script src="commerce-system.js?v=131"></script>
+<script src="forge-system.js?v=131"></script>
+<script src="progression-system.js?v=131"></script>
+<script src="progression-guard-system.js?v=131"></script>
+<script src="content-system.js?v=131"></script>
+<script src="combat-pressure.js?v=131"></script>
+<script src="visual-polish.js?v=131"></script>
+<script src="equipment-shop-ui.js?v=131"></script>
+<script src="gameplay-tuning.js?v=131"></script>
+<script src="defense-system.js?v=131"></script>
+<script src="desktop-controls.js?v=131"></script>
+<script src="combat-controls.js?v=131"></script>
+<script src="challenge-pressure.js?v=131"></script>
+<script src="risk-reward-system.js?v=131"></script>
+<script src="runtime-bootstrap.js?v=131"></script>
+</body>
+</html>
