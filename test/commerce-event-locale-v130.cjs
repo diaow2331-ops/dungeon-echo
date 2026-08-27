@@ -8,6 +8,8 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'commerce-system.js'),
 assert(!source.includes('new MutationObserver'), 'commerce must not observe the town shop DOM');
 assert(source.includes('scheduleCommerceUi'), 'commerce event-driven UI scheduler missing');
 assert(source.includes("nameEn: 'Return Scroll'"), 'explicit English supply identity missing');
+assert(source.includes('dataset.deLocale'), 'commerce must read fixed-route locale identity');
+assert(!source.includes('window.DE_I18N'), 'commerce must not depend on runtime translation state');
 
 const listeners = { document:{}, window:{} };
 const microtasks = [];
@@ -24,6 +26,7 @@ let logHtml = '';
 const log = { insertAdjacentHTML(_where, html){ logHtml = html + logHtml; } };
 
 global.document = {
+  documentElement:{dataset:{deLocale:'en'}},
   getElementById(id){
     if (id === 'town-shop') return townShop;
     if (id === 'shop-gold') return shopGold;
@@ -57,13 +60,14 @@ const api = {
 };
 global.window = {
   DE_TEST:api,
-  DE_I18N:{ isEnglish:true },
   addEventListener(type, fn){ (listeners.window[type] ||= []).push(fn); },
 };
 
 vm.runInThisContext(source, { filename:'commerce-system.js' });
-assert.equal(window.__DE_COMMERCE_SYSTEM, 'v5');
-assert(window.DE_COMMERCE && typeof window.DE_COMMERCE.scheduleCommerceUi === 'function');
+assert.equal(window.__DE_COMMERCE_SYSTEM, 'v6');
+assert(window.DE_COMMERCE && window.DE_COMMERCE.version === 'v6');
+assert.equal(window.DE_COMMERCE.locale, 'en');
+assert(typeof window.DE_COMMERCE.scheduleCommerceUi === 'function');
 assert(townShop.innerHTML.includes('Healing Potion'), 'town supply row must render English directly');
 assert(townShop.innerHTML.includes('Held 1 · Stock'), 'town stock metadata must render English directly');
 assert(townShop.innerHTML.includes('Town Tier 1'), 'town commerce note must render English directly');
@@ -76,7 +80,7 @@ assert.equal(microtasks.length >= 1, true, 'commerce UI repair must be queued');
 while (microtasks.length) microtasks.shift()();
 assert(townShop.innerHTML.includes('data-de-townbuy'), 'queued commerce sync must restore owned shop rows');
 
-// Extraction messages use the same explicit locale boundary.
+// Extraction messages use the same explicit fixed-route locale boundary.
 api.state='playing';
 api.player={ hp:20, escapes:1, hpBase:20, gold:0 };
 assert(window.DE_COMMERCE.beginExtraction(), 'first extraction step should arm');
@@ -84,5 +88,6 @@ assert(hint.textContent.includes('Return Scroll begins to resonate') || logHtml.
   'English extraction start copy missing');
 assert(window.DE_COMMERCE.extractionReady(), 'extraction should become ready after one enemy turn');
 assert(window.DE_COMMERCE.completeExtraction(), 'second extraction step should enter town');
+assert(!/[\u3400-\u9fff]/.test(hint.textContent + logHtml), 'English extraction feedback must not leak CJK');
 
 console.log('commerce_event_locale_v130=PASS');

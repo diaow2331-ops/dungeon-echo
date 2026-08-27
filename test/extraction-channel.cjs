@@ -5,6 +5,7 @@ const log={html:'',insertAdjacentHTML(_p,s){this.html=s+this.html;}};
 const hint={textContent:''}, townShop={innerHTML:'',dataset:{},querySelector(){return null;}};
 global.localStorage={getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v))};
 global.document={
+ documentElement:{dataset:{deLocale:'en'}},
  getElementById(id){return id==='log'?log:id==='hint'?hint:id==='town-shop'?townShop:null;},
  addEventListener(type,fn){(listeners.document[type] ||= []).push(fn);},
 };
@@ -24,10 +25,12 @@ const api={
  closeShop(){state='playing';},
 };
 global.window={DE_TEST:api,addEventListener(type,fn){(listeners.window[type] ||= []).push(fn);}};
-vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','commerce-system.js'),'utf8'),{filename:'commerce-system.js'});
+const source=fs.readFileSync(require('path').join(__dirname,'..','commerce-system.js'),'utf8');
+if(source.includes('window.DE_I18N'))throw new Error('commerce v6 must not use runtime translator');
+vm.runInThisContext(source,{filename:'commerce-system.js'});
 const C=window.DE_COMMERCE;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
-ok(C&&C.version==='v5','commerce v5 boots');
+ok(C&&C.version==='v6'&&C.owner==='commerce-system'&&C.locale==='en','commerce v6 fixed-route owner boots');
 const t0=turns,e0=player.escapes;
 ok(C.beginExtraction()===true,'extraction channel starts');
 ok(turns===t0+1,'starting extraction costs exactly one turn');
@@ -65,5 +68,6 @@ for(const fn of listeners.document.keydown||[])fn(move);
 ok(!C.extractionReady(),'movement input cancels a ready channel');
 state='playing';player.escapes=1;player.hp=0;
 ok(C.beginExtraction()===false&&!C.extractionReady(),'dead player cannot keep extraction channel');
+ok(!/[\u3400-\u9fff]/.test(hint.textContent+log.html),'English extraction path emits no CJK');
 console.log(`RESULT ${pass} passed / ${fail} failed`);
 process.exit(fail?1:0);

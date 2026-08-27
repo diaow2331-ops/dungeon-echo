@@ -3,6 +3,7 @@ const fs=require('fs'),vm=require('vm');
 const listeners={document:{},window:{}};
 global.localStorage={getItem(){return null;},setItem(){}};
 global.document={
+  documentElement:{dataset:{deLocale:'zh-CN'}},
   getElementById(){return null;},
   addEventListener(type,fn){(listeners.document[type] ||= []).push(fn);},
 };
@@ -32,7 +33,7 @@ let pass=0,fail=0;
 const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
 const near=(a,b,e=.000001)=>Math.abs(a-b)<=e;
 
-ok(C&&C.version==='v4','commerce v4 boots');
+ok(C&&C.version==='v6'&&C.owner==='commerce-system','commerce v6 boots');
 ok(floorRules.minPotions===1,'floor potion minimum reduced to one');
 ok(floorRules.lootCounts.potionLo===1&&floorRules.lootCounts.potionHi===1,'floor generation produces one baseline potion');
 ok(near(floorRules.killLoot.potion-floorRules.killLoot.gold,.07),'normal-kill potion band is seven percent');
