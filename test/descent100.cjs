@@ -145,13 +145,30 @@ if (T.depth === 100 && T.state === 'playing') {
     T.pickupHere();
     ok(T.state === 'echo', '拾取心脏 → 进入无尽回响选择（endlessAfter）');
     if (T.state === 'echo') {
-      T.chooseEchoLeave();
+      ok(T.chooseEchoLeave() === true, '终局选择只在 echo 状态结算');
       ok(T.state === 'won', '选择离开 → 胜利结算 won');
+      ok(T.chooseEchoStay() === false && T.state === 'won', '胜利后不能被迟到的无尽选择复活');
     }
   }
 } else if (T.depth === 100) {
   ok(false, '第 100 层流程未执行（state=' + T.state + '）');
 }
+
+// 独立覆盖「留下」分支：心脏选择必须写入存档并真正进入 101 层。
+T.newGame('warrior');
+T.depth = 100;
+T.items.push({ type:'amulet', x:T.player.x, y:T.player.y, name:'终焉之心' });
+T.pickupHere();
+ok(T.state === 'echo', '第二次终局进入留下/离开选择');
+ok(T.chooseEchoStay() === true, '选择留下只在 echo 状态生效');
+ok(T.state === 'playing' && T.player.echoMode === true, '选择留下 → 切换为无尽回响 playing');
+ok(T.mapGrid[T.player.y][T.player.x] === 2, '无尽切换在脚下建立可用楼梯');
+const endlessSave = T.peekRun();
+ok(endlessSave && endlessSave.player.echoMode === true, '无尽模式选择立即持久化');
+T.descend();
+ok(T.depth === 101 && T.player.echoMode === true, '无尽模式可从第 100 层进入第 101 层');
+ok(!T.monsters.some(m => m.boss || m.midBoss), '第 101 层不重复生成终局 Boss 或十层守卫');
+ok(T.chooseEchoLeave() === false && T.state === 'playing', '离开终局后不能迟到触发胜利结算');
 
 console.log('\nRESULT  ' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail ? 1 : 0);

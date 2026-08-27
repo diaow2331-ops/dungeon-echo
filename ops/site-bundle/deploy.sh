@@ -134,10 +134,16 @@ if test "$version" = '1.2.8'; then
   grep -Fq "const treeView = { ...raw, seed:'' }" "$integrity_owner" || fail 'save integrity seed compatibility missing'
   ! grep -Eq 'setInterval[[:space:]]*\(' "$integrity_owner" || fail 'save integrity owner must not poll'
   core_game="$tmp_dir/dungeon-echo/game.js"
+  desktop_controls="$tmp_dir/dungeon-echo/desktop-controls.js"
   grep -Fq "'&': '&amp;'" "$core_game" || fail 'core HTML ampersand escaping missing'
   grep -Fq "'<': '&lt;'" "$core_game" || fail 'core HTML less-than escaping missing'
   grep -Fq "'>': '&gt;'" "$core_game" || fail 'core HTML greater-than escaping missing'
   grep -Fq "'\"': '&quot;'" "$core_game" || fail 'core HTML quote escaping missing'
+  grep -Fq "raw.state === 'town' && blobMode !== RUN_MODE_GREEDY" "$core_game" || fail 'classic town-state rejection missing'
+  grep -Fq "state = 'town';" "$core_game" || fail 'town restore state synchronization missing'
+  test -r "$desktop_controls" || fail 'desktop/gamepad controls missing'
+  grep -Fq "edgeButton(pad, 7, 'j')" "$desktop_controls" || fail 'gamepad RT attack mapping missing'
+  grep -Fq 'Gamepad connected' "$desktop_controls" || fail 'English gamepad status copy missing'
 fi
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +

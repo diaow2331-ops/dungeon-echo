@@ -107,12 +107,29 @@
     return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
 
+  function isEnglish() {
+    if (window.DE_I18N && typeof window.DE_I18N.isEnglish === 'boolean') return window.DE_I18N.isEnglish;
+    try {
+      const query = typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined'
+        ? new URLSearchParams(location.search).get('lang') : '';
+      if (/^en(?:-|$)/i.test(query || '')) return true;
+      if (/^zh(?:-|$)/i.test(query || '')) return false;
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('de-language-v1') : '';
+      if (saved === 'en') return true;
+      if (/^zh(?:-|$)/i.test(saved || '')) return false;
+    } catch (_e) {}
+    return /^en(?:-|$)/i.test((typeof navigator !== 'undefined' && navigator.language) || '');
+  }
+
   function showStatus(pad) {
     const badge = ensureUi();
     if (!pad) { badge.classList.remove('on'); badge.textContent = ''; return; }
     const shortName = (pad.id || 'Gamepad').replace(/\s*\([^)]*\)\s*/g, ' ').trim().slice(0, 42);
-    badge.innerHTML = `<strong>手柄已接入</strong> · ${escapeHtml(shortName)}<br>` +
-      '摇杆/十字键移动或选菜单 · A确认/下楼 · B等待/返回 · X技能 · Y药水 · LB卷轴 · RB全屏 · Start暂停 · 长按 View 回城';
+    badge.innerHTML = isEnglish()
+      ? `<strong>Gamepad connected</strong> · ${escapeHtml(shortName)}<br>` +
+        'Stick/D-pad Move or Menu · A Confirm/Descend · B Wait/Back · X Skill · Y Potion · LB Scroll · RT Attack · RB Fullscreen · Start Pause · Hold View Return'
+      : `<strong>手柄已接入</strong> · ${escapeHtml(shortName)}<br>` +
+        '摇杆/十字键移动或选菜单 · A确认/下楼 · B等待/返回 · X技能 · Y药水 · LB卷轴 · RT攻击 · RB全屏 · Start暂停 · 长按 View 回城';
     badge.classList.add('on');
   }
 
@@ -182,7 +199,9 @@
       returnHoldFired = true;
       emitKey('t');
       const badge = ensureUi();
-      badge.innerHTML = '<strong>回城指令</strong> · 长按 View 已触发';
+      badge.innerHTML = isEnglish()
+        ? '<strong>Return command</strong> · Hold View triggered'
+        : '<strong>回城指令</strong> · 长按 View 已触发';
       badge.classList.add('on');
     }
   }
@@ -198,6 +217,7 @@
     edgeButton(pad, 1, () => { if (activeMenuRoot()) { if (!backMenu()) emitKey('Escape'); } else emitKey(' '); });
     edgeButton(pad, 2, 'k'); edgeButton(pad, 3, 'q'); edgeButton(pad, 4, 'e');
     edgeButton(pad, 5, () => { const btn = document.getElementById('fullscreen-toggle'); if (btn) btn.click(); else emitKey('f'); });
+    edgeButton(pad, 7, 'j');
     edgeButton(pad, 9, 'Escape');
     handleReturnHold(pad, now);
   }

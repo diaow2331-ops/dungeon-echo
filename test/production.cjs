@@ -253,6 +253,18 @@ T.newGame('warrior');
   T.meta.critPower = 99;
   window.DE_TALENT_RANKS.repairGreedyMeta();
   ok(T.player.critPower === 99 && T.meta.critPower === 99, '兼容修复只补最低值，不覆盖更高合法属性');
+
+  const townSave = T.peekRun();
+  townSave.state = 'town';
+  const dirtyTownMeta = JSON.parse(JSON.stringify(T.meta));
+  dirtyTownMeta.gold = -50;
+  dirtyTownMeta.lvl = 0;
+  localStorage.setItem('de-greedy-meta-v1', JSON.stringify(dirtyTownMeta));
+  T.restoreRun(townSave);
+  ok(T.state === 'town', '城镇存档恢复同步内部 town 状态，而非只显示城镇 UI');
+  ok(T.meta.gold === 0 && T.meta.lvl === 1, '城镇存档恢复先逐字段修复元档经济与等级边界');
+  const townDisk = JSON.parse(localStorage.getItem('de-greedy-meta-v1'));
+  ok(townDisk.gold === 0 && townDisk.lvl === 1, '城镇恢复后的修复元档立即写回本地');
 }
 T.setGreedy(false);
 

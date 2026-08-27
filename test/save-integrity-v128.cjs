@@ -75,6 +75,22 @@ function execute(initial) {
 }
 
 {
+  const town = validRun();
+  town.mode = 'greedy';
+  town.state = 'town';
+  const text = JSON.stringify(town);
+  const out = execute({'de-run-v6':text});
+  assert.equal(out.localStorage.value('de-run-v6'), text, 'greedy town save must remain resumable');
+}
+
+{
+  const impossible = validRun();
+  impossible.state = 'town';
+  const out = execute({'de-run-v6':JSON.stringify(impossible)});
+  assert(!out.localStorage.has('de-run-v6'), 'classic mode cannot restore into the greedy-only town state');
+}
+
+{
   const bad = validRun();
   bad.logLines = [{text:'<img src=x onerror=alert(1)>',cls:'good'}];
   const out = execute({'de-run-v6':JSON.stringify(bad)});

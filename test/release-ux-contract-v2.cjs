@@ -19,8 +19,8 @@ assert(index.includes('data-act="skill">技能 <span>K</span>'), 'static touch s
 assert(index.includes('J 攻击 · K 职业技能'), 'footer J/K contract missing');
 assert(index.includes('攻击：<b>J</b>') && index.includes('技能：<b>K</b>（消耗蓝量）'), 'help J/K + mana contract missing');
 assert(index.includes('data-act="mute">声音 <span>M</span>'), 'M must be overall sound');
-assert(index.includes('<script src="combat-controls.js"></script>'), 'synchronous J/K + mana controls missing');
-assert(index.includes('<script src="runtime-bootstrap.js"></script>'), 'runtime bootstrap missing');
+assert(/<script src="combat-controls\.js\?v=\d+"><\/script>/.test(index), 'synchronous fingerprinted J/K + mana controls missing');
+assert(/<script src="runtime-bootstrap\.js\?v=\d+"><\/script>/.test(index), 'fingerprinted runtime bootstrap missing');
 assert(!index.includes('冲撞攻击') && !index.includes('技能 <span>C</span>') && !index.includes('技能：<b>C</b>'), 'legacy C/bump copy returned');
 
 // Unpacked bundle remains understandable without repository context.
@@ -30,15 +30,15 @@ assert(readme.includes('/?lang=en'), 'README English route missing');
 assert(!readme.includes('职业技能   C'), 'README legacy C contract returned');
 
 // Project page is part of the future promotion funnel.
-assert(projectPage.includes('J 普攻、K 技能'), 'project page J/K contract missing');
-assert(projectPage.includes('Play in English'), 'project page English CTA missing');
+assert(projectPage.includes('<h3>J / K + Mana</h3>') && projectPage.includes('明确攻击与职业技能输入'), 'project page J/K + mana contract missing');
+assert(projectPage.includes('<span class="en">Play now</span>'), 'project page English CTA missing');
 assert(projectPage.includes('https://github.com/diaow2331-ops/dungeon-echo'), 'project page GitHub CTA missing');
 assert(!projectPage.includes('主要面向电脑端浏览器'), 'obsolete desktop-only claim returned');
 
 // Stable locale: title-only reload and no global polling chain.
-assert(locale.includes("box.id = 'de-title-language'"), 'title language chooser missing');
+assert(/box\.id\s*=\s*'de-title-language'/.test(locale), 'title language chooser missing');
 assert(locale.includes("location.replace(target.href)"), 'language choice must reload');
-assert(locale.includes("window.DE_I18N ="), 'stable locale API missing');
+assert(/window\.DE_I18N\s*=/.test(locale), 'stable locale API missing');
 assert(locale.includes("'Dungeon Echo'"), 'English shell content missing');
 assert(locale.includes("'aria-label',en?'Dungeon map:"), 'English map accessibility missing');
 assert(!locale.includes('setInterval('), 'locale polling returned');
