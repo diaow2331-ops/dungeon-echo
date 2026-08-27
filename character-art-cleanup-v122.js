@@ -1,6 +1,7 @@
 /* Dungeon Echo v1.2.2 character-art cleanup.
  * Presentation-only quarantine for obsolete equipment-on-hero visuals.
  * The hero sprite remains the sole character-art owner; equipment art belongs to UI/town/ground loot.
+ * Visual overlay hookup is one-shot because visual-polish.js loads before this follower in production.
  */
 (() => {
   'use strict';
@@ -119,16 +120,18 @@
     return true;
   }
 
-  patchMainCanvas();
-  patchVisualOverlay();
-
-  const stage = document.getElementById('stage');
-  if (stage && typeof MutationObserver !== 'undefined' && !document.getElementById('de-visual-polish')) {
-    const observer = new MutationObserver(() => {
-      if (patchVisualOverlay()) observer.disconnect();
-    });
-    observer.observe(stage, { childList:true });
+  function patchAll() {
+    const main = patchMainCanvas();
+    const overlay = patchVisualOverlay();
+    return main || overlay;
   }
 
-  window.__DE_CHARACTER_ART_CLEANUP_V122 = { version:'v1', patchMainCanvas, patchVisualOverlay };
+  patchAll();
+  // Runtime order guarantees visual-polish.js is already synchronous, but one task-boundary
+  // retry keeps dev/harness loading resilient without a permanent observer.
+  requestAnimationFrame(() => {
+    if (!patchVisualOverlay()) window.addEventListener('load', patchVisualOverlay, { once:true });
+  });
+
+  window.__DE_CHARACTER_ART_CLEANUP_V122 = { version:'v2', owner:'character-art-cleanup-v122', patchMainCanvas, patchVisualOverlay, patchAll };
 })();
