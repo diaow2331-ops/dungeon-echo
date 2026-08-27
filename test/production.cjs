@@ -15,6 +15,7 @@ const scripts = [...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)].m
 const expectedScripts = [
   'production-bootstrap.js',
   'profiles/classic-100.profile.js',
+  'save-integrity-system.js',
   'game.js',
   'npc-stability-system.js',
   'equipment-system.js',
@@ -177,6 +178,7 @@ for (const src of scripts) {
 const T = window.DE_TEST;
 console.log('\n[production] runtime contract');
 ok(!!T, '生产引擎已启动');
+ok(!!window.__DE_SAVE_INTEGRITY_V128, '存档完整性 owner 在 game.js 前装载');
 ok(global.location.search === '?profile=classic-100', 'bootstrap 强制 classic-100 URL');
 ok(T && T.profileId === 'classic-100', '引擎选择 classic-100');
 ok(T && T.runProfile.floorRules.maxDepth === 100, '正式旅程最大深度 100');
