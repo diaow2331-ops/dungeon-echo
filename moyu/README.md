@@ -1,20 +1,21 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.11.2**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.11.3**. Production route: `https://play.91hwl.cn/moyu/`.
 
-The game is governed as a deterministic static release:
+The game remains a deterministic static release:
 
-- `index.html` — product shell, HUD and accessibility structure.
+- `index.html` — stable product shell/HUD template.
 - `style.css` — stable cross-device base layout.
-- `visual-v1112.css` — v1.11.2 readable result/body/control scale.
+- `visual-v1113.css` — release-specific typography/readability layer.
+- `build-v1113.cjs` — deterministic build-time prepaint/version adapter.
 - `src/game.part01.js` … `game.part15.js` — accepted v1.11.0 runtime slices.
 - `patches/runtime-v1111.patch` — accepted v1.11.1 presentation patch.
-- `patches/runtime-v1112.patch` — language-preference bridge and v1.11.2 runtime stamp, applied after v1.11.1 during packaging.
+- `patches/runtime-v1112.patch` — accepted v1.11.2 language-preference bridge.
 
-The release builder reconstructs and verifies the accepted v1.11.0 base runtime, applies the accepted v1.11.1 patch and verifies that intermediate SHA, then applies the v1.11.2 patch and runs JavaScript syntax/invariant checks. Browsers receive one final `game.js`; neither patch executes in the browser.
+Packaging reconstructs and verifies the accepted v1.11.0 base runtime, applies v1.11.1 and verifies its exact intermediate SHA, applies v1.11.2, then performs the narrow v1.11.3 build-time adaptation and runs `node --check`. Browsers receive one final `game.js`; no patch layer executes in the browser.
 
-v1.11.2 keeps the v1.11.1 fixes (no player focus halo, no floor dust during the airborne second jump, no drifting translucent coworkers) and improves readability: larger result-card body copy, larger controls, and a more visible language button.
+v1.11.3 focuses on first-paint consistency and readable hierarchy. The final HTML resolves `?lang=zh|en` / the shared `91hwl_lang` preference before the main UI paints, carries explicit `translate="no"` + `notranslate` markers to prevent browser translation from rewriting the selected language, and uses a single typography ladder across result cards, controls, HUD/supporting copy and panels.
 
-Language preference is now designed to follow the 91hwl product experience. `?lang=zh|en` has highest priority; a non-sensitive `91hwl_lang` parent-domain cookie provides cross-subdomain continuity; the game's existing local preference and browser language remain fallbacks. Changing language in the game also updates the shared preference.
+The result card body, coaching text and control hints are larger than v1.11.2; language/settings/fullscreen controls share a clearer 44px desktop control height. Mobile remains more compact but still follows the same hierarchy.
 
-Core run length, collision geometry, difficulty, endings and local saves remain unchanged. The game remains static-first, bilingual, desktop/mobile compatible and account-free. Optional end-of-run message submission remains non-blocking and only activates when a configured endpoint exists.
+All accepted v1.11.1/v1.11.2 gameplay-facing fixes remain: no player focus halo, no floor dust on an airborne second jump, no drifting translucent coworkers, shared language propagation, unchanged `DAY_END_DISTANCE`, unchanged `PLAYER_HIT`, unchanged difficulty/endings/local saves.

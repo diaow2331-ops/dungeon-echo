@@ -1,0 +1,44 @@
+/* v1.11.3 typography pass: one readable scale across menu, results, controls and supporting UI. */
+.card{width:min(720px,94%);padding:32px 34px}
+.card h1,
+html[data-lang="zh"] .card h1{
+  max-width:18ch;
+  margin-left:auto;
+  margin-right:auto;
+  font-size:clamp(40px,4vw,52px);
+  line-height:1.06;
+  letter-spacing:-.035em;
+  white-space:normal;
+  text-wrap:balance;
+}
+.tagline{font-size:17px;line-height:1.68;max-width:60ch;margin-bottom:22px}
+.controls{font-size:14.5px;line-height:1.75;margin-top:18px;max-width:64ch;margin-left:auto;margin-right:auto}
+.menu-kicker{font-size:12px;line-height:1.45}
+.menu-fact{padding:10px 9px}.menu-fact b{font-size:16px}.menu-fact small{font-size:11px;line-height:1.35}
+.primary{font-size:15px;min-height:46px;padding-left:22px;padding-right:22px}
+.secondary{font-size:13px;min-height:42px}
+.icon-btn{height:44px;min-height:44px;padding:0 14px;font-size:13px}
+.lang-btn{min-width:68px;font-size:14px;font-weight:950}
+.settings-pop{top:52px;width:320px}.settings-head{font-size:14px}.settings-note{font-size:12px;line-height:1.6}
+.volume-row{font-size:13px}.settings-master{font-size:12px;min-height:34px}.settings-preset{font-size:11px;min-height:34px}
+.scene-toast,.tutorial-toast,.ticker{font-size:13px}
+.scene-toast small{font-size:11px}
+.chip{font-size:13px}
+.mission-item small{font-size:10.5px}.mission-item b{font-size:12.5px;line-height:1.35}
+.route-step b{font-size:13px}.route-step small{font-size:10.5px;line-height:1.4}
+.panel{font-size:14px}.panel strong{font-size:15px}.panel-kicker{font-size:10px}.discovery-count{font-size:13px}.discovery-chip{font-size:12px}
+.mini{font-size:13px}.mini b{font-size:16px}
+.game-footer{font-size:10.5px;line-height:1.5}
+.message-composer label{font-size:12px}.message-composer input,.message-composer textarea{font-size:13px}.message-meta,.message-status{font-size:11px}
+@media(max-width:720px){
+  .card{width:min(680px,95%);padding:23px 18px}
+  .card h1,html[data-lang="zh"] .card h1{max-width:16ch;font-size:clamp(30px,8vw,40px);line-height:1.06}
+  .tagline{font-size:14px;line-height:1.65}
+  .controls{font-size:12.5px;line-height:1.68}
+  .icon-btn{height:42px;min-height:42px;padding:0 11px;font-size:12px}
+  .lang-btn{min-width:62px;font-size:13px}
+  .mission-item b{font-size:11.5px}
+  .route-step b{font-size:12px}.route-step small{font-size:10px}
+  .panel{font-size:13px}.panel strong{font-size:14px}
+  .game-footer{font-size:10px}
+}
