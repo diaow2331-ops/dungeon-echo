@@ -1,7 +1,9 @@
-/* Dungeon Echo visual polish v6.
+/* Dungeon Echo visual polish v7.
  * Presentation-only overlay for the public classic-100 route.
  * Owns atmosphere, v13 equipment art, tier identity and town art parity.
  * v6 makes overlay entity coordinates camera-aware and removes the obsolete player halo.
+ * v7 removes permanent DOM/RAF following: equipment UI syncs on real actions, and the
+ * canvas animation loop exists only while a visible dungeon run is actively playing.
  * It never changes combat, map state, RNG, save data, item stats or equipment identities.
  */
 (() => {
@@ -16,7 +18,7 @@
   if (!stage || !game || typeof game.getContext !== 'function') return;
 
   const style = document.createElement('style');
-  style.id = 'de-visual-polish-v6';
+  style.id = 'de-visual-polish-v7';
   style.textContent = `
     #stage{position:relative;isolation:isolate;background:#080706}
     #game{position:relative;z-index:1;filter:saturate(1.07) contrast(1.045) brightness(.985)}
@@ -383,32 +385,66 @@
     ctx.fillRect(0,0,d.width,d.height);
   }
 
-  let lastUiSync=-Infinity;
+  function clearOverlay(){ctx.clearRect(0,0,overlay.width,overlay.height);}
   function draw(now=0){
     const d=dims();
     if(overlay.width!==d.width) overlay.width=d.width;
     if(overlay.height!==d.height) overlay.height=d.height;
     ctx.clearRect(0,0,overlay.width,overlay.height);
-
-    if(now-lastUiSync>=120){
-      if(api.state==='town') syncTownEquipmentUi();
-      else if(api.state==='playing') syncEquipmentUi();
-      lastUiSync=now;
-    }
     if(api.state!=='playing') return;
-
     drawDepthAtmosphere(now,d);
     drawCharacterGear(now,d);
     drawEnemyPresence(now,d);
   }
 
-  let lastPaint=-Infinity;
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let lastPaint=-Infinity,rafId=0,syncQueued=false;
   function frame(now){
+    rafId=0;
+    if(document.hidden||api.state!=='playing') { clearOverlay(); return; }
     const t=Number(now)||0;
     const interval=reduceMotion?120:(isMobileUi()?50:33);
     if(t-lastPaint>=interval){draw(t);lastPaint=t;}
-    requestAnimationFrame(frame);
+    rafId=requestAnimationFrame(frame);
   }
+  function start(){
+    if(rafId||document.hidden||api.state!=='playing') return false;
+    lastPaint=-Infinity;
+    rafId=requestAnimationFrame(frame);
+    return true;
+  }
+  function stop(clear=true){
+    if(rafId&&typeof cancelAnimationFrame==='function') cancelAnimationFrame(rafId);
+    const had=!!rafId; rafId=0; lastPaint=-Infinity;
+    if(clear) clearOverlay();
+    return had;
+  }
+  function syncUi(){
+    if(api.state==='town') return syncTownEquipmentUi();
+    if(api.state==='playing') return syncEquipmentUi();
+    return 0;
+  }
+  function syncLifecycle(){
+    syncUi();
+    if(!document.hidden&&api.state==='playing') return start();
+    stop(true); return false;
+  }
+  function scheduleSync(){
+    if(syncQueued) return false;
+    syncQueued=true;
+    defer(()=>{syncQueued=false;syncLifecycle();});
+    return true;
+  }
+
+  // Capture on window so a later document-level action owner may stop propagation without
+  // preventing this presentation owner from observing the completed state in its microtask.
+  window.addEventListener('keydown',scheduleSync,true);
+  window.addEventListener('click',scheduleSync,true);
+  document.addEventListener('visibilitychange',syncLifecycle);
+  window.addEventListener('focus',syncLifecycle);
+  window.addEventListener('pageshow',syncLifecycle);
+  window.addEventListener('pagehide',()=>stop(true));
+  window.addEventListener('resize',()=>{syncUi();if(api.state==='playing'){draw(performance.now());start();}}, {passive:true});
 
   window.__DE_EQUIPMENT_TIER_ART = {
     version:'v1', sourceForItem, tierIndex,
@@ -421,6 +457,9 @@
   window.__DE_TOWN_EQUIPMENT_ART = {
     version:'v1', ensureTownRowIcon, syncTownRows, syncTownEquipmentUi,
   };
-  window.__DE_VISUAL_POLISH = { version:'v6', draw, dims, classGlow:{...CLASS_GLOW} };
-  requestAnimationFrame(frame);
+  window.__DE_VISUAL_POLISH = {
+    version:'v7', draw, dims, classGlow:{...CLASS_GLOW}, syncUi, syncLifecycle, scheduleSync, start, stop,
+    get running(){return !!rafId;}
+  };
+  syncLifecycle();
 })();
