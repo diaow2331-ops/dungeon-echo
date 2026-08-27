@@ -11,6 +11,7 @@ const style = read('style.css');
 const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
 const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
+const deployReadme = read('ops/site-bundle/README.txt');
 const bootstrap = read('runtime-bootstrap.js');
 const releaseStampName = `release-stamp-v${version.replace(/\./g, '')}.js`;
 const releaseStamp = fs.existsSync(path.join(root, releaseStampName)) ? read(releaseStampName) : '';
@@ -45,6 +46,9 @@ ok(/public\/dungeon-echo/.test(builder) && /static-files\.txt/.test(builder),
   '上传包只从正式白名单生成 Dungeon Echo 子目录');
 ok(/SHA256SUMS/.test(builder) && /git -C "\$repo_root" cat-file -e/.test(builder),
   '上传包校验 HEAD 跟踪文件并生成哈希清单');
+ok(deployReadme.includes(`91hwl-play-dungeon-echo-v${version}.zip`) &&
+    deployReadme.includes(`/tmp/91hwl-play-dungeon-echo-v${version}`),
+  '发布包部署说明使用当前 VERSION，而非旧版本命令');
 ok(/SITE_ROOT=\/srv\/91hwl-play/.test(deploy) && /previous_release\/moyu\/index\.html/.test(deploy),
   '部署复用既有 91hwl-play 发布树并保护摸鱼游戏');
 ok(/mv -Tf "\$next_link" "\$CURRENT_LINK"/.test(deploy) && /ROLLED_BACK/.test(deploy),

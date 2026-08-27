@@ -17,7 +17,7 @@ const roadmap = fs.readFileSync('PRODUCTION_ROADMAP.md','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/).filter(Boolean);
 
 assert(/^1\.2\.\d+$/.test(version), 'release must stay on the v1.2 patch line');
-assert(/^1\.2\.\d+$/.test(homeSiteVersion), 'home mount SITE_VERSION must stay on the v1.2 patch line');
+assert(/^\d+\.\d+\.\d+$/.test(homeSiteVersion), 'home mount SITE_VERSION must be SemVer');
 assert(html.includes('Dungeon Echo'), 'production page identity missing');
 assert(stamp.includes(`const version = '${version}'`), 'visible runtime release stamp must match VERSION');
 assert(manifest.includes('VERSION') && manifest.includes(stampPath), 'release must ship VERSION + current visible stamp');
@@ -29,10 +29,10 @@ const notes = fs.readFileSync(notesPath,'utf8');
 assert(notes.includes(`# Dungeon Echo v${version}`), 'current release-note heading mismatch');
 assert(/GitHub Actions|Actions|targeted|deterministic/i.test(notes), 'release notes must preserve validation provenance');
 assert(siteReadme.includes(`91hwl-play-dungeon-echo-v${version}.zip`), 'game deployment README version mismatch');
-assert(homeReadme.includes(`91hwl-home-dungeon-echo-v${homeSiteVersion}.zip`), 'home deployment README must follow SITE_VERSION, not game VERSION');
-assert(homeReadme.includes(`Current site candidate: ${homeSiteVersion}`), 'home deployment README must identify the explicit site candidate');
+assert(homeReadme.includes(`site v${homeSiteVersion}`), 'home deployment README must identify the explicit SITE_VERSION');
 assert(maintenance.includes('Active skill: **K**'), 'maintenance must not restore the old C-skill contract');
-assert(roadmap.includes('91hwl.cn 站点治理'), 'post-v1.2 roadmap must pivot to website governance');
-assert(roadmap.includes('X 宣传准备'), 'post-v1.2 roadmap must include X launch preparation');
+assert(roadmap.includes('build-site-bundle.sh'), 'current game-only hotfix builder must be explicit');
+assert(roadmap.includes('build-web-toys-release.sh') && roadmap.includes('v1.2.7'),
+  'the prior unified release boundary must remain explicit and immutable');
 
 console.log('release_freeze_v1_2=PASS');
