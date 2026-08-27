@@ -16,7 +16,6 @@ trap cleanup EXIT
 
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
-command -v sed >/dev/null
 command -v bash >/dev/null
 
 test "$site_version" = '1.3.3' || { echo "unexpected site version: $site_version" >&2; exit 2; }
@@ -45,6 +44,24 @@ grep -Fq 'softwareVersion":"1.11.3"' "$source_root/public/toys/moyu/index.html"
 grep -Fq '先把字看清楚' "$source_root/public/toys/moyu/index.html"
 grep -Fq 'Readable first' "$source_root/public/toys/moyu/index.html"
 
+# The source deploy/health scripts are the v1.3.3 release contract. Do not synthesize them from an older release.
+bash -n "$source_root/deploy.sh"
+bash -n "$source_root/healthcheck.sh"
+grep -Fq "test \"\$version\" = '1.3.3'" "$source_root/deploy.sh"
+grep -Fq 'Dungeon Echo v1.2.7 detail marker missing' "$source_root/deploy.sh"
+grep -Fq 'Clock Out Alive v1.11.3 detail marker missing' "$source_root/deploy.sh"
+grep -Fq 'web-toys-v133' "$source_root/deploy.sh"
+grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$source_root/deploy.sh"
+grep -Fq 'public site v1.3.3 check failed' "$source_root/healthcheck.sh"
+grep -Fq 'min-height:42px' "$source_root/healthcheck.sh"
+grep -Fq '先把字看清楚' "$source_root/healthcheck.sh"
+grep -Fq 'Readable first' "$source_root/healthcheck.sh"
+grep -Fq 'HEALTH_CONTRACT_MISS:' "$source_root/healthcheck.sh"
+! grep -Fq 'data-site-version="1.3.2"' "$source_root/healthcheck.sh"
+! grep -Fq 'softwareVersion":"1.11.2"' "$source_root/healthcheck.sh"
+! grep -Fq '跟随主页语言' "$source_root/healthcheck.sh"
+! grep -Fq 'Readable result cards' "$source_root/healthcheck.sh"
+
 mkdir -p "$bundle/public/toys/dungeon-echo" "$bundle/public/toys/moyu" "$bundle/ops"
 install -m 0644 "$source_root/public/index.html" "$bundle/public/index.html"
 install -m 0644 "$source_root/public/toys/dungeon-echo/index.html" "$bundle/public/toys/dungeon-echo/index.html"
@@ -53,31 +70,8 @@ install -m 0755 "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
 
-# Reuse the field-tested v1.3.2 deploy/health logic, then deterministically adapt it to the v1.3.3 release facts.
-for script in "$bundle/ops/deploy.sh" "$bundle/ops/healthcheck.sh"; do
-  sed -i \
-    -e 's/1\.3\.2/1.3.3/g' \
-    -e 's/v132/v133/g' \
-    -e 's/1\.11\.2/1.11.3/g' \
-    -e 's/1\.2\.6/1.2.7/g' \
-    -e 's/min-height:40px/min-height:42px/g' \
-    -e 's/跟随主页语言/先把字看清楚/g' \
-    -e 's/Readable result cards/Readable first/g' \
-    "$script"
-  bash -n "$script"
-done
-
-grep -Fq "test \"\$version\" = '1.3.3'" "$bundle/ops/deploy.sh"
-grep -Fq 'Dungeon Echo v1.2.7 detail marker missing' "$bundle/ops/deploy.sh"
-grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$bundle/ops/deploy.sh"
-grep -Fq 'public site v1.3.3 check failed' "$bundle/ops/healthcheck.sh"
-grep -Fq 'min-height:42px' "$bundle/ops/healthcheck.sh"
-grep -Fq '先把字看清楚' "$bundle/ops/healthcheck.sh"
-grep -Fq 'Readable first' "$bundle/ops/healthcheck.sh"
-! grep -Fq '跟随主页语言' "$bundle/ops/healthcheck.sh"
-! grep -Fq 'Readable result cards' "$bundle/ops/healthcheck.sh"
-grep -Fq "test \"\$de_origin\" = '1.2.7'" "$bundle/ops/healthcheck.sh"
-grep -Fq "test \"\$moyu_origin\" = '1.11.3'" "$bundle/ops/healthcheck.sh"
+cmp -s "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
+cmp -s "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 
 # Site v1.3.2 is the page set deployed before this prepaint/typography patch.
 git -C "$repo_root" show "$accepted_site_v132:ops/home-mount/public/index.html" > "$stage_root/previous-index.html"
