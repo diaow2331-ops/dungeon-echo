@@ -6,7 +6,7 @@ global.document={
   addEventListener(type,fn){(listeners.document[type] ||= []).push(fn);},
 };
 global.queueMicrotask=global.queueMicrotask||((fn)=>Promise.resolve().then(fn));
-global.setInterval=()=>0;global.clearInterval=()=>{};
+global.setInterval=()=>{throw new Error('defense owner must not install a polling timer')};global.clearInterval=()=>{};
 
 let cid='warrior';
 const player={lvl:11,flatDr:3,equip:{armor:{stats:{def:8}}}};
@@ -35,7 +35,7 @@ function monsterRangedAttack(m,armorBreak=false){
 function killMonster(m){return Math.max(2,Math.round(m.atk*.55)-Math.floor(api.pDef()/2));}
 
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
-ok(D&&D.version==='v1','defense model boots');
+ok(D&&D.version==='v2'&&D.owner==='defense-system','defense model boots as event-driven owner');
 ok(D.armor()===8,'pDef now exposes equipment armor only');
 ok(D.fixedReduction()===6,'flat DR plus warrior Ironhide remain separate');
 ok(monsterAttack(monster,false)===6,'melee uses full armor plus full fixed reduction');
@@ -62,6 +62,7 @@ ok(D.fixedReduction()===3,'non-warrior keeps only explicit flat DR');
 ok(monsterAttack(monster,false)===9,'non-warrior melee semantics remain correct');
 ok(monsterRangedAttack(monster,false)===9,'non-warrior ranged semantics remain correct');
 ok(monsterAttack(monster,true)===17,'non-warrior armor break preserves explicit flat DR');
+ok((listeners.window.pageshow||[]).length>0,'defense owner resynchronizes on page restore');
 
 console.log(`RESULT ${pass} passed / ${fail} failed`);
 process.exit(fail?1:0);
