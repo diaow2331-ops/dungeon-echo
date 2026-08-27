@@ -16,8 +16,9 @@
   const MAP_H = 28;
   const MAX_RAW = 1_500_000;
   const MAX_TEXT = 4096;
-  // Raw < > or double quotes can break the current legacy innerHTML/attribute sinks.
-  // Ampersands are allowed: an HTML character reference is not re-tokenized as markup.
+  // Persisted game-generated labels never need raw markup. Reject markup/control
+  // characters as defense in depth even though game.js now escapes its HTML sinks.
+  // Ampersands remain valid and are encoded by the core esc() helper before rendering.
   const FORBIDDEN_TEXT = /[<>"\u0000-\u0008\u000b\u000c\u000e-\u001f]/;
   const BAD_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
   const CLASSES = new Set(['warrior', 'ranger', 'mage', 'assassin']);
