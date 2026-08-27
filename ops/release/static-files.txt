@@ -20,6 +20,7 @@ risk-reward-system.js
 visual-polish.js
 equipment-shop-ui.js
 release-stamp-v128.js
+locale-event-owner-v130.js
 locale-runtime-v122.js
 locale-completeness-v128.js
 character-art-cleanup-v122.js
