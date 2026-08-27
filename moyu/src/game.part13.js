@@ -20,6 +20,7 @@ function drawAmbientOfficeLife(){
 function drawRunAtmosphere(){
   const day=Math.max(0,Math.min(1,runDistance/DAY_END_DISTANCE));
   ctx.save();
+  // Shift the office from cool afternoon into warmer late-day pressure without changing collision readability.
   if(day>.18){
     const a=(day-.18)*.075;const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'rgba(255,236,190,0)');g.addColorStop(1,`rgba(242,171,116,${a.toFixed(3)})`);ctx.fillStyle=g;ctx.fillRect(0,82,W,GROUND-82);
   }
@@ -27,6 +28,7 @@ function drawRunAtmosphere(){
     const alpha=Math.min(.13,(speed-470)/1300);ctx.strokeStyle=`rgba(23,23,23,${alpha})`;ctx.lineWidth=2;
     const shift=(worldTime*speed*.82)%170;for(let x=-170+shift;x<W+170;x+=170){ctx.beginPath();ctx.moveTo(x,GROUND+32);ctx.lineTo(x-62,GROUND+32);ctx.stroke()}
   }
+  // A thin progress-light at the top of the playfield gives the run a subtle arcade frame.
   const p=Math.max(0,Math.min(1,runDistance/DAY_END_DISTANCE));
   ctx.fillStyle='rgba(23,23,23,.12)';ctx.fillRect(0,0,W,4);ctx.fillStyle=stageIndex>=4?'rgba(156,63,47,.78)':(stageIndex>=3?'rgba(224,179,77,.72)':'rgba(80,107,44,.62)');ctx.fillRect(0,0,W*p,4);
   if(stageIndex>=4){const pulse=.035+.025*Math.sin(worldTime*5);ctx.fillStyle=`rgba(156,63,47,${pulse})`;ctx.fillRect(0,82,W,H-82)}
@@ -43,6 +45,7 @@ function drawPlayer(){
   const footY=player.y+player.h,altitude=Math.max(0,GROUND-footY),shadowScale=Math.max(.45,1-altitude/310),drawX=player.x+((state==='ending'&&endingCinematicType==='ontime')?endingPlayerOffset:0);
   drawPlayerFocus(drawX,footY,altitude);
   ctx.save();ctx.globalAlpha=.13*shadowScale;ctx.fillStyle='#171717';ctx.beginPath();ctx.ellipse(drawX+player.w/2,GROUND+3,22*shadowScale,4.5*shadowScale,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  // Motion echoes are purely visual; the collision box remains the original 44×66 body.
   if(grounded&&speed>520){ctx.save();ctx.globalAlpha=Math.min(.10,(speed-500)/1800);ctx.strokeStyle='#171717';ctx.lineWidth=3;for(let i=0;i<3;i++){const yy=footY-18-i*13;ctx.beginPath();ctx.moveTo(drawX-22-i*10,yy);ctx.lineTo(drawX-5,yy);ctx.stroke()}ctx.restore()}
   ctx.save();ctx.translate(drawX+player.w/2,footY+bob);const lean=grounded?run*.014:(ascending?-.055:.042);ctx.rotate(lean);ctx.scale(sx,sy);
   function limb(x1,y1,x2,y2,x3,y3,w=5,color='#171717',boot=false){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineTo(x3,y3);ctx.stroke();if(boot){ctx.fillStyle='#252525';rr(x3-5,y3-4,12,5,1.5);ctx.fill()}}
@@ -51,13 +54,16 @@ function drawPlayer(){
   else if(ascending&&player.jumps>=2){lf={x:-13,y:-8};rf={x:13,y:-8};lk={x:-15,y:-15};rk={x:15,y:-15};lh={x:-24,y:-47};rh={x:24,y:-47};le={x:-21,y:-38};re={x:21,y:-38}}
   else if(ascending){lf={x:-10,y:-3};rf={x:12,y:-6};lk={x:-13,y:-12};rk={x:13,y:-13};lh={x:-18,y:-49};rh={x:18,y:-49};le={x:-20,y:-39};re={x:20,y:-39}}
   else if(falling){lf={x:-11,y:-1};rf={x:11,y:-1};lk={x:-12,y:-11};rk={x:12,y:-11};lh={x:-22,y:-28};rh={x:22,y:-28};le={x:-19,y:-35};re={x:19,y:-35}}
+  // Messenger bag behind the torso gives the runner a stronger silhouette without enlarging the hitbox.
   const bagSwing=grounded?run*3:(ascending?-4:4);ctx.save();ctx.translate(10+bagSwing,-30);ctx.rotate(-.12+run*.04);ctx.fillStyle='#8b6545';ctx.strokeStyle='#171717';ctx.lineWidth=2;rr(-2,-2,18,19,3);ctx.fill();ctx.stroke();ctx.restore();
   limb(-14,-39,le.x,le.y,lh.x,lh.y,5,'#262626');limb(14,-39,re.x,re.y,rh.x,rh.y,5,'#262626');
   limb(-7,-19,lk.x,lk.y,lf.x,lf.y,6,'#444',true);limb(7,-19,rk.x,rk.y,rf.x,rf.y,6,'#444',true);
+  // Shirt, collar, lanyard and tie.
   ctx.fillStyle='#fffdf8';ctx.strokeStyle='#171717';ctx.lineWidth=2.2;rr(-16,-45,32,28,4);ctx.fill();ctx.stroke();
   ctx.fillStyle='#d7ecfb';ctx.beginPath();ctx.moveTo(-10,-43);ctx.lineTo(-2,-36);ctx.lineTo(-8,-32);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(10,-43);ctx.lineTo(2,-36);ctx.lineTo(8,-32);ctx.closePath();ctx.fill();
   const tieKick=Math.min(11,(speed-350)/52)+(grounded?Math.abs(run)*3:7);ctx.fillStyle='#171717';ctx.beginPath();ctx.moveTo(-3,-39);ctx.lineTo(3,-39);ctx.lineTo(6+tieKick,-24);ctx.lineTo(1,-19);ctx.lineTo(-4,-25);ctx.closePath();ctx.fill();
   ctx.strokeStyle='#6f6a61';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-7,-43);ctx.lineTo(0,-29);ctx.lineTo(7,-43);ctx.stroke();ctx.fillStyle='#f3df9d';ctx.strokeStyle='#171717';ctx.lineWidth=1;rr(-5,-31,10,8,1);ctx.fill();ctx.stroke();
+  // Head, hair, ears, expression.
   ctx.fillStyle='#e9d1b0';ctx.beginPath();ctx.arc(0,-54,14,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#171717';ctx.lineWidth=2;ctx.stroke();
   ctx.fillStyle='#171717';ctx.beginPath();ctx.arc(0,-58,14,Math.PI,Math.PI*2);ctx.lineTo(14,-56);ctx.lineTo(10,-66);ctx.lineTo(-10,-66);ctx.lineTo(-14,-56);ctx.closePath();ctx.fill();
   ctx.fillStyle='#e9d1b0';ctx.beginPath();ctx.arc(-14,-53,3,0,Math.PI*2);ctx.arc(14,-53,3,0,Math.PI*2);ctx.fill();
