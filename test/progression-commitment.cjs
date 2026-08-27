@@ -1,4 +1,4 @@
-/* Focused regression contract for post-v1.1 progression commitment. */
+/* Focused regression contract for the current v1.2.6 progression commitment. */
 'use strict';
 const fs=require('fs'), path=require('path'), vm=require('vm');
 const root=process.env.DE_ROOT || path.resolve(__dirname,'..');
@@ -36,7 +36,8 @@ vm.runInThisContext(fs.readFileSync(path.join(root,'gameplay-tuning.js'),'utf8')
 for(const fn of (listeners.window.DOMContentLoaded||[])) fn();
 let pass=0,fail=0; const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
 const P=window.__DE_PROGRESSION_COMMITMENT;
-ok(P&&P.version==='p0-v1','progression commitment boots');
+ok(P&&P.version==='p0-v2','progression commitment boots current contract');
+ok(P&&P.equipmentTurnOwner==='gameplay-tuning-fallback','isolated progression harness declares its equipment fallback owner');
 ok(window.__DE_XP_CAP_GUARD&&window.__DE_XP_CAP_GUARD.version==='p0-v1','event-time XP cap guard boots after production scripts');
 ok(meta.lvl===50 && player.lvl===50,'future permanent level growth is capped at 50');
 ok(meta.hpBase<=494 && player.hpBase<=494,'future base HP growth is bounded after overflow rollback');
