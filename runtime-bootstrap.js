@@ -1,20 +1,22 @@
-/* Dungeon Echo production UX bootstrap v4.
+/* Dungeon Echo production UX bootstrap v5.
  * Core gameplay/input/balance are synchronous in index.html.
- * Locale is one stable event-driven owner; late followers are presentation-only.
+ * Release-critical followers use a version query so one deployment cannot mix cached generations.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
+  const assetVersion = '125';
+  const fresh = src => `${src}?v=${assetVersion}`;
   const chain = Object.freeze([
-    ['release-stamp-v124.js', 'data-de-release-stamp-v124', () => !!window.__DE_RELEASE_STAMP_V124],
-    ['locale-runtime-v122.js', 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
-    ['character-art-cleanup-v122.js', 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
-    ['world-loot-polish-v122.js', 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
-    ['forge-feedback-v122.js', 'data-de-forge-feedback-v122', () => !!window.__DE_FORGE_FEEDBACK_V122],
-    ['combat-hint-polish.js', 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
-    ['audio-director.js', 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
-    ['mobile-ux.js', 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
+    [fresh('release-stamp-v125.js'), 'data-de-release-stamp-v125', () => !!window.__DE_RELEASE_STAMP_V125],
+    [fresh('locale-runtime-v122.js'), 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
+    [fresh('character-art-cleanup-v122.js'), 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
+    [fresh('world-loot-polish-v122.js'), 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
+    [fresh('forge-feedback-v122.js'), 'data-de-forge-feedback-v122', () => !!window.__DE_FORGE_FEEDBACK_V122],
+    [fresh('combat-hint-polish.js'), 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
+    [fresh('audio-director.js'), 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
+    [fresh('mobile-ux.js'), 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
   ]);
 
   let started = false;
@@ -38,7 +40,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v4');
+      script.setAttribute(marker, 'v5');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -65,5 +67,5 @@
   if (document.body) start();
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v4', start, loadScript, chain };
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v5', assetVersion, start, loadScript, chain };
 })();

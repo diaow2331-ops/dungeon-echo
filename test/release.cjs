@@ -14,6 +14,8 @@ const deploy = read('ops/site-bundle/deploy.sh');
 const bootstrap = read('runtime-bootstrap.js');
 const releaseStampName = `release-stamp-v${version.replace(/\./g, '')}.js`;
 const releaseStamp = fs.existsSync(path.join(root, releaseStampName)) ? read(releaseStampName) : '';
+const assetVersion = version.replace(/\./g, '');
+const cleanRef = ref => ref.split(/[?#]/, 1)[0];
 
 let pass = 0;
 let fail = 0;
@@ -35,8 +37,9 @@ ok(manifest.includes('art/title-backdrop.webp') && manifest.includes('art/class-
 const localRefs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
   .map(match => match[1])
   .filter(ref => !/^(?:data:|https?:|#)/.test(ref));
-ok(localRefs.every(ref => fs.existsSync(path.join(root, ref))), '生产 HTML 的本地资源引用全部可解析');
-ok(localRefs.every(ref => manifest.includes(ref)), '生产 HTML 的本地资源全部进入发布白名单');
+const localFiles = localRefs.map(cleanRef);
+ok(localFiles.every(ref => fs.existsSync(path.join(root, ref))), '生产 HTML 的本地资源引用全部可解析');
+ok(localFiles.every(ref => manifest.includes(ref)), '生产 HTML 的本地资源全部进入发布白名单');
 
 ok(/public\/dungeon-echo/.test(builder) && /static-files\.txt/.test(builder),
   '上传包只从正式白名单生成 Dungeon Echo 子目录');
@@ -47,13 +50,16 @@ ok(/SITE_ROOT=\/srv\/91hwl-play/.test(deploy) && /previous_release\/moyu\/index\
 ok(/mv -Tf "\$next_link" "\$CURRENT_LINK"/.test(deploy) && /ROLLED_BACK/.test(deploy),
   '整站 current 指针原子切换且失败可回滚');
 
-if (version === '1.2.4') {
-  ok(!manifest.includes('modal-navigation-fix.js') && !bootstrap.includes('modal-navigation-fix.js'),
-    'v1.2.4 不依赖临时导航 monkeypatch');
+if (version === '1.2.5') {
+  const releaseCriticalRefs = localRefs.filter(ref => /(?:\.css|\.js)(?:\?|$)/.test(ref));
+  ok(releaseCriticalRefs.length > 0 && releaseCriticalRefs.every(ref => ref.endsWith(`?v=${assetVersion}`)),
+    '生产入口的 CSS/JS 全部带当前发布缓存指纹');
+  ok(bootstrap.includes(`const assetVersion = '${assetVersion}'`) && bootstrap.includes("fresh('release-stamp-v125.js')"),
+    '后加载运行时资源共享同一缓存指纹');
   ok(style.includes('#achv-screen, #help-screen {') && style.includes('position: fixed') && style.includes('#help-screen > .title-card { margin: auto; }'),
-    '玩法说明与远征录由原生样式层拥有');
+    '玩法说明与远征录仍由原生样式层拥有');
   ok(deploy.includes("grep -Fq '#achv-screen, #help-screen {'") && deploy.includes("grep -Fq '#help-screen > .title-card { margin: auto; }'"),
-    '部署前验证原生导航样式合同');
+    '部署前继续验证导航样式合同');
 }
 
 console.log(`\nRESULT  ${pass} 通过 / ${fail} 失败`);
