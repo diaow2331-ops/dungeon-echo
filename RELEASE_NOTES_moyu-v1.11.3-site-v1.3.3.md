@@ -11,6 +11,7 @@ This web release is paired with Dungeon Echo v1.2.7 so the public project pages,
 - Keep locale/theme propagation on cross-surface links.
 - Update Dungeon Echo project metadata and visible version copy to **v1.2.7**.
 - Preserve deterministic home-page overwrite protection against the accepted site v1.3.2 boundary.
+- Deployment-contract hotfix: the generated v1.3.3 healthcheck now validates the current Moyu detail copy (`先把字看清楚` / `Readable first`) instead of stale v1.3.2 text, preventing a correct v1.3.3 origin page from being falsely rolled back.
 
 ## Clock Out Alive / 摸鱼到下班 v1.11.3
 

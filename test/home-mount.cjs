@@ -44,8 +44,10 @@ assert.match(de,/Dungeon Echo v1\.2\.7/);
 assert.match(de,/href="https:\/\/play\.91hwl\.cn\/dungeon-echo\/" data-carry/);
 assert.match(moyu,/softwareVersion":"1\.11\.3"/);
 assert.match(moyu,/href="https:\/\/play\.91hwl\.cn\/moyu\/" data-carry/);
+assert.match(moyu,/先把字看清楚/);
+assert.match(moyu,/Readable first/);
 
-// Source deployers remain the field-tested v1.3.2 template; the builder performs deterministic marker adaptation.
+// Source deployers remain the field-tested v1.3.2 template; the builder performs deterministic release-contract adaptation.
 for(const script of ['ops/home-mount/deploy.sh','ops/home-mount/healthcheck.sh','ops/release/build-home-mount-bundle.sh']){
   const r=run('bash',['-n',path.join(root,script)]);
   assert.equal(r.status,0,r.stderr);
@@ -79,6 +81,11 @@ assert.match(bundledDeploy,/web_toys_home_mount=PASS/);
 assert.match(bundledHealth,/public site v1\.3\.3 check failed/);
 assert.match(bundledHealth,/de_origin.*1\.2\.7/s);
 assert.match(bundledHealth,/moyu_origin.*1\.11\.3/s);
+assert.match(bundledHealth,/min-height:42px/);
+assert.match(bundledHealth,/先把字看清楚/);
+assert.match(bundledHealth,/Readable first/);
+assert.doesNotMatch(bundledHealth,/跟随主页语言/);
+assert.doesNotMatch(bundledHealth,/Readable result cards/);
 assert.match(bundledHealth,/MAIN_RESOLVE=91hwl\.cn:443:127\.0\.0\.1/);
 assert.match(bundledHealth,/PLAY_RESOLVE=play\.91hwl\.cn:443:127\.0\.0\.1/);
 
