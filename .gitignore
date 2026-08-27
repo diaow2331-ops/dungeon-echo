@@ -20,3 +20,22 @@ release-out/
 # Tool caches / optional local dependencies
 node_modules/
 coverage/
+
+# Secrets / credentials — this is a public repository
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa*
+id_ed25519*
+.npmrc
+.netrc
+credentials*.json
+service-account*.json
+service_account*.json
+cookies*.json
+cookies*.txt
