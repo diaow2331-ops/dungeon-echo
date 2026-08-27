@@ -8,6 +8,8 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'equipment-system.js')
 assert(!/setInterval\s*\(/.test(source), 'equipment-system must not keep a 400ms polling interval');
 assert(source.includes('scheduleEquipmentSync'), 'event-driven equipment sync owner missing');
 assert(source.includes('Changing gear interrupted Return resonance'), 'English extraction-break copy missing');
+assert(source.includes('dataset.deLocale'), 'gear-swap owner must read fixed-route locale identity');
+assert(!source.includes('window.DE_I18N'), 'equipment owner must not depend on runtime translation state');
 
 const listeners = { document: {}, window: {} };
 const microtasks = [];
@@ -18,6 +20,7 @@ let logHtml = '';
 const hint = { textContent: '' };
 const log = { insertAdjacentHTML(_where, html) { logHtml = html + logHtml; } };
 global.document = {
+  documentElement:{dataset:{deLocale:'en'}},
   getElementById(id) { return id === 'log' ? log : id === 'hint' ? hint : null; },
   addEventListener(type, fn) { (listeners.document[type] ||= []).push(fn); },
 };
@@ -41,7 +44,6 @@ const api = {
 let extractionReason = '';
 global.window = {
   DE_TEST: api,
-  DE_I18N: { isEnglish:true },
   DE_COMMERCE: { clearExtraction(reason) { extractionReason = reason; } },
   addEventListener(type, fn) { (listeners.window[type] ||= []).push(fn); },
 };
@@ -49,6 +51,8 @@ global.window = {
 vm.runInThisContext(source, { filename:'equipment-system.js' });
 assert.equal(window.__DE_EQUIPMENT_SYSTEM, 'v2');
 assert(window.DE_EQUIPMENT_SYNC && typeof window.DE_EQUIPMENT_SYNC.scheduleSync === 'function');
+assert(window.__DE_EQUIPMENT_SWAP_TURN && window.__DE_EQUIPMENT_SWAP_TURN.version === 'v2');
+assert.equal(window.__DE_EQUIPMENT_SWAP_TURN.locale, 'en');
 assert.equal((listeners.document.keydown || []).length, 1, 'one document key listener should schedule equipment sync');
 assert((listeners.window.click || []).length >= 1, 'gear-swap capture owner missing');
 
@@ -70,7 +74,7 @@ assert.equal(microtasks.length, 1, 'same-turn equipment sync events should coale
 while (microtasks.length) microtasks.shift()();
 assert.equal(fresh.stats.hp, 11, 're-sync must never duplicate deep-item bonuses');
 
-// Swap turn cost remains one owner and surfaces locale-correct copy.
+// Swap turn cost remains one owner and surfaces fixed-route English copy.
 const before = window.__DE_EQUIPMENT_SWAP_TURN.snapshotEquip();
 player.equip.weapon = { name:'Blade', slot:'weapon', stats:{atk:1} };
 assert(window.__DE_EQUIPMENT_SWAP_TURN.settleEquipChange(before), 'equipment change should settle exactly once');
@@ -78,5 +82,6 @@ assert.equal(api.turns, 1, 'equipment swap must cost one real turn');
 assert(extractionReason.includes('Changing gear interrupted Return resonance'), 'English extraction interruption copy mismatch');
 assert(logHtml.includes('You changed equipment; swapping gear costs one turn.'), 'English swap log copy mismatch');
 assert(hint.textContent.includes('You changed equipment; swapping gear costs one turn.'), 'English swap hint copy mismatch');
+assert(!/[\u3400-\u9fff]/.test(extractionReason + logHtml + hint.textContent), 'English gear-swap feedback must not leak CJK');
 
 console.log('equipment_event_sync_v130=PASS');
