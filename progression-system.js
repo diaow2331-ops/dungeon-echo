@@ -1,6 +1,7 @@
 /* Dungeon Echo production progression v2.
  * Curates long-run talents and adds 20/40/60/80 skill-evolution choices without new hotkeys.
  * Evolution choices are stored as talent ids, so existing save schemas stay compatible.
+ * Pool maintenance is action-driven; the public combat input owner invokes evolution casts.
  */
 (() => {
   'use strict';
@@ -10,6 +11,8 @@
   if (!api || api.profileId !== 'classic-100' || !Array.isArray(api.TALENTS)) return;
   window.__DE_PROGRESSION_SYSTEM = 'v2';
 
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let syncQueued = false;
   const source = api.TALENTS.slice();
   const byId = Object.fromEntries(source.map(t => [t.id, t]));
 
@@ -223,6 +226,15 @@
     api.TALENTS.splice(0, api.TALENTS.length, ...pool);
   }
 
+  function schedulePoolSync() {
+    if (syncQueued) return;
+    syncQueued = true;
+    defer(() => {
+      syncQueued = false;
+      syncPool();
+    });
+  }
+
   const has = id => !!(api.player && Array.isArray(api.player.talents) && api.player.talents.includes(id));
   const equipAtk = p => ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet']
     .reduce((sum, slot) => sum + (p.equip && p.equip[slot] && p.equip[slot].stats ? Number(p.equip[slot].stats.atk) || 0 : 0), 0);
@@ -258,7 +270,13 @@
 
   function announce(text) {
     const hint = typeof document !== 'undefined' && document.getElementById ? document.getElementById('hint') : null;
-    if (hint) hint.textContent = `› ${text}`;
+    if (!hint) return;
+    const i18n = window.DE_I18N;
+    let visible = String(text);
+    if (i18n && i18n.isEnglish && typeof i18n.translate === 'function') {
+      try { visible = String(i18n.translate(visible)); } catch (_e) { /* keep canonical copy */ }
+    }
+    hint.textContent = `› ${visible}`;
   }
 
   function preSplashWarrior() {
@@ -364,28 +382,26 @@
     return true;
   }
 
-  function skillInput(e) {
-    if (!api.player || api.state !== 'playing') return;
-    const isKey = e.type === 'keydown' && (e.key === 'c' || e.key === 'C');
-    const target = e.type === 'click' && e.target && typeof e.target.closest === 'function' ? e.target.closest('[data-act="skill"]') : null;
-    if (!isKey && !target) return;
-    if (!evolveSkill()) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-  }
-
   syncPool();
-  const timer = setInterval(syncPool, 250);
   if (typeof document !== 'undefined' && document.addEventListener) {
-    document.addEventListener('keydown', skillInput, true);
-    document.addEventListener('click', skillInput, true);
+    // Queue after the synchronous core action. Depth/talent changes are then reflected before
+    // the next gameplay action without a 250ms follower and without owning skill input twice.
+    document.addEventListener('keydown', schedulePoolSync, true);
+    document.addEventListener('click', schedulePoolSync, true);
+    document.addEventListener('visibilitychange', schedulePoolSync);
   }
-  window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('focus', schedulePoolSync);
+    window.addEventListener('load', schedulePoolSync, { once: true });
+  }
 
   window.DE_TALENT_RANKS = {
     caps: { ...CAP },
     counts: rankCounts,
     eligible: eligiblePool,
     repairGreedyMeta: repairGreedyMetaDerivedStats,
+    sync: syncPool,
+    scheduleSync: schedulePoolSync,
   };
   window.DE_SKILL_EVOLUTION = {
     choices: evolution,
@@ -393,5 +409,6 @@
     has,
     cast: evolveSkill,
     nextAttackOwner: 'mechanics-integrity',
+    inputOwner: 'combat-controls',
   };
 })();
