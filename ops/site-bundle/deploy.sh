@@ -104,7 +104,9 @@ fi
 
 if test "$version" = '1.2.8'; then
   locale_owner="$tmp_dir/dungeon-echo/locale-completeness-v128.js"
+  integrity_owner="$tmp_dir/dungeon-echo/save-integrity-system.js"
   test -r "$locale_owner" || fail 'locale completeness owner missing'
+  test -r "$integrity_owner" || fail 'save integrity owner missing'
   grep -Fq 'locale-completeness-v128.js' "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load locale completeness owner'
   grep -Fq 'characterData:true' "$locale_owner" || fail 'locale completeness characterData contract missing'
   for scope in "'#stats'" "'#equipbar'" "'#stage'" "'#touch'" "'#log'" "'#title-screen'" "'#pause-screen'" "'#town-screen'"; do
@@ -119,6 +121,18 @@ if test "$version" = '1.2.8'; then
   grep -Fq "weapon:'Weapon'" "$locale_owner" || fail 'locale completeness equipment labels missing'
   grep -Fq 'new WeakSet()' "$locale_owner" || fail 'locale completeness observer dedupe missing'
   ! grep -Eq 'setInterval[[:space:]]*\(' "$locale_owner" || fail 'locale completeness must not poll'
+
+  integrity_line="$(grep -n -F 'save-integrity-system.js?v=128' "$tmp_dir/dungeon-echo/index.html" | head -n1 | cut -d: -f1)"
+  game_line="$(grep -n -F 'game.js?v=128' "$tmp_dir/dungeon-echo/index.html" | head -n1 | cut -d: -f1)"
+  test -n "$integrity_line" && test -n "$game_line" && test "$integrity_line" -lt "$game_line" || fail 'save integrity owner must load before game.js'
+  grep -Fq "const RUN_KEY = 'de-run-v6'" "$integrity_owner" || fail 'save integrity run key contract missing'
+  grep -Fq "const META_KEY = 'de-greedy-meta-v1'" "$integrity_owner" || fail 'save integrity meta key contract missing'
+  grep -Fq 'validGrid(raw.map, false)' "$integrity_owner" || fail 'save integrity map validation missing'
+  grep -Fq 'validGrid(raw.explored, true)' "$integrity_owner" || fail 'save integrity explored-map validation missing'
+  grep -Fq 'FORBIDDEN_TEXT' "$integrity_owner" || fail 'save integrity unsafe-text guard missing'
+  grep -Fq 'raw.mode != null' "$integrity_owner" || fail 'save integrity legacy classic compatibility missing'
+  grep -Fq "const treeView = { ...raw, seed:'' }" "$integrity_owner" || fail 'save integrity seed compatibility missing'
+  ! grep -Eq 'setInterval[[:space:]]*\(' "$integrity_owner" || fail 'save integrity owner must not poll'
 fi
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +
