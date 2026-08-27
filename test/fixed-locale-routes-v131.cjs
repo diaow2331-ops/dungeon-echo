@@ -20,7 +20,7 @@ const localePos=runtime.indexOf("'locale-runtime-v122.js'");
 ok(fixedPos>=0&&eventPos>fixedPos&&localePos>eventPos,'fixed route identity is declared before the transitional English locale bridge');
 ok(/const englishBridge = english \? \[/.test(runtime),'legacy locale bridge is gated to the English fixed route');
 ok(/const english = routeLang === 'en'/.test(runtime)&&/localeOwner\(\) \{ return english \?/.test(runtime),'runtime locale ownership is route-derived rather than query-derived');
-ok(/assetVersion = '139'/.test(runtime)&&/version:'v11'/.test(runtime),'runtime bootstrap/cache generation is aligned at 139');
+ok(/assetVersion = '140'/.test(runtime)&&/version:'v11'/.test(runtime),'runtime bootstrap/cache generation is aligned at 140');
 ok(/const chain = Object\.freeze\(\[\.\.\.baseChain, \.\.\.englishBridge, \.\.\.followerChain\]\)/.test(runtime),'Chinese route omits the legacy locale trio while preserving shared followers');
 ok(/const storageKey = 'de-language-v1'/.test(owner),'fixed route owner writes only the legacy language preference key');
 ok(!/de-run-v6|de-greedy-meta-v1|de-town-wheel-state-v1|de-progression-guard-v1/.test(owner),'fixed locale routing does not fork or mutate gameplay save namespaces');

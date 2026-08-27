@@ -74,6 +74,17 @@
     stout:['稳步','Stout'],hunter:['猎步','Hunter'],precision:['洞察','Precision'],sanguine:['血契','Sanguine'],fury:['狂意','Fury'],focus:['凝神','Focus'],
   });
 
+  const WORLD_NAME_EN = Object.freeze({
+    '治疗药水':'Healing Potion','传送卷轴':'Teleport Scroll','回城卷轴':'Return Scroll','保险符':'Insurance Charm','金币':'Gold','锈蚀钥匙':'Rusty Key','终焉之心':'Heart of the End',
+    '上锁的宝箱':'Locked Chest','木桶':'Cask','无名神龛':'Nameless Shrine','余烬营地':'Ember Camp','蒙面商人':'Masked Merchant',
+    '巨鼠':'Dire Rat','蝙蝠':'Cave Bat','哥布林':'Goblin','墓穴蛛':'Crypt Spider','骷髅':'Skeleton','兽人':'Orc','幽魂':'Ghost','血教徒':'Blood Cultist','巨魔':'Troll','深渊恶魔':'Abyss Demon',
+    '霜怨灵':'Frost Wraith','霜语法师':'Frostspeaker','墓石魔像':'Gravestone Golem','血爵':'Blood Baron','墓园巫妖':'Graveyard Lich','缝合憎恶':'Stitched Abomination','裂隙龙裔':'Rift Dragonkin','陨星使':'Fallen-Star Herald','虚空幼体':'Void Spawn',
+    '腐血伯爵':'Rotblood Count','深渊巫魔':'Abyss Warlock','熔岩龙裔':'Lava Dragonkin','深渊真形':'Abyssal Trueform','堕落陨星使':'Fallen Star Herald','虚空爬行者':'Void Crawler','永冬怨灵':'Everfrost Wraith','深渊铸魔像':'Abyss-Forged Golem','血月主教':'Bloodmoon Bishop','寒冥术士':'Netherfrost Mage','石髓古魔':'Stone-Marrow Ancient','深渊执行者':'Abyss Executioner','回响狱魂':'Echoed Damned','末层狂战士':'Depth Berserker',
+    '无光怨灵':'Lightless Wraith','星骸构装体':'Starbone Construct','深渊主教':'Abyss Bishop','虚灵死主':'Ethereal Deathlord','熔核龙裔':'Corefire Dragonkin','脓疱憎恶':'Blight Abomination','虚空吞噬者':'Void Devourer','永霜怨灵':'Eternal Frost Wraith','星蚀天使':'Eclipse Angel','阴谋之舌':'Tongue of Conspiracy','血祖':'Blood Progenitor','凋零构装':'Withered Construct','深渊宰执':'Abyss Regent','星霜龙裔':'Starfrost Dragonkin','虚空君主':'Void Sovereign','末刃天使':'Endblade Angel','深渊回响':'Abyss Echo','聚合体':'Amalgam','终焉龙裔':'End Dragonkin','虚空彼方':'Beyond the Void',
+    '深渊领主':'Abyss Lord','霜骨暴君':'Frostbone Tyrant','熔核战神':'Molten Warlord','虚空执政官':'Void Archon','星骸圣裁':'Starbone Judicator','熔心龙帝':'Moltenheart Dragon Emperor','无光泰坦':'Lightless Titan','星蚀圣座':'Eclipse Seraph','深渊化身':'Abyss Incarnate','终焉渊主':'Lord of the Final Abyss',
+    '石砌地窟':'Stone Crypt','苔湿洞穴':'Moss Cavern','血色深渊':'Crimson Abyss','地狱核心':'Infernal Core','霜骨墓园':'Frostbone Graveyard','沉没圣堂':'Sunken Sanctum','虚空裂隙':'Void Rift','熔岩锻炉':'Lava Forge','蛛丝墓穴':'Webbed Tomb','星骸神殿':'Starbone Temple','碎裂回廊':'Shattered Gallery','深红祭坛':'Crimson Altar','永冻深渊':'Everfrozen Abyss','熔核裂谷':'Molten Rift','虚空回声':'Void Echo','亡语圣殿':'Deathwhisper Sanctum','星尘残骸':'Stardust Ruins','无光深渊':'Lightless Abyss','终焉回廊':'Final Gallery','虚空核心':'Void Core','永夜之城':'Evernight City',
+  });
+
   function baseLegacyName(item) {
     if (!item) return '';
     if (item.base && typeof item.base.name === 'string' && item.base.name) return item.base.name;
@@ -108,6 +119,13 @@
     return `◆ ${isEnglish?row.en:row.zh}: ${body}`;
   }
   function refineName(id) { const row=REFINE[id]; return row ? (isEnglish?row[1]:row[0]) : String(id||''); }
+  function worldName(value) {
+    const raw=String(value||'');
+    if(!isEnglish||!raw)return raw;
+    const prefixes=[['精英·','Elite · '],['回响·','Echo · ']];
+    for(const [zh,en] of prefixes)if(raw.startsWith(zh))return en+worldName(raw.slice(zh.length));
+    return WORLD_NAME_EN[raw]||raw;
+  }
   function itemName(item) {
     if(!item)return '';
     const parts=[`${rarityName(item.rarity)}·${baseName(item)}`];
@@ -120,7 +138,7 @@
   window.DE_LOCALE_DATA = Object.freeze({
     version:'v134', locale, isEnglish, pick,
     baseId, baseName, rarityId, rarityName, slotName, className, affixText,
-    mechanicName, mechanicText, refineName, itemName,
-    catalogs:Object.freeze({rarity:RARITY,class:CLASS,slot:SLOT,base:BASE,mechanic:MECHANIC,refine:REFINE}),
+    mechanicName, mechanicText, refineName, itemName, worldName,
+    catalogs:Object.freeze({rarity:RARITY,class:CLASS,slot:SLOT,base:BASE,mechanic:MECHANIC,refine:REFINE,worldName:WORLD_NAME_EN}),
   });
 })();

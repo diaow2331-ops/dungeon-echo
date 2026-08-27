@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const src=fs.readFileSync(path.join(__dirname,'..','content-system.js'),'utf8');
+assert(src.includes("window.__DE_CONTENT_SYSTEM = 'v7'"),'content system must report v7');
+assert(!/setInterval\s*\(/.test(src),'guardian encounter must install no polling interval');
+assert(src.includes('function syncEncounter()')&&src.includes('turn !== lastTurn || guardianChanged'),'guardian progression must synchronize from completed turns and guardian changes');
+assert(src.includes("window.addEventListener('keydown', scheduleSync, true)")&&src.includes("window.addEventListener('click', scheduleSync, true)"),'real player actions must schedule encounter synchronization');
+assert(src.includes("if (rafId || document.hidden || api.state !== 'playing' || !warningVisible()) return false;"),'RAF must start only for a visible in-game warning');
+assert(src.includes("if (document.hidden || api.state !== 'playing' || !warningVisible(t))"),'RAF must self-terminate after warning, pause or backgrounding');
+assert(src.includes("window.addEventListener('pagehide', () => stopWarningLoop(false))"),'pagehide must cancel RAF without discarding persisted encounter state');
+assert(src.includes('syncLifecycle();\n})();'),'module bootstrap must restore persisted guardian state through lifecycle sync');
+assert(!/requestAnimationFrame\(frame\);\s*\n\}\)\(\);/.test(src),'module tail must not unconditionally start a permanent RAF');
+new Function(src);
+console.log('guardian_telegraph_lifecycle_v140=PASS');

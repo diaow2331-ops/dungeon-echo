@@ -1,4 +1,4 @@
-/* Dungeon Echo production content bridge v6.
+/* Dungeon Echo production content bridge v7.
  * Keeps late-game chapter palettes and all guardian encounter identity in one place.
  *
  * Stateful encounters:
@@ -16,6 +16,7 @@
  * Telegraph timing/state persists in a sidecar key so reload cannot cancel an announced
  * special. The core run-save schema stays unchanged. v6 makes guardian presentation
  * source-owned by the fixed Chinese/English route instead of runtime DOM translation.
+ * v7 makes encounter progression action-driven and runs RAF only while a warning is visible.
  */
 (() => {
   'use strict';
@@ -23,7 +24,7 @@
   if (window.__DE_CONTENT_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !api.runProfile) return;
-  window.__DE_CONTENT_SYSTEM = 'v6';
+  window.__DE_CONTENT_SYSTEM = 'v7';
 
   const p = api.runProfile;
   const ENCOUNTER_KEY = 'de-guardian-encounter-v1';
@@ -124,6 +125,8 @@
   let noticeColor = '#f2d27b';
   let sequenceIndex = 0;
   let finalPhase = null;
+  let rafId = 0;
+  let syncQueued = false;
 
   const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   const depthNow = () => Number(api.depth) || 0;
@@ -550,35 +553,97 @@
     octx.restore();
   }
 
-  function frame() {
+  function syncEncounter() {
     const turn = Number(api.turns) || 0;
-    if (turn !== lastTurn) {
+    const guardianChanged = guardianForDepth() !== tracked;
+    if (turn !== lastTurn || guardianChanged) {
       lastTurn = turn;
       processTurn();
     }
     const currentGuardian = guardianForDepth();
     if (!currentGuardian && tracked) resetEncounter(null);
     else if (!currentGuardian && api.state === 'playing') clearEncounterState();
-    drawTelegraph();
+  }
 
-    const t = nowMs();
+  function warningVisible(now = nowMs()) {
+    return !!active || noticeUntil > now;
+  }
+
+  function paintWarning(now = nowMs()) {
+    drawTelegraph();
     if (active) {
       badge.textContent = `${active.spec.title} · ${active.spec.warn}`;
       badge.style.color = active.spec.color;
       badge.style.borderColor = active.spec.color;
       badge.style.opacity = '1';
-    } else if (noticeUntil > t) {
+    } else if (noticeUntil > now) {
       badge.textContent = noticeText;
       badge.style.color = noticeColor;
       badge.style.borderColor = noticeColor;
       badge.style.opacity = '1';
     } else badge.style.opacity = '0';
-
-    requestAnimationFrame(frame);
   }
 
+  function frame(now) {
+    rafId = 0;
+    const t = Number(now) || nowMs();
+    if (document.hidden || api.state !== 'playing' || !warningVisible(t)) {
+      paintWarning(t);
+      return;
+    }
+    paintWarning(t);
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function startWarningLoop() {
+    if (rafId || document.hidden || api.state !== 'playing' || !warningVisible()) return false;
+    rafId = requestAnimationFrame(frame);
+    return true;
+  }
+
+  function stopWarningLoop(clear = true) {
+    if (rafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rafId);
+    const had = !!rafId;
+    rafId = 0;
+    if (clear) {
+      if (octx) octx.clearRect(0, 0, overlay.width, overlay.height);
+      badge.style.opacity = '0';
+    }
+    return had;
+  }
+
+  function syncLifecycle() {
+    syncEncounter();
+    const t = nowMs();
+    paintWarning(t);
+    if (!document.hidden && api.state === 'playing' && warningVisible(t)) return startWarningLoop();
+    stopWarningLoop(true);
+    return false;
+  }
+
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  function scheduleSync() {
+    if (syncQueued) return false;
+    syncQueued = true;
+    defer(() => {
+      syncQueued = false;
+      syncLifecycle();
+    });
+    return true;
+  }
+
+  // Capture player actions before later owners can stop propagation; the microtask observes
+  // the completed turn. Lifecycle events cover reload/resume without an idle animation loop.
+  window.addEventListener('keydown', scheduleSync, true);
+  window.addEventListener('click', scheduleSync, true);
+  document.addEventListener('visibilitychange', syncLifecycle);
+  window.addEventListener('focus', syncLifecycle);
+  window.addEventListener('pageshow', syncLifecycle);
+  window.addEventListener('pagehide', () => stopWarningLoop(false));
+  window.addEventListener('resize', scheduleSync, { passive:true });
+
   window.DE_GUARDIAN_ENCOUNTER_STATE = {
-    version: 'v2',
+    version: 'v3',
     owner: 'content-system',
     locale: english ? 'en' : 'zh-CN',
     load: loadEncounterState,
@@ -588,7 +653,10 @@
     get active() { return active ? { specId: active.spec && active.spec.id, resolveTurn: active.resolveTurn, targetX: active.targetX, targetY: active.targetY, axis: active.axis, line: active.line } : null; },
     get sequenceIndex() { return sequenceIndex; },
     get nextSpecialTurn() { return nextSpecialTurn; },
+    get animating() { return !!rafId; },
+    sync: syncLifecycle,
+    schedule: scheduleSync,
   };
 
-  requestAnimationFrame(frame);
+  syncLifecycle();
 })();
