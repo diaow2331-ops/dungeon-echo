@@ -1,4 +1,4 @@
-/* Dungeon Echo production forge refinement v2.
+/* Dungeon Echo production forge refinement v3.
  * Keeps the core deterministic +1..+5 forge ladder, then adds one build-defining
  * refinement decision at +3 and an automatic masterwork completion at +5.
  *
@@ -6,9 +6,8 @@
  * not rewritten. New refinement metadata is stored directly on the item and therefore
  * survives the existing meta JSON save path without changing core save schema.
  *
- * v2 removes the permanent 500ms pending-choice poll. Restored +3 choices are reopened
- * from real input/focus/visibility transitions, and forge UI strings are localized at the
- * render boundary instead of relying on DOM mutation translation.
+ * v3 removes the runtime translator dependency: fixed-route locale plus DE_LOCALE_DATA
+ * own all visible item/refinement labels at the render source.
  */
 (() => {
   'use strict';
@@ -16,10 +15,14 @@
   if (window.__DE_FORGE_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_FORGE_SYSTEM = 'v2';
+  window.__DE_FORGE_SYSTEM = 'v3';
 
   const META_KEY = 'de-greedy-meta-v1';
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  const localeData = window.DE_LOCALE_DATA || null;
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = localeData ? !!localeData.isEnglish : routeLang === 'en';
+  const ui = (zh, en) => english ? en : zh;
   let pendingForge = null;
   let activeItem = null;
   let pendingScanQueued = false;
@@ -55,15 +58,6 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[ch]));
 
-  const isEnglish = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
-  const ui = (zh, en) => isEnglish() ? en : zh;
-  const translate = value => {
-    const src = String(value == null ? '' : value);
-    const i18n = window.DE_I18N;
-    if (!isEnglish() || !i18n || typeof i18n.translate !== 'function') return src;
-    try { return String(i18n.translate(src)); } catch (_e) { return src; }
-  };
-
   function saveMeta() {
     const meta = api.meta;
     if (!meta) return;
@@ -94,14 +88,24 @@
   }
 
   function pathLabel(path) {
-    return path ? (isEnglish() ? path.nameEn : path.name) : '';
+    if (!path) return '';
+    if (localeData && typeof localeData.refineName === 'function') return localeData.refineName(path.id);
+    return english ? path.nameEn : path.name;
+  }
+
+  function baseDisplayName(item) {
+    if (!item) return '';
+    if (localeData && typeof localeData.itemName === 'function') {
+      return localeData.itemName({ ...item, refinePath:null, masterworked:false });
+    }
+    return String(item.refineBaseName || item.name || '').split(' · ')[0];
   }
 
   function displayItemName(item) {
     if (!item) return '';
     const path = pathFor(item);
-    if (!path) return translate(item.name);
-    const base = translate(item.refineBaseName || String(item.name || '').split(' · ')[0]);
+    const base = baseDisplayName(item);
+    if (!path) return base;
     const suffix = item.masterworked ? ui(' · 淬炼', ' · Masterwork') : '';
     return `${base} · ${pathLabel(path)}${suffix}`;
   }
@@ -156,9 +160,11 @@
   }
 
   function statText(stats) {
+    if (localeData && typeof localeData.affixText === 'function')
+      return Object.entries(stats || {}).map(([k, v]) => localeData.affixText(k, v)).join(' · ');
     const zh = { atk: '攻击', def: '防御', hp: '生命', crit: '暴击%', leech: '吸血%', thorns: '反伤', regen: '击杀回复' };
     const en = { atk: 'ATK', def: 'DEF', hp: 'HP', crit: 'Crit%', leech: 'Leech%', thorns: 'Thorns', regen: 'Kill Heal' };
-    const labels = isEnglish() ? en : zh;
+    const labels = english ? en : zh;
     return Object.entries(stats || {}).map(([k, v]) => `${labels[k] || k} +${v}`).join(' · ');
   }
 
@@ -176,8 +182,7 @@
     item.refineVersion = 1;
     item.refinePending = false;
     addStats(item, path.refine);
-    // Save data stays language-neutral in behavior: canonical item names remain Chinese-era
-    // compatibility strings, while the renderer chooses the visible locale.
+    // Canonical save strings remain backwards-compatible; fixed-route renderers own visible names.
     item.name = `${item.refineBaseName} · ${path.name}`;
     saveMeta();
     closeRefine();
@@ -205,7 +210,7 @@
         <h3 id="de-forge-title">${esc(title)}</h3>
         <p>${esc(copy)}</p>
         <div class="de-forge-grid">${rows.map(r =>
-          `<button type="button" class="de-forge-choice" data-de-refine="${r.id}"><b>${esc(pathLabel(r))} · ${esc(statText(r.refine))}</b><small>${esc(isEnglish() ? r.descEn : r.desc)}</small></button>`
+          `<button type="button" class="de-forge-choice" data-de-refine="${r.id}"><b>${esc(pathLabel(r))} · ${esc(statText(r.refine))}</b><small>${esc(english ? r.descEn : r.desc)}</small></button>`
         ).join('')}</div>
       </div>`;
     document.body.appendChild(el);
@@ -263,8 +268,8 @@
     pendingForge = item ? { where, index, item, before: Number(item.forge) || 0 } : null;
   }, true);
 
-  // game.js registered its bubbling town handler before this dynamically loaded module,
-  // so this listener observes the completed forge result without duplicating cost logic.
+  // game.js registered its bubbling town handler before this module, so this listener sees
+  // the completed forge result without duplicating cost logic.
   document.addEventListener('click', e => {
     const btn = e.target && e.target.closest ? e.target.closest('[data-forge]') : null;
     if (!btn || !pendingForge) return;
@@ -291,7 +296,7 @@
   }, true);
 
   // Pending +3 choices are reopened from real lifecycle/input transitions. This covers
-  // restored saves entering town and removes the permanent 500ms follower from production.
+  // restored saves entering town and avoids a permanent polling follower.
   document.addEventListener('keydown', schedulePendingScan, true);
   document.addEventListener('click', schedulePendingScan, true);
   document.addEventListener('visibilitychange', schedulePendingScan);
@@ -300,7 +305,7 @@
   defer(scanPending);
 
   window.DE_FORGE_REFINEMENT = {
-    version: 'v2',
+    version: 'v3', owner:'forge-system', locale:english?'en':'zh-CN',
     paths: PATHS,
     applyMasterwork,
     open: openRefine,
