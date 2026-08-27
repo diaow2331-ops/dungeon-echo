@@ -30,7 +30,6 @@ const document = {
 };
 class MutationObserver { constructor(fn){ this.fn=fn; } observe(){} disconnect(){} }
 const window = {
-  DE_TEST:{ player:{ equip:{ weapon:{name:'铁剑'}, armor:null, helmet:null, boots:null, ring:null, amulet:null } } },
   DE_I18N: {
     isEnglish: true,
     translate(value) {
@@ -88,7 +87,8 @@ assert(src.includes("'#equipbar'"));
 assert(src.includes("'#log'"));
 assert(src.includes('characterData:true'));
 assert(src.includes("weapon:'Weapon'"));
-assert(src.includes('engine.player.equip'));
+assert(src.includes("weapon:'武器'"));
+assert(!src.includes('DE_TEST'), 'production locale owner must not depend on test bridge');
 assert(src.includes("sub.hidden = true"));
 assert(src.includes("sub.style.display = 'none'"));
 assert(!/setInterval\s*\(/.test(src), 'locale completeness must not poll');
