@@ -15,7 +15,7 @@ const BINARY_EXT = new Set([
 ]);
 
 const forbiddenPaths = [
-  ['dotenv file', /(^|\/)\.env(?:\.|$)/i],
+  ['dotenv file', /(^|\/)\.env(?:$|\.(?!example$)[^/]+$)/i],
   ['private-key file', /(^|\/)(?:id_rsa|id_ed25519)(?:\.|$)/i],
   ['private-key file', /\.(?:pem|key|p12|pfx|keystore)$/i],
   ['credential export', /(^|\/)(?:credentials?|service[-_]?account)[^/]*\.json$/i],
