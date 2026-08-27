@@ -1,0 +1,43 @@
+/* v1.11.2 readability pass: preserve layout/mechanics, normalize visible UI scale. */
+.card{width:min(700px,92%);padding:30px 32px}
+.card h1{
+  max-width:18ch;
+  margin-left:auto;
+  margin-right:auto;
+  font-size:clamp(38px,4.2vw,54px);
+  line-height:1.04;
+  letter-spacing:-.04em;
+  white-space:normal;
+  text-wrap:balance;
+}
+html[data-lang="zh"] .card h1{
+  max-width:18ch;
+  white-space:normal;
+  font-size:clamp(38px,4.2vw,54px);
+}
+.tagline{font-size:15px;line-height:1.7;max-width:58ch;margin-bottom:20px}
+.controls{font-size:12.5px;line-height:1.8;margin-top:16px}
+.menu-kicker{font-size:10px}
+.menu-fact{padding:9px 8px}.menu-fact b{font-size:14px}.menu-fact small{font-size:9px}
+.primary{font-size:14px;min-height:44px}
+.secondary{font-size:12px;min-height:40px}
+.icon-btn{height:40px;min-height:40px;padding:0 13px;font-size:12px}
+.lang-btn{min-width:60px;font-size:13px;font-weight:950}
+.settings-pop{top:48px}.settings-head{font-size:13px}.settings-note{font-size:10px}
+.volume-row{font-size:12px}.settings-master{font-size:11px;min-height:32px}.settings-preset{font-size:10px;min-height:32px}
+.scene-toast,.tutorial-toast,.ticker{font-size:12px}
+.scene-toast small{font-size:10px}
+.chip{font-size:12px}
+.mission-item small{font-size:9px}.mission-item b{font-size:11px}
+.route-step b{font-size:12px}.route-step small{font-size:9px}
+.panel{font-size:13px}.panel strong{font-size:14px}.discovery-count{font-size:12px}.discovery-chip{font-size:11px}
+.game-footer{font-size:9px}
+@media(max-width:720px){
+  .card{width:min(680px,94%);padding:22px 18px}
+  .card h1,html[data-lang="zh"] .card h1{max-width:16ch;font-size:clamp(30px,8vw,40px);line-height:1.04}
+  .tagline{font-size:13px;line-height:1.65}
+  .controls{font-size:11px;line-height:1.7}
+  .icon-btn{height:38px;min-height:38px;padding:0 10px;font-size:11px}
+  .lang-btn{min-width:56px;font-size:12px}
+  .mission-item b{font-size:10px}
+}
