@@ -1,3 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
-repo_root="$(git rev-parse --show-toplevel)";out="${1:-$repo_root/dist/web-toys-release}";test "$(cat "$repo_root/VERSION"|tr -d '\r\n')" = '1.2.6';test "$(cat "$repo_root/moyu/VERSION"|tr -d '\r\n')" = '1.11.3';test "$(cat "$repo_root/ops/home-mount/SITE_VERSION"|tr -d '\r\n')" = '1.3.3';test "$(git -C "$repo_root" rev-parse 'v1.2.6^{commit}')" = '9443cf4755584a521f9c55a15b79fecfc9ecda78';mkdir -p "$out";bash "$repo_root/ops/release/build-moyu-bundle.sh" "$out/91hwl-play-moyu-v1.11.3.zip";bash "$repo_root/ops/release/build-home-mount-bundle.sh" "$out/91hwl-home-web-toys-v1.3.3.zip";echo "web_toys_release_dir=$out";echo 'dungeon_echo_boundary=v1.2.6 (frozen; no rebuild)';echo "moyu_bundle=$out/91hwl-play-moyu-v1.11.3.zip";echo "site_bundle=$out/91hwl-home-web-toys-v1.3.3.zip";echo 'web_toys_release_build=PASS'
+
+repo_root="$(git rev-parse --show-toplevel)"
+out="${1:-$repo_root/dist/web-toys-release}"
+de_version="$(tr -d '\r\n' < "$repo_root/VERSION")"
+moyu_version="$(tr -d '\r\n' < "$repo_root/moyu/VERSION")"
+site_version="$(tr -d '\r\n' < "$repo_root/ops/home-mount/SITE_VERSION")"
+revision="$(git -C "$repo_root" rev-parse HEAD)"
+
+test "$de_version" = '1.2.7' || { echo "unexpected Dungeon Echo version: $de_version" >&2; exit 2; }
+test "$moyu_version" = '1.11.3' || { echo "unexpected Moyu version: $moyu_version" >&2; exit 2; }
+test "$site_version" = '1.3.3' || { echo "unexpected site version: $site_version" >&2; exit 2; }
+
+tag_target="$(git -C "$repo_root" rev-parse "v${de_version}^{commit}" 2>/dev/null || true)"
+test "$tag_target" = "$revision" || {
+  echo "v$de_version must point at the exact unified release revision before building all public bundles" >&2
+  exit 2
+}
+
+mkdir -p "$out"
+de_bundle="$out/91hwl-play-dungeon-echo-v$de_version.zip"
+moyu_bundle="$out/91hwl-play-moyu-v$moyu_version.zip"
+site_bundle="$out/91hwl-home-web-toys-v$site_version.zip"
+
+bash "$repo_root/ops/release/build-site-bundle.sh" "$de_bundle"
+bash "$repo_root/ops/release/build-moyu-bundle.sh" "$moyu_bundle"
+bash "$repo_root/ops/release/build-home-mount-bundle.sh" "$site_bundle"
+
+echo "web_toys_release_dir=$out"
+echo "revision=$revision"
+echo "dungeon_echo_bundle=$de_bundle"
+echo "moyu_bundle=$moyu_bundle"
+echo "site_bundle=$site_bundle"
+echo 'web_toys_release_build=PASS'
