@@ -106,10 +106,15 @@
 
   function enforceEquipmentLabels() {
     if (!english) return 0;
+    const engine = window.DE_TEST;
+    const equip = engine && engine.player && engine.player.equip;
     let changed = 0;
     for (const [slot, label] of Object.entries(SLOT_LABELS)) {
       const el = document.querySelector(`#eq-${slot} .eqname`);
-      if (el && el.textContent !== label) { el.textContent = label; changed++; }
+      if (!el) continue;
+      const item = equip && equip[slot];
+      const wanted = item && item.name ? name(item.name) : label;
+      if (wanted && el.textContent !== wanted) { el.textContent = wanted; changed++; }
     }
     const classEl = document.getElementById('st-class');
     if (classEl && CJK.test(classEl.textContent || '')) {
