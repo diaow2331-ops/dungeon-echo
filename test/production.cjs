@@ -21,6 +21,7 @@ const expectedScripts = [
   'commerce-system.js',
   'forge-system.js',
   'progression-system.js',
+  'progression-guard-system.js',
   'content-system.js',
   'combat-pressure.js',
   'visual-polish.js',
@@ -30,6 +31,7 @@ const expectedScripts = [
   'desktop-controls.js',
   'combat-controls.js',
   'challenge-pressure.js',
+  'risk-reward-system.js',
   'runtime-bootstrap.js',
 ];
 
@@ -180,11 +182,14 @@ ok(T && T.runProfile.floorRules.maxDepth === 100, '正式旅程最大深度 100'
 
 const markers = [
   '__DE_EQUIPMENT_SYSTEM', '__DE_TOWN_SYSTEM', '__DE_COMMERCE_SYSTEM',
-  '__DE_FORGE_SYSTEM', '__DE_PROGRESSION_SYSTEM', '__DE_CONTENT_SYSTEM',
-  '__DE_COMBAT_CONTROLS_V1', '__DE_CHALLENGE_PRESSURE_V1', '__DE_VISUAL_POLISH', '__DE_GAMEPLAY_TUNING',
+  '__DE_FORGE_SYSTEM', '__DE_PROGRESSION_SYSTEM', '__DE_PROGRESSION_COMMITMENT', '__DE_XP_CAP_GUARD', '__DE_CONTENT_SYSTEM',
+  '__DE_COMBAT_CONTROLS_V1', '__DE_CHALLENGE_PRESSURE_V1', '__DE_RISK_REWARD_INTERACTIONS', '__DE_VISUAL_POLISH', '__DE_GAMEPLAY_TUNING',
   '__DE_DEFENSE_MODEL', '__DE_GAMEPAD_BOOTED', '__DE_PRODUCTION_UX_BOOTSTRAP',
 ];
-ok(markers.every(name => !!window[name]), '核心生产系统、J/K+Mana、平衡层与独立 UX bootstrap 均同步装载');
+ok(markers.every(name => !!window[name]), '核心生产系统、进度/风险收益 owner、J/K+Mana、平衡层与独立 UX bootstrap 均同步装载');
+ok(window.__DE_PROGRESSION_COMMITMENT.owner === 'progression-guard-system' && window.__DE_XP_CAP_GUARD.owner === 'progression-guard-system',
+  '永久成长与 XP 暂存由 progression-guard-system 单一负责');
+ok(window.__DE_RISK_REWARD_INTERACTIONS.owner === 'risk-reward-system', '神龛与木桶风险收益由 risk-reward-system 单一负责');
 ok(!!window.DE_TOWN_CHECKPOINTS && !!window.DE_TOWN_ECONOMY, '城镇检查点与阶段经济可用');
 ok(!!window.DE_COMMERCE && !!window.DE_FORGE_REFINEMENT, '有限库存与锻造分支可用');
 ok(!!window.DE_TALENT_RANKS && typeof window.DE_EQUIP_FIT_SCORE === 'function', '百层天赋与装备双轴价值可用');

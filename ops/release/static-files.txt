@@ -9,6 +9,7 @@ town-system.js
 commerce-system.js
 forge-system.js
 progression-system.js
+progression-guard-system.js
 content-system.js
 combat-pressure.js
 runtime-bootstrap.js
