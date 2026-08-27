@@ -133,6 +133,11 @@ if test "$version" = '1.2.8'; then
   grep -Fq 'raw.mode != null' "$integrity_owner" || fail 'save integrity legacy classic compatibility missing'
   grep -Fq "const treeView = { ...raw, seed:'' }" "$integrity_owner" || fail 'save integrity seed compatibility missing'
   ! grep -Eq 'setInterval[[:space:]]*\(' "$integrity_owner" || fail 'save integrity owner must not poll'
+  core_game="$tmp_dir/dungeon-echo/game.js"
+  grep -Fq "'&': '&amp;'" "$core_game" || fail 'core HTML ampersand escaping missing'
+  grep -Fq "'<': '&lt;'" "$core_game" || fail 'core HTML less-than escaping missing'
+  grep -Fq "'>': '&gt;'" "$core_game" || fail 'core HTML greater-than escaping missing'
+  grep -Fq "'\"': '&quot;'" "$core_game" || fail 'core HTML quote escaping missing'
 fi
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +
