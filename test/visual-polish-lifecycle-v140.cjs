@@ -1,0 +1,16 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const src=fs.readFileSync(path.join(__dirname,'..','visual-polish.js'),'utf8');
+assert(src.includes("window.__DE_VISUAL_POLISH = {\n    version:'v7'"),'visual polish must report v7');
+assert(!/setInterval\s*\(|MutationObserver/.test(src),'visual polish must own neither polling nor DOM observers');
+assert(src.includes("if(document.hidden||api.state!=='playing') { clearOverlay(); return; }"),'RAF frame must self-terminate outside visible playing state');
+assert(src.includes("if(rafId||document.hidden||api.state!=='playing') return false;"),'start must refuse idle/title/town/background states');
+assert(src.includes("window.addEventListener('pagehide',()=>stop(true))"),'pagehide must cancel the overlay loop');
+assert(src.includes("window.addEventListener('keydown',scheduleSync,true)")&&src.includes("window.addEventListener('click',scheduleSync,true)"),'real player actions must schedule presentation synchronization');
+const draw=src.slice(src.indexOf('function draw(now=0)'),src.indexOf("const defer = typeof queueMicrotask"));
+assert(!draw.includes('syncEquipmentUi()')&&!draw.includes('syncTownEquipmentUi()'),'per-frame draw must not write equipment/town DOM');
+const sync=src.slice(src.indexOf('function syncUi()'),src.indexOf('function syncLifecycle()'));
+assert(sync.includes("api.state==='town'")&&sync.includes("api.state==='playing'"),'event-owned UI sync must handle town and dungeon explicitly');
+assert(!/window\.__DE_VISUAL_POLISH[^]*requestAnimationFrame\(frame\);\s*\}\)\(\);/.test(src),'module tail must not unconditionally start a permanent RAF');
+new Function(src);
+console.log('visual_polish_lifecycle_v140=PASS');
