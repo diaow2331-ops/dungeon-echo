@@ -1,6 +1,7 @@
 /* Dungeon Echo production commerce v5.
  * Owns town supply stock / chapter-scaled pricing, underground service safety,
  * extraction pressure and baseline dungeon resource pressure for classic-100.
+ * Commerce presentation is action-driven and localized at its render boundary.
  */
 (() => {
   'use strict';
@@ -13,9 +14,14 @@
   const STORAGE_KEY = 'de-town-commerce-v1';
   const META_KEY = 'de-greedy-meta-v1';
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
   const shopCfg = (api.runProfile && api.runProfile.shop) || {};
   const floorRules = api.runProfile && api.runProfile.floorRules;
   const RESOURCE_PRESSURE = Object.freeze({ floorPotions: 1, killPotionChance: 0.07 });
+  let uiSyncQueued = false;
+
+  const isEnglish = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
+  const ui = (zh, en) => isEnglish() ? en : zh;
 
   function applyResourcePressure() {
     if (!floorRules || !floorRules.killLoot || !floorRules.lootCounts || floorRules.__deResourcePressureV1) return false;
@@ -46,37 +52,38 @@
 
   const SUPPLIES = {
     potion: {
-      name: '治疗药水', held: m => Number(m.potions) || 0,
+      name: '治疗药水', nameEn: 'Healing Potion', held: m => Number(m.potions) || 0,
       base: Number(shopCfg.potionPrice) || 16,
       stock: tier => 4 + Math.floor((tier - 1) / 3),
       apply: m => { m.potions = (Number(m.potions) || 0) + 1; },
     },
     scroll: {
-      name: '传送卷轴', held: m => Number(m.scrolls) || 0,
+      name: '传送卷轴', nameEn: 'Teleport Scroll', held: m => Number(m.scrolls) || 0,
       base: Number(shopCfg.scrollPrice) || 28,
       stock: tier => 2 + Math.floor((tier - 1) / 4),
       apply: m => { m.scrolls = (Number(m.scrolls) || 0) + 1; },
     },
     escape: {
-      name: '回城卷轴', held: m => Number(m.escapes) || 0,
+      name: '回城卷轴', nameEn: 'Return Scroll', held: m => Number(m.escapes) || 0,
       base: Number(shopCfg.escapePrice) || 26,
       stock: tier => tier >= 5 ? 2 : 1,
       apply: m => { m.escapes = (Number(m.escapes) || 0) + 1; },
     },
     key: {
-      name: '锈蚀钥匙', held: m => Number(m.keys) || 0,
+      name: '锈蚀钥匙', nameEn: 'Rusty Key', held: m => Number(m.keys) || 0,
       base: Number(shopCfg.keyPrice) || 22,
       stock: tier => 2 + (tier >= 4 ? 1 : 0) + (tier >= 8 ? 1 : 0),
       apply: m => { m.keys = (Number(m.keys) || 0) + 1; },
     },
     insurance: {
-      name: '保险符', held: m => Number(m.insurance) || 0,
+      name: '保险符', nameEn: 'Insurance Charm', held: m => Number(m.insurance) || 0,
       base: Number(shopCfg.insurancePrice) || 120,
       stock: () => 1,
       apply: m => { m.insurance = (Number(m.insurance) || 0) + 1; },
     },
   };
 
+  const supplyName = def => isEnglish() ? def.nameEn : def.name;
   let state = null;
   let lastFlash = '';
   let lastFlashUntil = 0;
@@ -165,15 +172,24 @@
     if (!meta || !st || !def) return false;
     const left = Number(st.stock[id]) || 0;
     const price = priceFor(id, st.tier);
-    if (left <= 0) { flash(`${def.name}本轮已经售罄。`); renderShop(true); return false; }
-    if ((Number(meta.gold) || 0) < price) { flash(`金币不足：${def.name}需要 ${price} G。`); renderShop(true); return false; }
+    const label = supplyName(def);
+    if (left <= 0) {
+      flash(ui(`${def.name}本轮已经售罄。`, `${label} is sold out for this expedition cycle.`));
+      renderShop(true);
+      return false;
+    }
+    if ((Number(meta.gold) || 0) < price) {
+      flash(ui(`金币不足：${def.name}需要 ${price} G。`, `Not enough Gold: ${label} costs ${price} G.`));
+      renderShop(true);
+      return false;
+    }
 
     meta.gold -= price;
     def.apply(meta);
     st.stock[id] = left - 1;
     saveMeta();
     saveState();
-    flash(`购入 ${def.name} ×1。`);
+    flash(ui(`购入 ${def.name} ×1。`, `Bought ${label} ×1.`));
     renderShop(true);
     return true;
   }
@@ -187,7 +203,7 @@
     const ids = ['potion', 'scroll', 'escape', 'key', 'insurance'];
     const flashText = Date.now() < lastFlashUntil ? lastFlash : '';
     const sig = JSON.stringify({
-      run: st.cycleRun, tier: st.tier, gold: Number(meta.gold) || 0,
+      lang: isEnglish() ? 'en' : 'zh', run: st.cycleRun, tier: st.tier, gold: Number(meta.gold) || 0,
       stock: ids.map(id => st.stock[id]), held: ids.map(id => SUPPLIES[id].held(meta)), flash: flashText,
     });
     const ours = !!(el.querySelector && el.querySelector('[data-de-townbuy]'));
@@ -199,17 +215,27 @@
       const left = Number(st.stock[id]) || 0;
       const held = def.held(meta);
       const disabled = left <= 0 || (Number(meta.gold) || 0) < price;
+      const heldCopy = ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`);
+      const buttonCopy = left > 0 ? ui('购买', 'Buy') : ui('售罄', 'Sold out');
       return `<div class="shop-row" data-de-supply="${id}">` +
-        `<span>${def.name} ×1 <small>持有 ${held} · 库存 ${left}</small></span>` +
+        `<span>${supplyName(def)} ×1 <small>${heldCopy}</small></span>` +
         `<b>${price} G</b>` +
-        `<button type="button" data-de-townbuy="${id}"${disabled ? ' disabled' : ''}>${left > 0 ? '购买' : '售罄'}</button>` +
+        `<button type="button" data-de-townbuy="${id}"${disabled ? ' disabled' : ''}>${buttonCopy}</button>` +
         `</div>`;
     }).join('');
 
+    const intro = ui(
+      `城镇阶段 ${st.tier} · 本轮补给库存固定；完成一次远征返回后刷新，不会因反复打开商店刷新。`,
+      `Town Tier ${st.tier} · Supply stock is fixed for this expedition cycle and refreshes only after a completed return.`
+    );
+    const note = flashText || ui(
+      '价格按已征服的十层阶段成长；装备交易将在后续价值体系中接入。',
+      'Prices scale with conquered ten-floor tiers; equipment trade uses its separate value system.'
+    );
     el.innerHTML =
-      `<p class="dim-note" style="margin:0 0 8px">城镇阶段 ${st.tier} · 本轮补给库存固定；完成一次远征返回后刷新，不会因反复打开商店刷新。</p>` +
+      `<p class="dim-note" style="margin:0 0 8px">${intro}</p>` +
       rows +
-      `<p class="dim-note" data-de-commerce-note style="margin:8px 0 0">${flashText || '价格按已征服的十层阶段成长；装备交易将在后续价值体系中接入。'}</p>`;
+      `<p class="dim-note" data-de-commerce-note style="margin:8px 0 0">${note}</p>`;
     if (el.dataset) el.dataset.deCommerceSig = sig;
   }
 
@@ -258,7 +284,10 @@
     if (api.state !== 'shop' || !api.player) return 'inactive';
     if (unsafeForTrade()) {
       if (typeof api.closeShop === 'function') api.closeShop();
-      dungeonMessage('附近仍有敌人逼近，商人拒绝交易。先把战斗解决掉。');
+      dungeonMessage(ui(
+        '附近仍有敌人逼近，商人拒绝交易。先把战斗解决掉。',
+        'Enemies are still closing in. The merchant refuses to trade until the area is safe.'
+      ));
       return 'blocked';
     }
 
@@ -273,7 +302,9 @@
     const missing = max - hp;
     const price = dungeonHealPrice(api.depth, hp, max);
     row.price = price || (Number(shopCfg.healPrice) || 24);
-    row.name = missing > 0 ? `包扎伤口（回满 · 缺 ${missing}）` : '包扎伤口（已满血）';
+    row.name = missing > 0
+      ? ui(`包扎伤口（回满 · 缺 ${missing}）`, `Bandage wounds (full heal · missing ${missing})`)
+      : ui('包扎伤口（已满血）', 'Bandage wounds (already full)');
 
     const list = document.getElementById && document.getElementById('shop-list');
     if (list && typeof list.querySelector === 'function') {
@@ -288,7 +319,7 @@
       }
     }
     const goldEl = document.getElementById && document.getElementById('shop-gold');
-    if (goldEl) goldEl.textContent = `金币 ${Number(api.player.gold) || 0}`;
+    if (goldEl) goldEl.textContent = ui(`金币 ${Number(api.player.gold) || 0}`, `Gold ${Number(api.player.gold) || 0}`);
     return missing > 0 ? 'synced' : 'full';
   }
 
@@ -300,7 +331,10 @@
       chargedRests.add(rest);
       charged++;
       if (api.state === 'playing' && typeof api.endTurn === 'function') api.endTurn();
-      dungeonMessage('包扎伤口耗去一个回合；地牢不会在你休息时停下来。', 'good');
+      dungeonMessage(ui(
+        '包扎伤口耗去一个回合；地牢不会在你休息时停下来。',
+        'Bandaging costs one turn; the dungeon does not stop while you rest.'
+      ), 'good');
     }
     if (charged && typeof api.persistRun === 'function' && (api.state === 'playing' || api.state === 'town')) {
       api.persistRun();
@@ -308,13 +342,27 @@
     return charged;
   }
 
+  function syncCommerceUi() {
+    renderShop(false);
+    syncDungeonShop();
+  }
+
+  function scheduleCommerceUi() {
+    if (uiSyncQueued) return;
+    uiSyncQueued = true;
+    defer(() => {
+      uiSyncQueued = false;
+      syncCommerceUi();
+    });
+  }
+
   function armDungeonServiceSafety() {
     const rests = api.state === 'playing' && Array.isArray(api.npcs)
       ? api.npcs.filter(n => n && n.type === 'rest' && !n.used)
       : [];
-    queueMicrotask(() => {
+    defer(() => {
       settleUsedRests(rests);
-      syncDungeonShop();
+      syncCommerceUi();
     });
   }
 
@@ -352,11 +400,17 @@
     }
     const token = { player:p, startTurn:Number(api.turns) || 0, phase:'arming' };
     extraction = token;
-    dungeonMessage('回城卷轴开始共鸣：你必须先撑过敌人的一个完整回合。', 'gold');
+    dungeonMessage(ui(
+      '回城卷轴开始共鸣：你必须先撑过敌人的一个完整回合。',
+      'The Return Scroll begins to resonate: survive one full enemy turn first.'
+    ), 'gold');
     if (typeof api.endTurn === 'function') api.endTurn();
     if (extraction === token && api.state === 'playing' && api.player === p && Number(p.hp) > 0) {
       token.phase = 'ready';
-      dungeonMessage('回城共鸣已经稳定。再次按 T 即可撤离；任何其他回合行动都会打断。', 'gold');
+      dungeonMessage(ui(
+        '回城共鸣已经稳定。再次按 T 即可撤离；任何其他回合行动都会打断。',
+        'Return resonance is stable. Press T again to extract; any other turn action will interrupt it.'
+      ), 'gold');
       if (typeof api.persistRun === 'function') api.persistRun();
       return true;
     }
@@ -413,7 +467,10 @@
       return;
     }
     if (extractionReady() && isTurnAction(e)) {
-      clearExtraction('你的行动打断了回城共鸣。需要重新使用回城卷轴。');
+      clearExtraction(ui(
+        '你的行动打断了回城共鸣。需要重新使用回城卷轴。',
+        'Your action interrupted Return resonance. Use a Return Scroll again.'
+      ));
     }
   }
 
@@ -429,18 +486,14 @@
   document.addEventListener('click', armDungeonServiceSafety, true);
   document.addEventListener('keydown', guardExtractionInput, true);
   document.addEventListener('click', guardExtractionInput, true);
+  document.addEventListener('visibilitychange', scheduleCommerceUi);
+  window.addEventListener('focus', scheduleCommerceUi);
+  window.addEventListener('load', scheduleCommerceUi, { once: true });
 
-  // Only the shop subtree needs observation. Watching the entire animated town multiplies
-  // unrelated DOM work during extraction and can interact badly with other presentation observers.
-  const townShop = document.getElementById('town-shop');
-  let observer = null;
-  if (townShop && typeof MutationObserver !== 'undefined') {
-    observer = new MutationObserver(() => renderShop(false));
-    observer.observe(townShop, { childList: true, subtree: true });
-  }
-
+  // The town shop is now restored after real state/input transitions. No MutationObserver
+  // watches the shop subtree, avoiding cross-observer feedback with locale/presentation code.
   renderShop(true);
-  window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); }, { once: true });
+  defer(syncCommerceUi);
 
   window.DE_COMMERCE = {
     version: 'v5',
@@ -455,6 +508,9 @@
     activeDungeonThreats,
     unsafeForTrade,
     syncDungeonShop,
+    syncCommerceUi,
+    scheduleCommerceUi,
+    renderShop,
     settleUsedRests,
     extractionReady,
     beginExtraction,
