@@ -24,13 +24,15 @@ command -v curl >/dev/null || fail 'curl missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.3.2' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.3.2"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+test "$version" = '1.3.3' || fail "unexpected site version: $version"
+grep -Fq 'data-site-version="1.3.3"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
-grep -Fq 'softwareVersion":"1.2.6"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.6 detail marker missing'
-grep -Fq 'softwareVersion":"1.11.2"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.11.2 detail marker missing'
+grep -Fq 'softwareVersion":"1.2.7"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.7 detail marker missing'
+grep -Fq 'softwareVersion":"1.11.3"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.11.3 detail marker missing'
+grep -Fq '先把字看清楚' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
+grep -Fq 'Readable first' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
 
 expected_sha="$(tr -d '\r\n' < "$BUNDLE_ROOT/EXPECTED_INDEX_SHA256")"
 actual_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
@@ -40,7 +42,7 @@ if test "$actual_sha" != "$expected_sha" && test "$actual_sha" != "$new_sha"; th
 fi
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v132.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v133.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 
 de_existed=false
@@ -70,7 +72,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v132.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v133.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
