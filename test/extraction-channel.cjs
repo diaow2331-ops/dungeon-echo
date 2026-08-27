@@ -27,7 +27,7 @@ global.window={DE_TEST:api,addEventListener(type,fn){(listeners.window[type] ||=
 vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','commerce-system.js'),'utf8'),{filename:'commerce-system.js'});
 const C=window.DE_COMMERCE;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
-ok(C&&C.version==='v4','commerce v4 boots');
+ok(C&&C.version==='v5','commerce v5 boots');
 const t0=turns,e0=player.escapes;
 ok(C.beginExtraction()===true,'extraction channel starts');
 ok(turns===t0+1,'starting extraction costs exactly one turn');
@@ -37,13 +37,29 @@ ok(persisted>=1,'ready channel persists current run state');
 ok(C.completeExtraction()===true,'ready extraction completes');
 ok(state==='town'&&escaped===1,'completion uses normal return-to-town path');
 ok(player.escapes===e0-1,'successful extraction consumes exactly one scroll');
+
 state='playing';player.escapes=1;player.hp=100;
 ok(C.beginExtraction()===true&&C.extractionReady(),'second channel can arm');
 ok(C.clearExtraction('test')===true&&!C.extractionReady(),'channel can be interrupted without returning');
-state='playing';player.escapes=1;
-const evt={type:'keydown',key:'t',preventDefault(){this.p=true;},stopImmediatePropagation(){this.s=true;}};
+
+state='playing';player.escapes=1;player.hp=100;
+const evt={type:'keydown',key:'t',repeat:false,preventDefault(){this.p=true;},stopImmediatePropagation(){this.s=true;}};
 for(const fn of listeners.document.keydown||[])fn(evt);
-ok(evt.p&&evt.s&&C.extractionReady(),'T input is intercepted and arms channel');
+ok(evt.p&&evt.s&&C.extractionReady(),'first physical T is intercepted and arms channel');
+const escapedBeforeRepeat=escaped;
+const repeatEvt={type:'keydown',key:'t',repeat:true,preventDefault(){this.p=true;},stopImmediatePropagation(){this.s=true;}};
+for(const fn of listeners.document.keydown||[])fn(repeatEvt);
+ok(repeatEvt.p&&repeatEvt.s&&C.extractionReady(),'keyboard auto-repeat is consumed without completing extraction');
+ok(escaped===escapedBeforeRepeat&&player.escapes===1,'auto-repeat cannot consume Return Scroll');
+const secondEvt={type:'keydown',key:'T',repeat:false,preventDefault(){this.p=true;},stopImmediatePropagation(){this.s=true;}};
+for(const fn of listeners.document.keydown||[])fn(secondEvt);
+ok(secondEvt.p&&secondEvt.s&&state==='town','second physical T completes the town transition');
+ok(escaped===escapedBeforeRepeat+1&&player.escapes===0,'second physical T consumes exactly one Return Scroll');
+for(const fn of listeners.document.keydown||[])fn(secondEvt);
+ok(escaped===escapedBeforeRepeat+1&&player.escapes===0,'duplicate T after town transition cannot re-enter completion');
+
+state='playing';player.escapes=1;player.hp=100;
+ok(C.beginExtraction()===true&&C.extractionReady(),'channel can arm again after a completed return');
 const move={type:'keydown',key:'w',preventDefault(){},stopImmediatePropagation(){}};
 for(const fn of listeners.document.keydown||[])fn(move);
 ok(!C.extractionReady(),'movement input cancels a ready channel');
