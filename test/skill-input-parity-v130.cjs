@@ -9,16 +9,17 @@ const ok = (cond, name) => {
   else { fail++; console.log('FAIL ' + name); }
 };
 
-const listeners = { window:{} };
+const listeners = { window:{}, document:{} };
 const body = { appendChild(){} };
 global.document = {
   body,
   head:{ appendChild(){} },
+  hidden:false,
   getElementById(){ return null; },
   querySelector(){ return null; },
   createElement(){ return { style:{}, dataset:{}, setAttribute(){}, appendChild(){}, insertAdjacentElement(){} }; },
+  addEventListener(type, fn) { (listeners.document[type] ||= []).push(fn); },
 };
-global.requestAnimationFrame = () => 0;
 global.queueMicrotask = fn => fn();
 global.Image = class { constructor(){ this.complete=false; this.naturalWidth=0; } set src(_v){} };
 
@@ -53,6 +54,9 @@ vm.runInThisContext(src, { filename:'combat-controls.js' });
 const C = window.__DE_COMBAT_CONTROLS_V1;
 
 ok(!!C && typeof C.castSkillAction === 'function', 'combat controls expose one semantic skill action');
+ok(!/requestAnimationFrame\s*\(loop\)/.test(src), 'combat controls no longer run a permanent DOM RAF follower');
+ok(typeof C.scheduleSync === 'function' && (listeners.document.keydown || []).length >= 1,
+  'event-driven sync is installed on document input');
 
 function keyEvent(key) {
   return { key, prevented:false, stopped:false,
