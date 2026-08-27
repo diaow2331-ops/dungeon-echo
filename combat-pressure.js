@@ -1,4 +1,4 @@
-/* Dungeon Echo human-pressure balance v3.
+/* Dungeon Echo human-pressure balance v4.
  * Re-aligns monster/guardian pressure with real 1-100 equipment growth.
  * Philosophy: no hidden random pierce. High armor remains valuable, but dangerous enemies
  * gain the existing one-turn telegraphed armor-break attack so standing still is not immunity.
@@ -6,7 +6,7 @@
  * force-filled to two and kill drops stop turning deep monster packs into potion farms.
  * Late guardian telegraphs are true armor-break commitments: dodge them completely, or take
  * a hit that ignores armor while still respecting fixed mitigation.
- * v3 removes permanent pressure polling and synchronizes on real game/resume transitions.
+ * v3 removed permanent pressure polling; v4 makes the warning copy fixed-route source-owned.
  */
 (() => {
   'use strict';
@@ -14,6 +14,11 @@
   if (window.__DE_HUMAN_PRESSURE_V2) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !api.runProfile) return;
+  const routeLang = typeof document !== 'undefined'
+    ? String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase()
+    : '';
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
 
   // Capture the untouched core combat entries now. gameplay-tuning loads later and wraps the
   // public API references used by content-system; ordinary monster AI calls lexical core funcs.
@@ -121,8 +126,6 @@
     const tunedMelee = api.monsterAttack;
     const tunedRanged = api.monsterRangedAttack;
     if (typeof tunedMelee !== 'function' || typeof tunedRanged !== 'function') return false;
-    // Wait until gameplay-tuning has replaced the public special references; otherwise we
-    // would capture ourselves and create recursion on a later retry.
     if (tunedMelee === coreMeleeAttack && tunedRanged === coreRangedAttack) return false;
 
     api.monsterAttack = function(m, ...args) {
@@ -165,9 +168,7 @@
       });
       stage.appendChild(breakBadge);
     }
-    breakBadge.textContent = window.DE_I18N && window.DE_I18N.isEnglish
-      ? 'Armor Break Special · hit ignores Armor'
-      : '破甲大招 · 命中无视护甲';
+    breakBadge.textContent = copy('破甲大招 · 命中无视护甲', 'Armor Break Special · hit ignores Armor');
     breakBadge.hidden = false;
     return true;
   }
@@ -203,8 +204,6 @@
 
   patchProfile();
   syncExisting();
-  // gameplay-tuning is loaded later in the same parser turn; one task-boundary retry is enough
-  // to install the special bridge without maintaining a permanent follower.
   setTimeout(() => { installGuardianSpecialBridge(); scheduleSync(); }, 0);
   if (typeof document !== 'undefined') {
     document.addEventListener('keydown', scheduleSync, true);
@@ -215,8 +214,9 @@
   window.addEventListener('pageshow', scheduleSync);
 
   window.__DE_HUMAN_PRESSURE_V2 = {
-    version: 'v3',
+    version: 'v4',
     owner: 'combat-pressure',
+    locale: english ? 'en' : 'zh-CN',
     guardianTargets: GUARDIAN_TARGETS,
     heavyBreakCandidate,
     patchProfile,

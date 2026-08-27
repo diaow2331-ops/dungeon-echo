@@ -16,7 +16,10 @@ ok(/coreMeleeAttack\.call\(this, m, true\)/.test(pressure) && /coreRangedAttack\
 ok(/function resolveSpecial\(\)/.test(content) && /api\.monsterAttack\(m\)/.test(content) && /api\.monsterRangedAttack\(m\)/.test(content), 'content specials still route through the public attack bridge');
 ok(/armorBreak \? Math\.max\(1, raw\)/.test(core), 'core armor-break explicitly ignores armor');
 ok(/function pierceChanceOf\(\) \{ return 0; \}/.test(core), 'hidden random pierce remains disabled');
-ok(/破甲大招 · 命中无视护甲/.test(pressure) && /DE_GUARDIAN_ENCOUNTER/.test(pressure), 'players receive an explicit warning only during a real guardian special');
+ok(pressure.includes('dataset.deLocale') && !pressure.includes('window.DE_I18N'), 'armor-break warning is fixed-route source-owned');
+ok(pressure.includes("copy('破甲大招 · 命中无视护甲', 'Armor Break Special · hit ignores Armor')"), 'both warning languages are explicit at source');
+ok(/version:\s*'v4'/.test(pressure) && /owner:\s*'combat-pressure'/.test(pressure), 'human pressure exposes current v4 owner');
+ok(content.includes("window.__DE_CONTENT_SYSTEM = 'v6'") && !content.includes('DE_I18N'), 'guardian encounter presentation remains fixed-route v6');
 ok(!/player\.hp\s*[-+]?=|player\.equip\s*=|player\.flatDr\s*=/.test(pressure), 'special-pressure bridge does not fake damage or nerf player state');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);

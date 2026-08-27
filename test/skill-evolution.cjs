@@ -11,6 +11,7 @@ function ok(cond, name) {
 
 const listeners = {};
 global.document = {
+  documentElement:{dataset:{deLocale:'zh-CN'}},
   getElementById() { return null; },
   addEventListener(type, fn) { (listeners[type] ||= []).push(fn); },
 };
@@ -41,7 +42,7 @@ global.window = { DE_TEST: api, addEventListener() {} };
 const source = fs.readFileSync(path.resolve(__dirname, '..', 'progression-system.js'), 'utf8');
 vm.runInThisContext(source, { filename: 'progression-system.js' });
 
-ok(window.__DE_PROGRESSION_SYSTEM === 'v2', 'progression bridge reports v2');
+ok(window.__DE_PROGRESSION_SYSTEM === 'v3', 'progression bridge reports v3');
 ok((listeners.keydown || []).length === 1 && (listeners.click || []).length === 1,
   'progression no longer registers a second keyboard-only follow-up attack listener');
 ok(window.DE_SKILL_EVOLUTION.nextAttackOwner === 'mechanics-integrity',

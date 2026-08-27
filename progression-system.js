@@ -1,7 +1,8 @@
-/* Dungeon Echo production progression v2.
+/* Dungeon Echo production progression v3.
  * Curates long-run talents and adds 20/40/60/80 skill-evolution choices without new hotkeys.
- * Evolution choices are stored as talent ids, so existing save schemas stay compatible.
+ * Evolution choices are stored as stable talent ids, so existing save schemas stay compatible.
  * Pool maintenance is action-driven; the public combat input owner invokes evolution casts.
+ * v3 makes every progression/talent/evolution label fixed-route Chinese/English at the source.
  */
 (() => {
   'use strict';
@@ -9,11 +10,42 @@
   if (window.__DE_PROGRESSION_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !Array.isArray(api.TALENTS)) return;
-  window.__DE_PROGRESSION_SYSTEM = 'v2';
+
+  const routeLang = typeof document !== 'undefined'
+    ? String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase()
+    : '';
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
+  window.__DE_PROGRESSION_SYSTEM = 'v3';
 
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
   let syncQueued = false;
-  const source = api.TALENTS.slice();
+
+  const BASE_COPY = Object.freeze({
+    iron: ['Ironbone', 'Max HP +12 and immediately restore 12 HP.'],
+    edge: ['Edge', 'Base ATK +2.'],
+    luck: ['Fortune', 'Crit +8%.'],
+    blood: ['Blood Pact', 'Leech +5%.'],
+    haste: ['Haste', 'Permanent skill cooldown -1 (minimum 2 turns).'],
+    pack: ['Field Pack', 'Immediately gain +1 Potion and +1 Teleport Scroll.'],
+    gold: ['Gilded Touch', 'Gold Find +20%.'],
+    ward: ['Ward', 'Damage taken -1.'],
+    bramble: ['Bramble Heart', 'Thorns +4. High-armor builds gain more from trading hits.'],
+    scavenge: ['Scavenger', 'Restore 3 HP on kill.'],
+    elixir: ['Potent Elixir', 'Potion healing +40%.'],
+    frenzy: ['Lethal Rhythm', 'Critical damage +25% (1.8× → about 2.05×).'],
+    tenacity: ['Tenacity', 'Grievous Wounds duration -1 turn (minimum 1).'],
+    plunder: ['Plunderer', 'Gold dropped by kills +25%.'],
+    stone: ['Stone Skin', 'Damage taken -2.'],
+    echoborn: ['Echo-Born', 'Natural recovery accelerates: +1 HP every 4 turns.'],
+  });
+
+  const localizeBaseTalent = t => {
+    if (!t || !english || !BASE_COPY[t.id]) return t;
+    const row = BASE_COPY[t.id];
+    return { ...t, name: row[0], desc: row[1] };
+  };
+  const source = api.TALENTS.slice().map(localizeBaseTalent);
   const byId = Object.fromEntries(source.map(t => [t.id, t]));
 
   const CAP = {
@@ -33,100 +65,206 @@
     assassin: ['edge', 'luck', 'blood', 'haste', 'frenzy', 'scavenge'],
   };
 
+  const T = (id, zhName, enName, zhDesc, enDesc, apply) => ({
+    id, name: copy(zhName, enName), desc: copy(zhDesc, enDesc), apply,
+  });
   const classTalents = {
     warrior: [
-      { id: 'w_bulwark', name: '不动壁垒', desc: '生命上限 +18、受到伤害 -1。更偏向稳定承伤，而不是继续无脑堆护甲。', apply: p => { p.hpBase += 18; p.flatDr = (p.flatDr || 0) + 1; p.hp += 18; } },
-      { id: 'w_reprise', name: '铁血反击', desc: '反伤 +5、击杀回复 +2。让贴身换血转化为持续收益。', apply: p => { p.thornsBase = (p.thornsBase || 0) + 5; p.regenBase = (p.regenBase || 0) + 2; } },
-      { id: 'w_ravager', name: '破阵者', desc: '基础攻击 +2、吸血 +2%。牺牲部分纯防守，强化横扫推进。', apply: p => { p.atkBase += 2; p.leechBase = (p.leechBase || 0) + 2; } },
+      T('w_bulwark', '不动壁垒', 'Immovable Bulwark',
+        '生命上限 +18、受到伤害 -1。更偏向稳定承伤，而不是继续无脑堆护甲。',
+        'Max HP +18 and damage taken -1. Favors reliable mitigation over stacking more Armor.',
+        p => { p.hpBase += 18; p.flatDr = (p.flatDr || 0) + 1; p.hp += 18; }),
+      T('w_reprise', '铁血反击', 'Iron Reprisal',
+        '反伤 +5、击杀回复 +2。让贴身换血转化为持续收益。',
+        'Thorns +5 and restore 2 HP on kill. Turns close-range trades into sustained value.',
+        p => { p.thornsBase = (p.thornsBase || 0) + 5; p.regenBase = (p.regenBase || 0) + 2; }),
+      T('w_ravager', '破阵者', 'Linebreaker',
+        '基础攻击 +2、吸血 +2%。牺牲部分纯防守，强化横扫推进。',
+        'Base ATK +2 and Leech +2%. Trades pure defense for stronger Sweep pressure.',
+        p => { p.atkBase += 2; p.leechBase = (p.leechBase || 0) + 2; }),
     ],
     ranger: [
-      { id: 'r_eagle', name: '鹰眼', desc: '基础攻击 +2、暴击 +4%。奖励保持射线与距离。', apply: p => { p.atkBase += 2; p.critBase = (p.critBase || 0) + 4; } },
-      { id: 'r_hunter', name: '猎手续航', desc: '生命上限 +8、击杀回复 +3。适合长距离清图而非频繁喝药。', apply: p => { p.hpBase += 8; p.regenBase = (p.regenBase || 0) + 3; p.hp += 8; } },
-      { id: 'r_tempo', name: '疾猎节奏', desc: '技能冷却 -1、暴击 +3%。强化疾步拉扯，但不直接增加射程。', apply: p => { p.skillHaste = (p.skillHaste || 0) + 1; p.critBase = (p.critBase || 0) + 3; } },
+      T('r_eagle', '鹰眼', 'Eagle Eye',
+        '基础攻击 +2、暴击 +4%。奖励保持射线与距离。',
+        'Base ATK +2 and Crit +4%. Rewards maintaining clean firing lines and distance.',
+        p => { p.atkBase += 2; p.critBase = (p.critBase || 0) + 4; }),
+      T('r_hunter', '猎手续航', 'Hunter Sustain',
+        '生命上限 +8、击杀回复 +3。适合长距离清图而非频繁喝药。',
+        'Max HP +8 and restore 3 HP on kill. Supports long clears without constant potion use.',
+        p => { p.hpBase += 8; p.regenBase = (p.regenBase || 0) + 3; p.hp += 8; }),
+      T('r_tempo', '疾猎节奏', 'Hunting Tempo',
+        '技能冷却 -1、暴击 +3%。强化疾步拉扯，但不直接增加射程。',
+        'Skill cooldown -1 and Crit +3%. Strengthens Fleet Step kiting without adding range.',
+        p => { p.skillHaste = (p.skillHaste || 0) + 1; p.critBase = (p.critBase || 0) + 3; }),
     ],
     mage: [
-      { id: 'm_focus', name: '奥术聚焦', desc: '基础攻击 +3、暴击伤害 +10%。强化炮台爆发。', apply: p => { p.atkBase += 3; p.critPower = (p.critPower || 0) + 10; } },
-      { id: 'm_flow', name: '回响导流', desc: '技能冷却 -1，并立刻获得 1 张传送卷轴。强化控制与脱离循环。', apply: p => { p.skillHaste = (p.skillHaste || 0) + 1; p.scrolls = (p.scrolls || 0) + 1; } },
-      { id: 'm_glass', name: '玻璃核心', desc: '生命上限 -6，基础攻击 +4、暴击 +4%。明确的高风险高伤路线。', apply: p => { p.hpBase = Math.max(12, p.hpBase - 6); p.atkBase += 4; p.critBase = (p.critBase || 0) + 4; if (typeof api.pMaxHp === 'function') p.hp = Math.min(p.hp, api.pMaxHp()); } },
+      T('m_focus', '奥术聚焦', 'Arcane Focus',
+        '基础攻击 +3、暴击伤害 +10%。强化炮台爆发。',
+        'Base ATK +3 and critical damage +10%. Reinforces artillery-style burst.',
+        p => { p.atkBase += 3; p.critPower = (p.critPower || 0) + 10; }),
+      T('m_flow', '回响导流', 'Echo Conduit',
+        '技能冷却 -1，并立刻获得 1 张传送卷轴。强化控制与脱离循环。',
+        'Skill cooldown -1 and immediately gain 1 Teleport Scroll. Improves control and escape cycles.',
+        p => { p.skillHaste = (p.skillHaste || 0) + 1; p.scrolls = (p.scrolls || 0) + 1; }),
+      T('m_glass', '玻璃核心', 'Glass Core',
+        '生命上限 -6，基础攻击 +4、暴击 +4%。明确的高风险高伤路线。',
+        'Max HP -6, Base ATK +4 and Crit +4%. A deliberate high-risk, high-damage path.',
+        p => { p.hpBase = Math.max(12, p.hpBase - 6); p.atkBase += 4; p.critBase = (p.critBase || 0) + 4; if (typeof api.pMaxHp === 'function') p.hp = Math.min(p.hp, api.pMaxHp()); }),
     ],
     assassin: [
-      { id: 'a_execute', name: '处决本能', desc: '暴击 +5%、暴击伤害 +12%。让影袭与普攻都更偏斩杀。', apply: p => { p.critBase = (p.critBase || 0) + 5; p.critPower = (p.critPower || 0) + 12; } },
-      { id: 'a_blood', name: '血影', desc: '吸血 +4%、基础攻击 +1。提高连续猎杀后的自我恢复。', apply: p => { p.leechBase = (p.leechBase || 0) + 4; p.atkBase += 1; } },
-      { id: 'a_shadow', name: '影步余韵', desc: '技能冷却 -1、生命上限 +6。降低影袭真空期的一次失位惩罚。', apply: p => { p.skillHaste = (p.skillHaste || 0) + 1; p.hpBase += 6; p.hp += 6; } },
+      T('a_execute', '处决本能', 'Execution Instinct',
+        '暴击 +5%、暴击伤害 +12%。让影袭与普攻都更偏斩杀。',
+        'Crit +5% and critical damage +12%. Pushes both Shadow Strike and basic attacks toward executions.',
+        p => { p.critBase = (p.critBase || 0) + 5; p.critPower = (p.critPower || 0) + 12; }),
+      T('a_blood', '血影', 'Bloodshadow',
+        '吸血 +4%、基础攻击 +1。提高连续猎杀后的自我恢复。',
+        'Leech +4% and Base ATK +1. Improves recovery through chained kills.',
+        p => { p.leechBase = (p.leechBase || 0) + 4; p.atkBase += 1; }),
+      T('a_shadow', '影步余韵', 'Shadowstep Echo',
+        '技能冷却 -1、生命上限 +6。降低影袭真空期的一次失位惩罚。',
+        'Skill cooldown -1 and Max HP +6. Softens one positioning mistake during Shadow Strike downtime.',
+        p => { p.skillHaste = (p.skillHaste || 0) + 1; p.hpBase += 6; p.hp += 6; }),
     ],
   };
 
+  const E = (id, zhName, enName, zhDesc, enDesc) => [
+    id, copy(zhName, enName), copy(zhDesc, enDesc),
+  ];
   const evolution = {
     warrior: {
       20: [
-        ['se_w20_arc', '环斩', '横扫额外擦过四个斜角近身位；围攻时不再只处理十字四格。'],
-        ['se_w20_guard', '盾势', '施放横扫的这一回合获得额外减伤，适合贴身换血。'],
+        E('se_w20_arc', '环斩', 'Arc Sweep',
+          '横扫额外擦过四个斜角近身位；围攻时不再只处理十字四格。',
+          'Sweep also clips the four adjacent diagonals, so surrounding enemies are no longer limited to the cardinal tiles.'),
+        E('se_w20_guard', '盾势', 'Guard Stance',
+          '施放横扫的这一回合获得额外减伤，适合贴身换血。',
+          'Gain extra damage reduction during the turn Sweep is cast, improving close-range trades.'),
       ],
       40: [
-        ['se_w40_reach', '破阵长锋', '横扫同时打击上下左右第二格目标，形成直线纵深。'],
-        ['se_w40_rhythm', '战阵节拍', '一次横扫覆盖至少两个目标时额外返还 1 回合冷却。'],
+        E('se_w40_reach', '破阵长锋', 'Linebreaker Reach',
+          '横扫同时打击上下左右第二格目标，形成直线纵深。',
+          'Sweep also hits targets two tiles away in the four cardinal directions.'),
+        E('se_w40_rhythm', '战阵节拍', 'Battle Rhythm',
+          '一次横扫覆盖至少两个目标时额外返还 1 回合冷却。',
+          'If one Sweep covers at least two targets, refund 1 extra turn of cooldown.'),
       ],
       60: [
-        ['se_w60_blood', '血战续行', '横扫造成击杀时恢复少量最大生命。'],
-        ['se_w60_pressure', '压阵', '横扫本身获得基于当前攻击的额外威力，强化破阵而非普攻。'],
+        E('se_w60_blood', '血战续行', 'Bloodied Advance',
+          '横扫造成击杀时恢复少量最大生命。',
+          'Kills caused by Sweep restore a small amount of Max HP.'),
+        E('se_w60_pressure', '压阵', 'Press the Line',
+          '横扫本身获得基于当前攻击的额外威力，强化破阵而非普攻。',
+          'Sweep gains extra power based on current ATK, strengthening the skill rather than basic attacks.'),
       ],
       80: [
-        ['se_w80_tempest', '风暴横扫', '横扫扩展到两格范围内的非核心目标，成为真正的深层清场技。'],
-        ['se_w80_fortress', '移动堡垒', '施放横扫时获得更强临时减伤；技能越用于危险贴身局面越有价值。'],
+        E('se_w80_tempest', '风暴横扫', 'Tempest Sweep',
+          '横扫扩展到两格范围内的非核心目标，成为真正的深层清场技。',
+          'Sweep extends to secondary targets within two tiles, becoming a true deep-floor clearing skill.'),
+        E('se_w80_fortress', '移动堡垒', 'Moving Fortress',
+          '施放横扫时获得更强临时减伤；技能越用于危险贴身局面越有价值。',
+          'Gain stronger temporary damage reduction while casting Sweep; it rewards committing in dangerous melee situations.'),
       ],
     },
     ranger: {
       20: [
-        ['se_r20_evasion', '掠影', '疾步期间获得临时减伤，让位移可用于穿过危险接触区。'],
-        ['se_r20_tempo', '轻装疾行', '疾步本次施放按额外技能急速结算，缩短下一次位移等待。'],
+        E('se_r20_evasion', '掠影', 'Passing Shadow',
+          '疾步期间获得临时减伤，让位移可用于穿过危险接触区。',
+          'Gain temporary damage reduction during Fleet Step, allowing movement through dangerous contact zones.'),
+        E('se_r20_tempo', '轻装疾行', 'Lightfoot Tempo',
+          '疾步本次施放按额外技能急速结算，缩短下一次位移等待。',
+          'This Fleet Step gains extra skill haste, shortening the wait before the next movement skill.'),
       ],
       40: [
-        ['se_r40_hunt', '猎杀续步', '疾步造成击杀时立即重置技能冷却。'],
-        ['se_r40_flow', '无伤转场', '疾步没有造成击杀时额外返还 2 回合冷却，鼓励把技能用于走位。'],
+        E('se_r40_hunt', '猎杀续步', 'Hunt Continues',
+          '疾步造成击杀时立即重置技能冷却。',
+          'A kill caused by Fleet Step immediately resets its cooldown.'),
+        E('se_r40_flow', '无伤转场', 'Clean Transition',
+          '疾步没有造成击杀时额外返还 2 回合冷却，鼓励把技能用于走位。',
+          'If Fleet Step does not kill, refund 2 extra cooldown turns, rewarding repositioning.'),
       ],
       60: [
-        ['se_r60_marksman', '拉弦余势', '疾步成功后强化下一次方向攻击；空跑不会消耗在普通移动上。'],
-        ['se_r60_sustain', '猎手续命', '疾步击杀敌人时恢复最大生命，提升连续猎杀续航。'],
+        E('se_r60_marksman', '拉弦余势', 'Drawstring Momentum',
+          '疾步成功后强化下一次方向攻击；空跑不会消耗在普通移动上。',
+          'After a successful Fleet Step, empower the next directional attack; ordinary movement does not consume it.'),
+        E('se_r60_sustain', '猎手续命', 'Hunter Renewal',
+          '疾步击杀敌人时恢复最大生命，提升连续猎杀续航。',
+          'Kills caused by Fleet Step restore Max HP, improving sustained hunts.'),
       ],
       80: [
-        ['se_r80_chain', '无尽追猎', '疾步造成击杀时保持零冷却，并强化下一次方向攻击，形成高风险追猎链。'],
-        ['se_r80_phantom', '幻步', '疾步回合获得更强减伤，并为下一次方向攻击留下较小增幅。'],
+        E('se_r80_chain', '无尽追猎', 'Endless Hunt',
+          '疾步造成击杀时保持零冷却，并强化下一次方向攻击，形成高风险追猎链。',
+          'Fleet Step kills keep cooldown at zero and empower the next directional attack, enabling a high-risk chase chain.'),
+        E('se_r80_phantom', '幻步', 'Phantom Step',
+          '疾步回合获得更强减伤，并为下一次方向攻击留下较小增幅。',
+          'Gain stronger damage reduction during Fleet Step and leave a smaller boost for the next directional attack.'),
       ],
     },
     mage: {
       20: [
-        ['se_m20_fork', '分叉奥术', '奥术弹命中前，同时削击第二近的可见敌人。'],
-        ['se_m20_barrier', '施法屏障', '施放奥术弹的这一回合获得临时减伤，换取更稳定的站桩输出。'],
+        E('se_m20_fork', '分叉奥术', 'Forked Arcana',
+          '奥术弹命中前，同时削击第二近的可见敌人。',
+          'Before Arcane Bolt lands, also strike the second-nearest visible enemy.'),
+        E('se_m20_barrier', '施法屏障', 'Casting Barrier',
+          '施放奥术弹的这一回合获得临时减伤，换取更稳定的站桩输出。',
+          'Gain temporary damage reduction during the Arcane Bolt turn for more stable stationary damage.'),
       ],
       40: [
-        ['se_m40_chain', '回响连锁', '奥术弹额外波及第二、第三个可见目标，强化群战。'],
-        ['se_m40_focus', '单点聚焦', '视野里只有一个敌人时，奥术弹获得显著额外威力。'],
+        E('se_m40_chain', '回响连锁', 'Echo Chain',
+          '奥术弹额外波及第二、第三个可见目标，强化群战。',
+          'Arcane Bolt also splashes the second and third visible targets, improving group fights.'),
+        E('se_m40_focus', '单点聚焦', 'Single-Target Focus',
+          '视野里只有一个敌人时，奥术弹获得显著额外威力。',
+          'When only one enemy is visible, Arcane Bolt gains significant extra power.'),
       ],
       60: [
-        ['se_m60_overload', '过载回路', '奥术弹造成击杀时额外返还 2 回合冷却。'],
-        ['se_m60_repulse', '强制退相', '奥术弹结算后若目标仍存活，会尝试把它再推离一格。'],
+        E('se_m60_overload', '过载回路', 'Overload Circuit',
+          '奥术弹造成击杀时额外返还 2 回合冷却。',
+          'Arcane Bolt kills refund 2 extra turns of cooldown.'),
+        E('se_m60_repulse', '强制退相', 'Forced Displacement',
+          '奥术弹结算后若目标仍存活，会尝试把它再推离一格。',
+          'If the target survives Arcane Bolt, attempt to push it one additional tile away.'),
       ],
       80: [
-        ['se_m80_storm', '奥术风暴', '奥术弹施放前对最多三个次要可见目标造成高比例溅射。'],
-        ['se_m80_singularity', '奇点核心', '只有单一可见目标时大幅强化本次奥术弹，但不改善群战。'],
+        E('se_m80_storm', '奥术风暴', 'Arcane Storm',
+          '奥术弹施放前对最多三个次要可见目标造成高比例溅射。',
+          'Before Arcane Bolt is cast, deal heavy splash damage to up to three secondary visible targets.'),
+        E('se_m80_singularity', '奇点核心', 'Singularity Core',
+          '只有单一可见目标时大幅强化本次奥术弹，但不改善群战。',
+          'When exactly one target is visible, greatly empower this Arcane Bolt without improving group fights.'),
       ],
     },
     assassin: {
       20: [
-        ['se_a20_execute', '斩首线', '影袭锁定的最近目标低于 45% 生命时，本次处决获得额外威力。'],
-        ['se_a20_smoke', '烟遁', '施放影袭的这一回合获得临时减伤，降低落点失误成本。'],
+        E('se_a20_execute', '斩首线', 'Execution Line',
+          '影袭锁定的最近目标低于 45% 生命时，本次处决获得额外威力。',
+          'When Shadow Strike targets an enemy below 45% HP, this execution gains extra power.'),
+        E('se_a20_smoke', '烟遁', 'Smoke Veil',
+          '施放影袭的这一回合获得临时减伤，降低落点失误成本。',
+          'Gain temporary damage reduction during the Shadow Strike turn, reducing the cost of a bad landing.'),
       ],
       40: [
-        ['se_a40_blood', '血返', '影袭击杀时恢复最大生命，适合连续切入。'],
-        ['se_a40_tempo', '影刃节拍', '影袭击杀时额外返还 2 回合冷却。'],
+        E('se_a40_blood', '血返', 'Blood Return',
+          '影袭击杀时恢复最大生命，适合连续切入。',
+          'Shadow Strike kills restore Max HP, supporting repeated dives.'),
+        E('se_a40_tempo', '影刃节拍', 'Shadowblade Tempo',
+          '影袭击杀时额外返还 2 回合冷却。',
+          'Shadow Strike kills refund 2 extra turns of cooldown.'),
       ],
       60: [
-        ['se_a60_mark', '死亡标记', '影袭成功后强化下一次方向攻击，逼迫你继续贴身完成连段。'],
-        ['se_a60_escape', '脱影', '影袭回合获得更强临时减伤，偏向安全进出。'],
+        E('se_a60_mark', '死亡标记', 'Death Mark',
+          '影袭成功后强化下一次方向攻击，逼迫你继续贴身完成连段。',
+          'After a successful Shadow Strike, empower the next directional attack and reward staying close to finish the combo.'),
+        E('se_a60_escape', '脱影', 'Slip into Shadow',
+          '影袭回合获得更强临时减伤，偏向安全进出。',
+          'Gain stronger temporary damage reduction during the Shadow Strike turn, favoring safer entries and exits.'),
       ],
       80: [
-        ['se_a80_chain', '无间影袭', '影袭造成击杀时直接重置技能冷却。'],
-        ['se_a80_predator', '猎物未死', '影袭未能击杀时返还部分冷却并强化下一次方向攻击。'],
+        E('se_a80_chain', '无间影袭', 'Unbroken Shadow Strike',
+          '影袭造成击杀时直接重置技能冷却。',
+          'Shadow Strike kills immediately reset the skill cooldown.'),
+        E('se_a80_predator', '猎物未死', 'Prey Survived',
+          '影袭未能击杀时返还部分冷却并强化下一次方向攻击。',
+          'If Shadow Strike does not kill, refund part of the cooldown and empower the next directional attack.'),
       ],
     },
   };
@@ -134,7 +272,14 @@
   const evoTalents = Object.create(null);
   for (const cid of Object.keys(evolution)) {
     for (const depth of Object.keys(evolution[cid])) {
-      for (const [id, name, desc] of evolution[cid][depth]) evoTalents[id] = { id, name: `${depth}层 · ${name}`, desc, apply() {} };
+      for (const [id, name, desc] of evolution[cid][depth]) {
+        evoTalents[id] = {
+          id,
+          name: english ? `Floor ${depth} · ${name}` : `${depth}层 · ${name}`,
+          desc,
+          apply() {},
+        };
+      }
     }
   }
 
@@ -270,13 +415,7 @@
 
   function announce(text) {
     const hint = typeof document !== 'undefined' && document.getElementById ? document.getElementById('hint') : null;
-    if (!hint) return;
-    const i18n = window.DE_I18N;
-    let visible = String(text);
-    if (i18n && i18n.isEnglish && typeof i18n.translate === 'function') {
-      try { visible = String(i18n.translate(visible)); } catch (_e) { /* keep canonical copy */ }
-    }
-    hint.textContent = `› ${visible}`;
+    if (hint) hint.textContent = `› ${String(text)}`;
   }
 
   function preSplashWarrior() {
@@ -309,8 +448,11 @@
   // The cross-input follow-up state lives in gameplay-tuning. Progression only announces
   // the buff here; keeping a second keyboard-only state caused mouse/touch users to consume
   // one boost while leaving a stale keyboard boost available for a later extra hit.
-  function announceNextAttack(label) {
-    announce(`${label}已蓄势：下一次方向攻击获得强化。`);
+  function announceNextAttack(zhLabel, enLabel) {
+    announce(copy(
+      `${zhLabel}已蓄势：下一次方向攻击获得强化。`,
+      `${enLabel} is primed: your next directional attack is empowered.`
+    ));
   }
 
   function evolveSkill() {
@@ -368,24 +510,27 @@
       else if (has('se_r40_hunt') && killed) p.skillCd = 0;
       if (has('se_r40_flow') && !killed) p.skillCd = Math.max(0, (p.skillCd || 0) - 2);
       if (has('se_r60_sustain') && killed) p.hp = Math.min(maxHp(), p.hp + Math.max(2, Math.round(maxHp() * .10)));
-      if (has('se_r60_marksman')) announceNextAttack('拉弦余势');
-      if (has('se_r80_phantom')) announceNextAttack('幻步余势');
+      if (has('se_r60_marksman')) announceNextAttack('拉弦余势', 'Drawstring Momentum');
+      if (has('se_r80_phantom')) announceNextAttack('幻步余势', 'Phantom Momentum');
     } else if (cid === 'assassin') {
       if (has('se_a80_chain') && killed) p.skillCd = 0;
       else if (has('se_a40_tempo') && killed) p.skillCd = Math.max(0, (p.skillCd || 0) - 2);
       if (has('se_a40_blood') && killed) p.hp = Math.min(maxHp(), p.hp + Math.max(2, Math.round(maxHp() * .12)));
-      if (has('se_a60_mark')) announceNextAttack('死亡标记');
-      if (has('se_a80_predator') && !killed) { p.skillCd = Math.max(0, (p.skillCd || 0) - 2); announceNextAttack('猎物未死'); }
+      if (has('se_a60_mark')) announceNextAttack('死亡标记', 'Death Mark');
+      if (has('se_a80_predator') && !killed) {
+        p.skillCd = Math.max(0, (p.skillCd || 0) - 2);
+        announceNextAttack('猎物未死', 'Prey Survived');
+      }
     }
 
-    if ((Number(p.hp) || 0) > beforeHp) announce('技能进化触发了额外续航。');
+    if ((Number(p.hp) || 0) > beforeHp) announce(copy('技能进化触发了额外续航。', 'Skill evolution triggered extra sustain.'));
     return true;
   }
 
   syncPool();
   if (typeof document !== 'undefined' && document.addEventListener) {
     // Queue after the synchronous core action. Depth/talent changes are then reflected before
-    // the next gameplay action without a 250ms follower and without owning skill input twice.
+    // the next gameplay action without a polling follower and without owning skill input twice.
     document.addEventListener('keydown', schedulePoolSync, true);
     document.addEventListener('click', schedulePoolSync, true);
     document.addEventListener('visibilitychange', schedulePoolSync);
@@ -396,6 +541,9 @@
   }
 
   window.DE_TALENT_RANKS = {
+    version: 'v3',
+    owner: 'progression-system',
+    locale: english ? 'en' : 'zh-CN',
     caps: { ...CAP },
     counts: rankCounts,
     eligible: eligiblePool,
@@ -404,6 +552,9 @@
     scheduleSync: schedulePoolSync,
   };
   window.DE_SKILL_EVOLUTION = {
+    version: 'v3',
+    owner: 'progression-system',
+    locale: english ? 'en' : 'zh-CN',
     choices: evolution,
     pending: pendingEvolution,
     has,
