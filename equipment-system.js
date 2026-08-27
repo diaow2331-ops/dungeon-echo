@@ -318,7 +318,7 @@
   };
 })();
 
-/* Tactical gear commitment: changing equipped slots in the dungeon costs one real turn. */
+/* Tactical gear commitment v2: changing equipped slots in the dungeon costs one real turn. */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -326,9 +326,11 @@
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
 
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const ui = (zh, en) => english ? en : zh;
   const SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet'];
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
-  const ui = (zh, en) => window.DE_I18N && window.DE_I18N.isEnglish ? en : zh;
 
   function snapshotEquip() {
     const p = api.player;
@@ -386,6 +388,7 @@
   // click mutates slots. The microtask settles one authoritative turn after the click.
   window.addEventListener('click', armSwapWatch, true);
   window.__DE_EQUIPMENT_SWAP_TURN = {
-    version: 'v1', owner: 'equipment-system', snapshotEquip, equipChanged, settleEquipChange,
+    version: 'v2', owner: 'equipment-system', locale: english ? 'en' : 'zh-CN',
+    snapshotEquip, equipChanged, settleEquipChange,
   };
 })();
