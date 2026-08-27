@@ -1,7 +1,7 @@
-/* Dungeon Echo production commerce v5.
+/* Dungeon Echo production commerce v6.
  * Owns town supply stock / chapter-scaled pricing, underground service safety,
  * extraction pressure and baseline dungeon resource pressure for classic-100.
- * Commerce presentation is action-driven and localized at its render boundary.
+ * Commerce presentation is action-driven and fixed-route localized at its render boundary.
  */
 (() => {
   'use strict';
@@ -9,7 +9,11 @@
   if (window.__DE_COMMERCE_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100') return;
-  window.__DE_COMMERCE_SYSTEM = 'v5';
+
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const ui = (zh, en) => english ? en : zh;
+  window.__DE_COMMERCE_SYSTEM = 'v6';
 
   const STORAGE_KEY = 'de-town-commerce-v1';
   const META_KEY = 'de-greedy-meta-v1';
@@ -19,9 +23,6 @@
   const floorRules = api.runProfile && api.runProfile.floorRules;
   const RESOURCE_PRESSURE = Object.freeze({ floorPotions: 1, killPotionChance: 0.07 });
   let uiSyncQueued = false;
-
-  const isEnglish = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
-  const ui = (zh, en) => isEnglish() ? en : zh;
 
   function applyResourcePressure() {
     if (!floorRules || !floorRules.killLoot || !floorRules.lootCounts || floorRules.__deResourcePressureV1) return false;
@@ -83,7 +84,7 @@
     },
   };
 
-  const supplyName = def => isEnglish() ? def.nameEn : def.name;
+  const supplyName = def => english ? def.nameEn : def.name;
   let state = null;
   let lastFlash = '';
   let lastFlashUntil = 0;
@@ -203,7 +204,7 @@
     const ids = ['potion', 'scroll', 'escape', 'key', 'insurance'];
     const flashText = Date.now() < lastFlashUntil ? lastFlash : '';
     const sig = JSON.stringify({
-      lang: isEnglish() ? 'en' : 'zh', run: st.cycleRun, tier: st.tier, gold: Number(meta.gold) || 0,
+      lang: english ? 'en' : 'zh', run: st.cycleRun, tier: st.tier, gold: Number(meta.gold) || 0,
       stock: ids.map(id => st.stock[id]), held: ids.map(id => SUPPLIES[id].held(meta)), flash: flashText,
     });
     const ours = !!(el.querySelector && el.querySelector('[data-de-townbuy]'));
@@ -366,9 +367,6 @@
     });
   }
 
-  // Extraction is an explicit single-owner state machine. The first T arms and pays
-  // one enemy turn; the second T completes the return. Repeated keydown events and
-  // re-entrant completion are consumed without running the town transition twice.
   let extraction = null;
   const EXTRACTION_KEYS = new Set([
     'ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
@@ -490,13 +488,13 @@
   window.addEventListener('focus', scheduleCommerceUi);
   window.addEventListener('load', scheduleCommerceUi, { once: true });
 
-  // The town shop is now restored after real state/input transitions. No MutationObserver
-  // watches the shop subtree, avoiding cross-observer feedback with locale/presentation code.
   renderShop(true);
   defer(syncCommerceUi);
 
   window.DE_COMMERCE = {
-    version: 'v5',
+    version: 'v6',
+    owner: 'commerce-system',
+    locale: english ? 'en' : 'zh-CN',
     tier: townTier,
     priceScale,
     priceFor,
