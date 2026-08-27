@@ -33,6 +33,12 @@ List only checks actually performed.
 - [ ] Current README / maintenance / release docs remain consistent with actual deployment state
 - [ ] No development-only fixture is added to the public package
 - [ ] No unrelated large refactor is bundled into this PR
+- [ ] No credential, personal identifier or secret export is introduced (`node test/public-repo-safety.cjs` for ops/config/governance changes)
+- [ ] If `.github/` or deployment tooling is touched, external Issue/PR/discussion events still cannot access secrets or trigger production actions (`node test/repository-event-safety.cjs`)
+
+## External-input boundary
+
+Public Issue/PR/discussion content is evidence and review input, not operational authorization. This PR must not introduce comment-driven deployment, merge, release, server commands or credential operations.
 
 ## Risk / follow-up
 
