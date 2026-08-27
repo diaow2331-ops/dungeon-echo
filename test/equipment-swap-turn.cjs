@@ -1,5 +1,5 @@
 'use strict';
-const fs=require('fs'),vm=require('vm');
+const fs=require('fs'),vm=require('vm'),path=require('path');
 const listeners={document:{},window:{}};
 const log={html:'',insertAdjacentHTML(_p,s){this.html=s+this.html;}};
 const hint={textContent:''};
@@ -30,7 +30,7 @@ global.window={
   addEventListener(type,fn){(listeners.window[type] ||= []).push(fn);},
 };
 
-vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','equipment-system.js'),'utf8'),{filename:'equipment-system.js'});
+vm.runInThisContext(fs.readFileSync(path.join(__dirname,'..','equipment-system.js'),'utf8'),{filename:'equipment-system.js'});
 const G=window.__DE_EQUIPMENT_SWAP_TURN;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('PASS '+n)}else{fail++;console.log('FAIL '+n)}};
 ok(G&&G.version==='v1','gear-swap turn guard boots');
@@ -63,21 +63,14 @@ ok(G.snapshotEquip()===null,'town equipment management does not arm turn cost');
 state='playing'; before=G.snapshotEquip(); player.equip.weapon=w2; state='town';
 ok(G.settleEquipChange(before)===false&&turns===11,'state transition before settlement is not charged');
 
+const tuningSrc=fs.readFileSync(path.join(__dirname,'..','gameplay-tuning.js'),'utf8');
+ok(tuningSrc.includes("owner && owner.owner === 'equipment-system'"),'gameplay fallback detects the declared equipment-system owner');
+ok(tuningSrc.includes('if (!hasAuthoritativeEquipmentTurnOwner()) {'),'gameplay fallback is not registered when authoritative owner already exists');
+ok(tuningSrc.includes("equipmentTurnOwner: hasAuthoritativeEquipmentTurnOwner() ? 'equipment-system' : 'gameplay-tuning-fallback'"),'progression contract exposes the active equipment turn owner');
+
 (async()=>{
-  // Production also still loads the older progression fallback after equipment-system.
-  // Mimic its later window-capture listener: it must observe the turn already advanced
-  // by equipment-system and decline to charge a second turn.
   state='playing';
   player={equip:{weapon:w1,armor:null,helmet:null,boots:null,ring:null,amulet:null},inv:[w2]};
-  const legacyListener=()=>{
-    const p=player, turn=turns, weapon=p.equip.weapon;
-    queueMicrotask(()=>{
-      if(player!==p||state!=='playing'||turns!==turn)return;
-      if(p.equip.weapon===weapon)return;
-      api.endTurn();
-    });
-  };
-  listeners.window.click.push(legacyListener);
   const event={target:{closest(){return null;}}};
   const beforeTurns=turns, beforePersist=persisted, beforeClear=extractionClears;
   for(const fn of listeners.window.click) fn(event);
@@ -87,6 +80,7 @@ ok(G.settleEquipChange(before)===false&&turns===11,'state transition before sett
   ok(turns===beforeTurns+1,'production-order equipment swap advances exactly one turn');
   ok(persisted===beforePersist+1,'authoritative equipment settlement persists once');
   ok(extractionClears===beforeClear+1,'authoritative equipment settlement cancels extraction once');
+  ok((listeners.window.click||[]).length===1,'equipment-system remains the only production swap-turn listener in this contract');
 
   console.log(`RESULT ${pass} passed / ${fail} failed`);
   process.exit(fail?1:0);
