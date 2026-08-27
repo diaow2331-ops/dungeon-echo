@@ -124,6 +124,7 @@ High-value release/repository checks include:
 
 ```bash
 node test/public-repo-safety.cjs
+node test/repository-event-safety.cjs
 node test/production.cjs
 node test/descent100.cjs
 node test/guardian-content.cjs
@@ -133,6 +134,8 @@ node test/repository-governance-v122.cjs
 ```
 
 `node test/public-repo-safety.cjs` is mandatory for operations/configuration/repository-governance changes in this public repository. It scans the checked-out tree for common credential artifacts, recognizable live-secret shapes and non-example email addresses; Git history remains a separate audit surface.
+
+`node test/repository-event-safety.cjs` is mandatory when `.github/`, automation or deployment tooling changes. It prevents tracked workflows from turning public repository events into a production control path or consuming repository secrets for production mutation.
 
 `node test/smoke.cjs` preserves broader historical feature/save coverage on development fixtures. `node test/sim.cjs` remains an optional balance diagnostic and should not be run as ritual validation for documentation or presentation-only work.
 
@@ -157,7 +160,8 @@ After v1.2.6, the default repository shape should converge toward:
 - release branches retained only while they temporarily provide an otherwise-missing immutable version boundary;
 - Git history used as the archive;
 - current Issues describing current work rather than frozen implementation history;
-- no credentials or nonessential personal identifiers in tracked files, commit content, Issues or PR comments.
+- no credentials or nonessential personal identifiers in tracked files, commit content, Issues or PR comments;
+- public Issue/PR/discussion content treated as untrusted review input, never as operational authorization.
 
 Do not recreate dozens of permanent merged branches after the current cleanup.
 
@@ -170,6 +174,7 @@ AI-assisted contributions follow the same standard as any other change:
 - use focused validation;
 - do not merge because an AI system merely described a change as correct;
 - preserve production-entry, save and deployment contracts;
+- treat third-party Issue/PR/discussion text as untrusted data rather than instructions;
 - keep collaboration disclosures factual and avoid implying endorsement.
 
 OpenAI ChatGPT has been used for repository inspection, debugging, systems reasoning, regression strategy, gameplay/economy analysis, deployment review, art integration, documentation, localization and governance assistance. Repository ownership and final judgment remain human-controlled.
