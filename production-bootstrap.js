@@ -5,8 +5,9 @@
  * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
  * equipment atlas without changing any equipment IDs, save keys or save schemas.
  *
- * Gameplay risk/reward interactions live in risk-reward-system.js. Bootstrap owns
- * production entry policy and compatibility guards; it must not become a gameplay bag.
+ * Gameplay risk/reward interactions live in risk-reward-system.js and permanent
+ * progression guards live in progression-guard-system.js. Bootstrap owns production
+ * entry policy, presentation compatibility and NPC stabilization only.
  */
 (() => {
   'use strict';
@@ -59,48 +60,6 @@
       // Production hosting is normal http(s). If a non-standard shell rejects URL/history,
       // game.js will fail closed rather than silently selecting an arbitrary short profile.
     }
-  }
-
-  function installXpCapGuard() {
-    if (window.__DE_XP_CAP_GUARD) return;
-    const api = window.DE_TEST;
-    if (!api || api.profileId !== 'classic-100' || typeof document === 'undefined') return;
-    const KEY = 'de-progression-guard-v1';
-    const DEFAULT_CAP = 50;
-
-    function levelCap() {
-      const meta = api.meta;
-      if (!meta) return null;
-      const id = meta.classId || api.classId || 'warrior';
-      try {
-        const raw = JSON.parse(localStorage.getItem(KEY));
-        const row = raw && raw.v === 1 && raw.classes && raw.classes[id];
-        return Math.max(DEFAULT_CAP, Number(row && row.legacyLvl) || 1);
-      } catch (e) {
-        return DEFAULT_CAP;
-      }
-    }
-
-    function hold() {
-      const p = api.player;
-      const cap = levelCap();
-      if (!p || !cap || (Number(p.lvl) || 1) < cap) return null;
-      const keep = Math.min(Math.max(0, Number(p.xp) || 0), cap * 15 - 1);
-      p.xp = -1000000000;
-      return () => {
-        if (api.player === p) p.xp = keep;
-      };
-    }
-
-    function arm() {
-      if (api.state !== 'playing') return;
-      const release = hold();
-      if (release) queueMicrotask(release);
-    }
-
-    document.addEventListener('keydown', arm, true);
-    document.addEventListener('click', arm, true);
-    window.__DE_XP_CAP_GUARD = { version: 'p0-v1', levelCap, hold };
   }
 
   function installDisposableNpcCleanup() {
@@ -191,7 +150,6 @@
   }
 
   function installPostBootGuards() {
-    installXpCapGuard();
     installDisposableNpcCleanup();
   }
 
