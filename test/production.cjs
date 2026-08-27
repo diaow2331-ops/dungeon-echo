@@ -11,7 +11,8 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const scripts = [...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)].map(m => m[1]);
+const scriptUrls = [...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)].map(m => m[1]);
+const scripts = scriptUrls.map(src => src.split('?')[0]);
 const expectedScripts = [
   'production-bootstrap.js',
   'profiles/classic-100.profile.js',
@@ -70,6 +71,7 @@ function classList() {
   };
 }
 function makeEl(id = '') {
+  const nested = new Map();
   return {
     id,
     innerHTML: '',
@@ -92,7 +94,13 @@ function makeEl(id = '') {
     focus() {},
     click() {},
     closest() { return null; },
-    querySelector() { return null; },
+    querySelector(selector) {
+      if (id.startsWith('eq-') && (selector === '.eqicon' || selector === '.eqname')) {
+        if (!nested.has(selector)) nested.set(selector, makeEl(`${id}-${selector.slice(1)}`));
+        return nested.get(selector);
+      }
+      return null;
+    },
     querySelectorAll() { return []; },
   };
 }
