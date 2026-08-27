@@ -71,10 +71,9 @@ test -r "$tmp_dir/dungeon-echo/$release_stamp" || fail "release stamp missing fr
 grep -Fq "$release_stamp" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load current release stamp'
 grep -Fq "const version = '$version'" "$tmp_dir/dungeon-echo/$release_stamp" || fail 'release stamp version does not match bundle VERSION'
 if test "$version" = '1.2.4'; then
-  test -r "$tmp_dir/dungeon-echo/modal-navigation-fix.js" || fail 'v1.2.4 modal navigation repair missing'
-  grep -Fq 'modal-navigation-fix.js' "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load modal navigation repair'
-  grep -Fq '#achv-screen' "$tmp_dir/dungeon-echo/modal-navigation-fix.js" || fail 'Expedition Log overlay repair missing'
-  grep -Fq '#help-screen' "$tmp_dir/dungeon-echo/modal-navigation-fix.js" || fail 'Help overlay repair missing'
+  test -r "$tmp_dir/dungeon-echo/style.css" || fail 'v1.2.4 stylesheet missing'
+  grep -Fq '#achv-screen, #help-screen {' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log fixed-screen selector missing'
+  grep -Fq '#help-screen > .title-card { margin: auto; }' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log card scroll-centering contract missing'
 fi
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +
