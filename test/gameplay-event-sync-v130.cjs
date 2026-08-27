@@ -1,4 +1,4 @@
-/* Focused source/parse contract for event-driven gameplay tuning. */
+/* Focused source/parse contract for event-driven fixed-route gameplay tuning. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -15,8 +15,11 @@ ok(!src.includes('__DE_PROGRESSION_COMMITMENT'), 'retired duplicate progression 
 ok(src.includes('function scheduleMigration()') && src.includes("addEventListener('pageshow', scheduleMigration)"), 'legacy class-base migration is event-driven');
 ok(src.includes('function scheduleSync()') && src.includes("addEventListener('pageshow',scheduleSync)"), 'mechanics integrity synchronization is event-driven');
 ok(src.includes("addEventListener('visibilitychange'") && src.includes("addEventListener('focus'"), 'resume/focus transitions resynchronize state without polling');
+ok(src.includes('dataset.deLocale')&&!src.includes('DE_I18N')&&!src.includes('URLSearchParams'), 'gameplay visible copy uses fixed route instead of runtime/query locale inference');
+ok(src.includes("window.__DE_GAMEPLAY_TUNING = 'prod-v10'")&&src.includes("version:'p0-v2'"), 'gameplay tuning and mechanics integrity expose current fixed-route contracts');
 ok(src.includes('guardian still blocks the exit') && src.includes('unconquered floors cannot be skipped'), 'mechanics-owned guardian/route hints render English directly');
-ok(src.includes("owner:'gameplay-tuning'"), 'mechanics integrity exposes an explicit runtime owner');
+ok(src.includes('Draw Momentum')&&src.includes('Death Mark'),'skill follow-up labels render English directly');
+ok(src.includes("owner:'gameplay-tuning'")&&src.includes("locale:english?'en':'zh-CN'"), 'mechanics integrity exposes explicit fixed-locale ownership');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);

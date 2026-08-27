@@ -15,6 +15,7 @@ global.localStorage = {
 
 const listeners = { window: {}, document: {} };
 global.document = {
+  documentElement:{dataset:{deLocale:'zh-CN'}},
   hint: { textContent: '' },
   querySelectorAll() { return []; },
   getElementById(id) { return id === 'hint' ? this.hint : null; },
@@ -82,7 +83,7 @@ function ok(cond, name) {
 }
 
 const I = window.DE_MECHANICS_INTEGRITY;
-ok(I && I.version === 'p0-v1', 'P0 integrity layer boots');
+ok(I && I.version === 'p0-v2' && I.locale === 'zh-CN', 'P0 fixed-route integrity layer boots');
 ok(I && I.canLeaveDepth() === false, 'live 10-floor guardian blocks descent');
 monsters = [];
 ok(I && I.canLeaveDepth() === true, 'observed defeated guardian unlocks descent');

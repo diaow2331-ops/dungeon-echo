@@ -1,9 +1,9 @@
-/* Dungeon Echo production gameplay tuning.
+/* Dungeon Echo production gameplay tuning v10.
  * Public route policy + human-play class balance only. Equipment/town/commerce/forge/progression/content own modules.
  *
- * v9 removes permanent balance/mechanics polling. Compatibility migration and guardian/checkpoint
- * maintenance now run after real UI/state transitions, while progression growth remains solely owned
- * by progression-guard-system.js.
+ * v9 removed permanent balance/mechanics polling. v10 moves class blurbs, guardian/checkpoint
+ * guidance and mechanics-integrity labels onto the fixed Chinese/English route, while progression
+ * growth remains solely owned by progression-guard-system.js.
  */
 (() => {
   'use strict';
@@ -12,10 +12,13 @@
 
   const api = window.DE_TEST;
   if (!api || !api.CLASSES) return;
-  window.__DE_GAMEPLAY_TUNING = 'prod-v9';
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const ui = (zh, en) => english ? en : zh;
+  window.__DE_GAMEPLAY_TUNING = 'prod-v10';
 
   if (api.profileId !== 'classic-100') {
-    throw new Error('生产入口必须使用 classic-100 Profile。');
+    throw new Error(ui('生产入口必须使用 classic-100 Profile。','Production entry must use the classic-100 Profile.'));
   }
 
   // Public expedition must discover 1→100 in order. The old paid unseen-floor skip is
@@ -32,20 +35,32 @@
 
   if (C.warrior) {
     C.warrior.hpBase = 40;
-    C.warrior.blurb = '厚血近战。坚甲提供稳定容错；横扫冷却较短，正面推进和控场最可靠。';
+    C.warrior.blurb = ui(
+      '厚血近战。坚甲提供稳定容错；横扫冷却较短，正面推进和控场最可靠。',
+      'Durable melee fighter. Heavy armor leaves room for mistakes; a short-cooldown sweep makes frontal pressure and control reliable.'
+    );
     if (C.warrior.skill) C.warrior.skill.cd = 5;
   }
   if (C.ranger) {
     C.ranger.rangedRange = 4;
-    C.ranger.blurb = '机动弓手。直线 4 格远射；灵巧闪避近战，疾步用于风筝、穿阵与脱离。';
+    C.ranger.blurb = ui(
+      '机动弓手。直线 4 格远射；灵巧闪避近战，疾步用于风筝、穿阵与脱离。',
+      'Mobile archer. Fires four tiles in a straight line, dodges melee pressure, and uses Fleet Step to kite, pass threats and disengage.'
+    );
   }
   if (C.mage) {
     C.mage.rangedRange = 3;
-    C.mage.blurb = '脆弱炮台。直线 3 格奥术射击维持距离；奥术弹跨角度点杀高防目标并击退。';
+    C.mage.blurb = ui(
+      '脆弱炮台。直线 3 格奥术射击维持距离；奥术弹跨角度点杀高防目标并击退。',
+      'Fragile artillery. Three-tile arcane shots maintain distance; Arcane Bolt finishes armored targets from odd angles and knocks them back.'
+    );
   }
   if (C.assassin) {
     C.assassin.hpBase = 26;
-    C.assassin.blurb = '高爆发游猎者。天生暴击 +10%；影袭瞬移斩首，但技能真空期较长，失位代价高。';
+    C.assassin.blurb = ui(
+      '高爆发游猎者。天生暴击 +10%；影袭瞬移斩首，但技能真空期较长，失位代价高。',
+      'High-burst hunter. Starts with +10% Crit; Shadow Strike teleports in for executions, but its long downtime makes bad positioning costly.'
+    );
     if (C.assassin.skill) C.assassin.skill.cd = 7;
   }
 
@@ -79,11 +94,11 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleMigration(); });
 
   window.__DE_BALANCE_PATCH = 'human-v2';
-  window.DE_BALANCE_MIGRATION = { version:'v2', migrate:migrateLegacyBase, schedule:scheduleMigration };
+  window.DE_BALANCE_MIGRATION = { version:'v3', owner:'gameplay-tuning', locale:english?'en':'zh-CN', migrate:migrateLegacyBase, schedule:scheduleMigration };
 })();
 
 
-/* P0 mechanics integrity: guardian gates, checkpoint proof, input parity and safe recovery. */
+/* P0 mechanics integrity v2: guardian gates, checkpoint proof, input parity and safe recovery. */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -97,6 +112,9 @@
   const CPS = [1,11,21,31,41,51,61,71,81,91];
   const DIR = { ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],w:[0,-1],W:[0,-1],s:[0,1],S:[0,1],a:[-1,0],A:[-1,0],d:[1,0],D:[1,0] };
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const ui = (zh, en) => english ? en : zh;
   let lastDepth = Number(api.depth) || 0;
   let sawGuardian = false;
   let syncQueued = false;
@@ -110,12 +128,6 @@
   const equipAtk = () => Object.values((api.player && api.player.equip) || {}).reduce((n,it) => n + (it && it.stats ? Number(it.stats.atk) || 0 : 0), 0);
   const atk = () => Math.max(1, (Number(api.player && api.player.atkBase) || 0) + equipAtk());
   const mobHp = () => (api.monsters || []).reduce((n,m) => n + Math.max(0, Number(m && m.hp) || 0), 0);
-  const isEnglish = () => {
-    if (window.DE_I18N) return !!window.DE_I18N.isEnglish;
-    try { return String(new URL(location.href).searchParams.get('lang') || '').toLowerCase() === 'en'; }
-    catch (_e) { return false; }
-  };
-  const ui = (zh, en) => isEnglish() ? en : zh;
 
   function loadClears() {
     try {
@@ -239,12 +251,12 @@
   function attackPlan(kind,talents,killed) {
     const has = id => talents.has(id); let scale=0,label='';
     if (kind==='ranger') {
-      if (has('se_r60_marksman')) { scale=.35; label='拉弦余势'; }
-      if (has('se_r80_phantom') && scale<.20) { scale=.20; label='幻步余势'; }
-      if (has('se_r80_chain') && killed && scale<.25) { scale=.25; label='无尽追猎'; }
+      if (has('se_r60_marksman')) { scale=.35; label=ui('拉弦余势','Draw Momentum'); }
+      if (has('se_r80_phantom') && scale<.20) { scale=.20; label=ui('幻步余势','Phantom Momentum'); }
+      if (has('se_r80_chain') && killed && scale<.25) { scale=.25; label=ui('无尽追猎','Endless Hunt'); }
     } else if (kind==='assassin') {
-      if (has('se_a60_mark')) { scale=.40; label='死亡标记'; }
-      if (has('se_a80_predator') && !killed && scale<.25) { scale=.25; label='猎物未死'; }
+      if (has('se_a60_mark')) { scale=.40; label=ui('死亡标记','Death Mark'); }
+      if (has('se_a80_predator') && !killed && scale<.25) { scale=.25; label=ui('猎物未死','Prey Survives'); }
     }
     return scale ? { scale,label } : null;
   }
@@ -324,7 +336,7 @@
     if(api.state==='town')syncCheckpointUi();
     ensureTalentFallback();
     const h=document.getElementById('hint');
-    if(h&&/J\s*快速下潜|快速下潜/.test(String(h.textContent||'')))h.textContent=isGate(d)&&guardian()
+    if(h&&/J\s*快速下潜|快速下潜|Quick Dive/.test(String(h.textContent||'')))h.textContent=isGate(d)&&guardian()
       ? ui(`› 第 ${d} 层守卫封锁出口 · 击败后才能下潜`,`› Floor ${d} guardian blocks the exit · defeat it before descending`)
       : ui('› 站在楼梯上按 Enter 下潜 · 未征服区域不能跳层','› Stand on stairs and press Enter to descend · unconquered floors cannot be skipped');
   }
@@ -340,7 +352,7 @@
   window.addEventListener('pageshow',scheduleSync);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleSync();});
   window.DE_MECHANICS_INTEGRITY={
-    version:'p0-v1',guardianCleared,markGuardianClear,allowedCheckpoints,canLeaveDepth,
-    sanitizeGuardianSave,attackPlan,sync,schedule: scheduleSync,owner:'gameplay-tuning'
+    version:'p0-v2',guardianCleared,markGuardianClear,allowedCheckpoints,canLeaveDepth,
+    sanitizeGuardianSave,attackPlan,sync,schedule: scheduleSync,owner:'gameplay-tuning',locale:english?'en':'zh-CN'
   };
 })();
