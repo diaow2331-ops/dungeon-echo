@@ -1,6 +1,8 @@
-/* Dungeon Echo progressive onboarding v2.
+/* Dungeon Echo progressive onboarding v3.
  * Contextual, action-driven and persistent. Progress is inferred from real game outcomes,
  * so keyboard, touch and gamepad all advance the same tutorial contract.
+ * v3 removes the permanent 140ms inspector and body MutationObserver; real input/resume
+ * transitions now coalesce tutorial inspection and legacy-feedback cleanup.
  */
 (() => {
   'use strict';
@@ -39,7 +41,8 @@
     guardian: () => tr('tutorial.guardian','守卫破甲 · 明示的破甲大招命中会无视护甲；看到预警就走位，不要硬吃'),
   };
 
-  let active='';let timer=0;let lastPlayer=null;
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let active='';let timer=0;let lastPlayer=null;let inspectQueued=false;
   let snap=null;
   const hpSum=()=> (api.monsters||[]).reduce((n,m)=>n+Math.max(0,Number(m&&m.hp)||0),0);
   const equipSig=p=>JSON.stringify(Object.fromEntries(Object.entries((p&&p.equip)||{}).map(([k,v])=>[k,v&&v.name||''])));
@@ -79,7 +82,11 @@
     if(!done('bag')&&cur.equip!==snap.equip)mark('bag');
   }
 
+  const LEGACY=/(?:面向敌人后按\s*J\s*攻击|J\s*攻击\s*·\s*K\s*技能|技能热键已改为\s*K)/i;
+  function scrubLegacyFeedback(){const el=document.getElementById('de-combat-feedback');if(el&&LEGACY.test(String(el.textContent||''))){el.hidden=true;return true}return false}
+
   function inspect(){
+    scrubLegacyFeedback();attachReset();
     const p=api.player,cur=snapshot();
     if(p!==lastPlayer){lastPlayer=p;snap=cur;active='';toast.hidden=true}
     inferProgress(cur);snap=cur;
@@ -95,13 +102,17 @@
     if(active&&done(active))hide();
   }
 
-  document.addEventListener('click',e=>{if(!done('bag')&&e.target&&e.target.closest&&e.target.closest('#bag .bagcell'))mark('bag')},true);
-  const LEGACY=/(?:面向敌人后按\s*J\s*攻击|J\s*攻击\s*·\s*K\s*技能|技能热键已改为\s*K)/i;
-  const observer=typeof MutationObserver!=='undefined'?new MutationObserver(()=>{const el=document.getElementById('de-combat-feedback');if(el&&LEGACY.test(String(el.textContent||'')))el.hidden=true;attachReset()}):null;if(observer)observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+  function scheduleInspect(){if(inspectQueued)return false;inspectQueued=true;defer(()=>{inspectQueued=false;inspect()});return true}
+
+  document.addEventListener('click',e=>{if(!done('bag')&&e.target&&e.target.closest&&e.target.closest('#bag .bagcell'))mark('bag');scheduleInspect()},true);
+  document.addEventListener('keydown',scheduleInspect,true);
+  window.addEventListener('focus',scheduleInspect);
+  window.addEventListener('pageshow',scheduleInspect);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleInspect()});
 
   function resetTutorial(){state.done={};save();hide();lastPlayer=null;snap=null;inspect()}
   function attachReset(){const tools=document.querySelector('#de-audio-settings-pop .de-audio-tools');if(!tools||document.getElementById('de-tutorial-reset'))return;const b=document.createElement('button');b.type='button';b.id='de-tutorial-reset';b.textContent=tr('tutorial.reset','重置教学');b.style.cssText='border:1px solid rgba(224,167,58,.3);background:#17100c;color:#d9c7a3;padding:5px 8px;font-size:10px;cursor:pointer;margin-right:auto';b.addEventListener('click',resetTutorial);tools.insertBefore(b,tools.firstChild)}
-  window.addEventListener('de:languagechange',()=>{syncLabels();if(active&&!toast.hidden)toast.querySelector('span').textContent=text[active]()});
+  window.addEventListener('de:languagechange',()=>{syncLabels();if(active&&!toast.hidden)toast.querySelector('span').textContent=text[active]();scheduleInspect()});
 
-  setInterval(inspect,140);syncLabels();inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v2',key:KEY,show,mark,resetTutorial,get state(){return JSON.parse(JSON.stringify(state))}};
+  syncLabels();inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v3',owner:'combat-hint-polish',key:KEY,show,mark,resetTutorial,inspect,schedule:scheduleInspect,scrubLegacyFeedback,get state(){return JSON.parse(JSON.stringify(state))}};
 })();
