@@ -1,4 +1,4 @@
-/* Dungeon Echo production content bridge v5.
+/* Dungeon Echo production content bridge v6.
  * Keeps late-game chapter palettes and all guardian encounter identity in one place.
  *
  * Stateful encounters:
@@ -14,7 +14,8 @@
  * 100 End-Abyss Sovereign (three HP-driven phases)
  *
  * Telegraph timing/state persists in a sidecar key so reload cannot cancel an announced
- * special. The core run-save schema stays unchanged.
+ * special. The core run-save schema stays unchanged. v6 makes guardian presentation
+ * source-owned by the fixed Chinese/English route instead of runtime DOM translation.
  */
 (() => {
   'use strict';
@@ -22,17 +23,22 @@
   if (window.__DE_CONTENT_SYSTEM) return;
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !api.runProfile) return;
-  window.__DE_CONTENT_SYSTEM = 'v5';
+  window.__DE_CONTENT_SYSTEM = 'v6';
 
   const p = api.runProfile;
   const ENCOUNTER_KEY = 'de-guardian-encounter-v1';
+  const routeLang = typeof document !== 'undefined'
+    ? String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase()
+    : '';
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
 
   if (Array.isArray(p.themes) && p.themes.length === 21) {
     p.themes.push(
-      { name: '噤声王庭', fl: '#11131d', fl2: '#0e1019', sp1: '#080a12', sp2: '#202536', wa: '#2b3144', wl: '#151925', wh: 'rgba(185,198,235,.10)' },
-      { name: '黑星墓海', fl: '#17121d', fl2: '#120e19', sp1: '#0b0810', sp2: '#2a2034', wa: '#382b42', wl: '#1b1422', wh: 'rgba(208,176,230,.10)' },
-      { name: '终末天井', fl: '#211014', fl2: '#1a0c10', sp1: '#100609', sp2: '#351920', wa: '#47212a', wl: '#210f15', wh: 'rgba(245,155,170,.11)' },
-      { name: '回响王座', fl: '#0d0918', fl2: '#090612', sp1: '#05030c', sp2: '#211332', wa: '#301b48', wl: '#120a20', wh: 'rgba(210,185,255,.14)' }
+      { name: copy('噤声王庭','Silent Court'), fl: '#11131d', fl2: '#0e1019', sp1: '#080a12', sp2: '#202536', wa: '#2b3144', wl: '#151925', wh: 'rgba(185,198,235,.10)' },
+      { name: copy('黑星墓海','Blackstar Necropolis'), fl: '#17121d', fl2: '#120e19', sp1: '#0b0810', sp2: '#2a2034', wa: '#382b42', wl: '#1b1422', wh: 'rgba(208,176,230,.10)' },
+      { name: copy('终末天井','Endfall Atrium'), fl: '#211014', fl2: '#1a0c10', sp1: '#100609', sp2: '#351920', wa: '#47212a', wl: '#210f15', wh: 'rgba(245,155,170,.11)' },
+      { name: copy('回响王座','Echo Throne'), fl: '#0d0918', fl2: '#090612', sp1: '#05030c', sp2: '#211332', wa: '#301b48', wl: '#120a20', wh: 'rgba(210,185,255,.14)' }
     );
   }
 
@@ -88,25 +94,25 @@
   stage.appendChild(badge);
 
   const SPECS = {
-    20: { id: 'frost-ring', interval: 4, color: '#7ec8e3', title: '霜环蓄积', warn: '寒气将在下一回合覆盖守卫周围 2 格。离开霜环范围。', radius: 2 },
-    30: { id: 'ember-mark', interval: 4, color: '#ff8a45', title: '爆裂标记', warn: '脚下地块已被点燃。下一回合前离开这个格子。' },
-    40: { id: 'hunter-line', interval: 3, color: '#e7d7a4', title: '猎杀线', warn: '守卫锁定了一条射击线。横向/纵向侧移，或让地形挡住射线。', range: 6 },
-    50: { id: 'mending-channel', interval: 5, color: '#86d4a6', title: '愈合咏唱', warn: '守卫将在下一回合恢复大量生命。警告期间对它造成伤害即可打断。' },
-    60: { id: 'blood-tether', interval: 4, color: '#e05a65', title: '血契牵引', warn: '血链将在下一回合抽取近距离目标。与守卫拉开到 4 格以上。' },
-    70: { id: 'rupture-cross', interval: 4, color: '#d7a640', title: '地脉震裂', warn: '守卫将在自身横纵 3 格内震裂地面。离开十字形危险线。', radius: 3 },
-    80: { id: 'arcane-strip', interval: 4, color: '#a895ff', title: '星蚀弹幕', warn: '弹幕锁定你所在的短直线。沿垂直于亮线的方向侧移一格。', range: 2 },
+    20: { id: 'frost-ring', interval: 4, color: '#7ec8e3', title: copy('霜环蓄积','Frost Ring'), warn: copy('寒气将在下一回合覆盖守卫周围 2 格。离开霜环范围。','Frost will cover the 2-tile area around the guardian next turn. Leave the ring.'), radius: 2 },
+    30: { id: 'ember-mark', interval: 4, color: '#ff8a45', title: copy('爆裂标记','Ember Mark'), warn: copy('脚下地块已被点燃。下一回合前离开这个格子。','Your tile is marked to ignite. Move off it before the next turn.') },
+    40: { id: 'hunter-line', interval: 3, color: '#e7d7a4', title: copy('猎杀线','Hunter Line'), warn: copy('守卫锁定了一条射击线。横向/纵向侧移，或让地形挡住射线。','The guardian locks a firing line. Sidestep or break line of sight with terrain.'), range: 6 },
+    50: { id: 'mending-channel', interval: 5, color: '#86d4a6', title: copy('愈合咏唱','Mending Channel'), warn: copy('守卫将在下一回合恢复大量生命。警告期间对它造成伤害即可打断。','The guardian will restore a large amount of HP next turn. Damage it during the warning to interrupt.' ) },
+    60: { id: 'blood-tether', interval: 4, color: '#e05a65', title: copy('血契牵引','Blood Tether'), warn: copy('血链将在下一回合抽取近距离目标。与守卫拉开到 4 格以上。','The tether drains nearby targets next turn. Get at least 4 tiles away from the guardian.') },
+    70: { id: 'rupture-cross', interval: 4, color: '#d7a640', title: copy('地脉震裂','Rupture Cross'), warn: copy('守卫将在自身横纵 3 格内震裂地面。离开十字形危险线。','The guardian ruptures the ground three tiles along its row and column. Leave the cross-shaped danger line.'), radius: 3 },
+    80: { id: 'arcane-strip', interval: 4, color: '#a895ff', title: copy('星蚀弹幕','Eclipse Barrage'), warn: copy('弹幕锁定你所在的短直线。沿垂直于亮线的方向侧移一格。','The barrage locks a short line through you. Sidestep one tile perpendicular to the lit line.'), range: 2 },
   };
 
   const ECHO_SEQUENCE = [
-    { id: 'echo-mark', interval: 3, color: '#ff8a45', title: '回响试炼 I · 踏焰', warn: '旧日爆裂标记再次出现。离开被锁定的地块。', sequence: true },
-    { id: 'echo-line', interval: 3, color: '#e7d7a4', title: '回响试炼 II · 断线', warn: '旧日猎杀线再次出现。侧移、离开射程或借墙断线。', range: 7, sequence: true },
-    { id: 'echo-ring', interval: 3, color: '#7ec8e3', title: '回响试炼 III · 离环', warn: '旧日霜环再次出现。离开守卫周围 2 格。', radius: 2, sequence: true },
+    { id: 'echo-mark', interval: 3, color: '#ff8a45', title: copy('回响试炼 I · 踏焰','Echo Trial I · Step from Flame'), warn: copy('旧日爆裂标记再次出现。离开被锁定的地块。','The old Ember Mark returns. Leave the locked tile.'), sequence: true },
+    { id: 'echo-line', interval: 3, color: '#e7d7a4', title: copy('回响试炼 II · 断线','Echo Trial II · Break the Line'), warn: copy('旧日猎杀线再次出现。侧移、离开射程或借墙断线。','The old Hunter Line returns. Sidestep, leave its range, or use a wall to break the line.'), range: 7, sequence: true },
+    { id: 'echo-ring', interval: 3, color: '#7ec8e3', title: copy('回响试炼 III · 离环','Echo Trial III · Leave the Ring'), warn: copy('旧日霜环再次出现。离开守卫周围 2 格。','The old Frost Ring returns. Leave the 2-tile area around the guardian.'), radius: 2, sequence: true },
   ];
 
   const FINAL_PHASES = {
-    crown: { id: 'throne-mark', interval: 3, color: '#d7a640', title: '终局第一相 · 王座烙印', warn: '渊主烙印你脚下的地块。下一回合前离开。' },
-    void: { id: 'void-line', interval: 3, color: '#b49cff', title: '终局第二相 · 虚空裁线', warn: '渊主锁定整条行列。侧移或借墙切断射线。', range: 8 },
-    heart: { id: 'heart-nova', interval: 2, color: '#ff6f6f', title: '终局第三相 · 深渊心爆', warn: '渊主将引爆周围 2 格。停止贪刀，立刻拉开距离。', radius: 2 },
+    crown: { id: 'throne-mark', interval: 3, color: '#d7a640', title: copy('终局第一相 · 王座烙印','Final Phase I · Throne Brand'), warn: copy('渊主烙印你脚下的地块。下一回合前离开。','The Abyss Sovereign brands your tile. Move before the next turn.') },
+    void: { id: 'void-line', interval: 3, color: '#b49cff', title: copy('终局第二相 · 虚空裁线','Final Phase II · Void Line'), warn: copy('渊主锁定整条行列。侧移或借墙切断射线。','The Abyss Sovereign locks your entire row or column. Sidestep or break the line with a wall.'), range: 8 },
+    heart: { id: 'heart-nova', interval: 2, color: '#ff6f6f', title: copy('终局第三相 · 深渊心爆','Final Phase III · Abyss Heart Nova'), warn: copy('渊主将引爆周围 2 格。停止贪刀，立刻拉开距离。','The Abyss Sovereign will detonate the surrounding 2 tiles. Stop attacking and create distance now.'), radius: 2 },
   };
 
   let tracked = null;
@@ -280,7 +286,7 @@
         };
         m.slow = true;
         m.skip = 0;
-        showNotice(`${spec.title}：${spec.warn}`, spec.color, 1800);
+        showNotice(`${spec.title}: ${spec.warn}`, spec.color, 1800);
       }
     }
     return true;
@@ -304,7 +310,7 @@
       active.axis = dx >= dy ? 'row' : 'col';
       active.line = active.axis === 'row' ? player.y : player.x;
     }
-    showNotice(`${spec.title}：${spec.warn}`, spec.color, 1800);
+    showNotice(`${spec.title}: ${spec.warn}`, spec.color, 1800);
     saveEncounterState();
   }
 
@@ -358,46 +364,58 @@
       hit = dist <= radius;
       if (hit) api.monsterAttack(m);
       const success = id === 'heart-nova'
-        ? '心爆落空：你在最后一刻拉开了距离。'
-        : '范围爆发落空：你及时离开了危险区。';
-      showNotice(hit ? `${a.spec.title}命中：警告区不能硬吃。` : success, hit ? '#ff9d72' : '#86d4a6');
+        ? copy('心爆落空：你在最后一刻拉开了距离。','Heart Nova missed: you created distance at the last moment.')
+        : copy('范围爆发落空：你及时离开了危险区。','The area burst missed: you escaped the danger zone in time.');
+      showNotice(hit
+        ? copy(`${a.spec.title}命中：警告区不能硬吃。`, `${a.spec.title} hit: do not stand inside the telegraphed area.`)
+        : success, hit ? '#ff9d72' : '#86d4a6');
     } else if (id === 'ember-mark' || id === 'echo-mark' || id === 'throne-mark') {
       hit = player.x === a.targetX && player.y === a.targetY;
       if (hit) api.monsterAttack(m);
-      showNotice(hit ? `${a.spec.title}命中：原地贪刀付出了代价。` : `${a.spec.title}落空：你及时离开了锁定地块。`, hit ? '#ff9d72' : '#86d4a6');
+      showNotice(hit
+        ? copy(`${a.spec.title}命中：原地贪刀付出了代价。`, `${a.spec.title} hit: greed on the marked tile cost you.`)
+        : copy(`${a.spec.title}落空：你及时离开了锁定地块。`, `${a.spec.title} missed: you left the locked tile in time.`), hit ? '#ff9d72' : '#86d4a6');
     } else if (lineLike(id)) {
       const aligned = a.axis === 'row' ? player.y === a.line : player.x === a.line;
       const dist = Math.max(Math.abs(player.x - m.x), Math.abs(player.y - m.y));
       hit = aligned && dist <= (a.spec.range || 6) && lineClear(m, player, a.axis);
       if (hit) api.monsterRangedAttack(m);
-      showNotice(hit ? `${a.spec.title}命中：下一次看见锁线时侧移或断线。` : `${a.spec.title}落空：你避开或切断了射线。`, hit ? '#ff9d72' : '#86d4a6');
+      showNotice(hit
+        ? copy(`${a.spec.title}命中：下一次看见锁线时侧移或断线。`, `${a.spec.title} hit: sidestep or break line of sight next time.`)
+        : copy(`${a.spec.title}落空：你避开或切断了射线。`, `${a.spec.title} missed: you dodged or broke the firing line.`), hit ? '#ff9d72' : '#86d4a6');
     } else if (id === 'arcane-strip') {
       const r = a.spec.range || 2;
       hit = a.axis === 'row'
         ? player.y === a.targetY && Math.abs(player.x - a.targetX) <= r
         : player.x === a.targetX && Math.abs(player.y - a.targetY) <= r;
       if (hit) api.monsterRangedAttack(m);
-      showNotice(hit ? '星蚀弹幕命中：短直线要沿垂直方向侧移。' : '星蚀弹幕落空：你离开了锁定短线。', hit ? '#ff9d72' : '#86d4a6');
+      showNotice(hit
+        ? copy('星蚀弹幕命中：短直线要沿垂直方向侧移。','Eclipse Barrage hit: sidestep perpendicular to the short line.')
+        : copy('星蚀弹幕落空：你离开了锁定短线。','Eclipse Barrage missed: you left the locked short line.'), hit ? '#ff9d72' : '#86d4a6');
     } else if (id === 'mending-channel') {
       const interrupted = m.hp < a.startHp;
-      if (interrupted) showNotice('愈合咏唱被打断：持续施压阻止了这次回复。', '#86d4a6');
+      if (interrupted) showNotice(copy('愈合咏唱被打断：持续施压阻止了这次回复。','Mending Channel interrupted: sustained pressure stopped the heal.'), '#86d4a6');
       else {
         const heal = Math.max(1, Math.round(m.maxHp * 0.15));
         m.hp = Math.min(m.maxHp, m.hp + heal);
-        showNotice(`愈合完成：守卫恢复了 ${heal} 点生命。`, '#ffb07c');
+        showNotice(copy(`愈合完成：守卫恢复了 ${heal} 点生命。`, `Mending completed: the guardian restored ${heal} HP.`), '#ffb07c');
       }
     } else if (id === 'blood-tether') {
       const dist = Math.max(Math.abs(player.x - m.x), Math.abs(player.y - m.y));
       hit = dist <= 3;
       if (hit) api.monsterAttack(m);
-      showNotice(hit ? '血契抽取命中：下次在警告期间拉开到 4 格以上。' : '血契断裂：你成功拉开了距离。', hit ? '#ff9d72' : '#86d4a6');
+      showNotice(hit
+        ? copy('血契抽取命中：下次在警告期间拉开到 4 格以上。','Blood Tether hit: get at least 4 tiles away during the next warning.')
+        : copy('血契断裂：你成功拉开了距离。','Blood Tether broke: you created enough distance.'), hit ? '#ff9d72' : '#86d4a6');
     } else if (id === 'rupture-cross') {
       const r = a.spec.radius || 3;
       const dx = Math.abs(player.x - m.x);
       const dy = Math.abs(player.y - m.y);
       hit = (player.x === m.x && dy <= r) || (player.y === m.y && dx <= r);
       if (hit) api.monsterAttack(m);
-      showNotice(hit ? '地脉震裂命中：十字线不能硬吃。' : '地脉震裂落空：你离开了横纵危险线。', hit ? '#ff9d72' : '#86d4a6');
+      showNotice(hit
+        ? copy('地脉震裂命中：十字线不能硬吃。','Rupture Cross hit: do not tank the cross-shaped danger line.')
+        : copy('地脉震裂落空：你离开了横纵危险线。','Rupture Cross missed: you left the row-and-column danger line.'), hit ? '#ff9d72' : '#86d4a6');
     }
 
     if (a.spec.sequence) sequenceIndex = (sequenceIndex + 1) % ECHO_SEQUENCE.length;
@@ -425,8 +443,8 @@
         finalPhase = phase;
         nextSpecialTurn = Math.min(nextSpecialTurn, (Number(api.turns) || 0) + 1);
         const text = phase === 'void'
-          ? '终焉渊主进入第二阶段：王座碎裂，虚空裁线开始。'
-          : '终焉渊主进入第三阶段：深渊之心暴露，心爆频率加快。';
+          ? copy('终焉渊主进入第二阶段：王座碎裂，虚空裁线开始。','The End-Abyss Sovereign enters Phase II: the throne shatters and Void Line begins.')
+          : copy('终焉渊主进入第三阶段：深渊之心暴露，心爆频率加快。','The End-Abyss Sovereign enters Phase III: the abyssal heart is exposed and Heart Nova accelerates.');
         showNotice(text, phase === 'void' ? '#b49cff' : '#ff6f6f', 1900);
         saveEncounterState();
       }
@@ -560,7 +578,9 @@
   }
 
   window.DE_GUARDIAN_ENCOUNTER_STATE = {
-    version: 'v1',
+    version: 'v2',
+    owner: 'content-system',
+    locale: english ? 'en' : 'zh-CN',
     load: loadEncounterState,
     save: saveEncounterState,
     clear: clearEncounterState,
