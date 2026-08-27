@@ -26,8 +26,6 @@ const player = { x: 1, y: 2 };
 
 global.document = {
   readyState: 'complete',
-  head: { appendChild() {} },
-  createElement() { return { style: {}, set id(_v) {}, appendChild() {} }; },
   addEventListener(type, fn) { (listeners[type] ||= []).push(fn); },
 };
 global.localStorage = { getItem() { return null; }, setItem() {} };
@@ -43,11 +41,10 @@ global.window = {
     get meta() { return null; },
     persistRun() { persisted++; },
   },
-  addEventListener() {},
 };
 global.queueMicrotask = global.queueMicrotask || (fn => Promise.resolve().then(fn));
 
-vm.runInThisContext(fs.readFileSync(path.join(root, 'production-bootstrap.js'), 'utf8'), { filename: 'production-bootstrap.js' });
+vm.runInThisContext(fs.readFileSync(path.join(root, 'npc-stability-system.js'), 'utf8'), { filename: 'npc-stability-system.js' });
 
 let pass = 0, fail = 0;
 function ok(cond, name) {
@@ -55,7 +52,7 @@ function ok(cond, name) {
   else { fail++; console.log('  FAIL ' + name); }
 }
 const bridge = window.__DE_DISPOSABLE_NPC_CLEANUP;
-ok(bridge && bridge.version === 'p0-v2', 'interaction pathing bridge boots');
+ok(bridge && bridge.version === 'p0-v3' && bridge.owner === 'npc-stability-system', 'NPC stability pathing owner boots');
 ok(!npcs.some(n => n.type === 'rest'), 'consumed rest camp is removed before pathing');
 const shrine = npcs.find(n => n.type === 'shrine');
 const shop = npcs.find(n => n.type === 'shop');
