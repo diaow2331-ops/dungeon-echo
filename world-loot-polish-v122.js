@@ -1,6 +1,8 @@
-/* Dungeon Echo v1.2.2 ground-loot polish.
+/* Dungeon Echo ground-loot polish v1.3.9.
  * Presentation only: subtle ground shadow, rarity aura and pickup glint for visible loot.
  * Does not change item sprites, RNG, pickup rules, stats or fog-of-war information.
+ * The animation loop now exists only while a run is actively playing and the page is visible;
+ * title/town/pause/background states own no idle requestAnimationFrame follower.
  */
 (() => {
   'use strict';
@@ -83,19 +85,63 @@
     ctx.restore();
   }
 
-  let last=0;
-  function frame(now){
-    if(now-last>=80){
-      last=now;
-      const w=Number(game.width)||1280,h=Number(game.height)||896;
-      if(overlay.width!==w)overlay.width=w;if(overlay.height!==h)overlay.height=h;
-      ctx.clearRect(0,0,w,h);
-      if(api.state==='playing'){
-        const v=viewState();for(const it of (api.items||[]))paintItem(it,v,now);
-      }
-    }
-    requestAnimationFrame(frame);
+  let last=0,rafId=0;
+  function clearOverlay(){
+    const w=Number(overlay.width)||Number(game.width)||1280,h=Number(overlay.height)||Number(game.height)||896;
+    ctx.clearRect(0,0,w,h);
   }
-  requestAnimationFrame(frame);
-  window.__DE_WORLD_LOOT_V122={version:'v1',viewState,visible,colorFor};
+  function paint(now){
+    if(now-last<80)return;
+    last=now;
+    const w=Number(game.width)||1280,h=Number(game.height)||896;
+    if(overlay.width!==w)overlay.width=w;if(overlay.height!==h)overlay.height=h;
+    ctx.clearRect(0,0,w,h);
+    const v=viewState();
+    for(const it of (api.items||[]))paintItem(it,v,now);
+  }
+  function frame(now){
+    rafId=0;
+    if(document.hidden||api.state!=='playing'){
+      clearOverlay();
+      return;
+    }
+    paint(now);
+    rafId=requestAnimationFrame(frame);
+  }
+  function start(){
+    if(rafId||document.hidden||api.state!=='playing')return false;
+    last=0;
+    rafId=requestAnimationFrame(frame);
+    return true;
+  }
+  function stop(clear=true){
+    if(rafId&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(rafId);
+    const had=!!rafId;rafId=0;last=0;
+    if(clear)clearOverlay();
+    return had;
+  }
+  function sync(){
+    if(!document.hidden&&api.state==='playing')return start();
+    stop(true);return false;
+  }
+  function queueSync(){
+    if(typeof queueMicrotask==='function')queueMicrotask(sync);
+    else Promise.resolve().then(sync);
+  }
+
+  // State changes are driven by core actions; the next frame also self-terminates if an
+  // earlier capture listener stopped propagation (for example Return Scroll completion).
+  document.addEventListener('keydown',queueSync,true);
+  document.addEventListener('click',queueSync,true);
+  document.addEventListener('visibilitychange',sync);
+  window.addEventListener('focus',sync);
+  window.addEventListener('pageshow',sync);
+  window.addEventListener('pagehide',()=>stop(true));
+  window.addEventListener('resize',()=>{if(api.state==='playing'){paint(performance.now());start();}} ,{passive:true});
+
+  sync();
+  window.__DE_WORLD_LOOT_V122={
+    version:'v3',owner:'world-loot-polish-v122',viewState,visible,colorFor,paint,start,stop,sync,
+    get running(){return !!rafId;}
+  };
 })();

@@ -12,7 +12,7 @@
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '138';
+  const assetVersion = '139';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;

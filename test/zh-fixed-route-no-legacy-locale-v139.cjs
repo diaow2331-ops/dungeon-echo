@@ -42,6 +42,6 @@ const enSrc=en.chain.map(row=>String(row[0]));
 assert(enSrc.some(s=>s.includes('locale-event-owner-v130.js')),'English route keeps transitional event owner until core cut');
 assert(enSrc.some(s=>s.includes('locale-runtime-v122.js')),'English route keeps transitional core translator until game.js cut');
 assert(enSrc.some(s=>s.includes('locale-completeness-v128.js')),'English route keeps completeness fallback until game.js cut');
-assert(enSrc.every(s=>s.includes('?v=138')),'all late assets share generation 138');
+assert(enSrc.every(s=>s.includes('?v=139')),'all late assets share generation 139');
 
-console.log('fixed_route_bridge_isolation_v138=PASS');
+console.log('fixed_route_bridge_isolation_v139=PASS');
