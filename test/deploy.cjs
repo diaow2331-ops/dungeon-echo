@@ -8,6 +8,7 @@ const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const version = read('VERSION').trim();
 const deploy = read('ops/site-bundle/deploy.sh');
 const health = read('ops/site-bundle/healthcheck.sh');
 const builder = path.join(root, 'ops/release/build-site-bundle.sh');
@@ -45,6 +46,11 @@ for (const required of [
   'public/dungeon-echo/game.js',
   'public/dungeon-echo/art/title-backdrop.webp'
 ]) assert(files.includes(required), `bundle missing ${required}`);
+
+result = spawnSync('unzip', ['-p', archive, 'README.txt'], { encoding: 'utf8' });
+assert.equal(result.status, 0, result.stderr);
+assert(result.stdout.includes(`91hwl-play-dungeon-echo-v${version}.zip`),
+  'bundled deployment README must use the current game VERSION');
 
 fs.rmSync(temp, { recursive: true, force: true });
 console.log('RESULT  site bundle deploy contract PASS');

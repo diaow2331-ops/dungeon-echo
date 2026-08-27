@@ -39,4 +39,4 @@ v1.2.8 is an English-locale completeness and pre-deployment robustness hotfix on
 
 ## Verification required
 
-Repository/static checks are not human-browser evidence. Before calling v1.2.8 complete, run the focused save/localization tests and release tests on the deployment host, then verify a real `?lang=en` session on desktop and mobile, including equipment labels and several newly generated Adventure Log messages.
+Repository/static checks are not human-browser evidence. Focused deterministic Node contracts are the recorded repository evidence; no GitHub Actions PASS is claimed while the current Actions allowance is unavailable. Before calling v1.2.8 complete, run the focused save/localization tests and release tests on the deployment host, then verify a real `?lang=en` session on desktop and mobile, including equipment labels and several newly generated Adventure Log messages.
