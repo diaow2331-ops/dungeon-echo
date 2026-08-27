@@ -28,6 +28,7 @@ function drawSceneTransitionFx(){
   if(sceneBlend<=0||previousSceneIndex===sceneIndex)return;
   const boundary=W*Math.max(0,Math.min(1,sceneBlend));
   ctx.save();
+  // 像跑过墙柱/门框，而不是两张背景互相半透明叠加。
   ctx.fillStyle='#d1c9bd';ctx.fillRect(boundary-34,82,54,423);
   ctx.fillStyle='#9f978c';ctx.fillRect(boundary-34,82,6,423);
   ctx.fillStyle='#fffdf8';ctx.fillRect(boundary+12,82,8,423);
@@ -35,21 +36,31 @@ function drawSceneTransitionFx(){
   ctx.restore();
 }
 function drawSharedFloor(){
+  // 四个场景共享同一套“侧视跑动地面”。家具可以换，但玩家的落点参照永远一致。
   const floorTop=287;
   ctx.save();
   ctx.fillStyle='#d6d1c6';ctx.fillRect(0,floorTop,W,H-floorTop);
+  // 远端墙脚/踢脚线
   ctx.fillStyle='#c2baae';ctx.fillRect(0,floorTop,W,8);
+  // 地砖缝：只负责空间感，不承担落点提示。
   ctx.strokeStyle='rgba(120,112,101,.34)';ctx.lineWidth=1.35;
   const tileX=-((runDistance*6.2)%150)-150;
   for(let x=tileX;x<W;x+=150){ctx.beginPath();ctx.moveTo(x,floorTop);ctx.lineTo(x,GROUND+58);ctx.stroke()}
   for(let y=floorTop+38;y<H;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+
+  // 跑动通道：比上一版更明确，但仍然属于办公室地板的一部分。
   ctx.fillStyle='rgba(255,253,248,.34)';ctx.fillRect(0,GROUND-20,W,54);
   ctx.fillStyle='rgba(255,255,255,.62)';ctx.fillRect(0,GROUND-2,W,2);
+  // 真正的落点边界位于脚底下方 2px。高速时只需要盯这一条即可。
   ctx.fillStyle='rgba(23,23,23,.58)';ctx.fillRect(0,GROUND+2,W,4);
   ctx.fillStyle='rgba(23,23,23,.18)';ctx.fillRect(0,GROUND+8,W,1);
+
+  // 通道内部增加移动短标记，帮助眼睛感知横向速度，但不与障碍轮廓抢视觉权重。
   const markerX=-((runDistance*7.4)%140)-140;
   ctx.fillStyle='rgba(23,23,23,.22)';
   for(let x=markerX;x<W;x+=140)ctx.fillRect(x,GROUND+17,38,2);
+
+  // 接触阴影让人物、老板、BUG 等地面对象“压”在地面上，而不是贴在线上。
   const g=ctx.createLinearGradient(0,GROUND-10,0,GROUND+12);
   g.addColorStop(0,'rgba(23,23,23,0)');g.addColorStop(.58,'rgba(23,23,23,.10)');g.addColorStop(1,'rgba(23,23,23,0)');
   ctx.fillStyle=g;ctx.fillRect(0,GROUND-10,W,22);
@@ -76,6 +87,7 @@ function drawBackground(){
   drawAtmosphere();
 }
 function drawDesk(x,y){
+  // 办公椅：放在桌子后方，让工位区真正像有人在这里上班。
   ctx.save();
   ctx.translate(x+148,y+8);
   const chairTint=stageIndex>=4?'#b97b72':'#7f8792';
@@ -86,10 +98,14 @@ function drawDesk(x,y){
   ctx.beginPath();ctx.moveTo(0,26);ctx.lineTo(-18,34);ctx.moveTo(0,26);ctx.lineTo(18,34);ctx.moveTo(0,26);ctx.lineTo(0,38);ctx.stroke();
   ctx.fillStyle='#4c4c4c';ctx.fillRect(-23,33,10,4);ctx.fillRect(13,33,10,4);ctx.fillRect(-5,37,10,4);
   ctx.restore();
+
+  // 桌体
   ctx.fillStyle='#bcb3a4';ctx.fillRect(x,y,205,17);ctx.fillRect(x+22,y+17,11,100);ctx.fillRect(x+171,y+17,11,100);
+  // 显示器与支架
   ctx.fillStyle='#242424';ctx.fillRect(x+72,y-66,96,57);ctx.fillRect(x+116,y-9,9,18);ctx.fillRect(x+94,y+9,55,5);
   ctx.fillStyle=stageIndex>=4?'#ffe0d8':(stageIndex>=3?'#fff1cf':'#f4f2ec');ctx.fillRect(x+81,y-57,78,38);ctx.fillStyle=stageIndex>=3?'#9c3f2f':'#747474';ctx.fillRect(x+88,y-49,49,4);ctx.fillRect(x+88,y-38,60,4);ctx.fillRect(x+88,y-27,38,4);
   if(stageIndex>=4){ctx.fillStyle='#d95a49';ctx.font='950 9px ui-monospace,monospace';ctx.textAlign='right';ctx.fillText('99+',x+154,y-24)}
+  // 杯子、键盘、鼠标
   ctx.fillStyle='#8a7a66';ctx.fillRect(x+42,y-18,18,18);ctx.fillStyle='#f3f0e8';ctx.fillRect(x+46,y-25,10,8);ctx.strokeStyle='#8a7a66';ctx.lineWidth=2;ctx.strokeRect(x+59,y-14,7,8);
   ctx.fillStyle='#e7e1d5';ctx.fillRect(x+96,y-2,46,6);ctx.fillStyle='#6f6a61';ctx.fillRect(x+147,y+1,8,5);
 }
