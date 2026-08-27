@@ -21,12 +21,24 @@ const bannedEvents = [
 ];
 
 const bannedProductionPaths = [
-  ['workflow secret access', /\bsecrets\.[A-Za-z0-9_]+\b/],
+  ['workflow secret access', /\bsecrets\s*(?:\.|\[)/i],
   ['write-all workflow permission', /^\s*permissions\s*:\s*write-all\s*$/mi],
-  ['SSH/SCP/rsync remote mutation', /(^|[;&|]\s*|\brun:\s*[^\n]*)(?:ssh|scp|rsync)\s+/mi],
+  ['SSH/SCP/rsync remote mutation', /^\s*(?:sudo\s+)?(?:ssh|scp|rsync)\s+/mi],
+  ['remote deployment action', /^\s*uses\s*:\s*[^#\n]*(?:ssh-action|scp-action|ssh-agent|rsync-deploy|deploy-action)/mi],
   ['production deploy script', /\bops\/(?:home-mount|moyu-bundle|site-bundle)\/deploy\.sh\b/],
   ['service mutation', /\bsystemctl\s+(?:start|stop|restart|reload|enable|disable)\b/i],
 ];
+
+function scanWorkflow(text, rel) {
+  const findings = [];
+  for (const [label, re] of bannedEvents) {
+    if (re.test(text)) findings.push(`${rel}: untrusted trigger ${label}`);
+  }
+  for (const [label, re] of bannedProductionPaths) {
+    if (re.test(text)) findings.push(`${rel}: ${label}`);
+  }
+  return findings;
+}
 
 function workflowFiles(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -38,16 +50,25 @@ function workflowFiles(dir, out = []) {
   return out;
 }
 
+const selfTests = [
+  ['comment trigger', 'on:\n  issue_comment:\n    types: [created]\n'],
+  ['privileged PR trigger', 'on:\n  pull_request_target:\n    types: [opened]\n'],
+  ['secret access', 'on: push\njobs:\n  x:\n    env:\n      TOKEN: ${{ secrets.DEPLOY_TOKEN }}\n'],
+  ['ssh command', 'on: push\njobs:\n  x:\n    steps:\n      - run: |\n          ssh host.example true\n'],
+  ['deploy script', 'on: push\njobs:\n  x:\n    steps:\n      - run: sudo bash ops/site-bundle/deploy.sh\n'],
+];
+
 const findings = [];
-for (const abs of workflowFiles(workflows)) {
+for (const [label, fixture] of selfTests) {
+  if (!scanWorkflow(fixture, `selftest/${label}`).length) findings.push(`guard self-test failed: ${label}`);
+}
+const safeFixture = 'on:\n  pull_request:\npermissions:\n  contents: read\njobs:\n  test:\n    steps:\n      - run: node test/production.cjs\n';
+if (scanWorkflow(safeFixture, 'selftest/safe-ci').length) findings.push('guard self-test failed: safe pull_request CI was rejected');
+
+const files = workflowFiles(workflows);
+for (const abs of files) {
   const rel = path.relative(root, abs).split(path.sep).join('/');
-  const text = fs.readFileSync(abs, 'utf8');
-  for (const [label, re] of bannedEvents) {
-    if (re.test(text)) findings.push(`${rel}: untrusted trigger ${label}`);
-  }
-  for (const [label, re] of bannedProductionPaths) {
-    if (re.test(text)) findings.push(`${rel}: ${label}`);
-  }
+  findings.push(...scanWorkflow(fs.readFileSync(abs, 'utf8'), rel));
 }
 
 if (findings.length) {
@@ -57,4 +78,4 @@ if (findings.length) {
   process.exit(1);
 }
 
-console.log(`REPOSITORY_EVENT_SAFETY: PASS (${workflowFiles(workflows).length} workflow files checked)`);
+console.log(`REPOSITORY_EVENT_SAFETY: PASS (${files.length} workflow files checked; guard self-tests passed)`);
