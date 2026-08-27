@@ -47,21 +47,32 @@ function drawExitHint(){
 
 function drawWorkPod(x,y){
   ctx.save();ctx.translate(x,y);
+  // 隔断、桌板、抽屉与理线槽
   ctx.fillStyle='#d7d2c7';ctx.fillRect(0,-78,250,92);ctx.fillStyle='#c1b6a3';ctx.fillRect(0,-84,250,10);ctx.strokeStyle='#171717';ctx.lineWidth=2;ctx.strokeRect(0,-78,250,92);
   ctx.fillStyle='#c7b29a';ctx.fillRect(18,18,190,14);ctx.fillRect(28,32,10,84);ctx.fillRect(183,32,10,84);
   ctx.fillStyle='#b19f8b';ctx.fillRect(40,32,28,60);ctx.fillStyle='#a29280';ctx.fillRect(44,38,20,10);ctx.fillRect(44,54,20,10);
   ctx.fillStyle='#7f776d';ctx.fillRect(188,26,6,56);ctx.fillRect(164,80,28,4);
+
+  // 办公椅
   ctx.save();ctx.translate(118,82);ctx.fillStyle=stageIndex>=4?'#b97b72':'#6f7f92';ctx.strokeStyle='#171717';ctx.lineWidth=2;
   rr(-26,-48,52,40,8);ctx.fill();ctx.stroke();rr(-22,-12,44,15,5);ctx.fill();ctx.stroke();ctx.fillStyle='#474747';ctx.fillRect(-3,3,6,28);ctx.beginPath();ctx.moveTo(0,31);ctx.lineTo(-18,39);ctx.moveTo(0,31);ctx.lineTo(18,39);ctx.moveTo(0,31);ctx.lineTo(0,43);ctx.stroke();ctx.fillRect(-23,38,10,4);ctx.fillRect(13,38,10,4);ctx.fillRect(-5,42,10,4);ctx.restore();
+
+  // 台式电脑：显示器在桌面后排，键鼠在前沿，主机移到桌下，避免所有东西挤成一团。
   ctx.fillStyle='#2a2a2a';ctx.fillRect(82,-34,78,46);
   ctx.fillStyle=stageIndex>=4?'#ffe0d8':'#eaf5fa';ctx.fillRect(88,-28,66,34);
   ctx.fillStyle=stageIndex>=4?'#d95a49':'#7ca2b5';ctx.fillRect(94,-20,38,4);ctx.fillRect(94,-11,48,4);ctx.fillRect(94,-2,26,4);
   ctx.fillStyle='#2a2a2a';ctx.fillRect(116,12,10,13);ctx.fillRect(98,25,46,4);
+
+  // 正常中塔机箱，放在桌下侧面而不是桌面上的 ITX 小盒子。
   ctx.fillStyle='#44474b';ctx.fillRect(150,38,30,60);ctx.strokeStyle='#171717';ctx.strokeRect(150,38,30,60);
   ctx.fillStyle='#2b2b2b';ctx.fillRect(156,47,18,34);ctx.fillStyle='#8ad39c';ctx.fillRect(157,42,4,4);ctx.fillStyle='#70757a';ctx.fillRect(157,85,16,3);
   ctx.beginPath();ctx.arc(165,66,7,0,Math.PI*2);ctx.stroke();
+
+  // 键盘与鼠标靠桌面前沿，和显示器支架错开。
   ctx.fillStyle='#ddd7cb';ctx.fillRect(82,7,58,8);ctx.strokeStyle='#aaa195';ctx.lineWidth=1;for(let k=0;k<6;k++)ctx.fillRect(86+k*8,9,5,2);
   ctx.fillStyle='#6f6a61';rr(146,8,10,7,3);ctx.fill();
+
+  // 杯子、小植物、便签
   ctx.fillStyle='#8a7a66';ctx.fillRect(52,2,18,18);ctx.fillStyle='#f3f0e8';ctx.fillRect(56,-5,10,8);ctx.strokeStyle='#8a7a66';ctx.lineWidth=2;ctx.strokeRect(69,6,7,8);
   ctx.fillStyle='#5d7f4d';ctx.fillRect(188,-6,10,16);ctx.fillStyle='#7b6859';ctx.fillRect(186,8,14,6);
   ctx.fillStyle='#fff3a8';ctx.fillRect(28,-42,16,16);ctx.strokeStyle='#171717';ctx.strokeRect(28,-42,16,16);
