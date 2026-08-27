@@ -1,4 +1,4 @@
-/* Dungeon Echo production UX bootstrap v6.
+/* Dungeon Echo production UX bootstrap v7.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  */
@@ -6,10 +6,10 @@
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '126';
+  const assetVersion = '127';
   const fresh = src => `${src}?v=${assetVersion}`;
   const chain = Object.freeze([
-    [fresh('release-stamp-v126.js'), 'data-de-release-stamp-v126', () => !!window.__DE_RELEASE_STAMP_V126],
+    [fresh('release-stamp-v127.js'), 'data-de-release-stamp-v127', () => !!window.__DE_RELEASE_STAMP_V127],
     [fresh('locale-runtime-v122.js'), 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     [fresh('character-art-cleanup-v122.js'), 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
     [fresh('world-loot-polish-v122.js'), 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
@@ -42,7 +42,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v6');
+      script.setAttribute(marker, 'v7');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -69,5 +69,5 @@
   if (document.body) start();
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v6', assetVersion, start, loadScript, chain };
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v7', assetVersion, start, loadScript, chain };
 })();
