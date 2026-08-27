@@ -58,7 +58,17 @@ function execute(initial) {
   assert.equal(out.localStorage.value('de-greedy-on-v1'), '1');
   assert.equal(out.localStorage.value('other-key'), 'keep', 'unrelated storage must not be touched');
   assert(out.window.__DE_SAVE_INTEGRITY_V128, 'guard marker must install');
-  assert.equal(out.window.__DE_SAVE_INTEGRITY_V128.version, 'v1');
+  assert.equal(out.window.__DE_SAVE_INTEGRITY_V128.version, 'v2');
+}
+
+{
+  const legacy = validRun();
+  delete legacy.mode;
+  delete legacy.classId;
+  legacy.seed = 'legacy<&>"seed';
+  const text = JSON.stringify(legacy);
+  const out = execute({'de-run-v6':text});
+  assert.equal(out.localStorage.value('de-run-v6'), text, 'compatible legacy classic save and arbitrary seed must be preserved');
 }
 
 {
@@ -100,6 +110,8 @@ assert(src.includes("const RUN_KEY = 'de-run-v6'"));
 assert(src.includes("const META_KEY = 'de-greedy-meta-v1'"));
 assert(src.includes('validGrid(raw.map, false)'));
 assert(src.includes('validGrid(raw.explored, true)'));
+assert(src.includes('const treeView = { ...raw, seed:\'\' }'));
+assert(src.includes("raw.mode != null"));
 assert(src.includes('FORBIDDEN_TEXT'));
 assert(!/setInterval\s*\(/.test(src));
 
