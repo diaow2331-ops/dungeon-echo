@@ -3,6 +3,7 @@ index.html
 style.css
 production-bootstrap.js
 profiles/classic-100.profile.js
+save-integrity-system.js
 game.js
 npc-stability-system.js
 equipment-system.js
