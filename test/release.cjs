@@ -92,15 +92,21 @@ if (version === '1.2.8') {
     'v1.2.8 英文动态补全 owner 进入发布包并由 bootstrap 装载');
   ok(bootstrap.indexOf("fresh('locale-runtime-v122.js')") < bootstrap.indexOf("fresh('locale-completeness-v128.js')"),
     'locale completeness 在基础 locale owner 之后加载');
-  ok(localeCompletion.includes('characterData:true') && localeCompletion.includes("'#equipbar'") && localeCompletion.includes("'#log'"),
-    'v1.2.8 覆盖装备栏与日志的原位文本改写');
+  ok(localeCompletion.includes('characterData:true') && ['#stats','#equipbar','#stage','#touch','#log','#title-screen','#pause-screen','#town-screen']
+      .every(selector => localeCompletion.includes(`'${selector}'`)),
+    'v1.2.8 覆盖状态、装备、战斗反馈、日志与主要运行时文本重写区');
   ok(localeCompletion.includes('You stepped on a trap') && localeCompletion.includes('This floor has') && localeCompletion.includes('Descent ${m[1]}'),
     'v1.2.8 覆盖实测混合日志句式');
+  ok(localeCompletion.includes('Press J to attack in your facing direction') && localeCompletion.includes("return '> Enter Descend · J Attack · K Skill'"),
+    'v1.2.8 将旧 C 技能/J 快速下潜提示归一为正式 J 攻击/K 技能语义');
+  ok(localeCompletion.includes('Progress saved locally') && localeCompletion.includes('No mid-run save yet'),
+    'v1.2.8 覆盖暂停与标题存档摘要的原位重写');
   ok(localeCompletion.includes('sub.hidden = true') && localeCompletion.includes("weapon:'Weapon'"),
-    '英文模式移除标题中文副标并锁定英文装备槽位');
-  ok(!/setInterval\s*\(/.test(localeCompletion), '语言补全层无轮询');
-  ok(deploy.includes('locale completeness owner missing') && deploy.includes('locale completeness characterData contract missing'),
-    '部署前强制验证 v1.2.8 locale completeness owner');
+    '英文模式移除标题中文副标并保持英文装备语义');
+  ok(localeCompletion.includes('new WeakSet()') && !/setInterval\s*\(/.test(localeCompletion),
+    '语言补全层避免重复 observer 且无轮询');
+  ok(deploy.includes('locale completeness production-control translation missing') && deploy.includes('locale completeness runtime scopes missing'),
+    '部署前强制验证 v1.2.8 动态范围与正式控制语义');
 }
 
 console.log(`\nRESULT  ${pass} 通过 / ${fail} 失败`);
