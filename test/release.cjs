@@ -10,6 +10,10 @@ const html = read('index.html');
 const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
 const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
+const bootstrap = read('runtime-bootstrap.js');
+const releaseStampName = `release-stamp-v${version.replace(/\./g, '')}.js`;
+const releaseStamp = fs.existsSync(path.join(root, releaseStampName)) ? read(releaseStampName) : '';
+const modalFix = fs.existsSync(path.join(root, 'modal-navigation-fix.js')) ? read('modal-navigation-fix.js') : '';
 
 let pass = 0;
 let fail = 0;
@@ -20,7 +24,8 @@ function ok(cond, name) {
 
 console.log('[release] v1 static package');
 ok(/^\d+\.\d+\.\d+$/.test(version), 'VERSION 使用 SemVer');
-ok(html.includes(`v${version}`), '生产页显示当前正式版本');
+ok(manifest.includes(releaseStampName) && bootstrap.includes(releaseStampName) && releaseStamp.includes(`const version = '${version}'`),
+  '运行时发布戳与 VERSION 一致');
 ok(manifest.every(file => fs.existsSync(path.join(root, file))), '发布白名单资源全部存在');
 ok(!manifest.some(file => /^(?:dev\.html|test\/|profiles\/classic-(?:10|20|30|40|50|60)\.profile\.js$)/.test(file)),
   '发布白名单不包含开发入口、测试与短档位');
@@ -41,6 +46,15 @@ ok(/SITE_ROOT=\/srv\/91hwl-play/.test(deploy) && /previous_release\/moyu\/index\
   '部署复用既有 91hwl-play 发布树并保护摸鱼游戏');
 ok(/mv -Tf "\$next_link" "\$CURRENT_LINK"/.test(deploy) && /ROLLED_BACK/.test(deploy),
   '整站 current 指针原子切换且失败可回滚');
+
+if (version === '1.2.4') {
+  ok(manifest.includes('modal-navigation-fix.js') && bootstrap.includes('modal-navigation-fix.js'),
+    'v1.2.4 发布链加载导航修复');
+  ok(modalFix.includes('#achv-screen') && modalFix.includes('#help-screen') && modalFix.includes('position: fixed') && modalFix.includes('z-index: 45'),
+    '玩法说明与远征录恢复为顶层固定弹层');
+  ok(deploy.includes("test -r \"$tmp_dir/dungeon-echo/modal-navigation-fix.js\"") && deploy.includes("grep -Fq '#help-screen'"),
+    '部署前验证导航修复文件与关键选择器');
+}
 
 console.log(`\nRESULT  ${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);
