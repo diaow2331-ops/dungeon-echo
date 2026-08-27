@@ -6,6 +6,7 @@ const log={html:'',insertAdjacentHTML(_p,s){this.html=s+this.html;}};
 const hint={textContent:''}, shrineCopy={textContent:''}, shrineOk={textContent:''};
 global.localStorage={getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v))};
 global.document={
+ documentElement:{dataset:{deLocale:'zh-CN'}},
  readyState:'complete',head:{appendChild(){}},
  createElement(){return {style:{}};},
  querySelectorAll(){return[];},
@@ -33,7 +34,7 @@ const api={
  endTurn(){turns++;},persistRun(){persisted++;},closeShrine(){state='playing';},
  tryMove(){},useSkill(){},pickupHere(){},
 };
-global.window={DE_TEST:api,addEventListener(type,fn){(listeners.window[type] ||= []).push(fn);}};
+global.window={DE_TEST:api,DE_LOCALE_DATA:{itemName:item=>`本地化-${item.name}`},addEventListener(type,fn){(listeners.window[type] ||= []).push(fn);}};
 
 const root=path.join(__dirname,'..');
 const bootstrapSrc=fs.readFileSync(path.join(root,'production-bootstrap.js'),'utf8');
@@ -41,8 +42,10 @@ const riskSrc=fs.readFileSync(path.join(root,'risk-reward-system.js'),'utf8');
 vm.runInThisContext(riskSrc,{filename:'risk-reward-system.js'});
 const R=window.__DE_RISK_REWARD_INTERACTIONS;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
-ok(R&&R.version==='p0-v2','risk-reward system boots current contract');
-ok(R&&R.owner==='risk-reward-system','risk-reward system is the declared gameplay owner');
+ok(R&&R.version==='p0-v3','risk-reward system boots current contract');
+ok(R&&R.owner==='risk-reward-system'&&R.locale==='zh-CN','risk-reward system exposes fixed-route locale owner');
+ok(riskSrc.includes('dataset.deLocale')&&!riskSrc.includes('DE_I18N'),'risk-reward copy uses fixed route and no runtime translator');
+ok(riskSrc.includes('localeData.itemName'),'blood-offering item copy uses data-level localized item name');
 ok(!bootstrapSrc.includes('installRiskRewardInteractions'),'production bootstrap no longer contains risk-reward installer');
 ok(!bootstrapSrc.includes('__DE_RISK_REWARD_INTERACTIONS'),'production bootstrap no longer owns risk-reward state');
 ok(R.shrineOutcomeFor(shrine,.10)==='mending','shrine healing band');
@@ -59,6 +62,7 @@ ok(player.inv.length===1&&player.inv[0].rarity===2,'blood-offering grants bounde
 ok(turns===t0+1,'shrine acceptance costs exactly one turn');
 ok(player.hpBase===100,'shrine no longer increases permanent base HP');
 ok(player.atkBase===atk0,'shrine no longer increases permanent base ATK');
+ok(log.html.includes('本地化-祭品R2'),'blood-offering surface copy goes through locale data item renderer');
 const m0=monsters.length;
 const risk1=R.resolveCaskRisk(cask,.10);
 ok(risk1==='ambush'&&monsters.length===m0+1,'cask can produce a real ambush');
