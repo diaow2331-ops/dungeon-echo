@@ -6,7 +6,7 @@ The engineering goal is to keep changes understandable, testable and safe to dep
 
 ## Current baseline
 
-- Repository release line: **v1.2.6**.
+- Repository release line: **v1.2.7**.
 - Production route: `index.html` → `classic-100` only.
 - Development route: `dev.html` → internal short deterministic profiles using the current shared gameplay/UI runtime.
 - Attack: **J**.
@@ -33,19 +33,25 @@ http://localhost:8000/dev.html
 Core/shared gameplay:
 
 - `game.js` — core state, map generation, turn loop and mechanics requiring direct engine access.
-- `equipment-system.js` — equipment generation, class-relative fit, intrinsic value and deep-floor scaling.
+- `npc-stability-system.js` — consumed shrine/rest cleanup and utility-NPC chokepoint relocation.
+- `equipment-system.js` — equipment generation, class-relative fit, intrinsic value, deep-floor scaling and in-dungeon swap-turn authority.
 - `town-system.js` — conquered-depth checkpoints, town progression and wheel policy.
 - `commerce-system.js` — finite town supply stock and chapter-scaled pricing.
 - `forge-system.js` — bounded +3 refinement choices and +5 masterwork completion.
 - `progression-system.js` — talents and 20/40/60/80 milestone skill evolution.
+- `progression-guard-system.js` — permanent level/HP/ATK growth bounds and event-time XP parking.
 - `content-system.js` — late-floor themes plus guardian/finale state machines.
 - `combat-pressure.js` — readable deep-floor/guardian pressure.
 - `challenge-pressure.js` — final mild late-game attack-pressure layer.
 - `risk-reward-system.js` — shrine wagers and cask downside resolution.
-- `gameplay-tuning.js` — production-route policy and tuning.
+- `gameplay-tuning.js` — production-route tuning and remaining compatibility logic; it must yield when an explicit owner is present.
 - `defense-system.js` — armor/fixed-reduction semantics.
 - `desktop-controls.js` — desktop/gamepad input adapter.
 - `combat-controls.js` — synchronous J/K + Mana contract.
+
+Production entry:
+
+- `production-bootstrap.js` — production profile selection plus the legacy equipment-atlas presentation bridge. Do not put gameplay rules back into it.
 
 Presentation/runtime followers:
 
@@ -57,7 +63,7 @@ Presentation/runtime followers:
 - `forge-feedback-v122.js` — post-result forge feedback.
 - `audio-director.js` — adaptive music/SFX mixer.
 - `mobile-ux.js` — mobile layout, haptics and hold-to-walk.
-- `runtime-bootstrap.js` — late presentation/runtime followers.
+- `runtime-bootstrap.js` — late presentation/runtime followers using the current release cache generation.
 
 Profiles:
 
@@ -97,7 +103,7 @@ When changing persistent structures:
 4. avoid silently deleting player progress to repair malformed data;
 5. keep temporary combat/UI state out of persisted state.
 
-Presentation-only art/CSS/UI changes should not require a save migration.
+Presentation-only art/CSS/UI changes should not require a save migration. The v1.2.7 owner refactors do not change the save schema.
 
 ## Balance workflow
 
@@ -130,6 +136,10 @@ node test/descent100.cjs
 node test/guardian-content.cjs
 node test/skill-evolution.cjs
 node test/release.cjs
+node test/progression-commitment.cjs
+node test/disposable-interactions.cjs
+node test/interaction-pathing.cjs
+node test/risk-reward-interactions.cjs
 node test/repository-governance-v122.cjs
 ```
 
@@ -151,9 +161,11 @@ The deployment model overlays `/dungeon-echo/` into the existing immutable `91hw
 
 `VERSION` is authoritative for the repository version. GitHub Release/tag metadata should provide immutable historical version boundaries; branch names are not a substitute for releases forever.
 
+The unified web-toys builder additionally requires the `v1.2.7` tag to point at the exact checked-out revision before it builds the Dungeon Echo, Moyu and 91hwl site bundles together.
+
 ## Repository governance
 
-After v1.2.6, the default repository shape should converge toward:
+After v1.2.7, the default repository shape should converge toward:
 
 - `main` as the durable development line;
 - short-lived feature/fix/art/chore/security branches deleted after their PR is merged;

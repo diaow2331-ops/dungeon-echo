@@ -1,6 +1,6 @@
 Clock Out Alive / 摸鱼到下班 v1.11.3 deployment bundle
 
-This bundle atomically replaces only `/moyu/` inside the existing `/srv/91hwl-play/current` release tree and preserves Dungeon Echo v1.2.6.
+This bundle atomically replaces only `/moyu/` inside the existing `/srv/91hwl-play/current` release tree and preserves Dungeon Echo v1.2.7.
 
 The packaged game includes:
 - stable base `style.css`

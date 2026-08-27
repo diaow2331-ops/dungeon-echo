@@ -18,7 +18,7 @@ challenge-pressure.js
 risk-reward-system.js
 visual-polish.js
 equipment-shop-ui.js
-release-stamp-v126.js
+release-stamp-v127.js
 locale-runtime-v122.js
 character-art-cleanup-v122.js
 world-loot-polish-v122.js
