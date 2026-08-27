@@ -17,56 +17,61 @@ DELAY=2
 fail(){ echo "WEB_TOYS_HOME_HEALTH_ERROR: $*" >&2; exit 1; }
 revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v132-health.XXXXXX)"
+work_dir="$(mktemp -d /tmp/web-toys-home-v133-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
 
+require_fixed(){
+  file="$1"; needle="$2"; label="$3"
+  grep -Fq "$needle" "$file" || { echo "HEALTH_CONTRACT_MISS: $label :: $needle" >&2; return 1; }
+}
+
 check_pref_contract(){
   file="$1"
-  grep -Fq 'id="themeToggle"' "$file" || return 1
-  grep -Fq 'data-lang-choice="zh"' "$file" || return 1
-  grep -Fq 'data-lang-choice="en"' "$file" || return 1
-  grep -Fq '91hwl_site_lang' "$file" || return 1
-  grep -Fq '91hwl_site_theme' "$file" || return 1
-  grep -Fq '91hwl_lang' "$file" || return 1
-  grep -Fq '91hwl_theme' "$file" || return 1
-  grep -Fq 'data-carry' "$file" || return 1
+  require_fixed "$file" 'id="themeToggle"' 'theme toggle' || return 1
+  require_fixed "$file" 'data-lang-choice="zh"' 'zh language control' || return 1
+  require_fixed "$file" 'data-lang-choice="en"' 'en language control' || return 1
+  require_fixed "$file" '91hwl_site_lang' 'site language storage key' || return 1
+  require_fixed "$file" '91hwl_site_theme' 'site theme storage key' || return 1
+  require_fixed "$file" '91hwl_lang' 'shared language cookie key' || return 1
+  require_fixed "$file" '91hwl_theme' 'shared theme cookie key' || return 1
+  require_fixed "$file" 'data-carry' 'preference-carry link contract' || return 1
 }
 
 check_home(){
   file="$1"
-  grep -Fq 'data-site-version="1.3.2"' "$file" || return 1
-  grep -Fq 'data-theme="dark"' "$file" || return 1
-  grep -Fq 'Dungeon Echo' "$file" || return 1
-  grep -Fq 'Clock Out Alive' "$file" || return 1
-  grep -Fq 'v1.2.6' "$file" || return 1
-  grep -Fq 'v1.11.2' "$file" || return 1
-  grep -Eq 'Open\.|打开。' "$file" || return 1
-  grep -Fq 'min-height:40px' "$file" || return 1
+  require_fixed "$file" 'data-site-version="1.3.3"' 'homepage site version' || return 1
+  require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
+  require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
+  require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
+  require_fixed "$file" 'v1.2.7' 'homepage Dungeon Echo version' || return 1
+  require_fixed "$file" 'v1.11.3' 'homepage Moyu version' || return 1
+  grep -Eq 'Open\.|打开。' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage open CTA' >&2; return 1; }
+  require_fixed "$file" 'min-height:42px' 'homepage control height' || return 1
   check_pref_contract "$file" || return 1
 }
 
 check_de_detail(){
   file="$1"
-  grep -Fq 'data-site-version="1.3.2"' "$file" || return 1
-  grep -Fq 'softwareVersion":"1.2.6"' "$file" || return 1
-  grep -Fq 'Dungeon Echo' "$file" || return 1
-  grep -Fq 'class-roster.webp' "$file" || return 1
-  grep -Fq 'town-backdrop-v11.webp' "$file" || return 1
-  grep -Fq 'final-boss-v11.png' "$file" || return 1
-  grep -Fq 'href="https://play.91hwl.cn/dungeon-echo/" data-carry' "$file" || return 1
+  require_fixed "$file" 'data-site-version="1.3.3"' 'Dungeon Echo detail site version' || return 1
+  require_fixed "$file" 'softwareVersion":"1.2.7"' 'Dungeon Echo detail software version' || return 1
+  require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
+  require_fixed "$file" 'class-roster.webp' 'Dungeon Echo roster art' || return 1
+  require_fixed "$file" 'town-backdrop-v11.webp' 'Dungeon Echo town art' || return 1
+  require_fixed "$file" 'final-boss-v11.png' 'Dungeon Echo final boss art' || return 1
+  require_fixed "$file" 'href="https://play.91hwl.cn/dungeon-echo/" data-carry' 'Dungeon Echo play link' || return 1
   check_pref_contract "$file" || return 1
 }
 
 check_moyu_detail(){
   file="$1"
-  grep -Fq 'data-site-version="1.3.2"' "$file" || return 1
-  grep -Fq 'softwareVersion":"1.11.2"' "$file" || return 1
-  grep -Fq 'Clock Out Alive' "$file" || return 1
-  grep -Fq '跟随主页语言' "$file" || return 1
-  grep -Fq 'Readable result cards' "$file" || return 1
-  grep -Fq 'href="https://play.91hwl.cn/moyu/" data-carry' "$file" || return 1
+  require_fixed "$file" 'data-site-version="1.3.3"' 'Moyu detail site version' || return 1
+  require_fixed "$file" 'softwareVersion":"1.11.3"' 'Moyu detail software version' || return 1
+  require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
+  require_fixed "$file" '先把字看清楚' 'Moyu current Chinese release copy' || return 1
+  require_fixed "$file" 'Readable first' 'Moyu current English release copy' || return 1
+  require_fixed "$file" 'href="https://play.91hwl.cn/moyu/" data-carry' 'Moyu play link' || return 1
   check_pref_contract "$file" || return 1
 }
 
@@ -83,22 +88,22 @@ fetch /dev/null --resolve "$PLAY_RESOLVE" "${MOYU_PLAY_URL}?lang=en" || fail 'or
 
 de_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$DE_VERSION_URL" | tr -d '\r\n[:space:]')"
 moyu_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$MOYU_VERSION_URL" | tr -d '\r\n[:space:]')"
-test "$de_origin" = '1.2.6' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
-test "$moyu_origin" = '1.11.2' || fail "origin Moyu VERSION mismatch: $moyu_origin"
+test "$de_origin" = '1.2.7' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
+test "$moyu_origin" = '1.11.3' || fail "origin Moyu VERSION mismatch: $moyu_origin"
 
 public_ok=false
 for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
   if fetch "$work_dir/public-home.html" "${HOME_URL}?release=$revision" && check_home "$work_dir/public-home.html" \
       && fetch "$work_dir/public-de.html" "${DE_DETAIL_URL}?release=$revision" && check_de_detail "$work_dir/public-de.html" \
       && fetch "$work_dir/public-moyu.html" "${MOYU_DETAIL_URL}?release=$revision" && check_moyu_detail "$work_dir/public-moyu.html" \
-      && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.2.6' \
-      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.11.2'; then
+      && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.2.7' \
+      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.11.3'; then
     public_ok=true
     break
   fi
   if (( attempt < ATTEMPTS )); then sleep "$DELAY"; fi
 done
-test "$public_ok" = true || fail "public site v1.3.2 check failed after $ATTEMPTS attempts"
+test "$public_ok" = true || fail "public site v1.3.3 check failed after $ATTEMPTS attempts"
 
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"
