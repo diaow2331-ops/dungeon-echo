@@ -1,4 +1,4 @@
-/* Dungeon Echo challenge pressure v1.
+/* Dungeon Echo challenge pressure v2.
  * Human-play follow-up: the current 1-100 route is slightly too forgiving once a build
  * stabilizes. This layer raises mistake cost without creating HP sponges or hidden pierce.
  * - Floors 1-20: unchanged.
@@ -6,6 +6,7 @@
  * - Elites receive another +3% attack pressure.
  * - Guardian/final-boss basic attack is ~5-6% higher from floor 40 onward.
  * HP, defense, loot, supplies, armor-break readability and player stats are untouched.
+ * v2 removes permanent polling and applies pressure after real game/resume transitions.
  */
 (() => {
   'use strict';
@@ -21,6 +22,8 @@
     10:18, 20:25, 30:33, 40:42, 50:52,
     60:61, 70:72, 80:83, 90:96, 100:110,
   });
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let syncQueued = false;
 
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -81,16 +84,30 @@
     return changed;
   }
 
+  function scheduleSync() {
+    if (syncQueued) return false;
+    syncQueued = true;
+    defer(() => { syncQueued = false; sync(); });
+    return true;
+  }
+
   patchProfile();
   sync();
-  const timer = setInterval(sync, 120);
-  window.addEventListener('beforeunload', () => clearInterval(timer), { once:true });
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', scheduleSync, true);
+    document.addEventListener('click', scheduleSync, true);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSync(); });
+  }
+  window.addEventListener('focus', scheduleSync);
+  window.addEventListener('pageshow', scheduleSync);
 
   window.__DE_CHALLENGE_PRESSURE_V1 = {
-    version:'v1',
+    version:'v2',
+    owner:'challenge-pressure',
     regularAttackMultiplier,
     guardianAtk:{...GUARDIAN_ATK},
     patchProfile,
     sync,
+    schedule:scheduleSync,
   };
 })();
