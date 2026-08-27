@@ -89,6 +89,7 @@ if (['1.2.7','1.2.8'].includes(version)) {
 if (version === '1.2.8') {
   const localeCompletion = read('locale-completeness-v128.js');
   const saveIntegrity = read('save-integrity-system.js');
+  const coreGame = read('game.js');
   ok(manifest.includes('locale-completeness-v128.js') && bootstrap.includes("fresh('locale-completeness-v128.js')"),
     'v1.2.8 英文动态补全 owner 进入发布包并由 bootstrap 装载');
   ok(bootstrap.indexOf("fresh('locale-runtime-v122.js')") < bootstrap.indexOf("fresh('locale-completeness-v128.js')"),
@@ -114,6 +115,10 @@ if (version === '1.2.8') {
   ok(saveIntegrity.includes('FORBIDDEN_TEXT') && saveIntegrity.includes("raw.mode != null") && saveIntegrity.includes("const treeView = { ...raw, seed:'' }"),
     '存档完整性 owner 拒绝 HTML-like 文本且保留旧 classic/任意 seed 兼容语义');
   ok(!/setInterval\s*\(/.test(saveIntegrity), '存档完整性 owner 无轮询');
+  ok(coreGame.includes("'&': '&amp;'") && coreGame.includes("'<': '&lt;'") &&
+      coreGame.includes("'>': '&gt;'") && coreGame.includes("'\\"': '&quot;'") &&
+      coreGame.includes("\\"'\\": '&#39;'"),
+    'game.js 核心 esc helper 正确编码 HTML 文本与属性元字符');
   ok(deploy.includes('locale completeness production-control translation missing') && deploy.includes('locale completeness runtime scopes missing'),
     '部署前强制验证 v1.2.8 动态范围与正式控制语义');
 }
