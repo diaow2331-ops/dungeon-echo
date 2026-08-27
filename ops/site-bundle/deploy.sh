@@ -107,11 +107,17 @@ if test "$version" = '1.2.8'; then
   test -r "$locale_owner" || fail 'locale completeness owner missing'
   grep -Fq 'locale-completeness-v128.js' "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load locale completeness owner'
   grep -Fq 'characterData:true' "$locale_owner" || fail 'locale completeness characterData contract missing'
-  grep -Fq "'#equipbar'" "$locale_owner" || fail 'locale completeness equipment scope missing'
-  grep -Fq "'#log'" "$locale_owner" || fail 'locale completeness log scope missing'
+  for scope in "'#stats'" "'#equipbar'" "'#stage'" "'#touch'" "'#log'" "'#title-screen'" "'#pause-screen'" "'#town-screen'"; do
+    grep -Fq "$scope" "$locale_owner" || fail "locale completeness runtime scopes missing: $scope"
+  done
   grep -Fq 'You stepped on a trap' "$locale_owner" || fail 'locale completeness trap translation missing'
   grep -Fq 'This floor has' "$locale_owner" || fail 'locale completeness floor-summary translation missing'
+  grep -Fq 'Press J to attack in your facing direction' "$locale_owner" || fail 'locale completeness production-control translation missing'
+  grep -Fq "return '> Enter Descend · J Attack · K Skill'" "$locale_owner" || fail 'locale completeness J/K hint normalization missing'
+  grep -Fq 'Progress saved locally' "$locale_owner" || fail 'locale completeness pause translation missing'
+  grep -Fq 'No mid-run save yet' "$locale_owner" || fail 'locale completeness title-save translation missing'
   grep -Fq "weapon:'Weapon'" "$locale_owner" || fail 'locale completeness equipment labels missing'
+  grep -Fq 'new WeakSet()' "$locale_owner" || fail 'locale completeness observer dedupe missing'
   ! grep -Eq 'setInterval[[:space:]]*\(' "$locale_owner" || fail 'locale completeness must not poll'
 fi
 
