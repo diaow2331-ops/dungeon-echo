@@ -4,6 +4,7 @@
  * - J attacks in the current facing direction (ranged classes use their line range).
  * - K uses the class skill and consumes mana.
  * - Touch controls mirror the same attack/skill contract.
+ * - Official K/touch skill actions route through the 20/40/60/80 evolution owner when present.
  * - Ground equipment uses the real v13 tier art even when production rewrites the old atlas path.
  * - All legacy character equipment geometry/image overlays are suppressed so the hero atlas stays authoritative.
  */
@@ -163,6 +164,20 @@
     return out;
   };
 
+  function castSkillAction() {
+    if (api.state !== 'playing') return false;
+    const p = ensureMana();
+    if (!p) return false;
+    const cost = manaCost();
+    // Evolution pre-effects must never fire for a cast that Mana already forbids.
+    if ((Number(p.skillCd) || 0) <= 0 && p.mana < cost) return api.useSkill();
+    const evolution = window.DE_SKILL_EVOLUTION;
+    const prefix = `se_${classId()[0]}`;
+    const evolved = Array.isArray(p.talents) && p.talents.some(id => String(id).startsWith(prefix));
+    if (evolved && evolution && typeof evolution.cast === 'function') return evolution.cast();
+    return api.useSkill();
+  }
+
   function suppressBumpAttack(e, dx, dy) {
     if (api.state !== 'playing') return false;
     const p = api.player;
@@ -202,7 +217,7 @@
     }
     if (lower === 'k') {
       e.preventDefault(); e.stopImmediatePropagation();
-      api.useSkill();
+      castSkillAction();
       return;
     }
     if (lower === 'c') {
@@ -226,7 +241,7 @@
     const skill = t.closest('[data-act="skill"]');
     if (skill) {
       e.preventDefault(); e.stopImmediatePropagation();
-      api.useSkill();
+      castSkillAction();
       return;
     }
     const move = t.closest('[data-act="up"],[data-act="down"],[data-act="left"],[data-act="right"]');
@@ -455,7 +470,7 @@
   }
 
   window.__DE_COMBAT_CONTROLS_V1 = {
-    version:'v1', resource:RESOURCE, attackFacing, targetInDirection, ensureMana, manaCost,
+    version:'v1', resource:RESOURCE, attackFacing, castSkillAction, targetInDirection, ensureMana, manaCost,
   };
   requestAnimationFrame(loop);
 })();
