@@ -39,6 +39,7 @@ grep -Fq 'data-site-version="1.3.3"' "$source_root/public/index.html"
 grep -Fq 'name="google" content="notranslate"' "$source_root/public/index.html"
 grep -Fq 'window.__91HWL_PREFS' "$source_root/public/index.html"
 grep -Fq -- '--fs-body:16px' "$source_root/public/index.html"
+grep -Fq 'min-height:42px' "$source_root/public/index.html"
 grep -Fq "softwareVersion\":\"$game_version\"" "$source_root/public/toys/dungeon-echo/index.html"
 grep -Fq 'softwareVersion":"1.11.3"' "$source_root/public/toys/moyu/index.html"
 
@@ -50,13 +51,14 @@ install -m 0755 "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
 
-# Reuse the field-tested v1.3.2 deploy/health logic, then deterministically adapt release markers.
+# Reuse the field-tested v1.3.2 deploy/health logic, then deterministically adapt release markers and the v1.3.3 control-size contract.
 for script in "$bundle/ops/deploy.sh" "$bundle/ops/healthcheck.sh"; do
   sed -i \
     -e 's/1\.3\.2/1.3.3/g' \
     -e 's/v132/v133/g' \
     -e 's/1\.11\.2/1.11.3/g' \
     -e 's/1\.2\.6/1.2.7/g' \
+    -e 's/min-height:40px/min-height:42px/g' \
     "$script"
   bash -n "$script"
 done
@@ -65,6 +67,7 @@ grep -Fq "test \"\$version\" = '1.3.3'" "$bundle/ops/deploy.sh"
 grep -Fq 'Dungeon Echo v1.2.7 detail marker missing' "$bundle/ops/deploy.sh"
 grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$bundle/ops/deploy.sh"
 grep -Fq 'public site v1.3.3 check failed' "$bundle/ops/healthcheck.sh"
+grep -Fq 'min-height:42px' "$bundle/ops/healthcheck.sh"
 grep -Fq "test \"\$de_origin\" = '1.2.7'" "$bundle/ops/healthcheck.sh"
 grep -Fq "test \"\$moyu_origin\" = '1.11.3'" "$bundle/ops/healthcheck.sh"
 
