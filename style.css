@@ -546,7 +546,8 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 .skillstat b.cd { color: var(--danger); }
 
 #title-screen, #class-screen, #pause-screen, #shop-screen,
-#talent-screen, #shrine-screen, #echo-screen, #town-screen {
+#talent-screen, #shrine-screen, #echo-screen, #town-screen,
+#achv-screen, #help-screen {
   position: fixed;
   inset: 0;
   z-index: 30;
@@ -593,7 +594,8 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 /* 矮窗口下长卡片不被裁剪：margin auto 居中且可滚动 */
 #title-screen > .title-card, #class-screen > .title-card, #pause-screen > .title-card,
 #shop-screen > .title-card, #talent-screen > .title-card, #shrine-screen > .title-card,
-#echo-screen > .title-card, #town-screen > .title-card { margin: auto; }
+#echo-screen > .title-card, #town-screen > .title-card, #achv-screen > .title-card,
+#help-screen > .title-card { margin: auto; }
 #title-screen.hidden, #class-screen.hidden, #pause-screen.hidden, #shop-screen.hidden,
 #talent-screen.hidden, #shrine-screen.hidden, #echo-screen.hidden, #town-screen.hidden,
 #achv-screen.hidden, #help-screen.hidden { display: none; }
