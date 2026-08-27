@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/?lang=en) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.2.7 is the current repository release line. Public deployment is only considered complete after the normal file-upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
+> **Status:** v1.2.8 is the current repository release line. Public deployment is only considered complete after the game-only bundle upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -20,7 +20,7 @@ No account is required. Saves live in the browser. The production game is static
 | --- | --- | --- |
 | ![Warrior, Ranger, Arcanist and Assassin](art/class-roster.webp) | ![Dungeon Echo town](art/town-backdrop-v11.webp) | ![Dungeon Echo final boss](art/final-boss-v11.png) |
 
-The launch media intentionally uses current shipped art. A fresh post-v1.2.7 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
+The launch media intentionally uses current shipped art. A fresh post-v1.2.8 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
 
 ## Why play it?
 
@@ -41,24 +41,25 @@ The launch media intentionally uses current shipped art. A fresh post-v1.2.7 rea
 - v1.2.5 cache-coherence hotfix: release-critical CSS/JS use a shared version fingerprint so a new HTML release cannot silently run against old cached presentation assets.
 - v1.2.6 record/localization polish: Help control copy stays in the selected language on both desktop and mobile, while Expedition Record always exposes the full 12-achievement catalog with progress, locked goals and a zero-state before the first Greedy Expedition.
 - v1.2.7 ownership hardening: equipment swap turns, risk/reward interactions, permanent growth/XP bounds and utility-NPC path stability now have explicit production owners; `production-bootstrap.js` no longer carries gameplay rules.
+- v1.2.8 locale/save/input hardening: dynamic English UI stays coherent, malformed persistent blobs are rejected before core restore, core text escaping is correct, Greedy town resumes restore a valid economy/state, gamepads expose RT Attack and the floor-100 choice cannot settle twice.
 
 The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
 ## Controls
 
-| Action | Keyboard | Mobile |
-| --- | --- | --- |
-| Move / face | Arrow keys / WASD | Four-way D-pad |
-| Attack | `J` | Attack |
-| Class skill | `K` | Skill |
-| Wait / focus | Space / `.` | Not exposed on touch D-pad |
-| Potion | `Q` | Potion |
-| Scroll | `E` | Scroll |
-| Return to town | `T` | Return |
-| Descend | `Enter` | Descend |
-| Pause | `Esc` | Pause |
-| Master mute | `M` | Sound |
-| Fullscreen | `F` | Fullscreen |
+| Action | Keyboard | Gamepad | Mobile |
+| --- | --- | --- | --- |
+| Move / face | Arrow keys / WASD | Stick / D-pad | Four-way D-pad |
+| Attack | `J` | RT | Attack |
+| Class skill | `K` | X | Skill |
+| Wait / focus | Space / `.` | B | Not exposed on touch D-pad |
+| Potion | `Q` | Y | Potion |
+| Scroll | `E` | LB | Scroll |
+| Return to town | `T` | Hold View | Return |
+| Descend | `Enter` | A | Descend |
+| Pause | `Esc` | Start | Pause |
+| Master mute | `M` | — | Sound |
+| Fullscreen | `F` | RB | Fullscreen |
 
 Skills use mana. Each class has a different mana capacity, skill cost and recovery rhythm. Mana mutations are persisted through the existing run-save path so refreshing the page cannot restore a pre-cost or pre-recovery snapshot.
 
@@ -70,7 +71,7 @@ The production UI supports **中文 / English**.
 - `?lang=zh` opens Chinese directly.
 - Without a language parameter, the browser language is used on first visit.
 - Manual language choice lives on the **title screen** and reloads into the selected locale instead of translating a live dungeon session in place.
-- `locale-runtime-v122.js` remains the stable per-page locale owner. The v1.2.6 device-copy coherence follower remains intentionally reused in v1.2.7 so mobile guidance cannot overwrite an English Help screen after locale application.
+- `locale-runtime-v122.js` remains the stable per-page locale owner. The v1.2.6 device-copy coherence follower remains intentionally reused in v1.2.8 so mobile guidance cannot overwrite an English Help screen after locale application; `locale-completeness-v128.js` owns dynamic post-render English text.
 - Expedition Record uses display-only localization and reads the existing Greedy Expedition meta save without mutating it.
 
 Localization keeps gameplay/save identities language-independent. Shell UI, controls, onboarding, sound settings, class identity, equipment, monsters, guardians/finale, town commerce, forging and high-value combat messages use display-only localization; saved item/profile identities remain unchanged.
@@ -97,6 +98,7 @@ http://localhost:8000/dev.html
 ├── index.html                     # production entry + release cache fingerprints
 ├── dev.html                       # internal multi-profile development harness
 ├── game.js                        # core state / map / turn engine
+├── save-integrity-system.js       # pre-core persistent blob validation
 ├── production-bootstrap.js        # production route + presentation compatibility only
 ├── npc-stability-system.js        # consumed utility cleanup + chokepoint stability owner
 ├── equipment-system.js            # equipment generation / fit / swap-turn owner
@@ -116,8 +118,9 @@ http://localhost:8000/dev.html
 ├── combat-controls.js             # J/K controls + mana resource
 ├── challenge-pressure.js          # mild human-play pressure follow-up
 ├── runtime-bootstrap.js           # versioned late presentation/runtime followers
-├── release-stamp-v127.js          # visible v1.2.7 release marker
+├── release-stamp-v128.js          # visible v1.2.8 release marker
 ├── locale-runtime-v122.js         # stable zh/en per-page locale runtime
+├── locale-completeness-v128.js    # dynamic English presentation completion
 ├── character-art-cleanup-v122.js  # presentation-only hero cleanup
 ├── world-loot-polish-v122.js      # visible ground-loot presentation
 ├── forge-feedback-v122.js         # post-result forge feedback
@@ -144,13 +147,13 @@ The v1.2 release line does not claim a fresh complete GitHub Actions suite becau
 
 Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
 
-v1.2.7 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The ownership refactors do not require a migration or progress reset.
+v1.2.8 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The save-integrity guard preserves valid compatible blobs unchanged, while malformed/impossible blobs are rejected and valid Greedy town meta is repaired through existing defaults. No schema migration or progress reset is required.
 
 ## Release boundary
 
-`VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. Deployment verification checks the HTML route, current cache fingerprint, shared Help/Expedition Record owners, the v1.2.7 gameplay-owner files and the deployed `/dungeon-echo/VERSION` endpoint before activation.
+`VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. v1.2.8 is a Dungeon Echo-only hotfix built with `ops/release/build-site-bundle.sh`; it overlays only `/dungeon-echo/` and preserves the existing site and Moyu release tree. The unified three-bundle builder intentionally remains pinned to the last unified boundary: Dungeon Echo v1.2.7 + site v1.3.3 + Moyu v1.11.3.
 
-Release notes: [`RELEASE_NOTES_v1.2.7.md`](RELEASE_NOTES_v1.2.7.md). Companion web release: [`RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md`](RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md).
+Release notes: [`RELEASE_NOTES_v1.2.8.md`](RELEASE_NOTES_v1.2.8.md). Last unified companion web release: [`RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md`](RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md).
 
 ## AI-assisted development
 

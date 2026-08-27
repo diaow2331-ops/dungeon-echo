@@ -1,4 +1,4 @@
-/* Focused regression contract for the current v1.2.6 progression guard owner. */
+/* Focused regression contract for the current progression guard owner. */
 'use strict';
 const fs=require('fs'), path=require('path'), vm=require('vm');
 const root=process.env.DE_ROOT || path.resolve(__dirname,'..');
@@ -56,8 +56,8 @@ ok(window.__DE_PROGRESSION_COMMITMENT===ownerBefore,'legacy gameplay-tuning prog
 const bootstrap=fs.readFileSync(path.join(root,'production-bootstrap.js'),'utf8');
 ok(!bootstrap.includes('installXpCapGuard')&&!bootstrap.includes('__DE_XP_CAP_GUARD'),'production bootstrap no longer owns XP progression');
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
-const guardPos=index.indexOf('progression-guard-system.js?v=126');
-const tuningPos=index.indexOf('gameplay-tuning.js?v=126');
+const guardPos=index.indexOf('progression-guard-system.js?v=');
+const tuningPos=index.indexOf('gameplay-tuning.js?v=');
 ok(guardPos>0&&tuningPos>guardPos,'production loads progression guard before gameplay tuning');
 const allow=fs.readFileSync(path.join(root,'ops/release/static-files.txt'),'utf8').split(/\r?\n/);
 ok(allow.includes('progression-guard-system.js'),'release allowlist carries the progression owner');

@@ -6,12 +6,12 @@ The engineering goal is to keep changes understandable, testable and safe to dep
 
 ## Current baseline
 
-- Repository release line: **v1.2.7**.
+- Repository release line: **v1.2.8**.
 - Production route: `index.html` → `classic-100` only.
 - Development route: `dev.html` → internal short deterministic profiles using the current shared gameplay/UI runtime.
 - Attack: **J**.
 - Skill: **K** + Mana.
-- Localization owner: `locale-runtime-v122.js`.
+- Localization owners: `locale-runtime-v122.js` for stable per-page identity and `locale-completeness-v128.js` for dynamic English presentation.
 
 Do not add player-facing starting-depth selection back into `index.html`. Do not let `dev.html` become a second stale implementation.
 
@@ -33,6 +33,7 @@ http://localhost:8000/dev.html
 Core/shared gameplay:
 
 - `game.js` — core state, map generation, turn loop and mechanics requiring direct engine access.
+- `save-integrity-system.js` — synchronous validation of persistent run/meta blobs before core restore; valid compatible saves remain untouched.
 - `npc-stability-system.js` — consumed shrine/rest cleanup and utility-NPC chokepoint relocation.
 - `equipment-system.js` — equipment generation, class-relative fit, intrinsic value, deep-floor scaling and in-dungeon swap-turn authority.
 - `town-system.js` — conquered-depth checkpoints, town progression and wheel policy.
@@ -46,7 +47,7 @@ Core/shared gameplay:
 - `risk-reward-system.js` — shrine wagers and cask downside resolution.
 - `gameplay-tuning.js` — production-route tuning and remaining compatibility logic; it must yield when an explicit owner is present.
 - `defense-system.js` — armor/fixed-reduction semantics.
-- `desktop-controls.js` — desktop/gamepad input adapter.
+- `desktop-controls.js` — desktop/gamepad input adapter; RT owns J Attack and the connection/return status follows the current page language.
 - `combat-controls.js` — synchronous J/K + Mana contract.
 
 Production entry:
@@ -58,6 +59,7 @@ Presentation/runtime followers:
 - `visual-polish.js` — atmosphere plus equipment/town presentation.
 - `equipment-shop-ui.js` — equipment/shop presentation bridge.
 - `locale-runtime-v122.js` — current zh/en per-page locale owner.
+- `locale-completeness-v128.js` — bounded dynamic-English presentation follower; it must not become a gameplay owner or poll.
 - `character-art-cleanup-v122.js` — presentation-only hero cleanup.
 - `world-loot-polish-v122.js` — visible ground-loot presentation.
 - `forge-feedback-v122.js` — post-result forge feedback.
@@ -103,7 +105,7 @@ When changing persistent structures:
 4. avoid silently deleting player progress to repair malformed data;
 5. keep temporary combat/UI state out of persisted state.
 
-Presentation-only art/CSS/UI changes should not require a save migration. The v1.2.7 owner refactors do not change the save schema.
+Presentation-only art/CSS/UI changes should not require a save migration. v1.2.8 does not change the save schema; its guard rejects malformed/impossible blobs and its Greedy town resume path sanitizes compatible meta with existing defaults.
 
 ## Balance workflow
 
@@ -133,6 +135,12 @@ node test/public-repo-safety.cjs
 node test/repository-event-safety.cjs
 node test/production.cjs
 node test/descent100.cjs
+node test/save-integrity-v128.cjs
+node test/locale-completeness-v128.cjs
+node test/combat-controls-v1.cjs
+node test/extraction-channel.cjs
+node test/dungeon-service-safety.cjs
+node test/wheel-death-reroll.cjs
 node test/guardian-content.cjs
 node test/skill-evolution.cjs
 node test/release.cjs
@@ -161,11 +169,13 @@ The deployment model overlays `/dungeon-echo/` into the existing immutable `91hw
 
 `VERSION` is authoritative for the repository version. GitHub Release/tag metadata should provide immutable historical version boundaries; branch names are not a substitute for releases forever.
 
-The unified web-toys builder additionally requires the `v1.2.7` tag to point at the exact checked-out revision before it builds the Dungeon Echo, Moyu and 91hwl site bundles together.
+v1.2.8 is a Dungeon Echo-only hotfix. Build it with `bash ops/release/build-site-bundle.sh`; the bundle deployer overlays `/dungeon-echo/` onto the current site release and preserves Moyu.
+
+The unified web-toys builder intentionally remains pinned to the last unified boundary and requires the `v1.2.7` tag to point at the exact checked-out revision before it builds Dungeon Echo v1.2.7, Moyu v1.11.3 and site v1.3.3 together. Do not relabel that historical three-bundle boundary as v1.2.8.
 
 ## Repository governance
 
-After v1.2.7, the default repository shape should converge toward:
+After v1.2.8, the default repository shape should converge toward:
 
 - `main` as the durable development line;
 - short-lived feature/fix/art/chore/security branches deleted after their PR is merged;

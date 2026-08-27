@@ -2491,11 +2491,14 @@ function showEchoChoice() {
 }
 
 function chooseEchoLeave() {
+  if (state !== 'echo') return false;
   hideUi('echo-screen');
   winGame();
+  return true;
 }
 
 function chooseEchoStay() {
+  if (state !== 'echo') return false;
   hideUi('echo-screen');
   player.echoMode = true;
   state = 'playing';
@@ -2504,6 +2507,7 @@ function chooseEchoStay() {
   sfx.stairs();
   persistRun();
   updateHud();
+  return true;
 }
 
 function bfsStep(tx, ty) {
@@ -3518,6 +3522,7 @@ function peekRun() {
     const blobMode = raw.mode || RUN_MODE_CLASSIC;
     if (blobMode !== (greedyMode ? RUN_MODE_GREEDY : RUN_MODE_CLASSIC)) return null;
     if (raw.state !== 'playing' && raw.state !== 'town') return null;
+    if (raw.state === 'town' && blobMode !== RUN_MODE_GREEDY) return null;
     return raw;
   } catch (e) { return null; }
 }
@@ -3556,7 +3561,15 @@ function restoreRun(raw) {
     .map(l => `<div${l.cls ? ` class="${esc(l.cls)}"` : ''}>${esc(l.text)}</div>`).join('');
   if (raw.state === 'town') {
     // 贪婪远征：存档停在城镇——直接回到城镇界面
-    if (greedyMode && !meta) meta = loadMeta();
+    if (!greedyMode) {
+      clearRun();
+      state = 'title';
+      showTitle();
+      return;
+    }
+    meta = sanitizeMeta(loadMeta() || defaultMeta(classId));
+    saveMeta();
+    state = 'town';
     showTown();
     return;
   }

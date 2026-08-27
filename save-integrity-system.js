@@ -95,6 +95,7 @@
     // Core compatibility: legacy v2 classic saves may omit mode and are treated as classic.
     if (raw.mode != null && raw.mode !== 'classic' && raw.mode !== 'greedy') return false;
     if (raw.state !== 'playing' && raw.state !== 'town') return false;
+    if (raw.state === 'town' && (raw.mode || 'classic') !== 'greedy') return false;
     // Core also falls back to Warrior when an old save lacks classId.
     if (raw.classId != null && !CLASSES.has(raw.classId)) return false;
     if (!finite(raw.depth) || raw.depth < 1 || raw.depth > 100000) return false;

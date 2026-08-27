@@ -1,6 +1,7 @@
 'use strict';
 const fs = require('fs');
 const assert = require('assert');
+const vm = require('vm');
 
 const controls = fs.readFileSync('combat-controls.js','utf8');
 const game = fs.readFileSync('game.js','utf8');
@@ -52,6 +53,9 @@ assert(controls.includes('ctx.stroke = function') && controls.includes('ctx.fill
 assert(controls.includes('suppressCharacterEquipmentImages'), 'v13 character gear suppression missing');
 assert(!desktop.includes('de-gear-overlay'), 'legacy desktop character gear overlay returned');
 assert(desktop.includes("edgeButton(pad, 2, 'k')"), 'gamepad skill must follow K contract');
+assert(desktop.includes("edgeButton(pad, 7, 'j')"), 'gamepad RT attack must follow J contract');
+assert(desktop.includes('Gamepad connected') && desktop.includes('RT Attack') && desktop.includes('Return command'),
+  'gamepad status and return feedback must honor English sessions');
 assert(!desktop.includes("edgeButton(pad, 2, 'c')"), 'legacy C gamepad skill returned');
 
 // Progressive onboarding advances from actual game outcomes, not raw key events.
@@ -79,22 +83,64 @@ assert(audio.includes('mobs.some(m => m && Number(m.hp) > 0 && m.midBoss)'), 'gu
 // Mobile UX must be a real control layout, not merely scaled desktop CSS.
 assert(mobile.includes("grid-template-columns:174px minmax(0,1fr)"), 'portrait thumb-zone layout missing');
 assert(mobile.includes('(orientation:landscape)'), 'landscape mobile layout missing');
-assert(mobile.includes('setInterval(()=>btn.click(),125)'), 'hold-to-walk missing');
+assert(mobile.includes('timeout=setTimeout(()=>{btn.click();interval=setInterval(()=>btn.click(),110)},190)'), 'hold-to-walk cadence missing');
+assert(mobile.includes("addEventListener('pointerup',clear") && mobile.includes("addEventListener('pointercancel',clear") &&
+  mobile.includes("addEventListener('lostpointercapture',clear"), 'hold-to-walk release/cancel cleanup missing');
 assert(mobile.includes('navigator.vibrate'), 'touch haptic feedback missing');
 assert(mobile.includes("const order=['attack','skill','potion','descend','escape','scroll','pause','mute']"), 'mobile action priority missing');
 assert(mobile.includes('de-mobile-optional'), 'mobile HUD compression missing');
-assert(mobile.includes('左侧方向盘'), 'mobile help copy missing');
-assert(mobile.includes('new MutationObserver(queueApply)'), 'dynamic touch-control resync missing');
+assert(mobile.includes('左侧四向方向盘'), 'mobile help copy missing');
+assert(mobile.includes("window.addEventListener('resize'") && mobile.includes("window.addEventListener('orientationchange'") &&
+  mobile.includes("document.addEventListener('fullscreenchange',queueApply)"), 'viewport-driven touch-control resync missing');
 
 // Core J/K+mana input is synchronous; late bootstrap owns only followers.
-const desktopPos = html.indexOf('<script src="desktop-controls.js"></script>');
-const controlsPos = html.indexOf('<script src="combat-controls.js"></script>');
-const challengePos = html.indexOf('<script src="challenge-pressure.js"></script>');
+const productionScripts = [...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)]
+  .map(match => match[1].split('?')[0]);
+const desktopPos = productionScripts.indexOf('desktop-controls.js');
+const controlsPos = productionScripts.indexOf('combat-controls.js');
+const challengePos = productionScripts.indexOf('challenge-pressure.js');
 assert(desktopPos >= 0 && controlsPos > desktopPos && challengePos > controlsPos, 'combat controls must be synchronous before final challenge pressure');
 assert(!bootstrap.includes("'combat-controls.js'"), 'late UX bootstrap must not own core combat controls');
 assert(bootstrap.includes("'combat-hint-polish.js'") && bootstrap.includes("'audio-director.js'") && bootstrap.includes("'mobile-ux.js'"), 'late UX follower chain incomplete');
 assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('combat-controls.js'"), 'shop preview regained production UX ownership');
 const files = manifest.split(/\r?\n/);
 for (const file of ['combat-controls.js','combat-hint-polish.js','audio-director.js','mobile-ux.js']) assert(files.includes(file), `release manifest missing ${file}`);
+
+// Execute the adapter: a held RT emits one J edge, release/re-press emits the next.
+{
+  const emitted = [];
+  const appended = [];
+  let frame = null;
+  const buttons = Array.from({length:10}, () => ({pressed:false,value:0}));
+  const pad = {index:0,connected:true,id:'Boundary Pad',buttons,axes:[0,0]};
+  const classList = () => ({add(){},remove(){},contains(){return false;}});
+  const makeEl = () => ({
+    id:'',style:{},dataset:{},hidden:false,textContent:'',innerHTML:'',classList:classList(),
+    setAttribute(){},appendChild(){},focus(){},click(){},querySelectorAll(){return[];},
+  });
+  const sandbox = {
+    console,
+    navigator:{language:'en-US',getGamepads:()=>[pad]},
+    KeyboardEvent:class { constructor(type,init){this.type=type;Object.assign(this,init)} },
+    requestAnimationFrame(fn){frame=fn;return 1},
+    cancelAnimationFrame(){},
+    window:{addEventListener(){}},
+    document:{
+      hidden:false,activeElement:null,head:{appendChild(){}},body:{appendChild(el){appended.push(el)}},
+      getElementById(){return null},createElement(){return makeEl()},addEventListener(){},
+      dispatchEvent(event){emitted.push(event.key);return true},
+    },
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(desktop, sandbox, {filename:'desktop-controls.js'});
+  assert.equal(typeof frame, 'function', 'gamepad frame loop must boot');
+  buttons[7].pressed=true;buttons[7].value=1;frame(20);frame(40);
+  assert.deepEqual(emitted, ['j'], 'held RT must emit exactly one J attack edge');
+  assert(appended.some(el => el.id === 'gamepad-badge' && el.innerHTML.includes('Gamepad connected') && el.innerHTML.includes('RT Attack')),
+    'already-connected gamepad must render English controls before late locale followers load');
+  buttons[7].pressed=false;buttons[7].value=0;frame(60);
+  buttons[7].pressed=true;buttons[7].value=1;frame(80);
+  assert.deepEqual(emitted, ['j','j'], 'RT release/re-press must emit the next attack');
+}
 
 console.log('combat_controls_v1=PASS');
