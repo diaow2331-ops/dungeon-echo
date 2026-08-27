@@ -72,19 +72,19 @@ test -r "$tmp_dir/dungeon-echo/$release_stamp" || fail "release stamp missing fr
 grep -Fq "$release_stamp" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load current release stamp'
 grep -Fq "const version = '$version'" "$tmp_dir/dungeon-echo/$release_stamp" || fail 'release stamp version does not match bundle VERSION'
 
-if test "$version" = '1.2.4' || test "$version" = '1.2.5' || test "$version" = '1.2.6' || test "$version" = '1.2.7'; then
+if test "$version" = '1.2.4' || test "$version" = '1.2.5' || test "$version" = '1.2.6' || test "$version" = '1.2.7' || test "$version" = '1.2.8'; then
   test -r "$tmp_dir/dungeon-echo/style.css" || fail 'navigation stylesheet missing'
   grep -Fq '#achv-screen, #help-screen {' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log fixed-screen selector missing'
   grep -Fq '#help-screen > .title-card { margin: auto; }' "$tmp_dir/dungeon-echo/style.css" || fail 'Help/Expedition Log card scroll-centering contract missing'
 fi
 
-if test "$version" = '1.2.5' || test "$version" = '1.2.6' || test "$version" = '1.2.7'; then
+if test "$version" = '1.2.5' || test "$version" = '1.2.6' || test "$version" = '1.2.7' || test "$version" = '1.2.8'; then
   grep -Fq "style.css?v=$asset_version" "$tmp_dir/dungeon-echo/index.html" || fail 'stylesheet cache fingerprint missing'
   grep -Fq "runtime-bootstrap.js?v=$asset_version" "$tmp_dir/dungeon-echo/index.html" || fail 'runtime bootstrap cache fingerprint missing'
   grep -Fq "const assetVersion = '$asset_version'" "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'follower cache fingerprint missing'
 fi
 
-if test "$version" = '1.2.6' || test "$version" = '1.2.7'; then
+if test "$version" = '1.2.6' || test "$version" = '1.2.7' || test "$version" = '1.2.8'; then
   test -r "$tmp_dir/dungeon-echo/help-copy-v126.js" || fail 'shared help copy owner missing'
   test -r "$tmp_dir/dungeon-echo/expedition-record-v126.js" || fail 'shared expedition record owner missing'
   grep -Fq 'help-copy-v126.js' "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load help copy owner'
@@ -95,11 +95,24 @@ if test "$version" = '1.2.6' || test "$version" = '1.2.7'; then
   grep -Fq '手机：' "$tmp_dir/dungeon-echo/help-copy-v126.js" || fail 'Chinese device help copy missing'
 fi
 
-if test "$version" = '1.2.7'; then
+if test "$version" = '1.2.7' || test "$version" = '1.2.8'; then
   for owner in npc-stability-system.js progression-guard-system.js risk-reward-system.js; do
-    test -r "$tmp_dir/dungeon-echo/$owner" || fail "v1.2.7 owner missing: $owner"
-    grep -Fq "$owner?v=$asset_version" "$tmp_dir/dungeon-echo/index.html" || fail "v1.2.7 owner cache fingerprint missing: $owner"
+    test -r "$tmp_dir/dungeon-echo/$owner" || fail "gameplay owner missing: $owner"
+    grep -Fq "$owner?v=$asset_version" "$tmp_dir/dungeon-echo/index.html" || fail "gameplay owner cache fingerprint missing: $owner"
   done
+fi
+
+if test "$version" = '1.2.8'; then
+  locale_owner="$tmp_dir/dungeon-echo/locale-completeness-v128.js"
+  test -r "$locale_owner" || fail 'locale completeness owner missing'
+  grep -Fq 'locale-completeness-v128.js' "$tmp_dir/dungeon-echo/runtime-bootstrap.js" || fail 'runtime bootstrap does not load locale completeness owner'
+  grep -Fq 'characterData:true' "$locale_owner" || fail 'locale completeness characterData contract missing'
+  grep -Fq "'#equipbar'" "$locale_owner" || fail 'locale completeness equipment scope missing'
+  grep -Fq "'#log'" "$locale_owner" || fail 'locale completeness log scope missing'
+  grep -Fq 'You stepped on a trap' "$locale_owner" || fail 'locale completeness trap translation missing'
+  grep -Fq 'This floor has' "$locale_owner" || fail 'locale completeness floor-summary translation missing'
+  grep -Fq "weapon:'Weapon'" "$locale_owner" || fail 'locale completeness equipment labels missing'
+  ! grep -Eq 'setInterval[[:space:]]*\(' "$locale_owner" || fail 'locale completeness must not poll'
 fi
 
 find "$tmp_dir" -type d -exec chmod 0755 {} +
