@@ -75,9 +75,12 @@
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     }
-    if (!document.getElementById('de-fixed-locale-entry-style')) {
+    // Reuse the legacy style id deliberately so locale-runtime sees an existing owned style
+    // and cannot regain selector styling ownership while the transitional runtime still boots.
+    if (!document.getElementById('de-locale-v122-style')) {
       const style = document.createElement('style');
-      style.id = 'de-fixed-locale-entry-style';
+      style.id = 'de-locale-v122-style';
+      style.dataset.owner = 'fixed-locale-entry-v130';
       style.textContent = '#de-lang-toggle{display:none!important}#de-title-language{display:flex;align-items:center;justify-content:center;gap:7px;margin:13px 0 5px;color:#9ba9bd;font:600 11px/1.2 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}#de-title-language>span{margin-right:3px}#de-title-language button{min-width:70px;border:1px solid rgba(132,157,196,.32);border-radius:7px;background:rgba(8,12,19,.78);color:#b9c6d7;padding:6px 10px;cursor:pointer}#de-title-language button.active{border-color:rgba(224,167,58,.58);background:rgba(60,42,18,.62);color:#f2d695}@media(max-width:700px){#de-title-language{flex-wrap:wrap}#de-title-language>span{width:100%;text-align:center;margin:0}}';
       document.head.appendChild(style);
     }
@@ -85,7 +88,7 @@
   }
 
   // The selector is route-owned. Transitional locale-runtime may still discover the same DOM
-  // while it exists, but it no longer creates the control or owns navigation.
+  // while it exists, but it no longer creates the control, owns its style or controls navigation.
   document.addEventListener('click', e => {
     const target = e && e.target;
     const button = target && typeof target.closest === 'function'
