@@ -1,6 +1,7 @@
-/* Dungeon Echo production defense semantics v1.
+/* Dungeon Echo production defense semantics v2.
  * Keeps equipment DEF as armor and applies flat reduction / Warrior Ironhide as a
  * separate mitigation layer without rewriting the large legacy combat core.
+ * v2 removes permanent defense/talent polling and synchronizes from real state transitions.
  */
 (() => {
   'use strict';
@@ -11,12 +12,15 @@
 
   const players = new WeakMap();
   const monsters = new WeakMap();
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let syncQueued = false;
 
   function stackText() {
     try { return String(new Error().stack || ''); } catch (e) { return ''; }
   }
   const inStack = (stack, name) => stack.indexOf(name) >= 0;
   const classId = () => api.classId || (api.meta && api.meta.classId) || 'warrior';
+  const isEnglish = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
 
   function warriorReduction(p = api.player) {
     if (!p || classId() !== 'warrior') return 0;
@@ -119,26 +123,30 @@
     const def = document.getElementById && document.getElementById('st-def');
     if (def && p) {
       const host = def.parentElement || (typeof def.closest === 'function' ? def.closest('.stat') : null);
-      if (host) host.title = `护甲 ${armor()} · 固定减伤 ${fixedReduction(p)}（远程只按 50% 护甲；破甲仅忽略护甲）`;
+      if (host) host.title = isEnglish()
+        ? `Armor ${armor()} · Fixed DR ${fixedReduction(p)} (ranged uses 50% Armor; Armor Break ignores Armor only)`
+        : `护甲 ${armor()} · 固定减伤 ${fixedReduction(p)}（远程只按 50% 护甲；破甲仅忽略护甲）`;
     }
     return { armor: armor(), fixed: fixedReduction(p) };
   }
 
   function scheduleSync() {
-    syncDefenseModel();
-    queueMicrotask(syncDefenseModel);
+    if (syncQueued) return false;
+    syncQueued = true;
+    defer(() => { syncQueued = false; syncDefenseModel(); });
+    return true;
   }
 
   document.addEventListener('keydown', scheduleSync, true);
   document.addEventListener('click', scheduleSync, true);
+  window.addEventListener('focus', scheduleSync);
+  window.addEventListener('pageshow', scheduleSync);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSync(); });
   syncDefenseModel();
-  const timer = setInterval(syncDefenseModel, 100);
-  if (typeof window.addEventListener === 'function') {
-    window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
-  }
 
   window.__DE_DEFENSE_MODEL = {
-    version: 'v1',
+    version: 'v2',
+    owner: 'defense-system',
     armor,
     fixedReduction,
     warriorReduction,
@@ -147,6 +155,7 @@
     installMonster,
     rawAttack,
     sync: syncDefenseModel,
+    schedule: scheduleSync,
   };
 })();
 
@@ -161,10 +170,13 @@
   const api = window.DE_TEST;
   if (!api || api.profileId !== 'classic-100' || !Array.isArray(api.TALENTS)) return;
 
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  let syncQueued = false;
+  const english = () => !!(window.DE_I18N && window.DE_I18N.isEnglish);
   const OVERFLOW = {
     id: 'overflow_supply',
-    name: '余烬整备',
-    desc: '可成长天赋已达上限：获得药水 +1、卷轴 +1。',
+    get name() { return english() ? 'Ember Resupply' : '余烬整备'; },
+    get desc() { return english() ? 'All scalable talents are capped: gain +1 Potion and +1 Teleport Scroll.' : '可成长天赋已达上限：获得药水 +1、卷轴 +1。'; },
     apply(p) {
       p.potions = (Number(p.potions) || 0) + 1;
       p.scrolls = (Number(p.scrolls) || 0) + 1;
@@ -211,21 +223,29 @@
     return syncPool();
   }
 
-  document.addEventListener('keydown', sync, true);
-  document.addEventListener('click', () => { sync(); queueMicrotask(sync); }, true);
-  sync();
-  const timer = setInterval(sync, 75);
-  if (typeof window.addEventListener === 'function') {
-    window.addEventListener('beforeunload', () => clearInterval(timer), { once: true });
+  function scheduleSync() {
+    if (syncQueued) return false;
+    syncQueued = true;
+    defer(() => { syncQueued = false; sync(); });
+    return true;
   }
+
+  document.addEventListener('keydown', scheduleSync, true);
+  document.addEventListener('click', scheduleSync, true);
+  window.addEventListener('focus', scheduleSync);
+  window.addEventListener('pageshow', scheduleSync);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSync(); });
+  sync();
 
   window.__DE_TALENT_SAFETY = {
     version: 'v1',
+    owner: 'defense-system',
     overflow: OVERFLOW,
     eligible,
     desiredPool,
     syncPool,
     repairTalentScreen,
     sync,
+    schedule: scheduleSync,
   };
 })();
