@@ -1,5 +1,5 @@
 'use strict';
-const fs=require('fs'), vm=require('vm');
+const fs=require('fs'), vm=require('vm'), path=require('path');
 const listeners={document:{},window:{}};
 const storage=new Map();
 const log={html:'',insertAdjacentHTML(_p,s){this.html=s+this.html;}};
@@ -34,10 +34,17 @@ const api={
  tryMove(){},useSkill(){},pickupHere(){},
 };
 global.window={DE_TEST:api,addEventListener(type,fn){(listeners.window[type] ||= []).push(fn);}};
-vm.runInThisContext(fs.readFileSync(require('path').join(__dirname,'..','production-bootstrap.js'),'utf8'),{filename:'production-bootstrap.js'});
+
+const root=path.join(__dirname,'..');
+const bootstrapSrc=fs.readFileSync(path.join(root,'production-bootstrap.js'),'utf8');
+const riskSrc=fs.readFileSync(path.join(root,'risk-reward-system.js'),'utf8');
+vm.runInThisContext(riskSrc,{filename:'risk-reward-system.js'});
 const R=window.__DE_RISK_REWARD_INTERACTIONS;
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
-ok(R&&R.version==='p0-v1','risk-reward bridge boots');
+ok(R&&R.version==='p0-v2','risk-reward system boots current contract');
+ok(R&&R.owner==='risk-reward-system','risk-reward system is the declared gameplay owner');
+ok(!bootstrapSrc.includes('installRiskRewardInteractions'),'production bootstrap no longer contains risk-reward installer');
+ok(!bootstrapSrc.includes('__DE_RISK_REWARD_INTERACTIONS'),'production bootstrap no longer owns risk-reward state');
 ok(R.shrineOutcomeFor(shrine,.10)==='mending','shrine healing band');
 ok(R.shrineOutcomeFor(shrine,.30)==='blood-offering','shrine blood-offering band');
 ok(R.shrineOutcomeFor(shrine,.60)==='greed-contract','shrine greed-contract band');
