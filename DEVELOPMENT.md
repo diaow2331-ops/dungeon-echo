@@ -6,7 +6,7 @@ The engineering goal is to keep changes understandable, testable and safe to dep
 
 ## Current baseline
 
-- Repository release line: **v1.2.2**.
+- Repository release line: **v1.2.6**.
 - Production route: `index.html` → `classic-100` only.
 - Development route: `dev.html` → internal short deterministic profiles using the current shared gameplay/UI runtime.
 - Attack: **J**.
@@ -41,6 +41,7 @@ Core/shared gameplay:
 - `content-system.js` — late-floor themes plus guardian/finale state machines.
 - `combat-pressure.js` — readable deep-floor/guardian pressure.
 - `challenge-pressure.js` — final mild late-game attack-pressure layer.
+- `risk-reward-system.js` — shrine wagers and cask downside resolution.
 - `gameplay-tuning.js` — production-route policy and tuning.
 - `defense-system.js` — armor/fixed-reduction semantics.
 - `desktop-controls.js` — desktop/gamepad input adapter.
@@ -74,7 +75,7 @@ The old production localization chain is retired:
 - `i18n-content.js`
 - `ux-hotfix-v121.js`
 
-Do not add these back to the production manifest or describe them as current runtime owners. v1.2.2 uses one locale per page load instead of whole-run live language translation.
+Do not add these back to the production manifest or describe them as current runtime owners. The current v1.2.x line uses one locale per page load instead of whole-run live language translation.
 
 The old C-skill / J-quick-dive UI is also retired. Current controls are J Attack / K Skill.
 
@@ -122,6 +123,7 @@ Use the smallest check set that can falsify the affected change.
 High-value release/repository checks include:
 
 ```bash
+node test/public-repo-safety.cjs
 node test/production.cjs
 node test/descent100.cjs
 node test/guardian-content.cjs
@@ -129,6 +131,8 @@ node test/skill-evolution.cjs
 node test/release.cjs
 node test/repository-governance-v122.cjs
 ```
+
+`node test/public-repo-safety.cjs` is mandatory for operations/configuration/repository-governance changes in this public repository. It scans the checked-out tree for common credential artifacts, recognizable live-secret shapes and non-example email addresses; Git history remains a separate audit surface.
 
 `node test/smoke.cjs` preserves broader historical feature/save coverage on development fixtures. `node test/sim.cjs` remains an optional balance diagnostic and should not be run as ritual validation for documentation or presentation-only work.
 
@@ -142,17 +146,18 @@ Development-only files, tests and short profiles must not leak into the producti
 
 The deployment model overlays `/dungeon-echo/` into the existing immutable `91hwl-play` release tree and atomically switches the shared `current` symlink. Failed health checks must preserve rollback behavior.
 
-`VERSION` is authoritative for the repository version. GitHub Release/tag metadata should eventually provide immutable historical version boundaries; branch names are not a substitute for releases forever.
+`VERSION` is authoritative for the repository version. GitHub Release/tag metadata should provide immutable historical version boundaries; branch names are not a substitute for releases forever.
 
 ## Repository governance
 
-After v1.2.2, the default repository shape should converge toward:
+After v1.2.6, the default repository shape should converge toward:
 
 - `main` as the durable development line;
-- short-lived feature/fix/art/chore branches deleted after their PR is merged;
+- short-lived feature/fix/art/chore/security branches deleted after their PR is merged;
 - release branches retained only while they temporarily provide an otherwise-missing immutable version boundary;
 - Git history used as the archive;
-- current Issues describing current work rather than frozen implementation history.
+- current Issues describing current work rather than frozen implementation history;
+- no credentials or nonessential personal identifiers in tracked files, commit content, Issues or PR comments.
 
 Do not recreate dozens of permanent merged branches after the current cleanup.
 
