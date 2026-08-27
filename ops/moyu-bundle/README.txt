@@ -1,9 +1,11 @@
-91hwl Clock Out Alive file-upload bundle
+Clock Out Alive / 摸鱼到下班 v1.11.1 deployment bundle
 
-- Replaces only /moyu/ inside the existing /srv/91hwl-play release tree.
-- Preserves /dungeon-echo/ and /healthz.
-- Verifies bundle checksums, product/version markers, bilingual/mobile contracts and the public VERSION endpoint.
-- Switches the shared current symlink atomically and rolls back on healthcheck failure.
+This bundle atomically replaces only `/moyu/` inside the existing `/srv/91hwl-play/current` release tree and preserves Dungeon Echo.
 
-Build from the repository with:
-  ./ops/release/build-moyu-bundle.sh /tmp/91hwl-play-moyu-v1.11.0.zip
+The packaged game includes:
+- base `style.css`
+- release-specific `visual-v1111.css`
+- one final `game.js` produced from the accepted v1.11.0 base runtime plus the deterministic v1.11.1 build-time patch
+- VERSION 1.11.1
+
+The deployer verifies bundle checksums, release fingerprints, the ground-only dust guard, the absence of active player-halo and drifting-coworker draw calls, then runs origin/public health checks. Failures after switching current trigger rollback.

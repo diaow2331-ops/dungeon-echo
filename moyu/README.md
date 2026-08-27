@@ -1,22 +1,17 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release: **v1.11.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.11.1**. Production route: `https://play.91hwl.cn/moyu/`.
 
-The source is governed as three responsibilities rather than one 160 KB HTML blob:
+The game is governed as a deterministic static release:
 
 - `index.html` — product shell, HUD and accessibility structure.
-- `style.css` — desktop/mobile presentation, safe areas and touch ergonomics.
-- `src/game.part01.js` … `game.part15.js` — ordered source slices of one runtime. They are concatenated byte-for-byte by the release builder into the single production `game.js`; browsers never load the slices individually.
+- `style.css` — stable cross-device base layout.
+- `visual-v1111.css` — narrow v1.11.1 result-typography correction.
+- `src/game.part01.js` … `game.part15.js` — accepted v1.11.0 runtime slices.
+- `patches/runtime-v1111.patch` — audited build-time visual patch applied after the slices are reconstructed.
 
-`SOURCE_SHA256` pins the accepted HTML and reconstructed runtime. `build-moyu-bundle.sh` refuses checksum drift, untracked release sources, a wrong source-part count, missing cache fingerprints or changed core run geometry.
+The release builder verifies the accepted v1.11.0 base runtime SHA before applying the patch, then verifies the exact v1.11.1 runtime SHA. The patch is applied during packaging; browsers receive one final `game.js` and do not execute a patch layer.
 
-Release properties:
+v1.11.1 specifically removes the active player halo, prevents airborne second-jump dust at floor level, removes drifting translucent background coworkers, and normalizes result-card typography. Core run length, collision geometry, difficulty, endings and local saves remain unchanged.
 
-- Chinese / English UI with persistent language choice.
-- Desktop keyboard/mouse and immediate pointer-down mobile controls.
-- Portrait/landscape responsive layout, safe-area handling and fullscreen support.
-- Four office stages from 14:00 to 18:00, double jump and two endings.
-- Office events, rare/hidden moments, discovery archive and original 8-bit audio.
-- Core run length and collision geometry remain compatible with the v1.10 line.
-
-The game remains static-first and requires no account. Optional end-of-run message submission remains non-blocking and only activates when a configured endpoint exists.
+The game remains static-first, bilingual, desktop/mobile compatible and account-free. Optional end-of-run message submission remains non-blocking and only activates when a configured endpoint exists.

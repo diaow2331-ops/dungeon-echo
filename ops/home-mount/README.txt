@@ -1,35 +1,11 @@
-91hwl Browser Web Toys homepage mount
+91hwl home mount · site v1.3.1
 
-This package updates the existing 91hwl.cn homepage plus both project pages:
+This package owns the product-facing static homepage and the two project detail pages only. It does not own either game runtime.
 
-  /toys/dungeon-echo/
-  /toys/moyu/
+Presented releases:
+- Dungeon Echo v1.2.6 — frozen accepted game boundary.
+- Clock Out Alive v1.11.1 — current visual cleanup release.
 
-It does not deploy the playable games themselves. Game binaries are deployed by
-the Dungeon Echo and Moyu play-tree bundles under /srv/91hwl-play.
+site v1.3.1 removes the public governance/development-log framing and presents the two games directly. Dungeon Echo uses shipped game art; Clock Out Alive uses its 14:00 → 18:00 route identity instead of an artificial character illustration.
 
-Safety properties:
-
-- verifies the live homepage against EXPECTED_INDEX_SHA256 before writing;
-- backs up the homepage and both project-page directories;
-- installs all three site pages before running health checks;
-- validates origin and public routes for both games;
-- rolls all three pages back together when a check fails.
-
-SITE_VERSION is independent from either game's VERSION.
-
-Current site release: 1.3.0
-Current product versions shown by the site:
-  Dungeon Echo 1.2.6
-  Clock Out Alive / 摸鱼到下班 1.11.0
-
-Build:
-  ./ops/release/build-home-mount-bundle.sh /tmp/91hwl-home-web-toys-v1.3.0.zip
-
-Deploy:
-  unzip /tmp/91hwl-home-web-toys-v1.3.0.zip -d /tmp/91hwl-home-web-toys-v1.3.0
-  sudo /tmp/91hwl-home-web-toys-v1.3.0/ops/deploy.sh
-
-Success markers:
-  web_toys_home_health=PASS
-  web_toys_home_mount=PASS
+The bundle derives its previous-homepage overwrite guard from the actually deployed site v1.3.0 commit `8d6b1a151621484a1a0d2a0655913066ea59aec4`. Deployment backs up the current homepage/toys tree and restores it if Nginx validation or public health checks fail.

@@ -24,10 +24,10 @@ command -v curl >/dev/null || fail 'curl missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.3.0' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.3.0"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
-grep -Fq 'Dungeon Echo · 地牢回响 · v1.2.6' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.6 detail marker missing'
-grep -Fq 'Clock Out Alive · 摸鱼到下班 · v1.11.0' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.11.0 detail marker missing'
+test "$version" = '1.3.1' || fail "unexpected site version: $version"
+grep -Fq 'data-site-version="1.3.1"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+grep -Fq 'softwareVersion":"1.2.6"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.6 detail marker missing'
+grep -Fq 'softwareVersion":"1.11.1"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.11.1 detail marker missing'
 
 expected_sha="$(tr -d '\r\n' < "$BUNDLE_ROOT/EXPECTED_INDEX_SHA256")"
 actual_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
@@ -37,7 +37,7 @@ if test "$actual_sha" != "$expected_sha" && test "$actual_sha" != "$new_sha"; th
 fi
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v130.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v131.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 
 de_existed=false
@@ -48,7 +48,10 @@ if test -e "$SITE_ROOT/$MOYU_REL"; then cp -a "$SITE_ROOT/$MOYU_REL" "$backup_di
 restore_dir(){
   rel="$1"; backup="$2"; existed="$3"
   rm -rf -- "$SITE_ROOT/$rel"
-  if test "$existed" = true; then mkdir -p "$(dirname "$SITE_ROOT/$rel")"; cp -a "$backup" "$SITE_ROOT/$rel"; fi
+  if test "$existed" = true; then
+    mkdir -p "$(dirname "$SITE_ROOT/$rel")"
+    cp -a "$backup" "$SITE_ROOT/$rel"
+  fi
 }
 
 rollback(){
@@ -64,7 +67,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v130.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v131.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
