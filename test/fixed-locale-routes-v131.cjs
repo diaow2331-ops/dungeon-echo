@@ -12,16 +12,22 @@ ok(/<html\s+lang="zh-CN"\s+data-de-locale="zh-CN">/.test(zh),'root entry owns Ch
 ok(/<html\s+lang="en"\s+data-de-locale="en">/.test(en),'English entry owns English locale identity');
 ok(/<base\s+href="\.\.\/">/.test(en),'English entry resolves all shared assets from the same dungeon root');
 ok(!/[\u3400-\u9fff]/.test(en),'English static entry contains no CJK presentation text');
-ok(JSON.stringify(scripts(zh))===JSON.stringify(scripts(en)),'Chinese and English entries boot the exact same gameplay script graph');
+ok(JSON.stringify(scripts(zh))===JSON.stringify(scripts(en)),'Chinese and English entries boot the exact same synchronous gameplay script graph');
 ok(manifest.includes('index.html')&&manifest.includes('en/index.html')&&manifest.includes('fixed-locale-entry-v130.js'),'release manifest ships both fixed routes and their owner');
 const fixedPos=runtime.indexOf("'fixed-locale-entry-v130.js'");
 const eventPos=runtime.indexOf("'locale-event-owner-v130.js'");
 const localePos=runtime.indexOf("'locale-runtime-v122.js'");
-ok(fixedPos>=0&&eventPos>fixedPos&&localePos>eventPos,'fixed route identity boots before transitional locale presentation');
+ok(fixedPos>=0&&eventPos>fixedPos&&localePos>eventPos,'fixed route identity is declared before the transitional English locale bridge');
+ok(/const englishBridge = english \? \[/.test(runtime),'legacy locale bridge is gated to the English fixed route');
+ok(/const english = routeLang === 'en'/.test(runtime)&&/localeOwner\(\) \{ return english \?/.test(runtime),'runtime locale ownership is route-derived rather than query-derived');
+ok(/assetVersion = '138'/.test(runtime)&&/version:'v11'/.test(runtime),'runtime bootstrap/cache generation advanced for the route split');
+ok(/const chain = Object\.freeze\(\[\.\.\.baseChain, \.\.\.englishBridge, \.\.\.followerChain\]\)/.test(runtime),'Chinese route omits the legacy locale trio while preserving shared followers');
 ok(/const storageKey = 'de-language-v1'/.test(owner),'fixed route owner writes only the legacy language preference key');
 ok(!/de-run-v6|de-greedy-meta-v1|de-town-wheel-state-v1|de-progression-guard-v1/.test(owner),'fixed locale routing does not fork or mutate gameplay save namespaces');
 ok(/searchParams\.delete\('lang'\)/.test(owner)&&/new URL\('en\/', root\)/.test(owner),'legacy query locale converges onto fixed paths');
 ok(/#de-title-language button\[data-lang\]/.test(owner)&&/stopImmediatePropagation/.test(owner),'language selector routes between fixed pages instead of query mode');
+ok(/owner:'fixed-locale-entry-v130'/.test(owner)&&/installLanguageEntry/.test(owner),'fixed route owner now owns the language entry instead of relying on the legacy translator');
 try{new Function(owner);ok(true,'fixed locale owner parses')}catch(e){ok(false,'fixed locale owner parses: '+e.message)}
+try{new Function(runtime);ok(true,'runtime bootstrap parses')}catch(e){ok(false,'runtime bootstrap parses: '+e.message)}
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail?1:0);

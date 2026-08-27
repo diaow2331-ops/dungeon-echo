@@ -1,22 +1,32 @@
-/* Dungeon Echo production UX bootstrap v10.
+/* Dungeon Echo production UX bootstrap v11.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
- * Fixed route locale identity is established before the transitional locale presentation pair boots.
- * Locale presentation is event-owned: legacy locale observers are virtualized only while the
- * locale pair boots, then the native MutationObserver is restored before later followers load.
+ * Fixed route locale identity is established before any presentation follower boots.
+ *
+ * Chinese is now a true fixed-source route: it never loads the legacy runtime translator,
+ * completeness layer or locale-event owner. English keeps the transitional bridge only until
+ * game.js finishes its source-localization cut. Later followers are route-owned modules and boot
+ * identically for both pages.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '134';
+  const assetVersion = '138';
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
-  const chain = Object.freeze([
+
+  const baseChain = [
     [fresh('release-stamp-v128.js'), 'data-de-release-stamp-v128', () => !!window.__DE_RELEASE_STAMP_V128],
     [fresh('fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
+  ];
+  const englishBridge = english ? [
     [fresh('locale-event-owner-v130.js'), 'data-de-locale-event-owner-v130', () => !!window.__DE_LOCALE_EVENT_OWNER],
     [fresh('locale-runtime-v122.js'), 'data-de-locale-v122', () => !!window.__DE_LOCALE_V122],
     [fresh('locale-completeness-v128.js'), 'data-de-locale-completeness-v128', () => !!window.__DE_LOCALE_COMPLETENESS_V128],
+  ] : [];
+  const followerChain = [
     [fresh('character-art-cleanup-v122.js'), 'data-de-character-cleanup-v122', () => !!window.__DE_CHARACTER_ART_CLEANUP_V122],
     [fresh('world-loot-polish-v122.js'), 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
     [fresh('forge-feedback-v122.js'), 'data-de-forge-feedback-v122', () => !!window.__DE_FORGE_FEEDBACK_V122],
@@ -25,7 +35,8 @@
     [fresh('mobile-ux.js'), 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
     [fresh('help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],
     [fresh('expedition-record-v126.js'), 'data-de-expedition-record-v126', () => !!window.__DE_EXPEDITION_RECORD_V126],
-  ]);
+  ];
+  const chain = Object.freeze([...baseChain, ...englishBridge, ...followerChain]);
 
   let started = false;
 
@@ -48,7 +59,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v10');
+      script.setAttribute(marker, 'v11');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -62,8 +73,9 @@
     });
   }
 
-  function localeOwner() { return window.__DE_LOCALE_EVENT_OWNER || null; }
+  function localeOwner() { return english ? (window.__DE_LOCALE_EVENT_OWNER || null) : null; }
   function afterFollower(src) {
+    if (!english) return;
     const owner = localeOwner();
     if (!owner) return;
     if (String(src).includes('locale-completeness-v128.js')) {
@@ -92,5 +104,9 @@
   if (document.body) start();
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = { version:'v10', assetVersion, start, loadScript, chain, afterFollower };
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = {
+    version:'v11', assetVersion, locale:english ? 'en' : 'zh-CN', english,
+    start, loadScript, chain, baseChain:Object.freeze(baseChain),
+    englishBridge:Object.freeze(englishBridge), followerChain:Object.freeze(followerChain), afterFollower,
+  };
 })();

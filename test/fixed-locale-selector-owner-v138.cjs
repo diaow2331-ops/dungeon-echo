@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const source=fs.readFileSync(path.join(__dirname,'..','fixed-locale-entry-v130.js'),'utf8');
+assert(source.includes("version:'v138'"),'fixed locale owner must report v138');
+assert(source.includes('function installLanguageEntry()'),'route owner must create the title language selector');
+assert(source.includes("style.dataset.owner = 'fixed-locale-entry-v130'"),'selector style ownership must be explicit');
+assert(source.includes("target.closest('#de-title-language button[data-lang]')"),'route owner must capture language selector clicks');
+assert(source.includes('e.stopImmediatePropagation()'),'legacy translator navigation must not receive the same language click');
+assert(source.includes("new URL('en/', root)"),'English navigation must use the fixed /en/ route');
+assert(source.includes("current.searchParams.delete('lang')"),'fixed routes must strip legacy lang query state');
+assert(!/de-run-v6|de-greedy-meta-v1|de-town-wheel-state-v1|de-progression-guard-v1/.test(source),'language navigation must never touch gameplay save namespaces');
+new Function(source);
+console.log('fixed_locale_selector_owner_v138=PASS');
