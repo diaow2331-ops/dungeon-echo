@@ -1,7 +1,7 @@
-/* Dungeon Echo v1.2.2 forge feedback layer.
+/* Dungeon Echo forge feedback v3.
  * Presentation only: forge stage badges + success/refinement/masterwork feedback.
  * Core forge cost/stat mutation remains owned by game.js + forge-system.js.
- * Town decoration is synchronized from real transitions instead of observing town DOM churn.
+ * Fixed-route locale and DE_LOCALE_DATA own visible copy; no runtime translator dependency remains.
  */
 (() => {
   'use strict';
@@ -12,9 +12,10 @@
   let pending = null;
   let toastTimer = 0;
   let decorateQueued = false;
-  const L = () => window.DE_I18N;
-  const isEn = () => !!(L() && L().isEnglish);
-  const translate = text => L() && typeof L().translate === 'function' ? L().translate(text) : text;
+  const localeData = window.DE_LOCALE_DATA || null;
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = localeData ? !!localeData.isEnglish : routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
 
   const esc = value => String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const statLabels = {atk:['攻击','ATK'],def:['防御','DEF'],hp:['生命','HP'],crit:['暴击','Crit'],leech:['吸血','Leech'],gold:['金币','Gold Find'],thorns:['反伤','Thorns'],regen:['击杀回复','Kill Heal']};
@@ -28,10 +29,20 @@
     if(!item)return null;
     return {item,forge:Number(item.forge)||0,name:String(item.name||''),stats:{...(item.stats||{})},path:item.refinePath||'',pathName:item.refineName||'',masterworked:!!item.masterworked,gold:api.meta?Number(api.meta.gold)||0:0};
   }
+  function displayItemName(item){
+    const forge=window.DE_FORGE_REFINEMENT;
+    if(forge&&typeof forge.displayItemName==='function')return forge.displayItemName(item);
+    if(localeData&&typeof localeData.itemName==='function')return localeData.itemName(item);
+    return String(item&&item.name||'');
+  }
   function statDelta(before,after){
     const out=[];
     const keys=new Set([...Object.keys(before||{}),...Object.keys(after||{})]);
-    for(const key of keys){const d=(Number(after&&after[key])||0)-(Number(before&&before[key])||0);if(!d)continue;const pair=statLabels[key]||[key,key];out.push(`${isEn()?pair[1]:pair[0]} +${d}${key==='crit'||key==='leech'||key==='gold'?'%':''}`)}
+    for(const key of keys){
+      const d=(Number(after&&after[key])||0)-(Number(before&&before[key])||0);if(!d)continue;
+      if(localeData&&typeof localeData.affixText==='function'){out.push(localeData.affixText(key,d));continue}
+      const pair=statLabels[key]||[key,key];out.push(`${english?pair[1]:pair[0]} +${d}${key==='crit'||key==='leech'||key==='gold'?'%':''}`)
+    }
     return out;
   }
 
@@ -50,16 +61,22 @@
     el.innerHTML=`<b>${esc(title)}</b>${detail?`<div>${esc(detail)}</div>`:''}${sub?`<small>${esc(sub)}</small>`:''}`;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true},2600);
   }
 
+  function refineLabel(item){
+    if(!item||!item.refinePath)return '';
+    if(localeData&&typeof localeData.refineName==='function')return localeData.refineName(item.refinePath);
+    return english?String(item.refinePath):String(item.refineName||item.refinePath);
+  }
+
   function stageText(item){
     const level=Math.max(0,Number(item&&item.forge)||0);
-    if(isEn()){
+    if(english){
       if(item&&item.masterworked)return `Forge +${level}/5 · Masterwork`;
-      if(item&&item.refinePath)return `Forge +${level}/5 · ${translate(item.refineName||item.refinePath)}`;
+      if(item&&item.refinePath)return `Forge +${level}/5 · ${refineLabel(item)}`;
       if(level>=3)return `Forge +${level}/5 · Refinement pending`;
       return `Forge +${level}/5`;
     }
     if(item&&item.masterworked)return `锻造 +${level}/5 · 已淬炼`;
-    if(item&&item.refinePath)return `锻造 +${level}/5 · ${item.refineName||'已精炼'}`;
+    if(item&&item.refinePath)return `锻造 +${level}/5 · ${refineLabel(item)||'已精炼'}`;
     if(level>=3)return `锻造 +${level}/5 · 待精炼`;
     return `锻造 +${level}/5`;
   }
@@ -94,29 +111,28 @@
     const p=pending;pending=null;const item=itemAt(p.where,p.index);if(!item||item!==p.before.item)return;
     const after=snapshot(item);if(after.forge<=p.before.forge)return;
     const deltas=statDelta(p.before.stats,after.stats);const spent=Math.max(0,p.before.gold-after.gold);
-    const name=translate(after.name||p.before.name);
-    const title=isEn()?`Forge success · +${p.before.forge} → +${after.forge}`:`强化成功 · +${p.before.forge} → +${after.forge}`;
+    const name=displayItemName(item);
+    const title=copy(`强化成功 · +${p.before.forge} → +${after.forge}`,`Forge success · +${p.before.forge} → +${after.forge}`);
     const detail=[name,...deltas].filter(Boolean).join(' · ');
-    let sub=isEn()?`Spent ${spent} Gold`:`消耗 ${spent} 金币`;
-    if(after.forge===3&&!after.path)sub+=isEn()?' · Refinement unlocked':' · 已解锁精炼方向';
-    if(after.masterworked&&!p.before.masterworked)sub+=isEn()?' · Masterwork completed':' · 淬炼完成';
+    let sub=copy(`消耗 ${spent} 金币`,`Spent ${spent} Gold`);
+    if(after.forge===3&&!after.path)sub+=copy(' · 已解锁精炼方向',' · Refinement unlocked');
+    if(after.masterworked&&!p.before.masterworked)sub+=copy(' · 淬炼完成',' · Masterwork completed');
     showToast(title,detail,sub);scheduleDecorate();
   },false);
 
   // Forge-system handles refinement on document capture and stops the click there.
-  // Window capture sees the choice first, then confirms on the next animation frame.
+  // Window capture sees the source-localized choice first, then confirms on the next frame.
   window.addEventListener('click',e=>{
     const btn=e.target&&e.target.closest?e.target.closest('[data-de-refine]'):null;if(!btn)return;
     const choice=String(btn.textContent||'').replace(/\s+/g,' ').trim();
-    requestAnimationFrame(()=>{showToast(isEn()?'Refinement locked in':'精炼路线已确定',translate(choice),isEn()?'This path receives its final bonus at +5.':'该路线会在 +5 时完成最终淬炼。');decorateRows()});
+    requestAnimationFrame(()=>{showToast(copy('精炼路线已确定','Refinement locked in'),choice,copy('该路线会在 +5 时完成最终淬炼。','This path receives its final bonus at +5.'));decorateRows()});
   },true);
 
   document.addEventListener('keydown',scheduleDecorate,true);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleDecorate()});
   window.addEventListener('focus',scheduleDecorate);
   window.addEventListener('pageshow',scheduleDecorate);
-  window.addEventListener('de:languagechange',scheduleDecorate);
 
   ensureStyle();scheduleDecorate();
-  window.__DE_FORGE_FEEDBACK_V122={version:'v2',owner:'forge-feedback-v122',decorateRows,scheduleDecorate,stageText,statDelta,showToast};
+  window.__DE_FORGE_FEEDBACK_V122={version:'v3',owner:'forge-feedback-v122',locale:english?'en':'zh-CN',decorateRows,scheduleDecorate,stageText,statDelta,showToast};
 })();
