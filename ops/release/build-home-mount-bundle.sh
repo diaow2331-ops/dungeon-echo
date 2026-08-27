@@ -9,7 +9,7 @@ output="${1:-$repo_root/91hwl-home-web-toys-v$site_version.zip}"
 stage_root="$(mktemp -d)"
 bundle="$stage_root/91hwl-home-web-toys-v$site_version"
 accepted_de_v126=9443cf4755584a521f9c55a15b79fecfc9ecda78
-accepted_site_v130=8d6b1a151621484a1a0d2a0655913066ea59aec4
+accepted_site_v131=830ebaf958e4bec71af085f0fa7897edbe8b007d
 
 cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
@@ -17,10 +17,10 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 
-test "$site_version" = '1.3.1' || { echo "unexpected site version: $site_version" >&2; exit 2; }
+test "$site_version" = '1.3.2' || { echo "unexpected site version: $site_version" >&2; exit 2; }
 tag_target="$(git -C "$repo_root" rev-parse 'v1.2.6^{commit}' 2>/dev/null || true)"
 test "$tag_target" = "$accepted_de_v126" || { echo "v1.2.6 tag boundary missing/moved: ${tag_target:-missing}" >&2; exit 2; }
-git -C "$repo_root" merge-base --is-ancestor "$accepted_site_v130" HEAD || { echo 'accepted site v1.3.0 boundary is not an ancestor of HEAD' >&2; exit 2; }
+git -C "$repo_root" merge-base --is-ancestor "$accepted_site_v131" HEAD || { echo 'accepted site v1.3.1 boundary is not an ancestor of HEAD' >&2; exit 2; }
 
 for file in \
   "$source_root/SITE_VERSION" \
@@ -34,9 +34,11 @@ for file in \
   git -C "$repo_root" cat-file -e "HEAD:$rel" 2>/dev/null || { echo "untracked site release source: $rel" >&2; exit 2; }
 done
 
-grep -Fq 'data-site-version="1.3.1"' "$source_root/public/index.html"
+grep -Fq 'data-site-version="1.3.2"' "$source_root/public/index.html"
+grep -Fq 'id="themeToggle"' "$source_root/public/index.html"
+grep -Fq 'data-carry' "$source_root/public/index.html"
 grep -Fq 'softwareVersion":"1.2.6"' "$source_root/public/toys/dungeon-echo/index.html"
-grep -Fq 'softwareVersion":"1.11.1"' "$source_root/public/toys/moyu/index.html"
+grep -Fq 'softwareVersion":"1.11.2"' "$source_root/public/toys/moyu/index.html"
 
 mkdir -p "$bundle/public/toys/dungeon-echo" "$bundle/public/toys/moyu" "$bundle/ops"
 install -m 0644 "$source_root/public/index.html" "$bundle/public/index.html"
@@ -46,9 +48,8 @@ install -m 0755 "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
 
-# Site v1.3.0 is the page set currently deployed before this patch. Derive the
-# overwrite guard from that exact accepted commit rather than a handwritten SHA.
-git -C "$repo_root" show "$accepted_site_v130:ops/home-mount/public/index.html" > "$stage_root/previous-index.html"
+# Site v1.3.1 is the page set currently deployed before this preference/readability patch.
+git -C "$repo_root" show "$accepted_site_v131:ops/home-mount/public/index.html" > "$stage_root/previous-index.html"
 sha256sum "$stage_root/previous-index.html" | awk '{print $1}' > "$bundle/EXPECTED_INDEX_SHA256"
 printf '%s\n' "$revision" > "$bundle/REVISION"
 printf '%s\n' "$site_version" > "$bundle/VERSION"
@@ -66,3 +67,4 @@ echo "bundle=$output"
 echo "site_version=$site_version"
 echo "revision=$revision"
 echo "previous_home_sha256=$(cat "$bundle/EXPECTED_INDEX_SHA256")"
+echo 'site_bundle_build=PASS'
