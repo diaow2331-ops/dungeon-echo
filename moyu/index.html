@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#f3f0e8" />
+<meta name="description" content="摸鱼到下班 / Clock Out Alive：从 14:00 摸到 18:00 的办公室跑酷 Web Toy，支持中文与 English。" />
+<meta name="application-name" content="Clock Out Alive" />
+<meta name="version" content="1.11.0" />
+<link rel="canonical" href="https://play.91hwl.cn/moyu/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="摸鱼到下班 · Clock Out Alive" />
+<meta property="og:description" content="Survive the office from 14:00 to 18:00. Dodge bosses, meetings, bugs and last-minute requests." />
+<title>摸鱼到下班 · Clock Out Alive · 91HWL</title>
+<link rel="stylesheet" href="style.css?v=1110" />
+</head>
+<body>
+<main class="wrap">
+<header>
+  <div class="brand"><span data-i18n="brand">摸鱼到下班</span><span class="version-badge">v1.11.0</span><small data-i18n="brandMeta">91HWL · WEB TOY · OFFICE ESCAPE RUNNER</small></div>
+  <div class="top-actions">
+    <a class="icon-btn home-link" id="homeLink" href="https://91hwl.cn/" data-i18n="home">← 91hwl 首页</a>
+    <button class="icon-btn lang-btn" id="langBtn" type="button" aria-label="Switch language">EN</button>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn" type="button" aria-expanded="false"><span aria-hidden="true">⚙</span> <span data-i18n="settings">设置</span></button>
+      <div class="settings-pop hidden" id="settingsPop" role="dialog" aria-label="声音设置">
+        <div class="settings-head"><span data-i18n="audioSettings">声音设置</span><button class="settings-master" id="masterSoundBtn" type="button">总开关：关</button></div>
+        <label class="volume-row" for="musicVol"><span data-i18n="music">背景音乐</span><input id="musicVol" type="range" min="0" max="100" step="1" value="30"><output id="musicVolOut">30%</output></label>
+        <label class="volume-row" for="sfxVol"><span data-i18n="sfx">游戏音效</span><input id="sfxVol" type="range" min="0" max="100" step="1" value="85"><output id="sfxVolOut">85%</output></label>
+        <div class="settings-tools"><button class="settings-preset" id="mixPresetBtn" type="button" data-i18n="mixPreset">恢复推荐 30 / 85</button></div><div class="settings-note" data-i18n="mixNote">当前推荐混音：音乐 30%，音效 85%。两者独立保存；按 M 可快速静音/恢复。</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="进入全屏">⛶ <span class="long" id="fullscreenLabel" data-i18n="fullscreen">全屏</span></button>
+  </div>
+</header>
+<div class="mission-bar" aria-label="Game summary">
+  <div class="mission-item"><span><small data-i18n="mission">Mission</small></span><b data-i18n="missionGoal">Reach 18:00 without getting caught</b></div>
+  <div class="mission-item"><span class="mission-dot" aria-hidden="true"></span><b data-i18n="missionStatus">Local · ready</b></div>
+  <div class="mission-item"><small data-i18n="missionControlLabel">Core move</small><b data-i18n="missionControl">Double jump</b></div>
+  <div class="mission-item"><small data-i18n="missionAudioLabel">Audio</small><b data-i18n="missionAudio">Original 8-bit</b></div>
+</div>
+<section class="frame" id="gameFrame" aria-label="摸鱼到下班小游戏">
+  <canvas id="game" width="1200" height="620"></canvas>
+  <div class="hud">
+    <div class="hud-group">
+      <div class="chip"><span data-i18n="score">摸鱼</span> <span id="score">0</span> m</div>
+      <div class="chip optional"><span data-i18n="speed">速度</span> <span id="speed">1.0</span>x</div>
+      <div class="chip"><span data-i18n="combo">连摸</span> <span id="combo">0</span></div>
+      <div class="chip optional hidden" id="eventChip"><span data-i18n="event">事件</span> <span id="eventHud">正常</span></div>
+    </div>
+    <div class="hud-group">
+      <div class="chip scene-badge"><span data-i18n="scene">场景</span> <span id="sceneHud">工位区</span></div>
+      <div class="chip stage"><span id="clock">14:00</span> · <span id="stage">工位摸鱼</span></div>
+      <div class="chip optional hidden" id="bgmChip">BGM <span id="bgmHud">OFF</span></div>
+      <div class="chip optional"><span data-i18n="best">最高</span> <span id="best">0</span> m</div>
+    </div>
+  </div>
+  <div class="ticker" id="ticker" aria-live="polite">公司群：今天大家争取准点下班。</div>
+  <div class="scene-toast hidden" id="sceneToast" aria-live="polite">14:00–15:00 · 工位区<small>先把今天的伪装作业做完。</small></div>
+  <div class="tutorial-toast hidden" id="tutorialToast" aria-live="polite">空格 / ↑ / 点击：跳跃</div>
+  <div class="progress" aria-hidden="true"><i id="dayProgress"></i></div>
+  <div class="overlay" id="overlay" aria-live="polite">
+    <div class="card">
+      <div class="menu-kicker" data-i18n="shiftKicker">SHIFT 14:00 → 18:00</div>
+      <h1 id="overlayTitle" data-i18n="heroTitle">别让老板逮到。</h1>
+      <p class="tagline" id="overlayText" data-i18n="heroText">从 14:00 摸到 18:00。穿过工位区、会议室、茶水间和办公室健身房，躲开工作，喝点咖啡，尽量活着看到下班。声音默认关闭，可在右上角开启原创 8-bit / Chiptune BGM。</p>
+      <div class="menu-facts" aria-label="Game features"><div class="menu-fact"><b>4</b><small data-i18n="factScenes">office scenes</small></div><div class="menu-fact"><b>2×</b><small data-i18n="factJump">jump depth</small></div><div class="menu-fact"><b>2</b><small data-i18n="factEnds">endings</small></div></div>
+      <div class="ending-actions"><button class="primary" id="startBtn" type="button" data-i18n="start">开始摸鱼</button><button class="secondary hidden" id="messageBtn" type="button" data-i18n="leaveMessage">写一句话</button></div>
+      <div class="message-composer hidden" id="messageComposer"><label for="messageName">展示昵称（可留空）</label><input id="messageName" maxlength="18" placeholder="例如：今晚不加班的人"><label for="messageText">留一句话</label><textarea id="messageText" maxlength="80" placeholder="最多 80 字。留言提交后进入审核，通过后才可能出现在下班留言墙。"></textarea><div class="message-meta"><span data-i18n="messageModeration">提交后需审核 · 不即时公开</span><span><b id="messageCount">0</b>/80</span></div><button class="secondary" id="messageSubmit" type="button">提交审核</button><div class="message-status" id="messageStatus" role="status">留言提交后需审核，未审核内容不会公开。</div></div>
+      <div class="controls" data-i18n="controls">电脑：空格 / ↑ / 鼠标点击跳跃，空中可二段跳 · P / Esc 暂停 · M 快速静音<br>手机：触摸游戏画面。首次游玩会有两步无打断教学。18:00 会出现短暂「下班窗口」：及时操作可准点下班，否则将被判定为“自愿”加班。</div>
+    </div>
+  </div>
+</section>
+<div class="route-strip" id="routeStrip" aria-label="Office day route">
+  <div class="route-step" data-route="0"><b>14:00</b><small data-i18n="route0">工位区 · Workstation</small></div>
+  <div class="route-step" data-route="1"><b>15:00</b><small data-i18n="route1">会议室 · Meeting</small></div>
+  <div class="route-step" data-route="2"><b>16:00</b><small data-i18n="route2">茶水间 · Pantry</small></div>
+  <div class="route-step" data-route="3"><b>17:00</b><small data-i18n="route3">健身房 · Gym</small></div>
+  <div class="route-step" data-route="4"><b>18:00</b><small data-i18n="route4">下班门 · Clock out</small></div>
+</div>
+<div class="below">
+
+  <div class="panel record-panel"><div class="panel-title-row"><strong data-i18n="localStats">本机战绩</strong><span class="panel-kicker" data-i18n="localOnly">Local only</span></div><div class="mini-grid"><div class="mini"><span data-i18n="bestRun">最高摸鱼</span><b id="bestBelow">0m</b></div><div class="mini"><span data-i18n="bestCombo">最佳连摸</span><b id="bestCombo">0</b></div><div class="mini"><span data-i18n="runs">摸鱼次数</span><b id="runs">0</b></div><div class="mini"><span data-i18n="onTime">准点下班</span><b id="onTimeEnds">0</b></div><div class="mini"><span data-i18n="overtime">“自愿”加班</span><b id="overtimeEnds">0</b></div></div></div>
+  <div class="panel discovery-panel"><div class="discovery-head"><strong data-i18n="discoveries">发现档案</strong><span class="discovery-count" id="discoveryCount">已发现 0 / 13</span></div><div class="discovery-list" id="discoveryList"></div><div style="margin-top:7px;color:var(--muted)" data-i18n="discoveryNote">发现记录只保存在当前浏览器；未发现项目只显示为 ???。</div></div>
+</div>
+<footer class="game-footer"><span data-i18n="footerPrivacy">Local save · no account · no install</span><span>91HWL / CLOCK OUT ALIVE / v1.11.0</span></footer>
+</main>
+<script src="game.js?v=1110"></script>
+</body>
+</html>
