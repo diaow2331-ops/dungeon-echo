@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
 <meta name="theme-color" content="#f3f0e8" />
-<meta name="description" content="摸鱼到下班 / Clock Out Alive：从 14:00 摸到 18:00 的办公室跑酷 Web Toy，支持中文与 English。" />
+<meta name="description" content="摸鱼到下班 / Clock Out Alive：从 14:00 撑到 18:00 的办公室跑酷 Web Toy，支持中文与 English。" />
 <meta name="application-name" content="Clock Out Alive" />
 <meta name="version" content="1.11.0" />
 <link rel="canonical" href="https://play.91hwl.cn/moyu/" />
@@ -56,18 +56,18 @@
     </div>
   </div>
   <div class="ticker" id="ticker" aria-live="polite">公司群：今天大家争取准点下班。</div>
-  <div class="scene-toast hidden" id="sceneToast" aria-live="polite">14:00–15:00 · 工位区<small>先把今天的伪装作业做完。</small></div>
+  <div class="scene-toast hidden" id="sceneToast" aria-live="polite">14:00–15:00 · 工位区<small>先把今天的活装作已经做完。</small></div>
   <div class="tutorial-toast hidden" id="tutorialToast" aria-live="polite">空格 / ↑ / 点击：跳跃</div>
   <div class="progress" aria-hidden="true"><i id="dayProgress"></i></div>
   <div class="overlay" id="overlay" aria-live="polite">
     <div class="card">
       <div class="menu-kicker" data-i18n="shiftKicker">SHIFT 14:00 → 18:00</div>
       <h1 id="overlayTitle" data-i18n="heroTitle">别让老板逮到。</h1>
-      <p class="tagline" id="overlayText" data-i18n="heroText">从 14:00 摸到 18:00。穿过工位区、会议室、茶水间和办公室健身房，躲开工作，喝点咖啡，尽量活着看到下班。声音默认关闭，可在右上角开启原创 8-bit / Chiptune BGM。</p>
+      <p class="tagline" id="overlayText" data-i18n="heroText">从 14:00 撑到 18:00。穿过工位区、会议室、茶水间和员工健身房，躲开工作，喝点咖啡，尽量活着看到下班。声音默认关闭，可在右上角开启原创 8-bit / Chiptune BGM。</p>
       <div class="menu-facts" aria-label="Game features"><div class="menu-fact"><b>4</b><small data-i18n="factScenes">office scenes</small></div><div class="menu-fact"><b>2×</b><small data-i18n="factJump">jump depth</small></div><div class="menu-fact"><b>2</b><small data-i18n="factEnds">endings</small></div></div>
       <div class="ending-actions"><button class="primary" id="startBtn" type="button" data-i18n="start">开始摸鱼</button><button class="secondary hidden" id="messageBtn" type="button" data-i18n="leaveMessage">写一句话</button></div>
       <div class="message-composer hidden" id="messageComposer"><label for="messageName">展示昵称（可留空）</label><input id="messageName" maxlength="18" placeholder="例如：今晚不加班的人"><label for="messageText">留一句话</label><textarea id="messageText" maxlength="80" placeholder="最多 80 字。留言提交后进入审核，通过后才可能出现在下班留言墙。"></textarea><div class="message-meta"><span data-i18n="messageModeration">提交后需审核 · 不即时公开</span><span><b id="messageCount">0</b>/80</span></div><button class="secondary" id="messageSubmit" type="button">提交审核</button><div class="message-status" id="messageStatus" role="status">留言提交后需审核，未审核内容不会公开。</div></div>
-      <div class="controls" data-i18n="controls">电脑：空格 / ↑ / 鼠标点击跳跃，空中可二段跳 · P / Esc 暂停 · M 快速静音<br>手机：触摸游戏画面。首次游玩会有两步无打断教学。18:00 会出现短暂「下班窗口」：及时操作可准点下班，否则将被判定为“自愿”加班。</div>
+      <div class="controls" data-i18n="controls">电脑：空格 / ↑ / 鼠标点击跳跃，空中可二段跳 · P / Esc 暂停 · M 快速静音<br>手机：轻触游戏画面。首次游玩会有两步无打断教学。18:00 会出现短暂「下班窗口」：及时操作可准点下班，否则将被判定为“自愿”加班。</div>
     </div>
   </div>
 </section>
