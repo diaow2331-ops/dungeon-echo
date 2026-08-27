@@ -9,7 +9,7 @@
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '132';
+  const assetVersion = '133';
   const fresh = src => `${src}?v=${assetVersion}`;
   const chain = Object.freeze([
     [fresh('release-stamp-v128.js'), 'data-de-release-stamp-v128', () => !!window.__DE_RELEASE_STAMP_V128],
