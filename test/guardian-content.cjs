@@ -47,6 +47,7 @@ elements.set('stage', stage);
 elements.set('st-hptext', el('st-hptext'));
 elements.set('st-hpfill', el('st-hpfill'));
 global.document = {
+  documentElement:{dataset:{deLocale:'zh-CN'}},
   getElementById(id) { return elements.get(id) || null; },
   createElement(tag) { return el(tag); },
 };
@@ -72,7 +73,7 @@ global.window = { DE_TEST: api };
 const source = fs.readFileSync(path.resolve(__dirname, '..', 'content-system.js'), 'utf8');
 vm.runInThisContext(source, { filename: 'content-system.js' });
 
-ok(window.__DE_CONTENT_SYSTEM === 'v5', 'content bridge reports v5');
+ok(window.__DE_CONTENT_SYSTEM === 'v6', 'content bridge reports v6');
 ok(profile.themes.length === 25, 'late-game themes extend to 25 palettes');
 const byDepth = d => profile.midBosses.find(g => g.depth === d);
 ok(byDepth(10).armorBreak === true, 'floor 10 retains telegraphed armor-break tutorial');
@@ -181,7 +182,7 @@ localStorage.setItem('de-guardian-encounter-v1', JSON.stringify({
   guardian:{boss:false,midBoss:true,name:'',maxHp:100}, sequenceIndex:0, finalPhase:null, nextSpecialTurn:304,
   active:{specId:'ember-mark',resolveTurn:301,originalSlow:false,originalSkip:0,targetX:15,targetY:15,startHp:100,axis:null,line:null},
 }));
-ok(resume && resume.version === 'v1' && resume.restore(resumeGuardian) === true, 'saved telegraph can restore onto reloaded guardian object');
+ok(resume && resume.version === 'v2' && resume.owner === 'content-system' && resume.locale === 'zh-CN' && resume.restore(resumeGuardian) === true, 'saved telegraph can restore onto reloaded guardian object');
 ok(resumeGuardian.slow === true && resume.active && resume.active.specId === 'ember-mark', 'restored telegraph reserves guardian and keeps original special');
 api.player.x=16; frame(301);
 ok(meleeCalls === meleeBeforeBoss + 1, 'restored ember mark uses saved target and can still be dodged');
