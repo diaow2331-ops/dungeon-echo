@@ -1,0 +1,48 @@
+--- game.js
++++ game.js
+@@ -427,9 +427,9 @@
+   deathCounts[cause]=(deathCounts[cause]||0)+1;storageSet('91hwl_moyu_death_counts',JSON.stringify(deathCounts));
+   if(['会议','老板','BUG','临时需求','邮件'].every(k=>(deathCounts[k]||0)>0))unlockDiscovery('allDeaths',true);
+   syncStats();renderDiscoveries();if(navigator.vibrate)navigator.vibrate(45);beep(130,.16,'sawtooth',.05);
+-  overlayTitle.textContent=currentLang==='en'?`Made it ${rounded}m. ${tr(cause)} got you.`:`摸到 ${rounded} 米，被「${cause}」截胡。`;
++  overlayTitle.textContent=currentLang==='en'?`${tr(cause)} got you.`:`被「${cause}」截胡。`;
+   const funny=tr(causeTips[cause]||deathTips[(Math.random()*deathTips.length)|0]),coach=currentLang==='en'?(TRANSLATIONS[coachTips[cause]]||'Tip: read the next hazard before spending your second jump.'):(coachTips[cause]||'操作建议：先看清下一组障碍，再决定是否保留二段跳。'),count=deathCounts[cause]||1;
+-  overlayText.textContent=currentLang==='en'?`${funny}\n\n${coach}\nBest combo this run: ${combo} · Caught by ${tr(cause)} ${count} time${count===1?'':'s'}.`:`${funny}\n\n${coach}\n本局最高连摸 ${combo} 次 · 已被「${cause}」截胡 ${count} 次。`;
++  overlayText.textContent=currentLang==='en'?`Run: ${rounded}m.\n${funny}\n\n${coach}\nBest combo: ${combo} · Caught by ${tr(cause)} ${count} time${count===1?'':'s'}.`:`本局：${rounded} 米。\n${funny}\n\n${coach}\n最高连摸 ${combo} 次 · 已被「${cause}」截胡 ${count} 次。`;
+   startBtn.textContent=currentLang==='en'?'Try again':'再摸一次';setTimeout(()=>overlay.classList.remove('hidden'),150);
+ }
+ function togglePause(){
+@@ -441,7 +441,8 @@
+   const before=player.jumps;player.vy=before===0?-760:-650;player.jumps++;player.squash=.12;jumpBufferTimer=0;beep(player.jumps===1?520:680,.045);
+   if(tutorialActive&&tutorialStep===1&&before===0)setTutorial(2);
+   else if(tutorialActive&&tutorialStep===2&&before===1){setTutorial(3);tutorialTimer=3.2;storageSet('91hwl_moyu_tutorial_done','1');tutorialDone=true}
+-  for(let i=0;i<7;i++)particles.push({x:player.x+10+Math.random()*24,y:GROUND-6,vx:-20-Math.random()*100,vy:-10-Math.random()*70,a:1,r:2+Math.random()*3,c:'#8e877d'});
++  const groundTakeoff=before===0&&Math.abs((player.y+player.h)-GROUND)<10;
++  if(groundTakeoff)for(let i=0;i<6;i++)particles.push({x:player.x+10+Math.random()*24,y:GROUND-5,vx:-20-Math.random()*90,vy:-8-Math.random()*55,a:.72,r:1.5+Math.random()*2.2,c:'#8e877d'});
+   return true
+ }
+ function jump(){
+@@ -1180,7 +1181,6 @@
+   const cadence=12+Math.min(7,(speed-350)/85),phase=worldTime*cadence,run=Math.sin(phase),stride=Math.cos(phase);
+   const bob=0,sx=player.squash>0?1.08:1,sy=player.squash>0?.92:1;
+   const footY=player.y+player.h,altitude=Math.max(0,GROUND-footY),shadowScale=Math.max(.45,1-altitude/310),drawX=player.x+((state==='ending'&&endingCinematicType==='ontime')?endingPlayerOffset:0);
+-  drawPlayerFocus(drawX,footY,altitude);
+   ctx.save();ctx.globalAlpha=.13*shadowScale;ctx.fillStyle='#171717';ctx.beginPath();ctx.ellipse(drawX+player.w/2,GROUND+3,22*shadowScale,4.5*shadowScale,0,0,Math.PI*2);ctx.fill();ctx.restore();
+   // Motion echoes are purely visual; the collision box remains the original 44×66 body.
+   if(grounded&&speed>520){ctx.save();ctx.globalAlpha=Math.min(.10,(speed-500)/1800);ctx.strokeStyle='#171717';ctx.lineWidth=3;for(let i=0;i<3;i++){const yy=footY-18-i*13;ctx.beginPath();ctx.moveTo(drawX-22-i*10,yy);ctx.lineTo(drawX-5,yy);ctx.stroke()}ctx.restore()}
+@@ -1273,7 +1273,7 @@
+   ctx.textAlign='left';ctx.font='950 14px ui-monospace,monospace';for(const f of floaters){ctx.globalAlpha=Math.max(0,f.a);ctx.fillStyle=f.color;ctx.fillText(f.text,f.x,f.y)}ctx.globalAlpha=1;
+ }
+ function draw(){
+-  resizeCanvas();syncPresentationState();ctx.save();if(screenShake>0&&window.matchMedia('(prefers-reduced-motion: reduce)').matches===false)ctx.translate((Math.random()-.5)*screenShake,(Math.random()-.5)*screenShake);drawBackground();drawAmbientOfficeLife();drawRunAtmosphere();for(const p of pickups)drawPickup(p);for(const o of obstacles)drawObstacle(o);drawPlayer();drawEffects();ctx.restore();
++  resizeCanvas();syncPresentationState();ctx.save();if(screenShake>0&&window.matchMedia('(prefers-reduced-motion: reduce)').matches===false)ctx.translate((Math.random()-.5)*screenShake,(Math.random()-.5)*screenShake);drawBackground();drawRunAtmosphere();for(const p of pickups)drawPickup(p);for(const o of obstacles)drawObstacle(o);drawPlayer();drawEffects();ctx.restore();
+   if(state==='paused'){ctx.fillStyle='rgba(243,240,232,.2)';ctx.fillRect(0,0,W,H)}
+ }
+ function loop(t){if(state!=='playing'&&state!=='ending'){draw();return}const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();if(state==='playing'||state==='ending')raf=requestAnimationFrame(loop)}
+@@ -1308,5 +1308,5 @@
+   debugClear:()=>{obstacles=[];pickups=[];return true},debugSetRunDistance:(v)=>{runDistance=Number(v)||0;updateStage(true);return runDistance},
+   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
+   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,layers:p.layers})),debugMusicState:()=>({soundOn,musicVolume,sfxVolume,stageIndex,profile:profile().name,bpm:profile().bpm,layers:profile().layers,musicStep}),debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();return {runDistance,stageIndex,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
+-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.11.0';
++};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.11.1';
+ })();
