@@ -10,13 +10,27 @@ const src = fs.readFileSync(path.join(root, 'locale-completeness-v128.js'), 'utf
 const bootstrap = fs.readFileSync(path.join(root, 'runtime-bootstrap.js'), 'utf8');
 const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8');
 
+const makeTextEl = text => ({ textContent:text, style:{}, hidden:false, setAttribute(){} });
+const equipEls = {
+  weapon:makeTextEl('铁剑'), armor:makeTextEl('护甲'), helmet:makeTextEl('头盔'),
+  boots:makeTextEl('靴子'), ring:makeTextEl('戒指'), amulet:makeTextEl('项链')
+};
+const classEl = makeTextEl('游侠');
+const headerSub = makeTextEl('地牢回响');
+
 const document = {
-  querySelector(){ return null; },
-  getElementById(){ return null; },
+  querySelector(selector){
+    const m = selector.match(/^#eq-(weapon|armor|helmet|boots|ring|amulet) \.eqname$/);
+    if (m) return equipEls[m[1]];
+    if (selector === 'header h1 .sub') return headerSub;
+    return null;
+  },
+  getElementById(id){ return id === 'st-class' ? classEl : null; },
   createTreeWalker(){ return { currentNode:null, nextNode(){ return false; } }; }
 };
 class MutationObserver { constructor(fn){ this.fn=fn; } observe(){} disconnect(){} }
 const window = {
+  DE_TEST:{ player:{ equip:{ weapon:{name:'铁剑'}, armor:null, helmet:null, boots:null, ring:null, amulet:null } } },
   DE_I18N: {
     isEnglish: true,
     translate(value) {
@@ -42,6 +56,17 @@ const api = window.__DE_LOCALE_COMPLETENESS_V128;
 assert(api, 'locale completeness owner must install');
 assert.equal(api.english, true);
 
+assert.equal(equipEls.weapon.textContent, 'Iron Sword', 'equipped weapon name must remain visible and localized');
+assert.equal(equipEls.armor.textContent, 'Armor');
+assert.equal(equipEls.helmet.textContent, 'Helmet');
+assert.equal(equipEls.boots.textContent, 'Boots');
+assert.equal(equipEls.ring.textContent, 'Ring');
+assert.equal(equipEls.amulet.textContent, 'Amulet');
+assert.equal(classEl.textContent, 'Ranger');
+assert.equal(headerSub.textContent, '');
+assert.equal(headerSub.hidden, true);
+assert.equal(headerSub.style.display, 'none');
+
 const cases = [
   ['你踩上了陷阱，受到 2 点伤害！','You stepped on a trap and took 2 damage!'],
   ['木桶裂开，滚出 10 枚金币。','The cask split open and spilled 10 Gold.'],
@@ -63,6 +88,7 @@ assert(src.includes("'#equipbar'"));
 assert(src.includes("'#log'"));
 assert(src.includes('characterData:true'));
 assert(src.includes("weapon:'Weapon'"));
+assert(src.includes('engine.player.equip'));
 assert(src.includes("sub.hidden = true"));
 assert(src.includes("sub.style.display = 'none'"));
 assert(!/setInterval\s*\(/.test(src), 'locale completeness must not poll');
