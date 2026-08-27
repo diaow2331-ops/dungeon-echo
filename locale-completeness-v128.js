@@ -103,18 +103,19 @@
   const SLOT_LABELS = Object.freeze({
     weapon:'Weapon', armor:'Armor', helmet:'Helmet', boots:'Boots', ring:'Ring', amulet:'Amulet'
   });
+  const EMPTY_SLOT_ZH = Object.freeze({
+    weapon:'武器', armor:'护甲', helmet:'头盔', boots:'靴子', ring:'戒指', amulet:'项链'
+  });
 
   function enforceEquipmentLabels() {
     if (!english) return 0;
-    const engine = window.DE_TEST;
-    const equip = engine && engine.player && engine.player.equip;
     let changed = 0;
     for (const [slot, label] of Object.entries(SLOT_LABELS)) {
       const el = document.querySelector(`#eq-${slot} .eqname`);
       if (!el) continue;
-      const item = equip && equip[slot];
-      const wanted = item && item.name ? name(item.name) : label;
-      if (wanted && el.textContent !== wanted) { el.textContent = wanted; changed++; }
+      const current = String(el.textContent || '').trim();
+      const wanted = !current || current === EMPTY_SLOT_ZH[slot] || current === label ? label : name(current);
+      if (wanted && current !== wanted) { el.textContent = wanted; changed++; }
     }
     const classEl = document.getElementById('st-class');
     if (classEl && CJK.test(classEl.textContent || '')) {
