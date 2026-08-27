@@ -20,7 +20,7 @@ const raf = typeof requestAnimationFrame !== 'undefined'
 const caf = typeof cancelAnimationFrame !== 'undefined'
   ? cancelAnimationFrame : clearTimeout;
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({
-  '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;',
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[ch]));
 
 const $ = id => document.getElementById(id);
