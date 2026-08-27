@@ -1,6 +1,7 @@
-/* Dungeon Echo desktop gamepad adapter.
+/* Dungeon Echo desktop gamepad adapter v2.
  * Translates Gamepad API input into the keyboard/menu contract owned by game.js.
  * Zero dependencies; safe no-op without a connected pad.
+ * Fixed Chinese/English routes own all visible controller copy directly.
  */
 (() => {
   'use strict';
@@ -9,6 +10,9 @@
   if (window.__DE_GAMEPAD_BOOTED) return;
   window.__DE_GAMEPAD_BOOTED = true;
 
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const copy = (zh, en) => english ? en : zh;
   const DEADZONE = 0.55;
   const INITIAL_REPEAT_MS = 250;
   const REPEAT_MS = 115;
@@ -107,25 +111,11 @@
     return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
 
-  function isEnglish() {
-    if (window.DE_I18N && typeof window.DE_I18N.isEnglish === 'boolean') return window.DE_I18N.isEnglish;
-    try {
-      const query = typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined'
-        ? new URLSearchParams(location.search).get('lang') : '';
-      if (/^en(?:-|$)/i.test(query || '')) return true;
-      if (/^zh(?:-|$)/i.test(query || '')) return false;
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('de-language-v1') : '';
-      if (saved === 'en') return true;
-      if (/^zh(?:-|$)/i.test(saved || '')) return false;
-    } catch (_e) {}
-    return /^en(?:-|$)/i.test((typeof navigator !== 'undefined' && navigator.language) || '');
-  }
-
   function showStatus(pad) {
     const badge = ensureUi();
     if (!pad) { badge.classList.remove('on'); badge.textContent = ''; return; }
     const shortName = (pad.id || 'Gamepad').replace(/\s*\([^)]*\)\s*/g, ' ').trim().slice(0, 42);
-    badge.innerHTML = isEnglish()
+    badge.innerHTML = english
       ? `<strong>Gamepad connected</strong> · ${escapeHtml(shortName)}<br>` +
         'Stick/D-pad Move or Menu · A Confirm/Descend · B Wait/Back · X Skill · Y Potion · LB Scroll · RT Attack · RB Fullscreen · Start Pause · Hold View Return'
       : `<strong>手柄已接入</strong> · ${escapeHtml(shortName)}<br>` +
@@ -199,9 +189,10 @@
       returnHoldFired = true;
       emitKey('t');
       const badge = ensureUi();
-      badge.innerHTML = isEnglish()
-        ? '<strong>Return command</strong> · Hold View triggered'
-        : '<strong>回城指令</strong> · 长按 View 已触发';
+      badge.innerHTML = copy(
+        '<strong>回城指令</strong> · 长按 View 已触发',
+        '<strong>Return command</strong> · Hold View triggered'
+      );
       badge.classList.add('on');
     }
   }
@@ -236,4 +227,9 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
   if (typeof navigator.getGamepads === 'function' && typeof requestAnimationFrame === 'function') rafId = requestAnimationFrame(tick);
   window.addEventListener('beforeunload', () => { if (rafId) cancelAnimationFrame(rafId); }, { once: true });
+
+  window.__DE_GAMEPAD_ADAPTER = {
+    version:'v2', owner:'desktop-controls', locale:english ? 'en' : 'zh-CN',
+    showStatus, activeMenuRoot, moveMenuFocus, activateMenu, backMenu,
+  };
 })();
