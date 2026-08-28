@@ -2,7 +2,7 @@
 const fs=require('fs'),path=require('path'),assert=require('assert');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
-const zh=read('index.html'),en=read('en/index.html'),runtime=read('runtime-bootstrap.js');
+const zh=read('index.html'),en=read('en/index.html'),runtime=read('game/core/runtime-bootstrap.js');
 const manifest=read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
 const screens=read('game/locale/core-screen-owner-v153.js');
 const canvas=read('game/locale/town-canvas-locale-v153.js');
