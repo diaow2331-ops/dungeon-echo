@@ -1,12 +1,12 @@
-/* Dungeon Echo locale event owner v1.4.3.
+/* Dungeon Echo locale event owner v1.4.4.
  * Transitional owner for the legacy locale-runtime/completeness pair.
  * It virtualizes only the MutationObserver instances those two scripts create during
  * bootstrap, restores the native constructor immediately afterward, then resynchronizes
  * only the remaining Chinese-first core screens from real UI/state transitions.
  *
  * The fixed-route migration now owns HUD, combat log, equipment, tooltip, touch/help,
- * shrine/echo and talent presentation at source. Do not re-expand this bridge to body-wide
- * translation; residual roots should shrink until the English bridge can be deleted.
+ * shrine/echo, talent and expedition-record presentation at source. Do not re-expand this
+ * bridge to body-wide translation; residual roots should shrink until it can be deleted.
  */
 (() => {
   'use strict';
@@ -17,7 +17,7 @@
   const virtualObservers = [];
   const legacyRoots = Object.freeze([
     '#title-screen', '#class-screen', '#pause-screen', '#overlay',
-    '#shop-screen', '#town-screen', '#achv-screen',
+    '#shop-screen', '#town-screen',
   ]);
   let intercepting = typeof NativeMutationObserver === 'function';
   let active = false;
@@ -43,14 +43,6 @@
     const base = window.DE_I18N;
     if (base && typeof base.apply === 'function') {
       try { base.apply(); } catch (_e) { /* presentation bootstrap must not stop gameplay */ }
-    }
-    const runtime = window.__DE_LOCALE_V122;
-    if (runtime && typeof runtime.syncClassCards === 'function') {
-      try { runtime.syncClassCards(); } catch (_e) {}
-    }
-    const complete = window.__DE_LOCALE_COMPLETENESS_V128;
-    if (complete && complete.english && typeof complete.enforceEquipmentLabels === 'function') {
-      try { complete.enforceEquipmentLabels(); } catch (_e) {}
     }
     return true;
   }
@@ -113,7 +105,7 @@
   }
 
   window.__DE_LOCALE_EVENT_OWNER = {
-    version:'v143',
+    version:'v144',
     get active(){ return active; },
     get intercepting(){ return intercepting; },
     get primed(){ return primed; },
