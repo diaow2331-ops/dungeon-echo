@@ -1,15 +1,17 @@
-91hwl home mount · site v1.3.3
+91hwl home mount · site v1.3.4
 
 This package owns the product-facing static homepage and the two project detail pages only. It does not own either game runtime.
 
 Presented releases:
-- Dungeon Echo v1.2.7 — current ownership/release-coherence boundary.
-- Clock Out Alive v1.11.3 — current first-paint/typography release.
+- Dungeon Echo v1.2.10 — final pre-launch input/responsive release.
+- Clock Out Alive v1.11.5 — language/runtime consistency plus final narrow-screen responsive release.
 
-site v1.3.3 removes the remaining first-paint inconsistency. Language and theme preferences are resolved in the document head before the main CSS/UI paints, so a stored or explicit English/light choice no longer first flashes the default Chinese/dark state. The pages also carry `translate="no"` / `notranslate` markers so browser auto-translation does not rewrite a deliberately selected English page back into Chinese.
+site v1.3.4 is the public launch surface for the two-game release. It keeps the v1.3.3 prepaint language/theme behavior, typography ladder and no-auto-translate contract, then updates the product-facing versions and release copy for both games.
 
-The homepage and both detail pages share one typography ladder: small supporting copy, navigation/controls, body copy, card headings, section headings and hero headings each use a bounded scale instead of ad-hoc sizes. The light theme uses the same hierarchy rather than relying on browser/default contrast.
+The homepage now exposes three first-screen conversion paths: play Dungeon Echo, play Clock Out Alive, or open the public GitHub source. The product standards section also calls out the open repository so traffic from external promotion can move directly from the site to source/release notes/issues.
+
+Dungeon Echo's detail page now presents v1.2.10 and its final desktop one-shot input guard, 901–1180px laptop layout pass and minimum mobile touch targets. Clock Out Alive's detail page presents v1.11.5 and the finalized language fallback, repeat-input, Canvas/layout and mobile safe-area work.
 
 Language/theme links continue to carry `?lang=` / `?theme=` explicitly, backed by the non-sensitive `.91hwl.cn` preference cookies and localStorage fallbacks.
 
-Release safety deliberately reuses the field-tested site v1.3.2 deploy/health template. The builder deterministically adapts the final bundle's release markers to site v1.3.3, Dungeon Echo v1.2.7 and Moyu v1.11.3, updates the v1.3.3 42px control-size health contract, syntax-checks the bundled scripts, and derives the homepage overwrite guard from the actually deployed site v1.3.2 commit `e15ac9959687dbd47457cd650a0e96f008c151c5`. Deployment still backs up the homepage/toys tree and rolls it back if Nginx validation or origin/public health checks fail.
+Release safety pins the overwrite guard to the accepted site v1.3.3 boundary, packages native v1.3.4 deploy/health scripts, validates Dungeon Echo v1.2.10 and Moyu v1.11.5 origin/public VERSION endpoints, backs up the homepage/toys tree and rolls it back if Nginx validation or health checks fail.
