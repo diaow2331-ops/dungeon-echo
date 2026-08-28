@@ -5,12 +5,18 @@ BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOME_URL=https://91hwl.cn/
 DE_DETAIL_URL=https://91hwl.cn/toys/dungeon-echo/
 MOYU_DETAIL_URL=https://91hwl.cn/toys/moyu/
+ABOUT_URL=https://91hwl.cn/about/
+PRIVACY_URL=https://91hwl.cn/privacy/
+CONTACT_URL=https://91hwl.cn/contact/
+ADS_URL=https://91hwl.cn/ads.txt
 DE_PLAY_URL=https://play.91hwl.cn/dungeon-echo/
 MOYU_PLAY_URL=https://play.91hwl.cn/moyu/
 DE_VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
 MOYU_VERSION_URL=https://play.91hwl.cn/moyu/VERSION
 MAIN_RESOLVE=91hwl.cn:443:127.0.0.1
 PLAY_RESOLVE=play.91hwl.cn:443:127.0.0.1
+ADSENSE_CLIENT=ca-pub-2648680835467283
+ADS_LINE='google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0'
 ATTEMPTS=6
 DELAY=2
 
@@ -51,6 +57,14 @@ check_social_contract(){
   require_fixed "$file" 'name="twitter:image:alt"' 'X card image alt' || return 1
 }
 
+check_adsense_surface(){
+  file="$1"; label="$2"
+  require_fixed "$file" "$ADSENSE_CLIENT" "$label AdSense client" || return 1
+  require_fixed "$file" 'href="/about/"' "$label About link" || return 1
+  require_fixed "$file" 'href="/privacy/"' "$label Privacy link" || return 1
+  require_fixed "$file" 'href="/contact/"' "$label Contact link" || return 1
+}
+
 check_home(){
   file="$1"
   require_fixed "$file" 'data-site-version="1.3.4"' 'homepage site version' || return 1
@@ -65,6 +79,7 @@ check_home(){
   require_fixed "$file" 'min-height:42px' 'homepage control height' || return 1
   check_social_contract "$file" 'https://91hwl.cn/' '91hwl · Browser Games' || return 1
   check_pref_contract "$file" || return 1
+  check_adsense_surface "$file" 'homepage' || return 1
 }
 
 check_de_detail(){
@@ -81,6 +96,7 @@ check_de_detail(){
   require_fixed "$file" 'MIT · OPEN SOURCE' 'Dungeon Echo open-source identity' || return 1
   check_social_contract "$file" 'https://91hwl.cn/toys/dungeon-echo/' 'Dungeon Echo · 100-Floor Browser Roguelike' || return 1
   check_pref_contract "$file" || return 1
+  check_adsense_surface "$file" 'Dungeon detail' || return 1
 }
 
 check_moyu_detail(){
@@ -92,14 +108,36 @@ check_moyu_detail(){
   require_fixed "$file" 'Cleaner across screens' 'Moyu current English release copy' || return 1
   require_fixed "$file" 'href="https://play.91hwl.cn/moyu/" data-carry' 'Moyu play link' || return 1
   check_pref_contract "$file" || return 1
+  check_adsense_surface "$file" 'Moyu detail' || return 1
 }
 
-fetch "$work_dir/origin-home.html" --resolve "$MAIN_RESOLVE" "$HOME_URL" || fail 'origin homepage check failed'
-check_home "$work_dir/origin-home.html" || fail 'origin homepage presentation contract failed'
-fetch "$work_dir/origin-de.html" --resolve "$MAIN_RESOLVE" "$DE_DETAIL_URL" || fail 'origin Dungeon Echo detail check failed'
-check_de_detail "$work_dir/origin-de.html" || fail 'origin Dungeon Echo detail contract failed'
-fetch "$work_dir/origin-moyu.html" --resolve "$MAIN_RESOLVE" "$MOYU_DETAIL_URL" || fail 'origin Moyu detail check failed'
-check_moyu_detail "$work_dir/origin-moyu.html" || fail 'origin Moyu detail contract failed'
+check_trust_page(){
+  file="$1"; marker="$2"; canonical="$3"; label="$4"
+  require_fixed "$file" "$marker" "$label content" || return 1
+  require_fixed "$file" "rel=\"canonical\" href=\"$canonical\"" "$label canonical" || return 1
+  require_fixed "$file" 'name="robots" content="index,follow"' "$label robots" || return 1
+  require_fixed "$file" "$ADSENSE_CLIENT" "$label AdSense client" || return 1
+  require_fixed "$file" 'data-lang-choice="zh"' "$label zh control" || return 1
+  require_fixed "$file" 'data-lang-choice="en"' "$label en control" || return 1
+  require_fixed "$file" 'id="themeToggle"' "$label theme control" || return 1
+  require_fixed "$file" 'href="/about/"' "$label About link" || return 1
+  require_fixed "$file" 'href="/privacy/"' "$label Privacy link" || return 1
+  require_fixed "$file" 'href="/contact/"' "$label Contact link" || return 1
+}
+
+check_main_origin(){
+  fetch "$work_dir/origin-home.html" --resolve "$MAIN_RESOLVE" "$HOME_URL" && check_home "$work_dir/origin-home.html" || return 1
+  fetch "$work_dir/origin-de.html" --resolve "$MAIN_RESOLVE" "$DE_DETAIL_URL" && check_de_detail "$work_dir/origin-de.html" || return 1
+  fetch "$work_dir/origin-moyu.html" --resolve "$MAIN_RESOLVE" "$MOYU_DETAIL_URL" && check_moyu_detail "$work_dir/origin-moyu.html" || return 1
+  fetch "$work_dir/origin-about.html" --resolve "$MAIN_RESOLVE" "$ABOUT_URL" && check_trust_page "$work_dir/origin-about.html" 'About 91hwl' "$ABOUT_URL" 'About page' || return 1
+  fetch "$work_dir/origin-privacy.html" --resolve "$MAIN_RESOLVE" "$PRIVACY_URL" && check_trust_page "$work_dir/origin-privacy.html" 'Google AdSense and consent' "$PRIVACY_URL" 'Privacy page' || return 1
+  fetch "$work_dir/origin-contact.html" --resolve "$MAIN_RESOLVE" "$CONTACT_URL" && check_trust_page "$work_dir/origin-contact.html" 'Feedback and contact' "$CONTACT_URL" 'Contact page' || return 1
+  local ads
+  ads="$(curl -fsSL --noproxy '*' --resolve "$MAIN_RESOLVE" "$ADS_URL" | tr -d '\r\n')"
+  test "$ads" = "$ADS_LINE" || return 1
+}
+
+check_main_origin || fail 'origin 91hwl site contract failed'
 fetch /dev/null --resolve "$PLAY_RESOLVE" "${DE_PLAY_URL}?lang=zh" || fail 'origin Dungeon Echo zh route failed'
 fetch /dev/null --resolve "$PLAY_RESOLVE" "${DE_PLAY_URL}?lang=en" || fail 'origin Dungeon Echo en route failed'
 fetch /dev/null --resolve "$PLAY_RESOLVE" "${MOYU_PLAY_URL}?lang=zh" || fail 'origin Moyu zh route failed'
@@ -115,6 +153,10 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
   if fetch "$work_dir/public-home.html" "${HOME_URL}?release=$revision" && check_home "$work_dir/public-home.html" \
       && fetch "$work_dir/public-de.html" "${DE_DETAIL_URL}?release=$revision" && check_de_detail "$work_dir/public-de.html" \
       && fetch "$work_dir/public-moyu.html" "${MOYU_DETAIL_URL}?release=$revision" && check_moyu_detail "$work_dir/public-moyu.html" \
+      && fetch "$work_dir/public-about.html" "${ABOUT_URL}?release=$revision" && check_trust_page "$work_dir/public-about.html" 'About 91hwl' "$ABOUT_URL" 'About page' \
+      && fetch "$work_dir/public-privacy.html" "${PRIVACY_URL}?release=$revision" && check_trust_page "$work_dir/public-privacy.html" 'Google AdSense and consent' "$PRIVACY_URL" 'Privacy page' \
+      && fetch "$work_dir/public-contact.html" "${CONTACT_URL}?release=$revision" && check_trust_page "$work_dir/public-contact.html" 'Feedback and contact' "$CONTACT_URL" 'Contact page' \
+      && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
       && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.2.10' \
       && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.11.5'; then
     public_ok=true
@@ -127,5 +169,9 @@ test "$public_ok" = true || fail "public site v1.3.4 check failed after $ATTEMPT
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"
 echo "moyu_detail=$MOYU_DETAIL_URL"
+echo "about=$ABOUT_URL"
+echo "privacy=$PRIVACY_URL"
+echo "contact=$CONTACT_URL"
+echo "ads_txt=$ADS_URL"
 echo "site_version=$version"
 echo 'web_toys_home_health=PASS'

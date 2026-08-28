@@ -7,6 +7,10 @@ BACKUP_ROOT=/var/backups/91hwl-home-mount
 PUBLIC_ROOT="$BUNDLE_ROOT/public"
 DE_REL=toys/dungeon-echo
 MOYU_REL=toys/moyu
+ABOUT_REL=about
+PRIVACY_REL=privacy
+CONTACT_REL=contact
+ADS_REL=ads.txt
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 
 fail(){ echo "WEB_TOYS_HOME_MOUNT_ERROR: $*" >&2; exit 1; }
@@ -18,6 +22,10 @@ for file in \
   "$PUBLIC_ROOT/index.html" \
   "$PUBLIC_ROOT/$DE_REL/index.html" \
   "$PUBLIC_ROOT/$MOYU_REL/index.html" \
+  "$PUBLIC_ROOT/$ABOUT_REL/index.html" \
+  "$PUBLIC_ROOT/$PRIVACY_REL/index.html" \
+  "$PUBLIC_ROOT/$CONTACT_REL/index.html" \
+  "$PUBLIC_ROOT/$ADS_REL" \
   "$BUNDLE_ROOT/VERSION" \
   "$BUNDLE_ROOT/SHA256SUMS"; do
   test -r "$file" || fail "missing required file: $file"
@@ -32,10 +40,16 @@ grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme s
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
+grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage AdSense client missing'
+grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
 grep -Fq 'softwareVersion":"1.2.10"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.10 detail marker missing'
 grep -Fq 'softwareVersion":"1.11.5"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.11.5 detail marker missing'
 grep -Fq '双端更稳' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
 grep -Fq 'Cleaner across screens' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
+grep -Fq 'About 91hwl' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
+grep -Fq 'Google AdSense and consent' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy page marker missing'
+grep -Fq 'Feedback and contact' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page marker missing'
+grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$PUBLIC_ROOT/$ADS_REL" || fail 'ads.txt content mismatch'
 
 # The validated immutable bundle is authoritative. Existing live content is
 # recorded and backed up, but a historical homepage hash is never a release
@@ -51,8 +65,16 @@ printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
 de_existed=false
 moyu_existed=false
+about_existed=false
+privacy_existed=false
+contact_existed=false
+ads_existed=false
 if test -e "$SITE_ROOT/$DE_REL"; then cp -a "$SITE_ROOT/$DE_REL" "$backup_dir/dungeon-echo"; de_existed=true; fi
 if test -e "$SITE_ROOT/$MOYU_REL"; then cp -a "$SITE_ROOT/$MOYU_REL" "$backup_dir/moyu"; moyu_existed=true; fi
+if test -e "$SITE_ROOT/$ABOUT_REL"; then cp -a "$SITE_ROOT/$ABOUT_REL" "$backup_dir/about"; about_existed=true; fi
+if test -e "$SITE_ROOT/$PRIVACY_REL"; then cp -a "$SITE_ROOT/$PRIVACY_REL" "$backup_dir/privacy"; privacy_existed=true; fi
+if test -e "$SITE_ROOT/$CONTACT_REL"; then cp -a "$SITE_ROOT/$CONTACT_REL" "$backup_dir/contact"; contact_existed=true; fi
+if test -e "$SITE_ROOT/$ADS_REL"; then cp -a "$SITE_ROOT/$ADS_REL" "$backup_dir/ads.txt"; ads_existed=true; fi
 
 restore_dir(){
   rel="$1"; backup="$2"; existed="$3"
@@ -63,12 +85,22 @@ restore_dir(){
   fi
 }
 
+restore_file(){
+  rel="$1"; backup="$2"; existed="$3"
+  rm -f -- "$SITE_ROOT/$rel"
+  if test "$existed" = true; then cp -a "$backup" "$SITE_ROOT/$rel"; fi
+}
+
 rollback(){
   rc=$?
   if test "$rc" -ne 0; then
     cp -a "$backup_dir/index.html" "$SITE_ROOT/index.html"
     restore_dir "$DE_REL" "$backup_dir/dungeon-echo" "$de_existed"
     restore_dir "$MOYU_REL" "$backup_dir/moyu" "$moyu_existed"
+    restore_dir "$ABOUT_REL" "$backup_dir/about" "$about_existed"
+    restore_dir "$PRIVACY_REL" "$backup_dir/privacy" "$privacy_existed"
+    restore_dir "$CONTACT_REL" "$backup_dir/contact" "$contact_existed"
+    restore_file "$ADS_REL" "$backup_dir/ads.txt" "$ads_existed"
     nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
     echo 'web_toys_home_mount=ROLLED_BACK' >&2
   fi
@@ -91,8 +123,17 @@ install_detail(){
 }
 install_detail "$DE_REL"
 install_detail "$MOYU_REL"
+install_detail "$ABOUT_REL"
+install_detail "$PRIVACY_REL"
+install_detail "$CONTACT_REL"
+
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v134.tmp"
+install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
+chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
+mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
+grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$SITE_ROOT/$ADS_REL" || fail 'ads.txt write verification failed'
 nginx -t
 systemctl reload nginx
 "$HEALTHCHECK"

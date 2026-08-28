@@ -34,15 +34,28 @@ for file in \
   "$source_root/build-social-v134.cjs" \
   "$source_root/public/index.html" \
   "$source_root/public/toys/dungeon-echo/index.html" \
-  "$source_root/public/toys/moyu/index.html"; do
+  "$source_root/public/toys/moyu/index.html" \
+  "$source_root/public/about/index.html" \
+  "$source_root/public/privacy/index.html" \
+  "$source_root/public/contact/index.html" \
+  "$source_root/public/ads.txt"; do
   rel="${file#$repo_root/}"
   git -C "$repo_root" cat-file -e "HEAD:$rel" 2>/dev/null || { echo "untracked site release source: $rel" >&2; exit 2; }
 done
 
-mkdir -p "$stage_root/site/public/toys/dungeon-echo" "$stage_root/site/public/toys/moyu"
+mkdir -p \
+  "$stage_root/site/public/toys/dungeon-echo" \
+  "$stage_root/site/public/toys/moyu" \
+  "$stage_root/site/public/about" \
+  "$stage_root/site/public/privacy" \
+  "$stage_root/site/public/contact"
 cp "$source_root/public/index.html" "$stage_root/site/public/index.html"
 cp "$source_root/public/toys/dungeon-echo/index.html" "$stage_root/site/public/toys/dungeon-echo/index.html"
 cp "$source_root/public/toys/moyu/index.html" "$stage_root/site/public/toys/moyu/index.html"
+cp "$source_root/public/about/index.html" "$stage_root/site/public/about/index.html"
+cp "$source_root/public/privacy/index.html" "$stage_root/site/public/privacy/index.html"
+cp "$source_root/public/contact/index.html" "$stage_root/site/public/contact/index.html"
+cp "$source_root/public/ads.txt" "$stage_root/site/public/ads.txt"
 node "$source_root/build-v134.cjs" \
   "$stage_root/site/public/index.html" \
   "$stage_root/site/public/toys/dungeon-echo/index.html" \
@@ -55,6 +68,11 @@ node "$source_root/build-social-v134.cjs" \
 home="$stage_root/site/public/index.html"
 de_detail="$stage_root/site/public/toys/dungeon-echo/index.html"
 moyu_detail="$stage_root/site/public/toys/moyu/index.html"
+about="$stage_root/site/public/about/index.html"
+privacy="$stage_root/site/public/privacy/index.html"
+contact="$stage_root/site/public/contact/index.html"
+ads_txt="$stage_root/site/public/ads.txt"
+
 grep -Fq 'data-site-version="1.3.4"' "$home"
 grep -Fq 'name="google" content="notranslate"' "$home"
 grep -Fq 'window.__91HWL_PREFS' "$home"
@@ -65,15 +83,29 @@ grep -Fq '公开仓库' "$home"
 grep -Fq 'property="og:url" content="https://91hwl.cn/"' "$home"
 grep -Fq 'name="twitter:title" content="91hwl · Browser Games"' "$home"
 grep -Fq 'name="twitter:image" content="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp"' "$home"
+grep -Fq 'ca-pub-2648680835467283' "$home"
+grep -Fq 'href="/privacy/"' "$home"
 grep -Fq "softwareVersion\":\"$game_version\"" "$de_detail"
 grep -Fq '901–1180px' "$de_detail"
 grep -Fq 'property="og:url" content="https://91hwl.cn/toys/dungeon-echo/"' "$de_detail"
 grep -Fq 'name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguelike"' "$de_detail"
 grep -Fq 'GitHub / Source' "$de_detail"
 grep -Fq 'MIT · OPEN SOURCE' "$de_detail"
+grep -Fq 'ca-pub-2648680835467283' "$de_detail"
 grep -Fq "softwareVersion\":\"$moyu_version\"" "$moyu_detail"
 grep -Fq '双端更稳' "$moyu_detail"
 grep -Fq 'Cleaner across screens' "$moyu_detail"
+grep -Fq 'ca-pub-2648680835467283' "$moyu_detail"
+grep -Fq 'About 91hwl' "$about"
+grep -Fq 'Google AdSense and consent' "$privacy"
+grep -Fq 'Feedback and contact' "$contact"
+for page in "$about" "$privacy" "$contact"; do
+  grep -Fq 'ca-pub-2648680835467283' "$page"
+  grep -Fq 'href="/about/"' "$page"
+  grep -Fq 'href="/privacy/"' "$page"
+  grep -Fq 'href="/contact/"' "$page"
+done
+grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$ads_txt"
 
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
@@ -86,17 +118,24 @@ grep -Fq 'previous_home_sha256=' "$source_root/deploy.sh"
 ! grep -Fq 'EXPECTED_INDEX_SHA256' "$source_root/deploy.sh"
 ! grep -Fq 'live homepage changed unexpectedly' "$source_root/deploy.sh"
 grep -Fq 'public site v1.3.4 check failed' "$source_root/healthcheck.sh"
-grep -Fq 'GitHub / Source' "$source_root/healthcheck.sh"
-grep -Fq 'twitter:title' "$source_root/healthcheck.sh"
-grep -Fq 'MIT · OPEN SOURCE' "$source_root/healthcheck.sh"
-grep -Fq '双端更稳' "$source_root/healthcheck.sh"
-grep -Fq 'Cleaner across screens' "$source_root/healthcheck.sh"
+grep -Fq 'Google AdSense and consent' "$source_root/healthcheck.sh"
+grep -Fq 'pub-2648680835467283' "$source_root/healthcheck.sh"
 grep -Fq 'HEALTH_CONTRACT_MISS:' "$source_root/healthcheck.sh"
 
-mkdir -p "$bundle/public/toys/dungeon-echo" "$bundle/public/toys/moyu" "$bundle/ops"
+mkdir -p \
+  "$bundle/public/toys/dungeon-echo" \
+  "$bundle/public/toys/moyu" \
+  "$bundle/public/about" \
+  "$bundle/public/privacy" \
+  "$bundle/public/contact" \
+  "$bundle/ops"
 install -m 0644 "$home" "$bundle/public/index.html"
 install -m 0644 "$de_detail" "$bundle/public/toys/dungeon-echo/index.html"
 install -m 0644 "$moyu_detail" "$bundle/public/toys/moyu/index.html"
+install -m 0644 "$about" "$bundle/public/about/index.html"
+install -m 0644 "$privacy" "$bundle/public/privacy/index.html"
+install -m 0644 "$contact" "$bundle/public/contact/index.html"
+install -m 0644 "$ads_txt" "$bundle/public/ads.txt"
 install -m 0755 "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
