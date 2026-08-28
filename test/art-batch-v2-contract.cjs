@@ -10,6 +10,7 @@ const loot = json('art/source-atlases/runtime-maps/loot-atlas-v2.map.json');
 const monsters = json('art/source-atlases/runtime-maps/monster-deep-atlas-v2.map.json');
 const heroes = json('art/source-atlases/runtime-maps/hero-action-atlas-v2.map.json');
 const props = json('art/source-atlases/runtime-maps/dungeon-props-atlas-v1.map.json');
+const maps = [loot, monsters, heroes, props];
 
 const expectedLoot = [
   'iron-sword','broad-sword','battle-axe','rune-blade',
@@ -24,6 +25,8 @@ const expectedLoot = [
 assert.deepEqual(loot.ids, expectedLoot);
 assert.equal(loot.columns, 4);
 assert.equal(loot.rows, 8);
+assert.equal(loot.cellPixels, 128);
+assert.deepEqual(loot.atlasPixels, [512, 1024]);
 assert.deepEqual(loot.spareCell, [3, 7]);
 assert.equal(new Set(loot.ids).size, loot.ids.length);
 
@@ -40,6 +43,15 @@ assert.equal(props.columns, 6);
 assert.equal(props.rows, 4);
 assert.equal(props.cells.length, 24);
 assert.equal(new Set(props.cells).size, 24);
+assert.deepEqual(props.atlasPixels, [768, 512]);
+
+for (const map of maps) {
+  assert.equal(map.sourceArchive, 'dungeon-echo-art-library-batch-2026-08-29.zip');
+  assert.equal(typeof map.sourceFile, 'string');
+  assert.match(map.runtimeSha256, /^[0-9a-f]{64}$/);
+  assert.doesNotMatch(JSON.stringify(map), /art\/source-atlases\/(?:candidate|alternate)\/.+\.png/,
+    'map must not pretend source PNG is repository-resident before binary admission');
+}
 
 const staticFiles = read('ops/release/static-files.txt');
 assert.doesNotMatch(staticFiles, /art\/source-atlases\//, 'source art must never ship in production');
@@ -48,4 +60,4 @@ const game = read('game/core/game.js');
 for (const id of expectedLoot) assert(game.includes(`'${id}'`), `runtime loot identity missing: ${id}`);
 assert.match(game, /background-size:\s*400%\s+800%/);
 
-console.log('RESULT  art batch v2 mapping contract PASS');
+console.log('RESULT  art batch v2 provenance + mapping contract PASS');
