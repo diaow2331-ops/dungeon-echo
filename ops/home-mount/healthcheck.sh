@@ -76,7 +76,7 @@ check_home(){
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开仓库' 'homepage open-source copy' || return 1
   require_fixed "$file" 'site-trust-hub-v135' 'homepage visible trust hub style' || return 1
-  require_fixed "$file" '关于、隐私与联系，不应该藏在角落。' 'homepage visible trust hub heading' || return 1
+  require_fixed "$file" '关于、隐私与联系，一眼就能找到。' 'homepage visible trust hub heading' || return 1
   require_fixed "$file" 'mailto:diaow2331@gmail.com' 'homepage visible contact email' || return 1
   require_fixed "$file" '游戏运行界面本身不作为广告展示面' 'homepage ad-surface disclosure' || return 1
   grep -Eq 'Open\.|打开。' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage open CTA' >&2; return 1; }
