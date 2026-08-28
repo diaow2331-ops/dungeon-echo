@@ -41,12 +41,14 @@ const runtime=read('runtime-bootstrap.js');
 assert(/const englishBridge = english \? \[/.test(runtime),'legacy locale bridge remains explicitly English-only while core source migration is unfinished');
 assert(/locale-runtime-v122\.js/.test(runtime)&&/locale-completeness-v128\.js/.test(runtime),'transitional English locale debt remains visible instead of being hidden by another patch layer');
 const localeOwner=read('locale-event-owner-v130.js');
-assert(/version:'v144'/.test(localeOwner),'transitional locale owner is the narrowed v144 contract');
+assert(/version:'v145'/.test(localeOwner),'transitional locale owner is the visible-only v145 contract');
 assert(!/translateTree\(document\.body\)/.test(localeOwner),'English per-action locale sync must not traverse the whole document body');
 assert(/const legacyRoots = Object\.freeze\(\[/.test(localeOwner),'remaining Chinese-first screens are an explicit shrinking allowlist');
+assert(/function\s+activeResidualRoots\s*\(/.test(localeOwner)&&/for \(const root of activeResidualRoots\(\)\)/.test(localeOwner),'legacy bridge scans only visible residual screens');
+assert(/classList\.contains\('hidden'\)/.test(localeOwner)&&/aria-hidden/.test(localeOwner),'hidden residual screens must stay out of per-action translation');
 for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#bagdetail','#tooltip','#hint','#help','#talent-screen','#shrine-screen','#echo-screen','#achv-screen'])
   assert(!localeOwner.includes(`'${migrated}'`),`${migrated} must not re-enter the transitional bridge`);
 const record=read('expedition-record-v126.js');
 assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender instead of relying on legacy translation');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + six-root locale bridge)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + visible-only six-root locale bridge)`);
