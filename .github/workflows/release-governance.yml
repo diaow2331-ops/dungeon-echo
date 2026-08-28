@@ -11,8 +11,10 @@ on:
       - game/core/runtime-bootstrap.js
       - game/core/release-stamp-*.js
       - docs/releases/**
+      - ops/home-mount/**
       - ops/release/**
       - ops/site-bundle/**
+      - test/home-mount.cjs
       - test/release.cjs
       - test/release-freeze-v1.2.cjs
       - .github/workflows/release-governance.yml
@@ -26,8 +28,10 @@ on:
       - game/core/runtime-bootstrap.js
       - game/core/release-stamp-*.js
       - docs/releases/**
+      - ops/home-mount/**
       - ops/release/**
       - ops/site-bundle/**
+      - test/home-mount.cjs
       - test/release.cjs
       - test/release-freeze-v1.2.cjs
       - .github/workflows/release-governance.yml
@@ -44,3 +48,16 @@ jobs:
         run: node test/release-freeze-v1.2.cjs
       - name: Verify immutable Dungeon bundle
         run: node test/release.cjs
+      - name: Verify 91hwl home mount
+        run: node test/home-mount.cjs
+      - name: Build 91hwl immutable site artifact
+        if: github.event_name == 'push'
+        run: bash ops/release/build-home-mount-bundle.sh 91hwl-home-web-toys-v1.3.4.zip
+      - name: Upload 91hwl immutable site artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 91hwl-home-web-toys-v1.3.4
+          path: 91hwl-home-web-toys-v1.3.4.zip
+          if-no-files-found: error
+          retention-days: 7
