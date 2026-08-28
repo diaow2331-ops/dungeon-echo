@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "runtimePath": "art/hero-action-atlas-v2.png",
+  "source": "art/source-atlases/candidate/hero-action-source-v2.png",
+  "columns": 4,
+  "rows": 4,
+  "cellPixels": 128,
+  "atlasPixels": [512, 512],
+  "rowsByClass": ["warrior", "ranger", "mage", "assassin"],
+  "columnsByState": ["idle", "attack", "hurt", "skill"],
+  "notes": [
+    "State art is presentation-only; class ids, stats, cooldowns and save data do not change.",
+    "Idle remains the fallback whenever a transient action state is unavailable."
+  ]
+}

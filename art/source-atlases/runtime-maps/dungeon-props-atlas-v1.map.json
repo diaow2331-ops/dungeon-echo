@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "runtimePath": "art/dungeon-props-atlas-v1.png",
+  "source": "art/source-atlases/candidate/dungeon-props-source-v1.png",
+  "columns": 6,
+  "rows": 4,
+  "cellPixels": 128,
+  "atlasPixels": [768, 512],
+  "cells": [
+    "wall-torch", "bone-pile", "rune-obelisk", "wood-crate", "wood-barrel", "lantern-post",
+    "web-nest", "ice-crystal", "red-mushroom", "lava-vent", "void-rift", "blood-altar",
+    "iron-gate", "dungeon-entry", "town-portal", "campfire", "bounty-board", "treasure-chest",
+    "mimic-chest", "forge-anvil", "alchemy-table", "market-stall", "angel-shrine", "arcane-crystal"
+  ],
+  "notes": [
+    "Environment props are decorative unless an existing gameplay object explicitly owns the interaction.",
+    "Do not derive collision, loot or trigger behavior from the artwork alone."
+  ]
+}

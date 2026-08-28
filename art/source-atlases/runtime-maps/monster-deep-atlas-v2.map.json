@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "runtimePath": "art/monster-deep-atlas-v2.png",
+  "source": "art/source-atlases/candidate/monster-deep-source-v2.png",
+  "columns": 4,
+  "rows": 4,
+  "cellPixels": 128,
+  "atlasPixels": [512, 512],
+  "cells": [
+    "abomination", "seraph", "voidspawn", "voidlord",
+    "frost-revenant", "magma-titan", "astral-warden", "plague-brood",
+    "abyss-caller", "bone-colossus", "plague-matriarch", "shadow-reaper",
+    "blood-vampire", "infernal-drake", "void-drake", "frost-executioner"
+  ],
+  "directSpriteMap": {
+    "abomination": 0,
+    "seraph": 1,
+    "voidspawn": 2,
+    "voidlord": 3
+  },
+  "notes": [
+    "Additive atlas; existing monster-atlas-v11.png remains authoritative for the original sixteen archetypes.",
+    "Only the four currently unmapped profile sprite ids are direct replacements in the first integration pass.",
+    "Remaining cells are reserved for depth-band visual variants and must not change combat identity."
+  ]
+}
