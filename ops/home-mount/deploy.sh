@@ -34,12 +34,14 @@ test -x "$HEALTHCHECK" || fail 'healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.3.4' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.3.4"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+test "$version" = '1.3.5' || fail "unexpected site version: $version"
+grep -Fq 'data-site-version="1.3.5"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
+grep -Fq 'site-trust-hub-v135' "$PUBLIC_ROOT/index.html" || fail 'homepage visible trust hub missing'
+grep -Fq 'mailto:diaow2331@gmail.com' "$PUBLIC_ROOT/index.html" || fail 'homepage visible contact email missing'
 grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage AdSense client missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
 grep -Fq 'softwareVersion":"1.2.11"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.11 detail marker missing'
@@ -60,7 +62,7 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v134.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v135.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
@@ -109,7 +111,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v134.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v135.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -128,12 +130,13 @@ install_detail "$ABOUT_REL"
 install_detail "$PRIVACY_REL"
 install_detail "$CONTACT_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v134.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v135.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
+grep -Fq 'site-trust-hub-v135' "$SITE_ROOT/index.html" || fail 'homepage visible trust hub write verification failed'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$SITE_ROOT/$ADS_REL" || fail 'ads.txt write verification failed'
 nginx -t
 systemctl reload nginx
