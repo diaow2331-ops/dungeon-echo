@@ -1,8 +1,10 @@
-/* Dungeon Echo risk/reward interactions v3.
+/* Dungeon Echo risk/reward interactions v4.
  * Owns shrine wagers and cask downside resolution for the classic-100 production route.
  * Loaded after the synchronous gameplay stack so it wraps the final public gameplay API,
  * rather than hiding gameplay ownership inside production-bootstrap.js.
  * Fixed Chinese/English routes own all visible copy directly; no runtime translator is used.
+ * v4 removes broad per-input followers: cask settlement follows the gameplay APIs that can
+ * actually consume casks, and shrine presentation follows movement transitions only.
  */
 (() => {
   'use strict';
@@ -15,6 +17,7 @@
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const copy = (zh, en) => english ? en : zh;
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
   const localeData = window.DE_LOCALE_DATA || null;
   const displayItemName = item => localeData && typeof localeData.itemName === 'function'
     ? localeData.itemName(item)
@@ -220,14 +223,8 @@
     return n;
   }
 
-  function armCaskWatch() {
-    if (api.state !== 'playing') return;
-    const before = caskSnapshot();
-    if (before.length) queueMicrotask(() => settleCasks(before));
-  }
-
   function syncShrineCopy() {
-    if (api.state !== 'shrine') return;
+    if (api.state !== 'shrine') return false;
     const shrineCopy = document.getElementById && document.getElementById('shrine-copy');
     const ok = document.getElementById && document.getElementById('btn-shrine-ok');
     if (shrineCopy) shrineCopy.textContent = copy(
@@ -235,6 +232,7 @@
       'This is a real wager: healing, a blood-for-loot offering, pursuers, or a curse. Touch it anyway?'
     );
     if (ok) ok.textContent = copy('接受赌注', 'Accept Wager');
+    return true;
   }
 
   function interceptShrine(e) {
@@ -255,19 +253,15 @@
     resolveShrine(shrine);
   }
 
-  document.addEventListener('keydown', () => {
-    armCaskWatch();
-    queueMicrotask(syncShrineCopy);
-  }, true);
-  document.addEventListener('click', armCaskWatch, true);
+  // Shrine acceptance is the only global click interception this owner needs.
   window.addEventListener('click', interceptShrine, true);
-  document.addEventListener('click', () => queueMicrotask(syncShrineCopy), false);
 
   if (typeof originalTryMove === 'function') {
     api.tryMove = function(...args) {
       const before = caskSnapshot();
       const out = originalTryMove.apply(this, args);
       settleCasks(before);
+      defer(syncShrineCopy);
       return out;
     };
   }
@@ -288,8 +282,11 @@
     };
   }
 
+  // A restored/dev state may already have the shrine screen open when this late owner boots.
+  syncShrineCopy();
+
   window.__DE_RISK_REWARD_INTERACTIONS = {
-    version:'p0-v3',
+    version:'p0-v4',
     owner:'risk-reward-system',
     locale:english ? 'en' : 'zh-CN',
     rollFor,
@@ -297,5 +294,6 @@
     resolveShrine,
     resolveCaskRisk,
     settleCasks,
+    syncShrineCopy,
   };
 })();
