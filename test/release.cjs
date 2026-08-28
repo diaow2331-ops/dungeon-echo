@@ -11,6 +11,7 @@ const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Bool
 const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const deployReadme = read('ops/site-bundle/README.txt');
+const productionBootstrapPath = 'game/core/production-bootstrap.js';
 const runtimePath = 'game/core/runtime-bootstrap.js';
 const saveIntegrityPath = 'game/core/save-integrity-system.js';
 const desktopControlsPath = 'game/input/desktop-controls.js';
@@ -21,6 +22,7 @@ const canvasOwnerPath = 'game/locale/town-canvas-locale-v153.js';
 const npcPath = 'game/systems/npc-stability-system.js';
 const progressionGuardPath = 'game/systems/progression-guard-system.js';
 const riskRewardPath = 'game/systems/risk-reward-system.js';
+const productionBootstrap = read(productionBootstrapPath);
 const runtime = read(runtimePath);
 const fixedLocale = read(fixedLocalePath);
 const screenOwner = read(screenOwnerPath);
@@ -94,6 +96,19 @@ ok(saveIntegrity.includes("const RUN_KEY = 'de-run-v6'") && saveIntegrity.includ
     saveIntegrity.includes('validGrid(raw.map, false)') && saveIntegrity.includes('validGrid(raw.explored, true)'),
   'save-integrity owner validates canonical run/meta and map structures');
 ok(!/setInterval\s*\(/.test(saveIntegrity), 'save-integrity owner has no polling loop');
+ok(productionBootstrap.includes('const ONE_SHOT_REPEAT_KEYS = new Set([') &&
+    productionBootstrap.includes("'j', 'J', 'k', 'K'") &&
+    productionBootstrap.includes("'q', 'Q', 'e', 'E', 't', 'T'") &&
+    productionBootstrap.includes("'Escape', ' ', 'Spacebar', '.'") &&
+    productionBootstrap.includes("event.repeat") &&
+    productionBootstrap.includes("event.stopImmediatePropagation()"),
+  'production bootstrap blocks repeat for tactical one-shot keyboard actions');
+ok(!/ONE_SHOT_REPEAT_KEYS[\s\S]{0,260}'ArrowUp'/.test(productionBootstrap) &&
+    !/ONE_SHOT_REPEAT_KEYS[\s\S]{0,260}'ArrowDown'/.test(productionBootstrap) &&
+    !/ONE_SHOT_REPEAT_KEYS[\s\S]{0,260}'w'/.test(productionBootstrap),
+  'movement keys retain normal keyboard repeat');
+ok(productionBootstrap.includes("owner:'production-bootstrap'") && productionBootstrap.includes('window.addEventListener(\'keydown\', repeatGuard, true)'),
+  'repeat guard installs before synchronous core/combat input owners');
 ok(desktopControls.includes("edgeButton(pad, 7, 'j')") && desktopControls.includes('RT Attack'),
   'gamepad attack remains parity-mapped to J');
 ok(/function\s+triggerReturn\s*\(\)/.test(desktopControls) && /commerce\.extractionReady\(\)/.test(desktopControls),
