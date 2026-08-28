@@ -1,6 +1,9 @@
-/* Dungeon Echo NPC stability owner.
+/* Dungeon Echo NPC stability owner v4.
  * Removes consumed one-shot utility NPCs and relocates utility spawns away from
  * narrow chokepoints without changing interaction rewards or persistence schemas.
+ *
+ * v4 keeps cleanup action-driven but makes the expensive map-wide relocation pass
+ * floor/NPC-set scoped instead of rescanning every tile after every key or click.
  */
 (() => {
   'use strict';
@@ -13,6 +16,10 @@
   const disposable = new Set(['shrine', 'rest']);
   const utilities = new Set(['shrine', 'rest', 'shop']);
   const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+  let queued = false;
+  let lastNpcList = null;
+  let lastDepth = null;
+  let lastCount = -1;
 
   function cleanup() {
     const list = api.npcs;
@@ -76,25 +83,50 @@
     return moved;
   }
 
-  function stabilize() {
-    const changed = cleanup() + relocateChokepoints();
+  function relocationNeeded(force=false) {
+    if (force) return true;
+    const list = api.npcs;
+    const count = Array.isArray(list) ? list.length : 0;
+    return list !== lastNpcList || Number(api.depth) !== lastDepth || count !== lastCount;
+  }
+
+  function rememberNpcSet() {
+    const list = api.npcs;
+    lastNpcList = list;
+    lastDepth = Number(api.depth);
+    lastCount = Array.isArray(list) ? list.length : 0;
+  }
+
+  function stabilize(force=false) {
+    const removed = cleanup();
+    const moved = relocationNeeded(force) ? relocateChokepoints() : 0;
+    rememberNpcSet();
+    const changed = removed + moved;
     if (changed && typeof api.persistRun === 'function' && (api.state === 'playing' || api.state === 'town')) {
       api.persistRun();
     }
     return changed;
   }
 
-  function schedule() { queueMicrotask(stabilize); }
+  function schedule() {
+    if (queued) return false;
+    queued = true;
+    queueMicrotask(() => { queued = false; stabilize(false); });
+    return true;
+  }
   document.addEventListener('keydown', schedule, false);
   document.addEventListener('click', schedule, false);
-  stabilize();
+  stabilize(true);
 
   window.__DE_DISPOSABLE_NPC_CLEANUP = {
-    version: 'p0-v3',
-    owner: 'npc-stability-system',
+    version:'p0-v4',
+    owner:'npc-stability-system',
     cleanup,
     relocateChokepoints,
+    relocationNeeded,
     stabilize,
+    schedule,
     walkableNeighbors,
+    get relocationStamp(){ return { depth:lastDepth, count:lastCount, list:lastNpcList }; },
   };
 })();
