@@ -4,9 +4,9 @@ const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const zh=read('index.html'),en=read('en/index.html'),runtime=read('runtime-bootstrap.js');
 const manifest=read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
-const screens=read('core-screen-owner-v153.js');
-const canvas=read('town-canvas-locale-v153.js');
-const migration=read('stable-item-id-migration-v150.js');
+const screens=read('game/locale/core-screen-owner-v153.js');
+const canvas=read('game/locale/town-canvas-locale-v153.js');
+const migration=read('game/locale/stable-item-id-migration-v150.js');
 const scripts=html=>[...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)].map(m=>m[1]);
 
 assert(/data-de-locale="zh-CN"/.test(zh),'root route must be fixed Chinese');
@@ -18,9 +18,9 @@ assert(/assetVersion = '153'/.test(runtime)&&/version:'v13'/.test(runtime),'late
 
 for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
   assert(!runtime.includes(retired),`${retired} must not load in production`);
-  assert(!manifest.includes(retired),`${retired} must not ship in the release bundle`);
+  assert(!manifest.some(file=>file===retired||file.endsWith('/'+retired)),`${retired} must not ship in the release bundle`);
 }
-for(const owner of ['fixed-locale-entry-v130.js','stable-item-id-migration-v150.js','core-screen-owner-v153.js','town-canvas-locale-v153.js']){
+for(const owner of ['game/locale/fixed-locale-entry-v130.js','game/locale/stable-item-id-migration-v150.js','game/locale/core-screen-owner-v153.js','game/locale/town-canvas-locale-v153.js']){
   assert(runtime.includes(owner),`${owner} must boot from the production runtime`);
   assert(manifest.includes(owner),`${owner} must ship in the release bundle`);
 }
