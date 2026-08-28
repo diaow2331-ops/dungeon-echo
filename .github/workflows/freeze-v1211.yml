@@ -1,0 +1,114 @@
+name: freeze-v1211
+
+on:
+  push:
+    branches: [release/v1.2.11]
+
+permissions:
+  contents: write
+
+jobs:
+  freeze:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Freeze v1.2.11 release boundary
+        run: |
+          node <<'NODE'
+          'use strict';
+          const fs = require('fs');
+          const assert = require('assert');
+          const read = p => fs.readFileSync(p, 'utf8');
+          const write = (p, s) => fs.writeFileSync(p, s);
+          const replace = (p, from, to, label) => {
+            const before = read(p);
+            if (!before.includes(from)) {
+              assert(before.includes(to), `${label}: neither old nor new marker found in ${p}`);
+              return;
+            }
+            write(p, before.split(from).join(to));
+          };
+          const insertAfter = (p, anchor, addition, label) => {
+            const before = read(p);
+            if (before.includes(addition.trim())) return;
+            assert(before.includes(anchor), `${label}: anchor missing in ${p}`);
+            write(p, before.replace(anchor, anchor + addition));
+          };
+
+          write('VERSION', '1.2.11\n');
+          replace('index.html', '正式版 <b>v1.2.10</b>', '正式版 <b>v1.2.11</b>', 'Chinese footer');
+          replace('en/index.html', 'Release <b>v1.2.10</b>', 'Release <b>v1.2.11</b>', 'English footer');
+          replace('game/core/runtime-bootstrap.js', "const assetVersion = '155';", "const assetVersion = '156';", 'runtime generation');
+          replace('game/core/runtime-bootstrap.js', 'v1210', 'v1211', 'runtime stamp path');
+          replace('game/core/runtime-bootstrap.js', 'V1210', 'V1211', 'runtime stamp guard');
+
+          write('game/core/release-stamp-v1211.js', `/* Dungeon Echo v1.2.11 visible release stamp. No timers or gameplay-state mutation. */\n(() => {\n  'use strict';\n  if (typeof document === 'undefined' || window.__DE_RELEASE_STAMP_V1211) return;\n  const version = '1.2.11';\n  const footer = document.querySelector('#help b:last-child');\n  if (footer && footer.textContent !== \`v\${version}\`) footer.textContent = \`v\${version}\`;\n  document.documentElement.dataset.release = version;\n  window.__DE_RELEASE_STAMP_V1211 = { version };\n})();\n`);
+          replace('ops/release/static-files.txt', 'game/core/release-stamp-v1210.js', 'game/core/release-stamp-v1211.js', 'manifest stamp');
+
+          replace('README.md', 'v1.2.10', 'v1.2.11', 'README semantic release');
+          replace('README.md', 'cache generation **155**', 'cache generation **156**', 'README cache generation');
+          replace('ops/site-bundle/README.txt', 'v1.2.10', 'v1.2.11', 'deployment README semantic release');
+          replace('ops/site-bundle/README.txt', 'generation 155', 'generation 156', 'deployment README cache generation');
+
+          replace('ops/release/build-site-bundle.sh', "test \"$version\" = '1.2.10'", "test \"$version\" = '1.2.11'", 'game builder semantic release');
+          replace('ops/release/build-site-bundle.sh', 'asset_generation=155', 'asset_generation=156', 'game builder cache generation');
+          replace('ops/release/build-site-bundle.sh', 'v1.2.10', 'v1.2.11', 'game builder comments');
+          replace('ops/release/build-site-bundle.sh', 'Generation 155', 'Generation 156', 'game builder generation comment');
+          replace('ops/release/build-site-bundle.sh', 'cached v154 follower scripts', 'cached v155 follower scripts', 'game builder cache explanation');
+          replace('ops/release/build-site-bundle.sh', 'v1210', 'v1211', 'game builder stamp check');
+
+          replace('ops/site-bundle/healthcheck.sh', 'ASSET_GENERATION=155', 'ASSET_GENERATION=156', 'game health cache generation');
+          replace('ops/site-bundle/healthcheck.sh', 'v1210', 'v1211', 'game health stamp check');
+          replace('ops/site-bundle/healthcheck.sh', 'v1.2.10', 'v1.2.11', 'game health release label');
+          replace('ops/release/build-public-release-zip.sh', '1.2.10', '1.2.11', 'combined release expected game version');
+
+          for (const p of [
+            'ops/home-mount/build-v134.cjs',
+            'ops/home-mount/deploy.sh',
+            'ops/home-mount/healthcheck.sh',
+            'ops/release/build-home-mount-bundle.sh',
+            'test/home-mount.cjs'
+          ]) replace(p, '1.2.10', '1.2.11', `home mount game version ${p}`);
+
+          insertAfter(
+            'ops/release/build-home-mount-bundle.sh',
+            "grep -Fq 'Feedback and contact' \"$contact\"\n",
+            "grep -Fq 'mailto:diaow2331@gmail.com' \"$contact\"\n",
+            'contact email bundle gate'
+          );
+
+          const notes = `# Dungeon Echo v1.2.11\n\nDungeon Echo v1.2.11 is a gameplay-clarity patch on public runtime cache generation **156**. It preserves the v1.2 save namespaces, fixed Chinese/English routes, economy ownership and extraction rules.\n\n## What changed\n\n- Greedy Expedition now surfaces the push-deeper vs bank-the-run decision with current carried value, HP pressure, floor depth and Return Scroll state.\n- The return action continues to delegate to the canonical extraction owner rather than introducing a second retreat path.\n- Underground shop cards now expose bilingual class-fit comparisons against currently equipped gear.\n- The v1.2.11 expedition-pressure follower is part of the immutable release manifest and public cache generation 156.\n- 91hwl's companion trust surfaces remain in the same public release chain; Contact now exposes diaow2331@gmail.com while GitHub Issues stays the preferred public bug channel.\n\n## Compatibility\n\nNo progress reset is required. Existing local browser saves, stable item identifiers, Return Scroll state and Chinese/English fixed-route continuity are preserved. The patch does not change RNG ownership or create a new save namespace.\n\n## Validation provenance\n\nThe candidate is gated by the targeted deterministic v1.2.11 expedition-pressure contract, the v1.2 release-freeze contract, the immutable Dungeon bundle test, the 91hwl home/trust-surface contract and the combined public-release ZIP build in GitHub Actions.\n`;
+          write('docs/releases/RELEASE_NOTES_v1.2.11.md', notes);
+
+          const siteReadme = read('ops/site-bundle/README.txt');
+          if (!siteReadme.includes('expedition pressure')) {
+            write('ops/site-bundle/README.txt', siteReadme.replace(
+              'includes the final responsive owner for mid-width PC and portrait touch layouts.',
+              'includes the final responsive owner plus v1.2.11 expedition pressure and class-fit decision surfaces.'
+            ));
+          }
+
+          const runtime = read('game/core/runtime-bootstrap.js');
+          assert(runtime.includes("const assetVersion = '156'"));
+          assert(runtime.includes('release-stamp-v1211.js'));
+          assert(read('ops/release/static-files.txt').includes('game/ui/expedition-pressure-v1211.js'));
+          assert(read('ops/home-mount/public/contact/index.html').includes('mailto:diaow2331@gmail.com'));
+          NODE
+      - name: Commit frozen release
+        run: |
+          rm -f .github/workflows/freeze-v1211.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "release: freeze Dungeon Echo v1.2.11"
+          git push origin HEAD:release/v1.2.11
+      - name: Validate frozen release
+        run: |
+          node test/expedition-pressure-v1211.cjs
+          node test/release-freeze-v1.2.cjs
+          node test/release.cjs
+          node test/home-mount.cjs
+          bash ops/release/build-public-release-zip.sh "$RUNNER_TEMP/91hwl-public-release.zip"
