@@ -1,0 +1,25 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const expedition=read('game/ui/expedition-pressure-v1211.js');
+const shop=read('game/ui/equipment-shop-ui.js');
+const runtime=read('game/core/runtime-bootstrap.js');
+const manifest=read('ops/release/static-files.txt');
+
+new Function(expedition);new Function(shop);new Function(runtime);
+assert(expedition.includes("api.profileId !== 'classic-100'"),'expedition surface must stay on the 100-floor production profile');
+assert(expedition.includes("api.greedy && api.state === 'playing'"),'pressure surface must only appear during an active Greedy run');
+assert(expedition.includes('hpRatio <= .35'),'low-HP pressure threshold must remain explicit');
+assert(expedition.includes('s.bag >= 8')&&expedition.includes('70 + s.depth * 6'),'bank-value pressure must scale from carried loot/depth');
+assert(expedition.includes("typeof api.useEscape !== 'function'")&&expedition.includes('api.useEscape();'),'Return button must delegate to the canonical escape owner');
+assert(expedition.includes("t('继续深入', 'PUSH DEEPER')")&&expedition.includes("t('现在回城', 'BANK THE RUN')"),'push/bank decision copy must be fixed-route bilingual');
+assert(!/MutationObserver|setInterval\s*\(|requestAnimationFrame\s*\(/.test(expedition),'expedition surface must remain event-driven and polling-free');
+assert(shop.includes('shop-equip-fit')&&shop.includes('Class fit')&&shop.includes('职业适配'),'shop must expose bilingual class-fit comparison');
+assert(!/MutationObserver|setInterval\s*\(/.test(shop),'shop comparison must remain event-driven');
+const pHint=runtime.indexOf("game/ui/combat-hint-polish.js");
+const pPressure=runtime.indexOf("game/ui/expedition-pressure-v1211.js");
+const pAudio=runtime.indexOf("game/ui/audio-director.js");
+assert(pHint>0&&pPressure>pHint&&pAudio>pPressure,'expedition pressure must boot after combat hints and before general UX followers');
+assert(manifest.includes('game/ui/expedition-pressure-v1211.js'),'release manifest must ship expedition pressure surface');
+console.log('expedition_pressure_v1211=PASS');

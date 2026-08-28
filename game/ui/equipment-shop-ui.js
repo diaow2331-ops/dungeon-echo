@@ -1,11 +1,10 @@
-/* Dungeon Echo underground shop equipment preview v3.
+/* Dungeon Echo underground shop equipment preview v4.
  * Presentation-only: reuses the shipped v13 tier resolver to preview the actual
  * equipment offered by the dungeon merchant. It never changes stock, price, purchases
  * or production UX boot order.
  *
- * v3 follows only transitions that can open or mutate the shop. It uses a deferred
- * microtask instead of allocating a requestAnimationFrame callback for every key/click.
- * No subtree observer or permanent polling loop is needed.
+ * v4 adds class-fit deltas against the currently equipped item so shopping decisions
+ * are readable without reducing every build choice to raw item rarity.
  */
 (() => {
   'use strict';
@@ -16,11 +15,14 @@
   const tierArt = window.__DE_EQUIPMENT_TIER_ART;
   if (!api || typeof api.getShopStock !== 'function' || !tierArt || typeof tierArt.sourceForItem !== 'function') return;
 
+  const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
+  const english = routeLang === 'en';
+  const t = (zh, en) => english ? en : zh;
   const SHEETS = Object.freeze({
     weapon: { url: 'art/equipment-weapons-v13.png', cols: 6, rows: 4 },
     wearable: { url: 'art/equipment-wearables-v13.png', cols: 6, rows: 5 },
   });
-  const MOVEMENT_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','W','a','A','s','S','d','D']);
+  const MOVEMENT_KEYS = new Set(['ArrowUp','ArrowLeft','ArrowDown','ArrowRight','w','W','a','A','s','S','d','D']);
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
 
   const preload = [];
@@ -36,9 +38,11 @@
   const style = document.createElement('style');
   style.id = 'de-equipment-shop-art-v1';
   style.textContent = `
-    #shop-list .shop-equip-label{display:inline-flex;align-items:center;gap:10px;min-width:0}
+    #shop-list .shop-equip-label{display:inline-flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
     #shop-list .shop-equip-art{display:inline-block;width:36px;height:36px;flex:0 0 36px;background-repeat:no-repeat;image-rendering:pixelated;filter:drop-shadow(0 2px 2px rgba(0,0,0,.72))}
-    @media(max-width:700px){#shop-list .shop-equip-art{width:30px;height:30px;flex-basis:30px}}
+    #shop-list .shop-equip-fit{display:block;flex-basis:100%;margin-left:46px;color:#948674;font:700 10px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+    #shop-list .shop-equip-fit.up{color:#8dbb87}#shop-list .shop-equip-fit.down{color:#c48778}#shop-list .shop-equip-fit.new{color:#d6b665}
+    @media(max-width:700px){#shop-list .shop-equip-art{width:30px;height:30px;flex-basis:30px}#shop-list .shop-equip-fit{margin-left:40px}}
   `;
   if (document.head) document.head.appendChild(style);
 
@@ -55,6 +59,25 @@
     el.style.backgroundSize = `${sheet.cols * 100}% ${sheet.rows * 100}%`;
     el.style.backgroundPosition = `${px}% ${py}%`;
     return true;
+  }
+
+  function fitScore(item) {
+    if (!item || !item.stats) return 0;
+    if (typeof window.DE_EQUIP_FIT_SCORE === 'function') return Number(window.DE_EQUIP_FIT_SCORE(item.stats)) || 0;
+    return Number(item.fitScore) || Number(item.score) || 0;
+  }
+
+  function fitText(item) {
+    const p = api.player;
+    const slot = item && item.slot;
+    const current = p && p.equip && slot ? p.equip[slot] : null;
+    const next = fitScore(item);
+    if (!current) return { cls:'new', text:t(`职业适配 ${next} · 新部位`, `Class fit ${next} · empty slot`) };
+    const prev = fitScore(current);
+    const delta = next - prev;
+    if (delta > 0) return { cls:'up', text:t(`职业适配 ${next} · 比当前 +${delta}`, `Class fit ${next} · +${delta} vs equipped`) };
+    if (delta < 0) return { cls:'down', text:t(`职业适配 ${next} · 比当前 ${delta}`, `Class fit ${next} · ${delta} vs equipped`) };
+    return { cls:'same', text:t(`职业适配 ${next} · 与当前持平`, `Class fit ${next} · even with equipped`) };
   }
 
   function sync() {
@@ -82,6 +105,16 @@
         label.classList.add('shop-equip-label');
       }
       if (applyArt(icon, offer.item)) changed++;
+
+      let note = label.querySelector('.shop-equip-fit');
+      if (!note) {
+        note = document.createElement('small');
+        note.className = 'shop-equip-fit';
+        label.appendChild(note);
+      }
+      const fit = fitText(offer.item);
+      note.className = `shop-equip-fit ${fit.cls}`;
+      if (note.textContent !== fit.text) note.textContent = fit.text;
     }
     return changed;
   }
@@ -102,7 +135,6 @@
     const target = e && e.target;
     if (api.state === 'shop') { schedule(); return; }
     if (!target || typeof target.closest !== 'function') return;
-    // Clicking the explored map can path into the merchant and open the shop.
     if (target.closest('#game')) schedule();
   }
 
@@ -114,7 +146,7 @@
   if (api.state === 'shop') schedule();
 
   window.__DE_EQUIPMENT_SHOP_ART = {
-    version:'v3', owner:'equipment-shop-ui', sync, schedule, scheduleFromKey, scheduleFromClick, applyArt, preload,
+    version:'v4', owner:'equipment-shop-ui', locale:english?'en':'zh-CN', sync, schedule, scheduleFromKey, scheduleFromClick, applyArt, fitScore, fitText, preload,
     movementKeys:MOVEMENT_KEYS,
   };
 })();

@@ -1,11 +1,10 @@
-/* Dungeon Echo production UX bootstrap v13.
+/* Dungeon Echo production UX bootstrap v14.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  * Fixed-route locale identity and language-neutral item migration are established before presentation owners boot.
  *
- * v13 removed the last generic translation-after-render bridge from production. Chinese and English boot the
- * same graph; exact fixed-route owners cover remaining legacy sinks. The pre-launch town hotfix keeps public
- * generation 155 while adding new-path workspace owners before exact town-canvas localization binds its canvas.
+ * v14 stages the v1.2.11 expedition-pressure surface after onboarding, keeping the push-or-return
+ * decision visible without changing extraction rules or save semantics.
  */
 (() => {
   'use strict';
@@ -30,6 +29,7 @@
     [fresh('game/ui/world-loot-polish-v122.js'), 'data-de-world-loot-v122', () => !!window.__DE_WORLD_LOOT_V122],
     [fresh('game/ui/forge-feedback-v122.js'), 'data-de-forge-feedback-v122', () => !!window.__DE_FORGE_FEEDBACK_V122],
     [fresh('game/ui/combat-hint-polish.js'), 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
+    [fresh('game/ui/expedition-pressure-v1211.js'), 'data-de-expedition-pressure-v1211', () => !!window.__DE_EXPEDITION_PRESSURE_V1211],
     [fresh('game/ui/audio-director.js'), 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     [fresh('game/ui/mobile-ux.js'), 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
     [fresh('game/ui/responsive-final-v154.js'), 'data-de-responsive-final-v154', () => !!window.__DE_RESPONSIVE_FINAL_V154],
@@ -54,7 +54,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v13');
+      script.setAttribute(marker, 'v14');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -72,5 +72,5 @@
     return true;
   }
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v13',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v14',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
 })();
