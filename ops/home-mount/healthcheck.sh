@@ -39,6 +39,18 @@ check_pref_contract(){
   require_fixed "$file" 'data-carry' 'preference-carry link contract' || return 1
 }
 
+check_social_contract(){
+  file="$1"; url="$2"; title="$3"
+  require_fixed "$file" 'name="robots" content="index,follow,max-image-preview:large"' 'large image preview policy' || return 1
+  require_fixed "$file" "property=\"og:url\" content=\"$url\"" 'Open Graph canonical URL' || return 1
+  require_fixed "$file" 'property="og:site_name" content="91hwl"' 'Open Graph site name' || return 1
+  require_fixed "$file" 'property="og:image:alt"' 'Open Graph image alt' || return 1
+  require_fixed "$file" "name=\"twitter:title\" content=\"$title\"" 'X card title' || return 1
+  require_fixed "$file" 'name="twitter:description"' 'X card description' || return 1
+  require_fixed "$file" 'name="twitter:image"' 'X card image' || return 1
+  require_fixed "$file" 'name="twitter:image:alt"' 'X card image alt' || return 1
+}
+
 check_home(){
   file="$1"
   require_fixed "$file" 'data-site-version="1.3.4"' 'homepage site version' || return 1
@@ -51,6 +63,7 @@ check_home(){
   require_fixed "$file" '公开仓库' 'homepage open-source copy' || return 1
   grep -Eq 'Open\.|打开。' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage open CTA' >&2; return 1; }
   require_fixed "$file" 'min-height:42px' 'homepage control height' || return 1
+  check_social_contract "$file" 'https://91hwl.cn/' '91hwl · Browser Games' || return 1
   check_pref_contract "$file" || return 1
 }
 
@@ -64,6 +77,9 @@ check_de_detail(){
   require_fixed "$file" 'town-backdrop-v11.webp' 'Dungeon Echo town art' || return 1
   require_fixed "$file" 'final-boss-v11.png' 'Dungeon Echo final boss art' || return 1
   require_fixed "$file" 'href="https://play.91hwl.cn/dungeon-echo/" data-carry' 'Dungeon Echo play link' || return 1
+  require_fixed "$file" 'GitHub / Source' 'Dungeon Echo source CTA' || return 1
+  require_fixed "$file" 'MIT · OPEN SOURCE' 'Dungeon Echo open-source identity' || return 1
+  check_social_contract "$file" 'https://91hwl.cn/toys/dungeon-echo/' 'Dungeon Echo · 100-Floor Browser Roguelike' || return 1
   check_pref_contract "$file" || return 1
 }
 

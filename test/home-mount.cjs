@@ -15,12 +15,13 @@ const sourceDe=read('ops/home-mount/public/toys/dungeon-echo/index.html');
 const sourceMoyu=read('ops/home-mount/public/toys/moyu/index.html');
 const sourceDeploy=read('ops/home-mount/deploy.sh');
 const sourceHealth=read('ops/home-mount/healthcheck.sh');
+const sourceSocial=read('ops/home-mount/build-social-v134.cjs');
 
 assert.equal(read('VERSION').trim(),'1.2.10');
 assert.equal(read('moyu/VERSION').trim(),'1.11.5');
 assert.equal(siteVersion,'1.3.4');
 
-// v1.3.3 pages are the immutable source baseline; build-v134 transforms only staged copies.
+// v1.3.3 pages are the immutable source baseline; staged v1.3.4 builders own launch transformations.
 for(const page of [sourceHome,sourceDe,sourceMoyu]){
   assert.match(page,/data-site-version="1\.3\.3"/);
   assert.match(page,/class="notranslate" translate="no"/);
@@ -33,6 +34,13 @@ for(const script of ['ops/home-mount/deploy.sh','ops/home-mount/healthcheck.sh',
   const r=run('bash',['-n',path.join(root,script)]);
   assert.equal(r.status,0,r.stderr);
 }
+for(const script of ['ops/home-mount/build-v134.cjs','ops/home-mount/build-social-v134.cjs']){
+  const r=run('node',['--check',path.join(root,script)]);
+  assert.equal(r.status,0,r.stderr);
+}
+assert.match(sourceSocial,/twitter:title/);
+assert.match(sourceSocial,/twitter:image:alt/);
+assert.match(sourceSocial,/MIT · OPEN SOURCE/);
 assert.match(sourceDeploy,/test "\$version" = '1\.3\.4'/);
 assert.match(sourceDeploy,/Dungeon Echo v1\.2\.10 detail marker missing/);
 assert.match(sourceDeploy,/Clock Out Alive v1\.11\.5 detail marker missing/);
@@ -47,6 +55,9 @@ assert.match(sourceHealth,/public site v1\.3\.4 check failed/);
 assert.match(sourceHealth,/de_origin.*1\.2\.10/s);
 assert.match(sourceHealth,/moyu_origin.*1\.11\.5/s);
 assert.match(sourceHealth,/GitHub \/ Source/);
+assert.match(sourceHealth,/twitter:title/);
+assert.match(sourceHealth,/twitter:image/);
+assert.match(sourceHealth,/MIT · OPEN SOURCE/);
 assert.match(sourceHealth,/双端更稳/);
 assert.match(sourceHealth,/Cleaner across screens/);
 assert.match(sourceHealth,/HEALTH_CONTRACT_MISS:/);
@@ -80,8 +91,15 @@ assert.match(bundledHome,/v1\.2\.10/);
 assert.match(bundledHome,/v1\.11\.5/);
 assert.match(bundledHome,/GitHub \/ Source/);
 assert.match(bundledHome,/公开仓库/);
+assert.match(bundledHome,/property="og:url" content="https:\/\/91hwl\.cn\/"/);
+assert.match(bundledHome,/name="twitter:title" content="91hwl · Browser Games"/);
+assert.match(bundledHome,/name="twitter:image" content="https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/title-backdrop\.webp"/);
 assert.match(bundledDe,/softwareVersion":"1\.2\.10"/);
 assert.match(bundledDe,/901–1180px/);
+assert.match(bundledDe,/property="og:url" content="https:\/\/91hwl\.cn\/toys\/dungeon-echo\/"/);
+assert.match(bundledDe,/name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguelike"/);
+assert.match(bundledDe,/GitHub \/ Source/);
+assert.match(bundledDe,/MIT · OPEN SOURCE/);
 assert.match(bundledMoyu,/softwareVersion":"1\.11\.5"/);
 assert.match(bundledMoyu,/双端更稳/);
 assert.match(bundledMoyu,/Cleaner across screens/);
@@ -93,4 +111,4 @@ for(const [name,text] of [['deploy.sh',bundledDeploy],['healthcheck.sh',bundledH
 }
 
 fs.rmSync(tmp,{recursive:true,force:true});
-console.log('RESULT  91hwl site v1.3.4 immutable-artifact launch contract PASS');
+console.log('RESULT  91hwl site v1.3.4 immutable-artifact + X launch surface contract PASS');

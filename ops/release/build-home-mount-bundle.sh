@@ -31,6 +31,7 @@ for file in \
   "$source_root/deploy.sh" \
   "$source_root/healthcheck.sh" \
   "$source_root/build-v134.cjs" \
+  "$source_root/build-social-v134.cjs" \
   "$source_root/public/index.html" \
   "$source_root/public/toys/dungeon-echo/index.html" \
   "$source_root/public/toys/moyu/index.html"; do
@@ -46,6 +47,10 @@ node "$source_root/build-v134.cjs" \
   "$stage_root/site/public/index.html" \
   "$stage_root/site/public/toys/dungeon-echo/index.html" \
   "$stage_root/site/public/toys/moyu/index.html"
+node "$source_root/build-social-v134.cjs" \
+  "$stage_root/site/public/index.html" \
+  "$stage_root/site/public/toys/dungeon-echo/index.html" \
+  "$stage_root/site/public/toys/moyu/index.html"
 
 home="$stage_root/site/public/index.html"
 de_detail="$stage_root/site/public/toys/dungeon-echo/index.html"
@@ -57,8 +62,15 @@ grep -Fq -- '--fs-body:16px' "$home"
 grep -Fq 'min-height:42px' "$home"
 grep -Fq 'GitHub / Source' "$home"
 grep -Fq '公开仓库' "$home"
+grep -Fq 'property="og:url" content="https://91hwl.cn/"' "$home"
+grep -Fq 'name="twitter:title" content="91hwl · Browser Games"' "$home"
+grep -Fq 'name="twitter:image" content="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp"' "$home"
 grep -Fq "softwareVersion\":\"$game_version\"" "$de_detail"
 grep -Fq '901–1180px' "$de_detail"
+grep -Fq 'property="og:url" content="https://91hwl.cn/toys/dungeon-echo/"' "$de_detail"
+grep -Fq 'name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguelike"' "$de_detail"
+grep -Fq 'GitHub / Source' "$de_detail"
+grep -Fq 'MIT · OPEN SOURCE' "$de_detail"
 grep -Fq "softwareVersion\":\"$moyu_version\"" "$moyu_detail"
 grep -Fq '双端更稳' "$moyu_detail"
 grep -Fq 'Cleaner across screens' "$moyu_detail"
@@ -75,6 +87,8 @@ grep -Fq 'previous_home_sha256=' "$source_root/deploy.sh"
 ! grep -Fq 'live homepage changed unexpectedly' "$source_root/deploy.sh"
 grep -Fq 'public site v1.3.4 check failed' "$source_root/healthcheck.sh"
 grep -Fq 'GitHub / Source' "$source_root/healthcheck.sh"
+grep -Fq 'twitter:title' "$source_root/healthcheck.sh"
+grep -Fq 'MIT · OPEN SOURCE' "$source_root/healthcheck.sh"
 grep -Fq '双端更稳' "$source_root/healthcheck.sh"
 grep -Fq 'Cleaner across screens' "$source_root/healthcheck.sh"
 grep -Fq 'HEALTH_CONTRACT_MISS:' "$source_root/healthcheck.sh"
