@@ -131,7 +131,7 @@ check_main_origin(){
   fetch "$work_dir/origin-moyu.html" --resolve "$MAIN_RESOLVE" "$MOYU_DETAIL_URL" && check_moyu_detail "$work_dir/origin-moyu.html" || return 1
   fetch "$work_dir/origin-about.html" --resolve "$MAIN_RESOLVE" "$ABOUT_URL" && check_trust_page "$work_dir/origin-about.html" 'About 91hwl' "$ABOUT_URL" 'About page' || return 1
   fetch "$work_dir/origin-privacy.html" --resolve "$MAIN_RESOLVE" "$PRIVACY_URL" && check_trust_page "$work_dir/origin-privacy.html" 'Google AdSense and consent' "$PRIVACY_URL" 'Privacy page' || return 1
-  fetch "$work_dir/origin-contact.html" --resolve "$MAIN_RESOLVE" "$CONTACT_URL" && check_trust_page "$work_dir/origin-contact.html" 'Feedback and contact' "$CONTACT_URL" 'Contact page' || return 1
+  fetch "$work_dir/origin-contact.html" --resolve "$MAIN_RESOLVE" "$CONTACT_URL" && check_trust_page "$work_dir/origin-contact.html" 'mailto:diaow2331@gmail.com' "$CONTACT_URL" 'Contact page' || return 1
   local ads
   ads="$(curl -fsSL --noproxy '*' --resolve "$MAIN_RESOLVE" "$ADS_URL" | tr -d '\r\n')"
   test "$ads" = "$ADS_LINE" || return 1
@@ -155,7 +155,7 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
       && fetch "$work_dir/public-moyu.html" "${MOYU_DETAIL_URL}?release=$revision" && check_moyu_detail "$work_dir/public-moyu.html" \
       && fetch "$work_dir/public-about.html" "${ABOUT_URL}?release=$revision" && check_trust_page "$work_dir/public-about.html" 'About 91hwl' "$ABOUT_URL" 'About page' \
       && fetch "$work_dir/public-privacy.html" "${PRIVACY_URL}?release=$revision" && check_trust_page "$work_dir/public-privacy.html" 'Google AdSense and consent' "$PRIVACY_URL" 'Privacy page' \
-      && fetch "$work_dir/public-contact.html" "${CONTACT_URL}?release=$revision" && check_trust_page "$work_dir/public-contact.html" 'Feedback and contact' "$CONTACT_URL" 'Contact page' \
+      && fetch "$work_dir/public-contact.html" "${CONTACT_URL}?release=$revision" && check_trust_page "$work_dir/public-contact.html" 'mailto:diaow2331@gmail.com' "$CONTACT_URL" 'Contact page' \
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
       && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.2.11' \
       && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.11.5'; then
