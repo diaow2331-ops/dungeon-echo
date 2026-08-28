@@ -2,7 +2,7 @@
 
 **A browser-native 100-floor turn-based roguelike about builds, risk, retreat and greed.**
 
-[Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/?lang=en) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
+[Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/en/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
 > **Status:** v1.2.8 is the current repository release line. Public deployment is only considered complete after the game-only bundle upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
 
@@ -35,13 +35,14 @@ The launch media intentionally uses current shipped art. A fresh post-v1.2.8 rea
 - Adaptive procedural BGM plus independent **Music / SFX 0–100%** controls and persistent master mute.
 - Desktop keyboard/mouse, native Gamepad API and portrait/landscape touch controls.
 - Progressive onboarding that teaches mechanics without covering the mobile action deck.
-- Chinese / English sessions with automatic browser-language selection, direct language URLs and a title-screen language selector.
+- Fixed Chinese and English production routes on the same origin, sharing the same gameplay/save data.
 - v1.2.3 device/presentation cleanup: no always-on player halo, camera-aware visual overlays, steadier non-fullscreen mobile layout, faster pointer-down touch response and a four-way D-pad without the accidental center Wait target.
 - v1.2.4 navigation hotfix: **How to Play / 玩法说明** and **Expedition Record / 远征录** are restored as native top-level UI screens, including the town → record → town return path.
 - v1.2.5 cache-coherence hotfix: release-critical CSS/JS use a shared version fingerprint so a new HTML release cannot silently run against old cached presentation assets.
 - v1.2.6 record/localization polish: Help control copy stays in the selected language on both desktop and mobile, while Expedition Record always exposes the full 12-achievement catalog with progress, locked goals and a zero-state before the first Greedy Expedition.
 - v1.2.7 ownership hardening: equipment swap turns, risk/reward interactions, permanent growth/XP bounds and utility-NPC path stability now have explicit production owners; `production-bootstrap.js` no longer carries gameplay rules.
-- v1.2.8 locale/save/input hardening: dynamic English UI stays coherent, malformed persistent blobs are rejected before core restore, core text escaping is correct, Greedy town resumes restore a valid economy/state, gamepads expose RT Attack and the floor-100 choice cannot settle twice.
+- v1.2.8 locale/save/input hardening: malformed persistent blobs are rejected before core restore, core text escaping is correct, Greedy town resumes restore a valid economy/state, gamepads expose RT Attack and the floor-100 choice cannot settle twice.
+- Current post-v1.2.8 convergence retires the final translation-after-render bridge from production: `/` is fixed Chinese, `/en/` is fixed English, both boot the same synchronous gameplay graph and the same late runtime graph.
 
 The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -65,16 +66,19 @@ Skills use mana. Each class has a different mana capacity, skill cost and recove
 
 ## Language
 
-The production UI supports **中文 / English**.
+The production UI supports **中文 / English** through fixed routes rather than live whole-page translation.
 
-- `?lang=en` opens the English presentation directly.
-- `?lang=zh` opens Chinese directly.
-- Without a language parameter, the browser language is used on first visit.
-- Manual language choice lives on the **title screen** and reloads into the selected locale instead of translating a live dungeon session in place.
-- `locale-runtime-v122.js` remains the stable per-page locale owner. The v1.2.6 device-copy coherence follower remains intentionally reused in v1.2.8 so mobile guidance cannot overwrite an English Help screen after locale application; `locale-completeness-v128.js` owns dynamic post-render English text.
+- `/dungeon-echo/` is the Chinese production entry.
+- `/dungeon-echo/en/` is the English production entry.
+- Legacy `?lang=en`, `?lang=zh` and `?lang=zh-CN` links are redirected onto those fixed paths for compatibility.
+- The title-screen language selector navigates between the two routes and reloads the page; it never translates an active dungeon session in place.
+- Both routes stay on the same origin and boot the same gameplay scripts, so `de-run-v6`, `de-greedy-meta-v1`, stash/equipment progress and other gameplay state are shared.
+- `locale-data-v134.js` provides language-neutral catalog/display helpers; `core-locale-data-v139.js` localizes core class/achievement display data once; `core-screen-owner-v153.js` owns the remaining exact English core screens; `town-canvas-locale-v153.js` owns only the two legacy town Canvas text sinks.
+- `stable-item-id-migration-v150.js` adds language-neutral item IDs without renaming stored items or forking save namespaces.
+- The retired translation-after-render stack (`locale-event-owner-v130.js`, `locale-runtime-v122.js`, `locale-completeness-v128.js`) is no longer loaded or shipped by the production bundle.
 - Expedition Record uses display-only localization and reads the existing Greedy Expedition meta save without mutating it.
 
-Localization keeps gameplay/save identities language-independent. Shell UI, controls, onboarding, sound settings, class identity, equipment, monsters, guardians/finale, town commerce, forging and high-value combat messages use display-only localization; saved item/profile identities remain unchanged.
+Localization keeps gameplay/save identities language-independent. Class IDs, equipment slot IDs, item base/rarity IDs, monster/content IDs, profile IDs and save keys stay stable; only displayed copy varies by fixed route.
 
 ## Run locally
 
@@ -86,20 +90,27 @@ Then open:
 
 ```text
 http://localhost:8000/
+http://localhost:8000/en/
 http://localhost:8000/dev.html
 ```
 
-`index.html` is the production 1→100 route. `dev.html` is an internal short-profile harness and must track the same current runtime/control contract without entering the production release package.
+`index.html` and `en/index.html` are the fixed production 1→100 routes. `dev.html` is an internal short-profile harness and must track the same current runtime/control contract without entering the production release package.
 
 ## Repository layout
 
 ```text
 .
-├── index.html                     # production entry + release cache fingerprints
+├── index.html                     # fixed Chinese production entry
+├── en/index.html                  # fixed English production entry, shared root assets
 ├── dev.html                       # internal multi-profile development harness
 ├── game.js                        # core state / map / turn engine
 ├── save-integrity-system.js       # pre-core persistent blob validation
-├── production-bootstrap.js        # production route + presentation compatibility only
+├── production-bootstrap.js        # production profile + presentation compatibility only
+├── locale-data-v134.js            # route-aware display catalog + stable item identity helpers
+├── core-locale-data-v139.js       # one-shot class/achievement display localization
+├── stable-item-id-migration-v150.js # language-neutral item identity migration
+├── core-screen-owner-v153.js      # exact remaining English core screen render owner
+├── town-canvas-locale-v153.js     # exact town/wheel Canvas text owner
 ├── npc-stability-system.js        # consumed utility cleanup + chokepoint stability owner
 ├── equipment-system.js            # equipment generation / fit / swap-turn owner
 ├── town-system.js                 # town progression / checkpoints
@@ -117,17 +128,16 @@ http://localhost:8000/dev.html
 ├── desktop-controls.js            # desktop + gamepad input adapter
 ├── combat-controls.js             # J/K controls + mana resource
 ├── challenge-pressure.js          # mild human-play pressure follow-up
-├── runtime-bootstrap.js           # versioned late presentation/runtime followers
+├── runtime-bootstrap.js           # generation-153 late presentation/runtime graph
 ├── release-stamp-v128.js          # visible v1.2.8 release marker
-├── locale-runtime-v122.js         # stable zh/en per-page locale runtime
-├── locale-completeness-v128.js    # dynamic English presentation completion
+├── fixed-locale-entry-v130.js     # fixed route navigation/language selector owner
 ├── character-art-cleanup-v122.js  # presentation-only hero cleanup
 ├── world-loot-polish-v122.js      # visible ground-loot presentation
 ├── forge-feedback-v122.js         # post-result forge feedback
 ├── audio-director.js              # adaptive BGM + Music/SFX mixer
 ├── mobile-ux.js                   # stable mobile layout + direct touch input owner
-├── help-copy-v126.js              # reused locale-aware desktop/mobile Help owner
-├── expedition-record-v126.js      # reused localized achievement catalog + progress UI
+├── help-copy-v126.js              # locale-aware desktop/mobile Help owner
+├── expedition-record-v126.js      # localized achievement catalog + progress UI
 ├── profiles/                      # production + deterministic fixtures
 ├── art/                           # production art assets
 ├── test/                          # targeted deterministic contracts
@@ -139,15 +149,15 @@ http://localhost:8000/dev.html
 
 Engineering checks protect contracts; they do **not** replace human playtesting.
 
-High-value checks cover production entry, 1→100 descent, guardian state machines, skill evolution, save compatibility, deployment boundaries, input/mana, equipment art, mobile UX, localization, repository release alignment and human-play pressure.
+High-value checks cover production entry, 1→100 descent, guardian state machines, skill evolution, save compatibility, deployment boundaries, input/mana, equipment art, mobile UX, fixed-route localization, repository release alignment and human-play pressure.
 
-The v1.2 release line does not claim a fresh complete GitHub Actions suite because the Actions quota was unavailable during this release line. Changes are kept as focused reviewable diffs with targeted static/deterministic contracts and human browser verification where feel or presentation matters.
+The v1.2 release line does not claim a fresh complete GitHub Actions suite when no run exists. Changes are kept as focused reviewable diffs with targeted static/deterministic contracts and real-browser verification where feel or presentation matters.
 
 ## Save compatibility
 
 Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
 
-v1.2.8 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The save-integrity guard preserves valid compatible blobs unchanged, while malformed/impossible blobs are rejected and valid Greedy town meta is repaired through existing defaults. No schema migration or progress reset is required.
+v1.2.8 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The save-integrity guard preserves valid compatible blobs unchanged, while malformed/impossible blobs are rejected and valid Greedy town meta is repaired through existing defaults. Fixed Chinese/English routes share these same namespaces; language is not part of save identity. No progress reset is required.
 
 ## Release boundary
 
