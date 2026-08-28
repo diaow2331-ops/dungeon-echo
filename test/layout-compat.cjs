@@ -18,8 +18,14 @@ const moved = Object.freeze({
   'runtime-bootstrap.js': 'game/core/runtime-bootstrap.js',
   'save-integrity-system.js': 'game/core/save-integrity-system.js',
   'release-stamp-v129.js': 'game/core/release-stamp-v129.js',
+
   'locale-data-v134.js': 'game/locale/locale-data-v134.js',
   'core-locale-data-v139.js': 'game/locale/core-locale-data-v139.js',
+  'fixed-locale-entry-v130.js': 'game/locale/fixed-locale-entry-v130.js',
+  'stable-item-id-migration-v150.js': 'game/locale/stable-item-id-migration-v150.js',
+  'core-screen-owner-v153.js': 'game/locale/core-screen-owner-v153.js',
+  'town-canvas-locale-v153.js': 'game/locale/town-canvas-locale-v153.js',
+
   'npc-stability-system.js': 'game/systems/npc-stability-system.js',
   'equipment-system.js': 'game/systems/equipment-system.js',
   'town-system.js': 'game/systems/town-system.js',
@@ -33,10 +39,28 @@ const moved = Object.freeze({
   'defense-system.js': 'game/systems/defense-system.js',
   'challenge-pressure.js': 'game/systems/challenge-pressure.js',
   'risk-reward-system.js': 'game/systems/risk-reward-system.js',
+
   'desktop-controls.js': 'game/input/desktop-controls.js',
   'combat-controls.js': 'game/input/combat-controls.js',
+
   'visual-polish.js': 'game/ui/visual-polish.js',
   'equipment-shop-ui.js': 'game/ui/equipment-shop-ui.js',
+  'character-art-cleanup-v122.js': 'game/ui/character-art-cleanup-v122.js',
+  'world-loot-polish-v122.js': 'game/ui/world-loot-polish-v122.js',
+  'forge-feedback-v122.js': 'game/ui/forge-feedback-v122.js',
+  'combat-hint-polish.js': 'game/ui/combat-hint-polish.js',
+  'audio-director.js': 'game/ui/audio-director.js',
+  'mobile-ux.js': 'game/ui/mobile-ux.js',
+  'help-copy-v126.js': 'game/ui/help-copy-v126.js',
+  'expedition-record-v126.js': 'game/ui/expedition-record-v126.js',
+
+  'i18n.js': 'archive/runtime/i18n.js',
+  'i18n-runtime.js': 'archive/runtime/i18n-runtime.js',
+  'i18n-content.js': 'archive/runtime/i18n-content.js',
+  'ux-hotfix-v121.js': 'archive/runtime/ux-hotfix-v121.js',
+  'locale-event-owner-v130.js': 'archive/runtime/locale-event-owner-v130.js',
+  'locale-runtime-v122.js': 'archive/runtime/locale-runtime-v122.js',
+  'locale-completeness-v128.js': 'archive/runtime/locale-completeness-v128.js',
 });
 
 function mappedPath(value) {
