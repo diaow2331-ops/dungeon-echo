@@ -24,17 +24,17 @@ const src=fs.readFileSync(path.join(root,'locale-event-owner-v130.js'),'utf8');
 vm.runInThisContext(src,{filename:'locale-event-owner-v130.js'});
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
 const owner=global.__DE_LOCALE_EVENT_OWNER;
-ok(owner&&owner.version==='v143'&&owner.intercepting,'locale event owner boots in interception phase');
+ok(owner&&owner.version==='v144'&&owner.intercepting,'locale event owner boots in interception phase');
 const Virtual=global.MutationObserver;
 const v=new Virtual(()=>{});v.observe({id:'root'},{childList:true,subtree:true});
 ok(nativeConstructed===0&&owner.virtualObservers.includes(v),'legacy locale observer construction is virtualized, not native');
 ok(v.targets.length===1,'virtual observer records requested roots without observing DOM');
-ok(Array.isArray(owner.legacyRoots)&&owner.legacyRoots.length===7,'bridge exposes only seven residual core roots');
-for(const retired of ['#stats','#equipbar','#stage','#touch','#log','#bag','#bagdetail','#tooltip','#hint','#help','#talent-screen','#shrine-screen','#echo-screen'])
+ok(Array.isArray(owner.legacyRoots)&&owner.legacyRoots.length===6,'bridge exposes only six residual core roots');
+for(const retired of ['#stats','#equipbar','#stage','#touch','#log','#bag','#bagdetail','#tooltip','#hint','#help','#talent-screen','#shrine-screen','#echo-screen','#achv-screen'])
   ok(!owner.legacyRoots.includes(retired),`source-localized root stays out of legacy bridge: ${retired}`);
 owner.activate();
 ok(global.MutationObserver===NativeMutationObserver&&owner.active&&!owner.intercepting,'native MutationObserver is restored on activation');
-ok(applyCalls===1&&classSyncCalls===1&&equipCalls===1,'broad/static locale owners are primed once, not on every input');
+ok(applyCalls===1&&classSyncCalls===0&&equipCalls===0,'only the stable base owner is primed once; redundant class/equipment compatibility calls are retired');
 const before={applyCalls,classSyncCalls,equipCalls,runtimeTreeCalls,completeTreeCalls};
 owner.sync();
 ok(applyCalls===before.applyCalls&&classSyncCalls===before.classSyncCalls&&equipCalls===before.equipCalls,'per-action sync does not rerun broad static localization');
