@@ -1,93 +1,125 @@
-# 地牢回响：v1.2.9 发布收尾与仓库维护路线图
+# 地牢回响：v1.2.10 发布与上线后维护路线图
 
-> 当前仓库语义版本为 **Dungeon Echo v1.2.9**，静态资源 cache generation 为 **153**。固定中英文路线、共享存档、输入/运行时治理与最终 locale 收口已经进入当前发布边界。最近一次统一三包发布边界仍是 **Dungeon Echo v1.2.7 + 91hwl site v1.3.3 + Moyu v1.11.3**。
+> 当前发布集合：**Dungeon Echo v1.2.10 + Clock Out Alive v1.11.5 + 91hwl site v1.3.4**。Dungeon Echo 静态资源 cache generation 为 **154**，runtime owner 仍为 **v13**。
 
-当前主线不再继续堆功能，而是：
+当前阶段已经从“继续重构”切换为：
 
-**仓库目录收敛 → v1.2.9 部署/真实浏览器验收 → 仅根据真人证据做定点修复。**
+**正式发布 → PC/手机真人验收 → X 宣发 → 玩家证据驱动的小补丁。**
 
-## 已完成：运行时与双语架构
+## 已完成：仓库与运行时治理
 
-- ✅ `/` 固定中文、`/en/` 固定英文；同 gameplay/runtime graph、同存档命名空间。
-- ✅ translation-after-render 生产栈已退出 runtime 与 release manifest。
-- ✅ `game/locale/core-screen-owner-v153.js` 与 `game/locale/town-canvas-locale-v153.js` 只负责精确显示 sink。
-- ✅ `game/locale/stable-item-id-migration-v150.js` 只增补稳定 ID，不改旧名称、不拆中英文存档。
-- ✅ Return Scroll 已收敛为 Commerce 两阶段语义状态机；键盘连发被抑制，手柄委托同一 owner。
-- ✅ 大部分永久 polling / 无意义 RAF / DOM follower 已迁为事件或生命周期驱动。
-- ✅ 当前 cache generation 为 153；语义版本 1.2.9 与 cache generation 独立。
+- ✅ 根目录不再散落活跃 JavaScript；现役代码按 `game/core / systems / input / locale / ui` 分组。
+- ✅ 历史 i18n / locale runtime 与旧 release stamp 已归档，不进入 production runtime 或 release manifest。
+- ✅ `/dungeon-echo/` 固定中文、`/dungeon-echo/en/` 固定英文；同 gameplay/runtime graph、同存档命名空间。
+- ✅ translation-after-render 生产栈退出 runtime。
+- ✅ Return Scroll 收敛为 Commerce `arming → ready → completing` 状态机；键盘/触控/手柄委托同一语义 owner。
+- ✅ 桌面一次性动作禁止 OS key repeat；WASD / 方向键仍保留移动连发。
+- ✅ v1.2.10 新增 901–1180px PC/笔记本布局收口与手机 44px 最小次要触控目标。
+- ✅ semantic version 与 cache generation 分离：`VERSION=1.2.10`，public generation `154`。
 
-## 已完成：目录治理
+## 当前发布集合
 
-仓库已经从“根目录散落大量运行时文件”收敛为 folder-first 结构。当前规则为：
+### Dungeon Echo v1.2.10
 
-- 根目录只保留入口页、版本/许可/贡献与安全文档，以及明确的项目目录；**不保留任何活跃 `.js` 文件**。
-- `game/core/`：核心引擎、production bootstrap、save-integrity、runtime bootstrap 与当前 release stamp。
-- `game/systems/`：装备、城镇、Commerce、锻造、成长、内容、压力、防御、风险收益等 gameplay owner。
-- `game/input/`：键盘/手柄与 J/K + Mana 输入 owner。
-- `game/locale/`：固定路线 locale data、稳定显示 ID、精确 screen/Canvas owner。
-- `game/ui/`：视觉、商店表现、音频、手机 UX、新手引导、Help、Expedition Record 等 presentation follower。
-- 退役 i18n / locale runtime 进入 `archive/runtime/`，不得重新进入生产加载链。
-- 历史 v1.2.2–v1.2.8 release stamp 进入 `archive/release-stamps/`；当前 v1.2.9 stamp 与当前 runtime 一起放在 `game/core/`。
-- 文档集中在 `docs/`，历史 release notes 集中在 `docs/releases/`。
-- `index.html`、`en/index.html`、`dev.html` 直接引用上述新路径，不保留根级 compatibility copy。
-- 目录迁移必须同步更新 `game/core/runtime-bootstrap.js`、`ops/release/static-files.txt` 与高价值测试；不能只移动文件制造 404。
-- `test/repository-governance-v122.cjs` 明确把“根目录零 `.js`”作为当前治理契约，防止以后再次长回散乱结构。
+- 1 → 100 正式路线、四职业、六装备位、Mana、技能进化、城镇和终局保持不变。
+- 不重置 `de-run-v6`、`de-greedy-meta-v1` 等兼容存档。
+- 固定中英文路线共享同一存档。
+- 本次只收口输入完整性与 PC/手机响应式，不做平衡或美术大改。
 
-根目录治理目标不是追求形式上的 `src/`，而是让新用户打开仓库后第一屏就能理解：入口在哪里、核心逻辑在哪里、玩法系统在哪里、输入在哪里、显示层在哪里、历史代码在哪里。
+### Clock Out Alive v1.11.5
 
-## 分支治理
+- 修正首屏语言与运行时语言选择的一致性。
+- 防止 Space / ↑ / P / Esc / R / F / M / S 等一次性键位被 OS repeat 重复触发。
+- Canvas 尺寸改为按需测量，presentation DOM 写入做 memoization。
+- 长型 BUG 预留真实碰撞宽度，避免后期组合障碍偷吃安全净空。
+- 手机增加 safe-area 与窄屏顶部操作收口。
 
-长期分支只保留 `main`。短期 `fix/`、`refactor/`、`perf/`、`release/`、`chore/` 分支在合并后应删除；Git 历史和 PR 已足够承担追溯职责，不把分支列表当档案馆。
+### 91hwl site v1.3.4
 
-当前仓库仍存在大量历史工作分支，需要一次性清理。后续治理要求：
+- 首页与两个项目详情页同步当前游戏版本。
+- 首页首屏同时提供 Dungeon、Moyu 与 GitHub / Source 三个转化入口。
+- 保留 v1.3.3 的首屏语言/主题预解析、统一字号阶梯和 `notranslate` 契约。
+- 项目页明确展示本次 PC/手机质量修复，便于外部宣传流量快速理解项目。
 
-1. 新工作从当前 `main` 建短期分支；
-2. 合并后不继续在旧分支上开发；
-3. 已完全被 `main` 包含且无独立未合并提交的分支直接删除；
-4. 有独立提交的旧分支先比较差异，再决定补 PR 或明确废弃；
-5. 不保留多个同义 release/layout 分支；
-6. `ops/repo/prune-merged-branches.sh` 默认 dry-run，`--apply` 只删除 tip 已被 `origin/main` 完全包含的远端分支。
+## 正式部署
 
-分支清理与目录清理分开计账：目录治理完成不等于历史远端分支已经实际删除。
+生产服务器从最终 `main` revision 执行：
 
-## 当前 P0：部署与真实浏览器验收
+```bash
+sudo bash ops/release/deploy-dual-public.sh
+```
 
-源码和仓库契约不能替代真实浏览器。v1.2.9 部署后需要确认：
+编排器按以下顺序执行：
 
-1. Greedy Expedition 连续执行两阶段 T 回城，重复多次不冻结、不重复消耗。
-2. `/` 与 `/en/` 相互切换后，`de-run-v6`、`de-greedy-meta-v1`、背包/装备/金库进度连续可见。
-3. 英文代表性流程不存在明显中文泄漏：标题、职业、HUD、战斗日志、装备 tooltip、地下商店、Town、轮盘、Pause、死亡/胜利 Overlay。
-4. PC 键盘、Gamepad、手机触控的 Attack / Skill / Return / Descend / Pause 行为一致。
-5. 页面后台/恢复、长时间运行、城镇停留和 Boss telegraph 不出现新的持续 CPU/DOM churn。
+1. 构建 Dungeon Echo v1.2.10 immutable bundle；
+2. 构建 Moyu v1.11.5 immutable bundle；
+3. 构建 site v1.3.4 immutable bundle；
+4. 部署 Dungeon；
+5. 部署 Moyu；
+6. 最后部署主站，因为主站 healthcheck 要求两款游戏的 VERSION endpoint 已经更新；
+7. 再检查 public VERSION 与首页 v1.3.4 / GitHub CTA。
 
-任何 PASS 都必须对应实际执行过的源码检查、部署检查或人工浏览器验证。
+最终成功标记：
 
-## P1：真人 1→100 证据
+```text
+dual_public_release=PASS
+```
 
-下一轮真正影响玩法的调整，应优先来自真人长局，而不是继续凭静态阅读猜数值。重点记录：1–10、20–30、50–60、80–90、91–100；四职业主要死亡原因；药水/卷轴/回城卷轴消耗；金币与锻造支出；装备替换；Mana、J/K 和技能进化；守卫提示可读性。
+各组件仍保留自己的 healthcheck 与 rollback；GitHub merge 本身不等于线上已经发布。
 
-只有这些证据指出具体问题时，再做定点数值、美术或交互修复。
+## 上线验收：PC 与手机
 
-## v1.2.9 发布边界
+### Dungeon Echo
 
-v1.2.9 使用 `ops/release/build-site-bundle.sh` 构建 Dungeon Echo 单包，只覆盖 `/dungeon-echo/`，保留当前 site 与 Moyu 内容。`build-web-toys-release.sh` 继续作为 v1.2.7 的历史统一三包边界。
+- 大屏桌面与 901–1180px 普通笔记本窗口都能清晰看到地牢主体，不被侧栏过度挤压。
+- J / K / T / Enter / Esc 按住不重复执行一次性动作；WASD/方向键仍可持续移动。
+- 手机竖屏 Attack / Skill / Potion / Return / Descend 可稳定触达，横屏布局不遮挡核心画面。
+- 中英文切换共享同一 run/meta/equipment 进度。
+- Greedy Expedition 连续执行 T×2 回城，多次重复不冻结、不重复消耗。
+- 英文标题、HUD、战斗日志、装备 tooltip、商店、Town、轮盘、Pause、死亡/胜利没有明显中文泄漏。
 
-`VERSION=1.2.9` 是语义发布身份；`game/core/runtime-bootstrap.js` 的 `assetVersion=153` 是静态缓存 generation。
+### Clock Out Alive
 
-发布完成必须真实观察到构建、校验、服务器切换、origin/public health check 和双端浏览器验收结果。GitHub 合并、tag 或 Release 页面本身不等于已经上线。
+- PC 空格/↑ 二段跳、P/Esc 暂停、M 静音、18:00 下班窗口没有按键连发误触。
+- 手机点击跳跃、窄屏顶部导航、safe-area、设置弹层和结果卡均可正常使用。
+- 语言选择在刷新/返回/跨 91hwl 页面时不出现英文首屏后又回中文的闪切。
+- 变异 BUG、老板、会议、临时需求等组合仍保持可读、可解。
 
-## 停止条件
+## 发布后的开发策略
 
-本轮治理关闭前需要满足：
+正式发布后停止以下工作：
 
-- 固定中英文架构与运行时治理已合并；
-- 根目录活跃 JavaScript 为 0，现役代码按 `core / systems / input / locale / ui` 分组；
-- 历史 runtime / release stamp 已归档，且 archive 内容不进入生产加载链；
-- 三个 HTML 入口、release manifest 与 runtime loader 只引用现役路径；
-- 高价值 repository/release/production/fixed-locale/cache/input/runtime-debt 契约与当前目录一致；
-- 历史工作分支完成一次性清理，只留下真正需要保留的分支；
-- 从精确 v1.2.9 `main` revision 构建并完成服务器/public health checks；
-- Return Scroll T×2、共享存档、中英文可见文本、PC/手机/手柄主流程完成真实浏览器验收；
-- 没有新的 P0 冻结、存档损坏或明显语言泄漏。
+- 无证据的大规模架构重写；
+- 为了“版本更新”而主动改平衡；
+- 没有玩家反馈支撑的全面美术返工；
+- 再次引入轮询、全局 observer、whole-page translation 或多套输入 owner。
 
-之后进入“真人证据 → 定点修复”的维护模式，不再开启无边界的大型架构、美术或目录重写。
+后续只接受：
+
+**真人/玩家证据 → 可复现 Issue → 最小修复 → 聚焦验证 → 小版本补丁。**
+
+优先证据：冻结、存档损坏、移动端不可操作、明显语言泄漏、无法规避的障碍/首领、经济断层、关键输入重复、浏览器兼容性。
+
+美术优化可以继续，但不阻塞首发；应以玩家最常看到的角色、首领、城镇或视觉识别问题为单位做定点补丁。
+
+## 宣发入口
+
+上线通过后立即进入 X 宣发，主要落点：
+
+- `https://91hwl.cn/` — 两款游戏总入口；
+- `https://play.91hwl.cn/dungeon-echo/` — Dungeon Echo；
+- `https://play.91hwl.cn/moyu/` — Clock Out Alive；
+- `https://github.com/diaow2331-ops/dungeon-echo` — 源码、Release Notes、Issue 与 AI-assisted engineering 过程。
+
+首轮宣发重点不是承诺“完美游戏”，而是强调：**浏览器打开即玩、PC+手机、中英双语、公开源码、持续根据玩家反馈更新。**
+
+## 本阶段停止条件
+
+- 最终 release PR 合并到 `main`；
+- 服务器执行 `deploy-dual-public.sh` 并出现 `dual_public_release=PASS`；
+- 线上 VERSION 分别为 Dungeon `1.2.10`、Moyu `1.11.5`；
+- 91hwl 首页显示 site `1.3.4` 与 GitHub / Source 首屏入口；
+- PC/手机完成一轮真人冒烟验收；
+- 没有新的 P0 冻结、存档损坏、不可操作或明显语言泄漏。
+
+达到以上条件后，项目正式进入“公开运营 + 玩家反馈补丁”模式。
