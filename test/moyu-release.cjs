@@ -10,7 +10,6 @@ let r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1111.
 r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1112.patch'),encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1113.cjs'),indexPath,js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1114.cjs'),indexPath,js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
-r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1115.patch'),encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1115.cjs'),indexPath,js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 const index=fs.readFileSync(indexPath,'utf8'),game=fs.readFileSync(js,'utf8');
 assert.match(index,/content="1\.11\.5"/);assert.match(index,/style\.css\?v=1115/);assert.match(index,/visual-v1113\.css\?v=1115/);assert.match(index,/responsive-v1115\.css\?v=1115/);assert.match(index,/game\.js\?v=1115/);assert.match(index,/translate="no"/);assert.match(index,/name="google" content="notranslate"/);assert.match(index,/q\.get\('lang'\)/);
