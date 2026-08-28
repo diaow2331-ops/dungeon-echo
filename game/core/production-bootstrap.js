@@ -4,8 +4,8 @@
  *
  * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
  * equipment atlas without changing any equipment IDs, save keys or save schemas.
- * v2 art runtime: load the presentation-only atlas overlay after DOM bootstrap. It
- * may replace visible art, but core canvas/gameplay remains the fail-safe fallback.
+ * v2/v3 art runtimes: load presentation-only atlas overlays after DOM bootstrap.
+ * They may replace visible art, but core canvas/gameplay remains the fail-safe fallback.
  *
  * Production input integrity: movement keys may use normal OS key repeat, while
  * tactical one-shot actions are edge-triggered across keyboard, touch and gamepad.
@@ -73,25 +73,28 @@
     // the original atlas remains a safe fallback and gameplay still boots.
   }
 
-  const loadArtRuntimeV2 = () => {
-    if (typeof document === 'undefined' || window.__DE_ART_RUNTIME_V2 ||
-        document.getElementById('de-art-runtime-v2-loader')) return;
+  const appendArtRuntime = (id, file, guard) => {
+    if (typeof document === 'undefined' || window[guard] || document.getElementById(id)) return;
     try {
       const script = document.createElement('script');
-      script.id = 'de-art-runtime-v2-loader';
+      script.id = id;
       script.async = false;
-      script.src = new URL('../ui/art-runtime-v2.js?v=157',
+      script.src = new URL(file,
         BOOTSTRAP_SRC || (typeof location !== 'undefined' ? location.href : '')).href;
       (document.body || document.head || document.documentElement).appendChild(script);
     } catch (e) {
-      // The v2 layer is optional presentation. Core art/gameplay remains authoritative.
+      // Art overlays are optional presentation. Core art/gameplay remains authoritative.
     }
+  };
+  const loadArtRuntimes = () => {
+    appendArtRuntime('de-art-runtime-v2-loader', '../ui/art-runtime-v2.js?v=157', '__DE_ART_RUNTIME_V2');
+    appendArtRuntime('de-art-runtime-v3-loader', '../ui/art-runtime-v3.js?v=158', '__DE_ART_RUNTIME_V3');
   };
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadArtRuntimeV2, { once:true });
+      document.addEventListener('DOMContentLoaded', loadArtRuntimes, { once:true });
     } else {
-      loadArtRuntimeV2();
+      loadArtRuntimes();
     }
   }
 
