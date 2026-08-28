@@ -1,0 +1,27 @@
+{
+  "library": "Dungeon Echo art source library",
+  "batch": "2026-08-29",
+  "repositoryBinaryStatus": "staged-for-import",
+  "runtimeReady": false,
+  "candidateCount": 4,
+  "alternateCount": 4,
+  "referenceCount": 4,
+  "candidates": [
+    {"path":"candidate/loot-equipment-source-v2.png","size":"1254x1254","sha256":"215239adf9da6c6af2477b627f34cf4a77d5c3c13f35b4c7a5a213a26ae5ffd0","purpose":"loot/equipment source sheet"},
+    {"path":"candidate/monster-deep-source-v2.png","size":"1254x1254","sha256":"8f7275e07c9595f30a3af5ace6636f1a4cb369ccd7de99cc676567af86b3536a","purpose":"deep-floor monster source sheet"},
+    {"path":"candidate/hero-action-source-v2.png","size":"1254x1254","sha256":"0f00acb5da6b581d4d0de0f952d1073e5737793ac1d0ed050f9a636bdef0e6a8","purpose":"four-class action-state source sheet"},
+    {"path":"candidate/dungeon-props-source-v1.png","size":"1254x1254","sha256":"173dd516f913a8cfe017b6b9913ad05af685dc493358499257f0388a2e3ede3e","purpose":"dungeon/town environment-prop source sheet"}
+  ],
+  "alternates": [
+    {"path":"alternate/loot-equipment-source-v2-alt-a.png","sha256":"d77973766daa4d7251dd425980201022458762ac0cea3aebcd10ac4e17e3b696"},
+    {"path":"alternate/monster-deep-source-v2-alt-a.png","sha256":"f520a996c925d415c52d1c27b1a912ea45e920971daa84d70a31d04fde12ea29"},
+    {"path":"alternate/hero-action-source-v2-alt-a.png","sha256":"4860275a943b59e2c0accf389ace61956096e40f1980c650200f1e23b6c2e7e5"},
+    {"path":"alternate/dungeon-props-source-v1-alt-a.png","sha256":"787422e4b55d4e05670ec8983678b2cbe674709088b593697472193fefc9c8e5"}
+  ],
+  "referenceBoards": [
+    {"path":"reference/art-direction-board-01.png","sha256":"5c05f91b8ce23be366a496f060bc09a383a6aecaf1117f7fac6339338a281e40"},
+    {"path":"reference/art-direction-board-02.png","sha256":"0b58069d4399d14895afade4cd41c42893d5a06d9a6060110bd197bd93a7cba2"},
+    {"path":"reference/art-direction-board-03.png","sha256":"3fb1a592548ec38b90eccefc0dc1b891ca9e1e78ccc8eb6af1f934ed786b65d5"},
+    {"path":"reference/art-direction-board-04.png","sha256":"756859753e186d6971c50cd70270c9e64ddc47b94ef60474c67138aedc0f3fc2"}
+  ]
+}
