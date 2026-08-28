@@ -25,36 +25,48 @@ const expectedLoot = [
 assert.deepEqual(loot.ids, expectedLoot);
 assert.equal(loot.columns, 4);
 assert.equal(loot.rows, 8);
-assert.equal(loot.cellPixels, 128);
-assert.deepEqual(loot.atlasPixels, [512, 1024]);
+assert.equal(loot.cellPixels, 48);
+assert.deepEqual(loot.atlasPixels, [192, 384]);
 assert.deepEqual(loot.spareCell, [3, 7]);
 assert.equal(new Set(loot.ids).size, loot.ids.length);
 
 assert.equal(monsters.columns, 4);
 assert.equal(monsters.rows, 4);
+assert.equal(monsters.cellPixels, 48);
+assert.deepEqual(monsters.atlasPixels, [192, 192]);
 assert.equal(monsters.cells.length, 16);
 assert.deepEqual(monsters.directSpriteMap, {abomination:0, seraph:1, voidspawn:2, voidlord:3});
 
 assert.deepEqual(heroes.rowsByClass, ['warrior','ranger','mage','assassin']);
 assert.deepEqual(heroes.columnsByState, ['idle','attack','hurt','skill']);
-assert.deepEqual(heroes.atlasPixels, [512, 512]);
+assert.equal(heroes.cellPixels, 48);
+assert.deepEqual(heroes.atlasPixels, [192, 192]);
 
 assert.equal(props.columns, 6);
 assert.equal(props.rows, 4);
+assert.equal(props.cellPixels, 48);
 assert.equal(props.cells.length, 24);
 assert.equal(new Set(props.cells).size, 24);
-assert.deepEqual(props.atlasPixels, [768, 512]);
+assert.deepEqual(props.atlasPixels, [288, 192]);
 
+const runtimePaths = new Set([
+  'art/runtime/loot-atlas-v2.svg',
+  'art/runtime/monster-deep-atlas-v2.svg',
+  'art/runtime/hero-action-atlas-v2.svg',
+  'art/runtime/dungeon-props-atlas-v1.svg',
+]);
 for (const map of maps) {
   assert.equal(map.sourceArchive, 'dungeon-echo-art-library-batch-2026-08-29.zip');
   assert.equal(typeof map.sourceFile, 'string');
   assert.match(map.runtimeSha256, /^[0-9a-f]{64}$/);
-  assert.doesNotMatch(JSON.stringify(map), /art\/source-atlases\/(?:candidate|alternate)\/.+\.png/,
-    'map must not pretend source PNG is repository-resident before binary admission');
+  assert(runtimePaths.has(map.runtimePath), `unexpected runtime path: ${map.runtimePath}`);
+  assert(fs.existsSync(path.join(root, map.runtimePath)), `runtime asset missing: ${map.runtimePath}`);
 }
 
 const staticFiles = read('ops/release/static-files.txt');
 assert.doesNotMatch(staticFiles, /art\/source-atlases\//, 'source art must never ship in production');
+for (const rel of runtimePaths) assert(staticFiles.includes(rel), `release boundary missing: ${rel}`);
+assert(staticFiles.includes('game/ui/art-runtime-v2.js'));
 
 const game = read('game/core/game.js');
 for (const id of expectedLoot) assert(game.includes(`'${id}'`), `runtime loot identity missing: ${id}`);
