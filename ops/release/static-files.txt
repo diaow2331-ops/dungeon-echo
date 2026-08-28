@@ -24,6 +24,7 @@ visual-polish.js
 equipment-shop-ui.js
 release-stamp-v128.js
 fixed-locale-entry-v130.js
+stable-item-id-migration-v150.js
 locale-event-owner-v130.js
 locale-runtime-v122.js
 locale-completeness-v128.js
