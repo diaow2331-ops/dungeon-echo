@@ -5,7 +5,7 @@
  *
  * v13 removed the last generic translation-after-render bridge from production. Chinese and English boot the
  * same graph; exact fixed-route owners cover the remaining legacy sinks. Generation 156 installs the bounded
- * town workspace before the exact town-canvas locale owner so the visible wheel canvas has one stable owner.
+ * town workspace plus its event bridge before exact town-canvas localization binds the visible wheel canvas.
  */
 (() => {
   'use strict';
@@ -22,6 +22,7 @@
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
     [fresh('game/ui/town-workspace-v156.js'), 'data-de-town-workspace-v156', () => !!window.__DE_TOWN_WORKSPACE_V156],
+    [fresh('game/ui/town-workspace-events-v156.js'), 'data-de-town-workspace-events-v156', () => !!window.__DE_TOWN_WORKSPACE_EVENTS_V156],
     [fresh('game/locale/town-canvas-locale-v153.js'), 'data-de-town-canvas-locale-v153', () => !!window.__DE_TOWN_CANVAS_LOCALE_V153],
   ];
   const followerChain = [
