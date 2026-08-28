@@ -40,5 +40,11 @@ assert(/setInterval\(\(\)=>btn\.click\(\),110\)/.test(mobile)&&/clearInterval\(i
 const runtime=read('runtime-bootstrap.js');
 assert(/const englishBridge = english \? \[/.test(runtime),'legacy locale bridge remains explicitly English-only while core source migration is unfinished');
 assert(/locale-runtime-v122\.js/.test(runtime)&&/locale-completeness-v128\.js/.test(runtime),'transitional English locale debt remains visible instead of being hidden by another patch layer');
+const localeOwner=read('locale-event-owner-v130.js');
+assert(/version:'v143'/.test(localeOwner),'transitional locale owner is the narrowed v143 contract');
+assert(!/translateTree\(document\.body\)/.test(localeOwner),'English locale sync must not traverse the whole document body');
+assert(/const legacyRoots = Object\.freeze\(\[/.test(localeOwner),'remaining Chinese-first screens are an explicit shrinking allowlist');
+for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#bagdetail','#tooltip','#hint','#help','#talent-screen','#shrine-screen','#echo-screen'])
+  assert(!localeOwner.includes(`'${migrated}'`),`${migrated} must not re-enter the transitional bridge`);
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + narrowed locale bridge)`);
