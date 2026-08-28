@@ -2,7 +2,7 @@
 const assert=require('assert'),crypto=require('crypto'),fs=require('fs'),os=require('os'),path=require('path'),{spawnSync}=require('child_process');
 const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
 assert.equal(read('moyu/VERSION').trim(),'1.11.5');
-const sourceIndex=read('moyu/index.html'),visual=read('moyu/visual-v1113.css'),manifest=read('moyu/SOURCE_SHA256').trim().split(/\r?\n/),parts=Array.from({length:15},(_,i)=>read(`moyu/src/game.part${String(i+1).padStart(2,'0')}.js`)),base=parts.join('');
+const sourceIndex=read('moyu/index.html'),visual=read('moyu/visual-v1113.css'),responsive=read('moyu/responsive-v1115.css'),manifest=read('moyu/SOURCE_SHA256').trim().split(/\r?\n/),parts=Array.from({length:15},(_,i)=>read(`moyu/src/game.part${String(i+1).padStart(2,'0')}.js`)),base=parts.join('');
 const expected=Object.fromEntries(manifest.map(x=>{const [h,f]=x.split(/\s+/);return[f,h]})),digest=x=>crypto.createHash('sha256').update(x).digest('hex');
 assert.equal(digest(base),expected['base-game.js']);
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'moyu1115-')),js=path.join(tmp,'game.js'),indexPath=path.join(tmp,'index.html');fs.writeFileSync(js,base);fs.writeFileSync(indexPath,sourceIndex);
@@ -14,7 +14,7 @@ r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1114.cjs'),indexPath,j
 r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1115.patch'),encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1115.cjs'),indexPath,js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 const index=fs.readFileSync(indexPath,'utf8'),game=fs.readFileSync(js,'utf8');
-assert.match(index,/content="1\.11\.5"/);assert.match(index,/style\.css\?v=1115/);assert.match(index,/visual-v1113\.css\?v=1115/);assert.match(index,/game\.js\?v=1115/);assert.match(index,/translate="no"/);assert.match(index,/name="google" content="notranslate"/);assert.match(index,/q\.get\('lang'\)/);
+assert.match(index,/content="1\.11\.5"/);assert.match(index,/style\.css\?v=1115/);assert.match(index,/visual-v1113\.css\?v=1115/);assert.match(index,/responsive-v1115\.css\?v=1115/);assert.match(index,/game\.js\?v=1115/);assert.match(index,/translate="no"/);assert.match(index,/name="google" content="notranslate"/);assert.match(index,/q\.get\('lang'\)/);
 assert.match(game,/dataset\.gameVersion='1\.11\.5'/);assert.match(game,/DAY_END_DISTANCE=2200/);assert.match(game,/PLAYER_HIT=\{left:10,right:10,top:7,bottom:6\}/);assert.match(game,/groundTakeoff=before===0/);assert.match(game,/writeSharedLangCookie\(currentLang\)/);
 assert.match(game,/const storedLang=storageGet\(LANG_KEY\)/);assert.match(game,/const browserLang=.*startsWith\('zh'\)\?'zh':'en'/);assert.match(game,/\(storedLang==='en'\|\|storedLang==='zh'\)\?storedLang:browserLang/);assert.doesNotMatch(game,/storageGet\(LANG_KEY\)\|\|\(navigator\.language\|\|'zh'\)\.toLowerCase\(\)\.startsWith\('zh'\)\?'zh':'en'/);
 assert.match(game,/repeatSensitiveKeys=new Set\(\['Space','ArrowUp','KeyP','Escape','KeyR','KeyF','KeyM','KeyS'\]\)/);assert.match(game,/e\.repeat&&repeatSensitiveKeys\.has\(e\.code\)/);
@@ -24,8 +24,9 @@ assert.match(game,/function effectiveSpawnWidth\(spawned\)/);assert.match(game,/
 assert.match(game,/e\.pointerType==='mouse'&&e\.button!==0/);
 assert.doesNotMatch(game,/drawPlayerFocus\(drawX,footY,altitude\);/);assert.doesNotMatch(game,/drawBackground\(\);drawAmbientOfficeLife\(\);drawRunAtmosphere\(\);/);
 assert.match(visual,/\.tagline\{font-size:17px/);assert.match(visual,/\.controls\{font-size:14\.5px/);assert.match(visual,/\.icon-btn\{height:44px/);assert.match(visual,/\.panel\{font-size:14px/);
+assert.match(responsive,/env\(safe-area-inset-bottom\)/);assert.match(responsive,/@media\(max-width:560px\)/);assert.match(responsive,/\.home-link::before/);assert.match(responsive,/#settingsBtn \[data-i18n="settings"\]\{display:none/);
 r=spawnSync(process.execPath,['--check',js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 const archive=path.join(tmp,'moyu.zip');r=spawnSync('bash',[path.join(root,'ops/release/build-moyu-bundle.sh'),archive],{cwd:root,encoding:'utf8'});assert.equal(r.status,0,r.stderr);assert.match(r.stdout,/version=1\.11\.5/);assert.match(r.stdout,/moyu_bundle_build=PASS/);
-r=spawnSync('unzip',['-p',archive,'public/moyu/index.html'],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);assert.match(r.stdout,/visual-v1113\.css\?v=1115/);assert.match(r.stdout,/game\.js\?v=1115/);assert.match(r.stdout,/translate="no"/);
-r=spawnSync('unzip',['-Z1',archive],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);for(const f of ['public/moyu/index.html','public/moyu/style.css','public/moyu/visual-v1113.css','public/moyu/game.js','public/moyu/VERSION'])assert(r.stdout.includes(f),`bundle missing ${f}`);
-fs.rmSync(tmp,{recursive:true,force:true});console.log('RESULT  Clock Out Alive v1.11.5 language/runtime consistency contract PASS');
+r=spawnSync('unzip',['-p',archive,'public/moyu/index.html'],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);assert.match(r.stdout,/visual-v1113\.css\?v=1115/);assert.match(r.stdout,/responsive-v1115\.css\?v=1115/);assert.match(r.stdout,/game\.js\?v=1115/);assert.match(r.stdout,/translate="no"/);
+r=spawnSync('unzip',['-Z1',archive],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);for(const f of ['public/moyu/index.html','public/moyu/style.css','public/moyu/visual-v1113.css','public/moyu/responsive-v1115.css','public/moyu/game.js','public/moyu/VERSION'])assert(r.stdout.includes(f),`bundle missing ${f}`);
+fs.rmSync(tmp,{recursive:true,force:true});console.log('RESULT  Clock Out Alive v1.11.5 dual-end release contract PASS');
