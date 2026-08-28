@@ -1,8 +1,12 @@
-/* Dungeon Echo locale event owner v1.3.0.
+/* Dungeon Echo locale event owner v1.4.3.
  * Transitional owner for the legacy locale-runtime/completeness pair.
  * It virtualizes only the MutationObserver instances those two scripts create during
  * bootstrap, restores the native constructor immediately afterward, then resynchronizes
- * locale presentation from real UI/state transitions instead of permanent DOM observation.
+ * only the remaining Chinese-first core screens from real UI/state transitions.
+ *
+ * The fixed-route migration now owns HUD, combat log, equipment, tooltip, touch/help,
+ * shrine/echo and talent presentation at source. Do not re-expand this bridge to body-wide
+ * translation; residual roots should shrink until the English bridge can be deleted.
  */
 (() => {
   'use strict';
@@ -11,9 +15,14 @@
   const NativeMutationObserver = window.MutationObserver;
   const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
   const virtualObservers = [];
+  const legacyRoots = Object.freeze([
+    '#title-screen', '#class-screen', '#pause-screen', '#overlay',
+    '#shop-screen', '#town-screen', '#achv-screen',
+  ]);
   let intercepting = typeof NativeMutationObserver === 'function';
   let active = false;
   let queued = false;
+  let primed = false;
 
   class VirtualMutationObserver {
     constructor(callback) {
@@ -28,36 +37,45 @@
 
   if (intercepting) window.MutationObserver = VirtualMutationObserver;
 
-  function sync() {
+  function primeStaticOwners() {
+    if (primed) return false;
+    primed = true;
     const base = window.DE_I18N;
     if (base && typeof base.apply === 'function') {
-      try { base.apply(); } catch (_e) { /* presentation sync must not stop gameplay */ }
+      try { base.apply(); } catch (_e) { /* presentation bootstrap must not stop gameplay */ }
     }
-
     const runtime = window.__DE_LOCALE_V122;
     if (runtime && typeof runtime.syncClassCards === 'function') {
       try { runtime.syncClassCards(); } catch (_e) {}
     }
-    if (runtime && typeof runtime.translateTree === 'function' && document.body) {
-      try { runtime.translateTree(document.body); } catch (_e) {}
-    }
-
     const complete = window.__DE_LOCALE_COMPLETENESS_V128;
-    if (complete && complete.english) {
-      if (typeof complete.translateTree === 'function') {
-        const roots = Array.isArray(complete.roots) ? complete.roots : [];
-        for (const selector of roots) {
-          const root = document.querySelector(selector);
-          if (root) {
-            try { complete.translateTree(root); } catch (_e) {}
-          }
-        }
-      }
-      if (typeof complete.enforceEquipmentLabels === 'function') {
-        try { complete.enforceEquipmentLabels(); } catch (_e) {}
-      }
+    if (complete && complete.english && typeof complete.enforceEquipmentLabels === 'function') {
+      try { complete.enforceEquipmentLabels(); } catch (_e) {}
     }
     return true;
+  }
+
+  function translateResidualRoot(root) {
+    if (!root) return 0;
+    let changed = 0;
+    const runtime = window.__DE_LOCALE_V122;
+    if (runtime && typeof runtime.translateTree === 'function') {
+      try { changed += Number(runtime.translateTree(root)) || 0; } catch (_e) {}
+    }
+    const complete = window.__DE_LOCALE_COMPLETENESS_V128;
+    if (complete && complete.english && typeof complete.translateTree === 'function') {
+      try { changed += Number(complete.translateTree(root)) || 0; } catch (_e) {}
+    }
+    return changed;
+  }
+
+  function sync() {
+    let changed = 0;
+    for (const selector of legacyRoots) {
+      const root = document.querySelector(selector);
+      if (root) changed += translateResidualRoot(root);
+    }
+    return changed;
   }
 
   function schedule() {
@@ -83,6 +101,7 @@
       window.MutationObserver = NativeMutationObserver;
       intercepting = false;
     }
+    primeStaticOwners();
     armEvents();
     schedule();
     return true;
@@ -94,13 +113,17 @@
   }
 
   window.__DE_LOCALE_EVENT_OWNER = {
-    version:'v130',
+    version:'v143',
     get active(){ return active; },
     get intercepting(){ return intercepting; },
+    get primed(){ return primed; },
+    legacyRoots,
     virtualObservers,
     activate,
     afterFollower,
     schedule,
     sync,
+    primeStaticOwners,
+    translateResidualRoot,
   };
 })();
