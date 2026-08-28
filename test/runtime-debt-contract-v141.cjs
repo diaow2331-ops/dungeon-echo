@@ -25,6 +25,12 @@ const guardian=read('content-system.js');
 assert(/startWarningLoop/.test(guardian)&&/stopWarningLoop/.test(guardian)&&/warningVisible/.test(guardian),'guardian telegraph animation is warning-lifecycle owned');
 assert(!/\n\s*requestAnimationFrame\(frame\);\s*\n\}\)\(\);\s*$/.test(guardian),'guardian system must not boot an unconditional permanent RAF');
 
+const gamepad=read('desktop-controls.js');
+assert(/desktop gamepad adapter v3/.test(gamepad),'gamepad adapter must use connected-pad lifecycle ownership');
+assert(/function\s+startLoop\s*\(/.test(gamepad)&&/function\s+stopLoop\s*\(/.test(gamepad),'gamepad adapter must expose start/stop RAF lifecycle');
+assert(/const pad = pickPad\(\);\n\s*if \(!pad\) return false;/.test(gamepad),'gamepad RAF must not start without a connected pad');
+assert(/gamepaddisconnected[\s\S]*stopLoop\(\)/.test(gamepad),'gamepad disconnection must stop sampling');
+
 const audio=read('audio-director.js');
 assert(/setInterval\(pump,\s*70\)/.test(audio)&&/clearInterval\(timer\)/.test(audio),'audio keeps only its lifecycle-scoped WebAudio look-ahead timer');
 assert(/document\.hidden/.test(audio)&&/pagehide/.test(audio),'audio timer stops with page lifecycle');
@@ -35,4 +41,4 @@ const runtime=read('runtime-bootstrap.js');
 assert(/const englishBridge = english \? \[/.test(runtime),'legacy locale bridge remains explicitly English-only while core source migration is unfinished');
 assert(/locale-runtime-v122\.js/.test(runtime)&&/locale-completeness-v128\.js/.test(runtime),'transitional English locale debt remains visible instead of being hidden by another patch layer');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating)`);
