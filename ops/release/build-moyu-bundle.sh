@@ -17,10 +17,10 @@ command -v sha256sum >/dev/null
 command -v patch >/dev/null
 command -v node >/dev/null
 test "$version" = '1.11.5'
-for f in index.html style.css visual-v1113.css build-v1113.cjs build-v1114.cjs build-v1115.cjs SOURCE_SHA256 patches/runtime-v1111.patch patches/runtime-v1112.patch patches/runtime-v1114.patch patches/runtime-v1115.patch; do test -r "$source_root/$f"; done
+for f in index.html style.css visual-v1113.css responsive-v1115.css build-v1113.cjs build-v1114.cjs build-v1115.cjs SOURCE_SHA256 patches/runtime-v1111.patch patches/runtime-v1112.patch patches/runtime-v1114.patch patches/runtime-v1115.patch; do test -r "$source_root/$f"; done
 parts=("$source_root"/src/game.part*.js)
 test "${#parts[@]}" -eq 15 || { echo "expected 15 game source parts, found ${#parts[@]}" >&2; exit 2; }
-for file in "$source_root/index.html" "$source_root/style.css" "$source_root/visual-v1113.css" "$source_root/build-v1113.cjs" "$source_root/build-v1114.cjs" "$source_root/build-v1115.cjs" "$source_root/VERSION" "$source_root/SOURCE_SHA256" "$source_root/patches/runtime-v1111.patch" "$source_root/patches/runtime-v1112.patch" "$source_root/patches/runtime-v1114.patch" "$source_root/patches/runtime-v1115.patch" "${parts[@]}"; do
+for file in "$source_root/index.html" "$source_root/style.css" "$source_root/visual-v1113.css" "$source_root/responsive-v1115.css" "$source_root/build-v1113.cjs" "$source_root/build-v1114.cjs" "$source_root/build-v1115.cjs" "$source_root/VERSION" "$source_root/SOURCE_SHA256" "$source_root/patches/runtime-v1111.patch" "$source_root/patches/runtime-v1112.patch" "$source_root/patches/runtime-v1114.patch" "$source_root/patches/runtime-v1115.patch" "${parts[@]}"; do
   rel="${file#$repo_root/}"; git -C "$repo_root" cat-file -e "HEAD:$rel" 2>/dev/null || { echo "untracked release source: $rel" >&2; exit 2; }
 done
 cat "${parts[@]}" > "$base_game"
@@ -41,7 +41,7 @@ node "$source_root/build-v1115.cjs" "$assembled_index" "$assembled"
 node --check "$assembled" >/dev/null
 final_game_sha="$(sha256sum "$assembled" | awk '{print $1}')"
 grep -Fq '<meta name="version" content="1.11.5"' "$assembled_index"
-grep -Fq 'style.css?v=1115' "$assembled_index"; grep -Fq 'visual-v1113.css?v=1115' "$assembled_index"; grep -Fq 'game.js?v=1115' "$assembled_index"
+grep -Fq 'style.css?v=1115' "$assembled_index"; grep -Fq 'visual-v1113.css?v=1115' "$assembled_index"; grep -Fq 'responsive-v1115.css?v=1115' "$assembled_index"; grep -Fq 'game.js?v=1115' "$assembled_index"
 grep -Fq 'translate="no"' "$assembled_index"; grep -Fq 'name="google" content="notranslate"' "$assembled_index"
 grep -Fq "dataset.gameVersion='1.11.5'" "$assembled"; grep -Fq 'DAY_END_DISTANCE=2200' "$assembled"; grep -Fq 'const groundTakeoff=before===0' "$assembled"
 grep -Fq 'writeSharedLangCookie(currentLang)' "$assembled"; grep -Fq "home.searchParams.set('lang',currentLang)" "$assembled"
@@ -54,10 +54,12 @@ grep -Fq 'syncPresentationState.signature===signature' "$assembled" || { echo 'M
 grep -Fq "spawned.label==='BUG'&&spawned.mutation==='long'" "$assembled" || { echo 'Moyu long BUG spacing reserve missing' >&2; exit 2; }
 ! grep -Fq 'drawPlayerFocus(drawX,footY,altitude);' "$assembled"; ! grep -Fq 'drawBackground();drawAmbientOfficeLife();drawRunAtmosphere();' "$assembled"
 grep -Fq 'font-size:17px' "$source_root/visual-v1113.css"; grep -Fq 'font-size:14.5px' "$source_root/visual-v1113.css"; grep -Fq 'height:44px' "$source_root/visual-v1113.css"
+grep -Fq 'env(safe-area-inset-bottom)' "$source_root/responsive-v1115.css"; grep -Fq '@media(max-width:560px)' "$source_root/responsive-v1115.css"; grep -Fq '.home-link::before' "$source_root/responsive-v1115.css"
 mkdir -p "$bundle/public/moyu" "$bundle/ops"
 install -m 0644 "$assembled_index" "$bundle/public/moyu/index.html"
 install -m 0644 "$source_root/style.css" "$bundle/public/moyu/style.css"
 install -m 0644 "$source_root/visual-v1113.css" "$bundle/public/moyu/visual-v1113.css"
+install -m 0644 "$source_root/responsive-v1115.css" "$bundle/public/moyu/responsive-v1115.css"
 install -m 0644 "$assembled" "$bundle/public/moyu/game.js"
 printf '%s\n' "$version" > "$bundle/public/moyu/VERSION"
 install -m 0755 "$repo_root/ops/moyu-bundle/deploy.sh" "$bundle/ops/deploy.sh"
