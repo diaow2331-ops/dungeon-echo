@@ -1,6 +1,6 @@
 --- game.js
 +++ game.js
-@@ -70,11 +70,14 @@
+@@ -70,10 +70,13 @@
  function toggleLanguage(){currentLang=currentLang==='en'?'zh':'en';applyLanguage(true)}
  function updateRouteStrip(){if(!routeStrip)return;routeStrip.querySelectorAll('[data-route]').forEach(el=>{const i=Number(el.dataset.route);const active=(endingPhase==='decision'||endingPhase==='ontime'||endingPhase==='overtime')?i===4:i===Math.min(3,Math.max(0,sceneIndex));const done=(endingPhase!=='none')?i<4:i<Math.max(0,sceneIndex);el.classList.toggle('active',active);el.classList.toggle('done',done)})}
 -function syncPresentationState(){
@@ -34,7 +34,7 @@
  }
  
  function ensureAudio(){
-@@ -552,10 +559,15 @@
+@@ -552,10 +559,16 @@
    if(prev==='BUG'&&next==='邮件')min=Math.max(min,455);
    return min
  }
@@ -61,7 +61,7 @@
  startBtn.addEventListener('click',e=>{e.stopPropagation();if(state==='paused')togglePause();else start()});
  settingsBtn.addEventListener('click',e=>{e.stopPropagation();if(state==='playing')togglePause();toggleSettings()});
  masterSoundBtn.addEventListener('click',e=>{e.stopPropagation();setSound()});
-@@ -1290,14 +1302,17 @@
+@@ -1290,13 +1302,15 @@
  settingsPop.addEventListener('pointerdown',e=>e.stopPropagation());
  document.addEventListener('pointerdown',e=>{if(!e.target.closest('.settings-wrap'))toggleSettings(false)});
  fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(!document.fullscreenElement)await frame.requestFullscreen();else await document.exitFullscreen()}catch{}});
