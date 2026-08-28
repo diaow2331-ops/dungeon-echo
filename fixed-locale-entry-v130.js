@@ -1,9 +1,8 @@
 /* Dungeon Echo fixed locale entry owner v1.3.8.
- * Route identity chooses language before locale presentation boots. Chinese and English pages stay
+ * Route identity chooses language for the whole page load. Chinese and English pages stay
  * on the same origin and therefore share the existing run/meta/stash/equipment localStorage.
  * Legacy ?lang= links are redirected to the matching fixed route.
- * The route owner also owns the title language selector so removing the transitional translator
- * stack later cannot remove or change language navigation behavior.
+ * This owner also owns the title language selector; production no longer depends on a live DOM translator.
  */
 (() => {
   'use strict';
@@ -75,8 +74,7 @@
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     }
-    // Reuse the legacy style id deliberately so locale-runtime sees an existing owned style
-    // and cannot regain selector styling ownership while the transitional runtime still boots.
+    // Keep the historical style id for compatibility with older cached pages; this fixed-route owner is its sole production owner.
     if (!document.getElementById('de-locale-v122-style')) {
       const style = document.createElement('style');
       style.id = 'de-locale-v122-style';
@@ -87,8 +85,7 @@
     return true;
   }
 
-  // The selector is route-owned. Transitional locale-runtime may still discover the same DOM
-  // while it exists, but it no longer creates the control, owns its style or controls navigation.
+  // The selector is route-owned and navigates directly between fixed pages.
   document.addEventListener('click', e => {
     const target = e && e.target;
     const button = target && typeof target.closest === 'function'

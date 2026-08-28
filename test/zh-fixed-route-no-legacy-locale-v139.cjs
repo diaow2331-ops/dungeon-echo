@@ -23,25 +23,23 @@ function boot(locale){
   return context.window.__DE_PRODUCTION_UX_BOOTSTRAP;
 }
 
-const zh=boot('zh-CN');
-assert(zh&&zh.version==='v11','Chinese runtime bootstrap must report v11');
-assert.equal(zh.locale,'zh-CN');
-assert.equal(zh.english,false);
-const zhSrc=zh.chain.map(row=>String(row[0]));
-assert(!zhSrc.some(s=>s.includes('locale-event-owner-v130.js')),'Chinese route must not load locale event owner');
-assert(!zhSrc.some(s=>s.includes('locale-runtime-v122.js')),'Chinese route must not load legacy locale runtime');
-assert(!zhSrc.some(s=>s.includes('locale-completeness-v128.js')),'Chinese route must not load completeness translator');
-assert(zhSrc.some(s=>s.includes('fixed-locale-entry-v130.js')),'Chinese route keeps fixed route owner');
-assert(zhSrc.some(s=>s.includes('combat-hint-polish.js')),'Chinese route keeps shared source-owned followers');
+for(const [locale,english] of [['zh-CN',false],['en',true]]){
+  const booted=boot(locale);
+  assert(booted&&booted.version==='v13',`${locale} runtime bootstrap must report v13`);
+  assert.equal(booted.locale,locale==='en'?'en':'zh-CN');
+  assert.equal(booted.english,english);
+  const src=booted.chain.map(row=>String(row[0]));
+  assert(!src.some(s=>s.includes('locale-event-owner-v130.js')),`${locale} must not load locale event owner`);
+  assert(!src.some(s=>s.includes('locale-runtime-v122.js')),`${locale} must not load legacy locale runtime`);
+  assert(!src.some(s=>s.includes('locale-completeness-v128.js')),`${locale} must not load completeness translator`);
+  assert(src.some(s=>s.includes('fixed-locale-entry-v130.js')),`${locale} keeps fixed route owner`);
+  assert(src.some(s=>s.includes('stable-item-id-migration-v150.js')),`${locale} keeps shared stable item migration`);
+  assert(src.some(s=>s.includes('core-screen-owner-v153.js')),`${locale} keeps fixed core screen owner`);
+  assert(src.some(s=>s.includes('town-canvas-locale-v153.js')),`${locale} keeps fixed town canvas sink`);
+  assert(src.some(s=>s.includes('combat-hint-polish.js')),`${locale} keeps shared source-owned followers`);
+  assert(src.every(s=>s.includes('?v=153')),`${locale} late assets all share generation 153`);
+}
 
-const en=boot('en');
-assert(en&&en.version==='v11','English runtime bootstrap must report v11');
-assert.equal(en.locale,'en');
-assert.equal(en.english,true);
-const enSrc=en.chain.map(row=>String(row[0]));
-assert(enSrc.some(s=>s.includes('locale-event-owner-v130.js')),'English route keeps transitional event owner until core cut');
-assert(enSrc.some(s=>s.includes('locale-runtime-v122.js')),'English route keeps transitional core translator until game.js cut');
-assert(enSrc.some(s=>s.includes('locale-completeness-v128.js')),'English route keeps completeness fallback until game.js cut');
-assert(enSrc.every(s=>s.includes('?v=140')),'all late assets share generation 140');
-
-console.log('fixed_route_bridge_isolation_v139=PASS');
+const zh=boot('zh-CN'),en=boot('en');
+assert.deepStrictEqual(zh.chain.map(r=>r[0]),en.chain.map(r=>r[0]),'Chinese and English fixed routes must boot the same late graph');
+console.log('fixed_route_bridge_retired_v153=PASS');
