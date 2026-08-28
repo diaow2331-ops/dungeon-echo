@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const src=fs.readFileSync(path.join(root,'combat-hint-polish.js'),'utf8');
+assert(src.includes("version:'v5'"),'onboarding must declare v5');
+assert(src.includes('const complete=()=>ALL.every(done)'),'completion state must be explicit');
+assert(/function\s+scheduleInspect\s*\(\)\s*\{[\s\S]*complete\(\)\|\|inspectQueued/.test(src),'completed onboarding must reject post-input inspection scheduling');
+assert(src.includes("#de-audio-settings-btn")&&src.includes('defer(attachReset)'),'audio settings must still attach the reset control after onboarding is complete');
+assert(/function\s+resetTutorial\s*\(\)[\s\S]*state\.done=\{\}[\s\S]*inspect\(\)/.test(src),'reset must restore active onboarding inspection');
+assert(!src.includes('setInterval')&&!src.includes('requestAnimationFrame')&&!src.includes('MutationObserver'),'onboarding remains timer/RAF/observer-follower free');
+new Function(src);
+console.log('onboarding_lifecycle_v148=PASS');
