@@ -4,6 +4,8 @@
  *
  * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
  * equipment atlas without changing any equipment IDs, save keys or save schemas.
+ * v2 art runtime: load the presentation-only atlas overlay after DOM bootstrap. It
+ * may replace visible art, but core canvas/gameplay remains the fail-safe fallback.
  *
  * Production input integrity: movement keys may use normal OS key repeat, while
  * tactical one-shot actions are edge-triggered across keyboard, touch and gamepad.
@@ -11,11 +13,14 @@
  * consume extra turns/items or oscillate pause/audio/fullscreen state.
  *
  * Gameplay systems own their own mechanics. Bootstrap is limited to production-entry
- * policy, input-edge policy and the legacy equipment-atlas presentation compatibility bridge.
+ * policy, input-edge policy and presentation compatibility/loading bridges.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined') return;
+
+  const BOOTSTRAP_SRC = typeof document !== 'undefined' && document.currentScript
+    ? document.currentScript.src : '';
 
   const ONE_SHOT_REPEAT_KEYS = new Set([
     'Escape', ' ', 'Spacebar', '.',
@@ -66,6 +71,28 @@
   } catch (e) {
     // Art routing is presentation-only. If a restrictive browser rejects the bridge,
     // the original atlas remains a safe fallback and gameplay still boots.
+  }
+
+  const loadArtRuntimeV2 = () => {
+    if (typeof document === 'undefined' || window.__DE_ART_RUNTIME_V2 ||
+        document.getElementById('de-art-runtime-v2-loader')) return;
+    try {
+      const script = document.createElement('script');
+      script.id = 'de-art-runtime-v2-loader';
+      script.async = false;
+      script.src = new URL('../ui/art-runtime-v2.js?v=157',
+        BOOTSTRAP_SRC || (typeof location !== 'undefined' ? location.href : '')).href;
+      (document.body || document.head || document.documentElement).appendChild(script);
+    } catch (e) {
+      // The v2 layer is optional presentation. Core art/gameplay remains authoritative.
+    }
+  };
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadArtRuntimeV2, { once:true });
+    } else {
+      loadArtRuntimeV2();
+    }
   }
 
   if (typeof location !== 'undefined') {
