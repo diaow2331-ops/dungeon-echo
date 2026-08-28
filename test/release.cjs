@@ -12,9 +12,13 @@ const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const deployReadme = read('ops/site-bundle/README.txt');
 const runtime = read('runtime-bootstrap.js');
-const fixedLocale = read('fixed-locale-entry-v130.js');
-const screenOwner = read('core-screen-owner-v153.js');
-const canvasOwner = read('town-canvas-locale-v153.js');
+const fixedLocalePath = 'game/locale/fixed-locale-entry-v130.js';
+const stableIdsPath = 'game/locale/stable-item-id-migration-v150.js';
+const screenOwnerPath = 'game/locale/core-screen-owner-v153.js';
+const canvasOwnerPath = 'game/locale/town-canvas-locale-v153.js';
+const fixedLocale = read(fixedLocalePath);
+const screenOwner = read(screenOwnerPath);
+const canvasOwner = read(canvasOwnerPath);
 const saveIntegrity = read('save-integrity-system.js');
 const desktopControls = read('desktop-controls.js');
 const releaseStampName = `release-stamp-v${version.replace(/\./g, '')}.js`;
@@ -36,9 +40,9 @@ ok(manifest.includes(releaseStampName) && runtime.includes(releaseStampName) && 
 ok(manifest.every(file => fs.existsSync(path.join(root, file))), 'every release-manifest resource exists');
 ok(!manifest.some(file => /^(?:dev\.html|test\/|profiles\/classic-(?:10|20|30|40|50|60)\.profile\.js$)/.test(file)),
   'release manifest excludes development entry/tests/short profiles');
-ok(manifest.includes('index.html') && manifest.includes('en/index.html') && manifest.includes('fixed-locale-entry-v130.js'),
+ok(manifest.includes('index.html') && manifest.includes('en/index.html') && manifest.includes(fixedLocalePath),
   'release package ships fixed Chinese/English entries and route owner');
-ok(manifest.includes('core-screen-owner-v153.js') && manifest.includes('town-canvas-locale-v153.js') && manifest.includes('stable-item-id-migration-v150.js'),
+ok(manifest.includes(screenOwnerPath) && manifest.includes(canvasOwnerPath) && manifest.includes(stableIdsPath),
   'release package ships exact fixed-route sinks and stable item IDs');
 ok(manifest.includes('art/title-backdrop.webp') && manifest.includes('art/class-roster.webp') && manifest.includes('art/loot-atlas.png'),
   'production art assets are packaged');
@@ -61,14 +65,14 @@ ok(!/[\u3400-\u9fff]/.test(en), 'English static entry contains no CJK presentati
 console.log('\n[release] ownership');
 ok(runtime.includes(`const assetVersion = '${assetVersion}'`) && runtime.includes(`fresh('${releaseStampName}')`),
   'late followers share the direct-entry cache generation');
-const pFixed=runtime.indexOf("fresh('fixed-locale-entry-v130.js')");
-const pIds=runtime.indexOf("fresh('stable-item-id-migration-v150.js')");
-const pScreen=runtime.indexOf("fresh('core-screen-owner-v153.js')");
-const pCanvas=runtime.indexOf("fresh('town-canvas-locale-v153.js')");
+const pFixed=runtime.indexOf(`fresh('${fixedLocalePath}')`);
+const pIds=runtime.indexOf(`fresh('${stableIdsPath}')`);
+const pScreen=runtime.indexOf(`fresh('${screenOwnerPath}')`);
+const pCanvas=runtime.indexOf(`fresh('${canvasOwnerPath}')`);
 ok(pFixed>0 && pIds>pFixed && pScreen>pIds && pCanvas>pScreen,
   'fixed route identity, stable item IDs and exact presentation sinks boot in deterministic order');
 for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
-  ok(!runtime.includes(retired) && !manifest.includes(retired), `${retired} is retired from production and release`);
+  ok(!runtime.includes(retired) && !manifest.some(file=>file===retired||file.endsWith('/'+retired)), `${retired} is retired from production and release`);
 }
 ok(manifest.includes('npc-stability-system.js') && manifest.includes('progression-guard-system.js') && manifest.includes('risk-reward-system.js'),
   'explicit gameplay owners are release-manifested');
