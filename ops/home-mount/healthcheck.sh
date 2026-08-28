@@ -71,7 +71,7 @@ check_home(){
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
-  require_fixed "$file" 'v1.2.10' 'homepage Dungeon Echo version' || return 1
+  require_fixed "$file" 'v1.2.11' 'homepage Dungeon Echo version' || return 1
   require_fixed "$file" 'v1.11.5' 'homepage Moyu version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开仓库' 'homepage open-source copy' || return 1
@@ -85,7 +85,7 @@ check_home(){
 check_de_detail(){
   file="$1"
   require_fixed "$file" 'data-site-version="1.3.4"' 'Dungeon Echo detail site version' || return 1
-  require_fixed "$file" 'softwareVersion":"1.2.10"' 'Dungeon Echo detail software version' || return 1
+  require_fixed "$file" 'softwareVersion":"1.2.11"' 'Dungeon Echo detail software version' || return 1
   require_fixed "$file" '901–1180px' 'Dungeon Echo responsive release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
   require_fixed "$file" 'class-roster.webp' 'Dungeon Echo roster art' || return 1
@@ -145,7 +145,7 @@ fetch /dev/null --resolve "$PLAY_RESOLVE" "${MOYU_PLAY_URL}?lang=en" || fail 'or
 
 de_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$DE_VERSION_URL" | tr -d '\r\n[:space:]')"
 moyu_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$MOYU_VERSION_URL" | tr -d '\r\n[:space:]')"
-test "$de_origin" = '1.2.10' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
+test "$de_origin" = '1.2.11' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
 test "$moyu_origin" = '1.11.5' || fail "origin Moyu VERSION mismatch: $moyu_origin"
 
 public_ok=false
@@ -157,7 +157,7 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
       && fetch "$work_dir/public-privacy.html" "${PRIVACY_URL}?release=$revision" && check_trust_page "$work_dir/public-privacy.html" 'Google AdSense and consent' "$PRIVACY_URL" 'Privacy page' \
       && fetch "$work_dir/public-contact.html" "${CONTACT_URL}?release=$revision" && check_trust_page "$work_dir/public-contact.html" 'Feedback and contact' "$CONTACT_URL" 'Contact page' \
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
-      && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.2.10' \
+      && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.2.11' \
       && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.11.5'; then
     public_ok=true
     break

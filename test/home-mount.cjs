@@ -21,7 +21,7 @@ const sourceDeploy=read('ops/home-mount/deploy.sh');
 const sourceHealth=read('ops/home-mount/healthcheck.sh');
 const sourceSocial=read('ops/home-mount/build-social-v134.cjs');
 
-assert.equal(read('VERSION').trim(),'1.2.10');
+assert.equal(read('VERSION').trim(),'1.2.11');
 assert.equal(read('moyu/VERSION').trim(),'1.11.5');
 assert.equal(siteVersion,'1.3.4');
 assert.equal(sourceAds,'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0');

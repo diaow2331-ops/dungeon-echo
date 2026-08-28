@@ -21,7 +21,7 @@ command -v bash >/dev/null
 command -v node >/dev/null
 
 test "$site_version" = '1.3.4' || { echo "unexpected site version: $site_version" >&2; exit 2; }
-test "$game_version" = '1.2.10' || { echo "unexpected Dungeon Echo version: $game_version" >&2; exit 2; }
+test "$game_version" = '1.2.11' || { echo "unexpected Dungeon Echo version: $game_version" >&2; exit 2; }
 test "$moyu_version" = '1.11.5' || { echo "unexpected Moyu version: $moyu_version" >&2; exit 2; }
 git -C "$repo_root" merge-base --is-ancestor "$accepted_site_v133" HEAD || { echo 'accepted site v1.3.3 boundary is not an ancestor of HEAD' >&2; exit 2; }
 
@@ -99,6 +99,7 @@ grep -Fq 'ca-pub-2648680835467283' "$moyu_detail"
 grep -Fq 'About 91hwl' "$about"
 grep -Fq 'Google AdSense and consent' "$privacy"
 grep -Fq 'Feedback and contact' "$contact"
+grep -Fq 'mailto:diaow2331@gmail.com' "$contact"
 for page in "$about" "$privacy" "$contact"; do
   grep -Fq 'ca-pub-2648680835467283' "$page"
   grep -Fq 'href="/about/"' "$page"
@@ -110,7 +111,7 @@ grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$ads_txt
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
 grep -Fq "test \"\$version\" = '1.3.4'" "$source_root/deploy.sh"
-grep -Fq 'Dungeon Echo v1.2.10 detail marker missing' "$source_root/deploy.sh"
+grep -Fq 'Dungeon Echo v1.2.11 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'Clock Out Alive v1.11.5 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'web-toys-v134' "$source_root/deploy.sh"
 grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$source_root/deploy.sh"
