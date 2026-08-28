@@ -5,9 +5,9 @@ const vm = require('vm');
 
 const controls = fs.readFileSync('combat-controls.js','utf8');
 const game = fs.readFileSync('game.js','utf8');
-const hint = fs.readFileSync('combat-hint-polish.js','utf8');
-const audio = fs.readFileSync('audio-director.js','utf8');
-const mobile = fs.readFileSync('mobile-ux.js','utf8');
+const hint = fs.readFileSync('game/ui/combat-hint-polish.js','utf8');
+const audio = fs.readFileSync('game/ui/audio-director.js','utf8');
+const mobile = fs.readFileSync('game/ui/mobile-ux.js','utf8');
 const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
 const bootstrap = fs.readFileSync('runtime-bootstrap.js','utf8');
 const desktop = fs.readFileSync('desktop-controls.js','utf8');
@@ -30,8 +30,6 @@ assert(/ranger:\s*\{ max:70, cost:32, regen:2, attackGain:3, focusGain:4 \}/.tes
 assert(/mage:\s*\{ max:100,cost:42, regen:3, attackGain:1, focusGain:10 \}/.test(controls), 'mage mana contract changed');
 assert(/assassin:\s*\{ max:65, cost:34, regen:2, attackGain:3, focusGain:4 \}/.test(controls), 'assassin mana contract changed');
 
-// Mana is part of the persisted run state. Any real mutation must commit the final value,
-// preventing refresh/reload from restoring a pre-cost or pre-regeneration snapshot.
 assert(controls.includes("const persistResourceState = () =>"), 'mana persistence helper missing');
 assert(controls.includes("typeof api.persistRun === 'function'"), 'mana persistence must reuse core run save API');
 assert(/function ensureMana[\s\S]*?persistResourceState\(\);[\s\S]*?return p;/.test(controls), 'mana initialization/clamp must persist its normalized value');
@@ -41,15 +39,12 @@ assert(game.includes('player: JSON.parse(JSON.stringify(player))'), 'run save mu
 assert(game.includes('player = raw.player;'), 'run restore must recover persisted player mana state');
 assert(/persistRun,\s*peekRun,\s*restoreRun/.test(game), 'core run-save API must remain exposed to resource owners');
 
-// Ground equipment must recognize the production v12 SVG bridge, recover the real map item,
-// and use tierArt.sourceForItem rather than blindly drawing the old loot cell.
 assert(controls.includes("/loot-atlas(?:-v12)?\\.(?:png|svg)"), 'production loot-atlas v12 interception missing');
 assert(controls.includes('function groundItemAtDraw(args, canvas)'), 'ground item coordinate recovery missing');
 assert(controls.includes("it.type === 'equip'"), 'ground replacement must be equip-only');
 assert(controls.includes("tierArt.sourceForItem(ground.item)"), 'tier-specific ground equipment source missing');
 assert(controls.includes('equipment-weapons-v13.png') && controls.includes('equipment-wearables-v13.png'), 'v13 ground replacement missing');
 
-// No equipment art may be pasted on the hero: suppress both the oldest core geometry and the later v13 overlay.
 assert(controls.includes('heroJustDrawn'), 'hero draw-window marker missing');
 assert(controls.includes('suppressLegacyGear'), 'legacy core gear geometry suppression missing');
 assert(controls.includes('ctx.stroke = function') && controls.includes('ctx.fillRect = function') && controls.includes('ctx.fill = function'), 'legacy hero geometry paint guards missing');
@@ -63,7 +58,6 @@ assert(desktop.includes('Gamepad connected') && desktop.includes('RT Attack') &&
   'gamepad status and return feedback must honor English sessions');
 assert(!desktop.includes("edgeButton(pad, 2, 'c')"), 'legacy C gamepad skill returned');
 
-// Progressive onboarding advances from actual game outcomes, not raw key events.
 assert(hint.includes("const KEY = 'de-onboarding-v2'"), 'progressive tutorial persistence key missing');
 for (const step of ['move','attack','skill','bag','potion','stairs','escape','guardian']) assert(hint.includes(`'${step}'`), `tutorial step missing: ${step}`);
 assert(hint.includes('跳过教学'), 'tutorial skip control missing');
@@ -74,7 +68,6 @@ assert(hint.includes('cur.mana<snap.mana') && hint.includes('cur.cd>snap.cd'), '
 assert(hint.includes('cur.depth>snap.depth'), 'stairs tutorial must observe real depth change');
 assert(hint.includes('pointer:coarse'), 'mobile-aware tutorial wording missing');
 
-// Free BGM/SFX mixer: 0-100 sliders, persistent 30/85 recommended mix, master mute.
 for (const scene of ['title','town','dungeon','deep','guardian','boss']) assert(new RegExp(`${scene}:\\s*\\{`).test(audio), `audio scene missing: ${scene}`);
 assert(audio.includes("RECOMMENDED = Object.freeze({ music:30, sfx:85 })"), 'recommended 30/85 mix changed');
 assert(audio.includes('type="range" min="0" max="100" step="1"'), 'free 0-100 volume sliders missing');
@@ -85,7 +78,6 @@ assert(audio.includes("key === 'm'"), 'M master mute missing');
 assert(audio.includes('mobs.some(m => m && Number(m.hp) > 0 && m.boss)'), 'boss music routing missing');
 assert(audio.includes('mobs.some(m => m && Number(m.hp) > 0 && m.midBoss)'), 'guardian music routing missing');
 
-// Mobile UX must be a real control layout, not merely scaled desktop CSS.
 assert(mobile.includes("grid-template-columns:174px minmax(0,1fr)"), 'portrait thumb-zone layout missing');
 assert(mobile.includes('(orientation:landscape)'), 'landscape mobile layout missing');
 assert(mobile.includes('timeout=setTimeout(()=>{btn.click();interval=setInterval(()=>btn.click(),110)},190)'), 'hold-to-walk cadence missing');
@@ -98,7 +90,6 @@ assert(mobile.includes('左侧四向方向盘'), 'mobile help copy missing');
 assert(mobile.includes("window.addEventListener('resize'") && mobile.includes("window.addEventListener('orientationchange'") &&
   mobile.includes("document.addEventListener('fullscreenchange',queueApply)"), 'viewport-driven touch-control resync missing');
 
-// Core J/K+mana input is synchronous; late bootstrap owns only followers.
 const productionScripts = [...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)]
   .map(match => match[1].split('?')[0]);
 const desktopPos = productionScripts.indexOf('desktop-controls.js');
@@ -106,12 +97,11 @@ const controlsPos = productionScripts.indexOf('combat-controls.js');
 const challengePos = productionScripts.indexOf('challenge-pressure.js');
 assert(desktopPos >= 0 && controlsPos > desktopPos && challengePos > controlsPos, 'combat controls must be synchronous before final challenge pressure');
 assert(!bootstrap.includes("'combat-controls.js'"), 'late UX bootstrap must not own core combat controls');
-assert(bootstrap.includes("'combat-hint-polish.js'") && bootstrap.includes("'audio-director.js'") && bootstrap.includes("'mobile-ux.js'"), 'late UX follower chain incomplete');
+assert(bootstrap.includes("'game/ui/combat-hint-polish.js'") && bootstrap.includes("'game/ui/audio-director.js'") && bootstrap.includes("'game/ui/mobile-ux.js'"), 'late UX follower chain incomplete');
 assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('combat-controls.js'"), 'shop preview regained production UX ownership');
 const files = manifest.split(/\r?\n/);
-for (const file of ['combat-controls.js','combat-hint-polish.js','audio-director.js','mobile-ux.js']) assert(files.includes(file), `release manifest missing ${file}`);
+for (const file of ['combat-controls.js','game/ui/combat-hint-polish.js','game/ui/audio-director.js','game/ui/mobile-ux.js']) assert(files.includes(file), `release manifest missing ${file}`);
 
-// Execute the adapter: a held RT emits one J edge, release/re-press emits the next.
 {
   const emitted = [];
   const appended = [];
