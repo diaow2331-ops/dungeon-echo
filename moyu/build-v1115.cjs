@@ -5,6 +5,7 @@ const [,,indexPath,gamePath]=process.argv;
 assert(indexPath&&gamePath,'usage: node build-v1115.cjs <index.html> <game.js>');
 const replaceOnce=(text,from,to,label)=>{const first=text.indexOf(from);assert(first>=0,`missing ${label}`);assert.equal(text.indexOf(from,first+from.length),-1,`duplicate ${label}`);return text.slice(0,first)+to+text.slice(first+from.length)};
 let index=fs.readFileSync(indexPath,'utf8');
+let game=fs.readFileSync(gamePath,'utf8');
 index=replaceOnce(index,'<meta name="version" content="1.11.4" />','<meta name="version" content="1.11.5" />','version meta');
 index=replaceOnce(index,'style.css?v=1114','style.css?v=1115','base css fingerprint');
 index=replaceOnce(index,'visual-v1113.css?v=1114','visual-v1113.css?v=1115','visual css fingerprint');
@@ -13,7 +14,13 @@ index=replaceOnce(index,"let l=q.get('lang');if(l!=='zh'&&l!=='en')l=c('91hwl_la
 index=replaceOnce(index,'<span class="version-badge">v1.11.4</span>','<span class="version-badge">v1.11.5</span>','visible version badge');
 index=replaceOnce(index,'91HWL / CLOCK OUT ALIVE / v1.11.4','91HWL / CLOCK OUT ALIVE / v1.11.5','footer version');
 index=replaceOnce(index,'game.js?v=1114','game.js?v=1115','game fingerprint');
-const game=fs.readFileSync(gamePath,'utf8');
+
+game=replaceOnce(game,
+"const cookieLang=readSharedLangCookie();\nlet currentLang=(langParam==='en'||langParam==='zh')?langParam:((cookieLang==='en'||cookieLang==='zh')?cookieLang:(storageGet(LANG_KEY)||(navigator.language||'zh').toLowerCase().startsWith('zh')?'zh':'en'));",
+"const cookieLang=readSharedLangCookie();\nconst storedLang=storageGet(LANG_KEY);\nconst browserLang=(navigator.language||'zh').toLowerCase().startsWith('zh')?'zh':'en';\nlet currentLang=(langParam==='en'||langParam==='zh')?langParam:\n  ((cookieLang==='en'||cookieLang==='zh')?cookieLang:((storedLang==='en'||storedLang==='zh')?storedLang:browserLang));",
+'validated runtime language precedence');
+game=replaceOnce(game,"dataset.gameVersion='1.11.4'","dataset.gameVersion='1.11.5'",'runtime version');
+
 assert(game.includes("dataset.gameVersion='1.11.5'"),'runtime version missing');
 assert(game.includes('const storedLang=storageGet(LANG_KEY)'),'stored language validation missing');
 assert(game.includes("(storedLang==='en'||storedLang==='zh')?storedLang:browserLang"),'stored language fallback missing');
@@ -25,3 +32,4 @@ assert(index.includes('name="google" content="notranslate"'));
 assert(index.includes('visual-v1113.css?v=1115'));
 assert(index.includes('responsive-v1115.css?v=1115'));
 fs.writeFileSync(indexPath,index);
+fs.writeFileSync(gamePath,game);
