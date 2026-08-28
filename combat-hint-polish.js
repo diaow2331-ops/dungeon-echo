@@ -1,7 +1,9 @@
-/* Dungeon Echo progressive onboarding v4.
+/* Dungeon Echo progressive onboarding v5.
  * Contextual, action-driven and persistent. Progress is inferred from real game outcomes,
  * so keyboard, touch and gamepad all advance the same tutorial contract.
  * Fixed-route locale owns tutorial copy directly; no runtime translator dependency remains.
+ * v5 stops post-input inspection work once every tutorial step is complete while keeping
+ * the audio-settings reset entry available for users who want to replay onboarding.
  */
 (() => {
   'use strict';
@@ -66,6 +68,7 @@
 
   function save(){try{localStorage.setItem(KEY,JSON.stringify({v:2,done:state.done}))}catch(e){}}
   const done=id=>!!state.done[id];
+  const complete=()=>ALL.every(done);
   function mark(id){if(!id||done(id))return;state.done[id]=1;save();if(active===id)hide()}
   function markAll(){for(const id of ALL)state.done[id]=1;save();hide()}
 
@@ -115,7 +118,10 @@
     if(active&&done(active))hide();
   }
 
-  function scheduleInspect(){if(inspectQueued)return false;inspectQueued=true;defer(()=>{inspectQueued=false;inspect()});return true}
+  function scheduleInspect(){
+    if(complete()||inspectQueued)return false;
+    inspectQueued=true;defer(()=>{inspectQueued=false;inspect()});return true;
+  }
 
   document.addEventListener('click',e=>{if(!done('bag')&&e.target&&e.target.closest&&e.target.closest('#bag .bagcell'))mark('bag');scheduleInspect()},true);
   document.addEventListener('keydown',scheduleInspect,true);
@@ -125,6 +131,7 @@
 
   function resetTutorial(){state.done={};save();hide();lastPlayer=null;snap=null;inspect()}
   function attachReset(){const tools=document.querySelector('#de-audio-settings-pop .de-audio-tools');if(!tools||document.getElementById('de-tutorial-reset'))return;const b=document.createElement('button');b.type='button';b.id='de-tutorial-reset';b.textContent=copy('重置教学','Reset Tutorial');b.style.cssText='border:1px solid rgba(224,167,58,.3);background:#17100c;color:#d9c7a3;padding:5px 8px;font-size:10px;cursor:pointer;margin-right:auto';b.addEventListener('click',resetTutorial);tools.insertBefore(b,tools.firstChild)}
+  document.addEventListener('click',e=>{const t=e&&e.target;if(t&&t.closest&&t.closest('#de-audio-settings-btn'))defer(attachReset)},true);
 
-  syncLabels();inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v4',owner:'combat-hint-polish',locale:english?'en':'zh-CN',key:KEY,show,mark,resetTutorial,inspect,schedule:scheduleInspect,scrubLegacyFeedback,get state(){return JSON.parse(JSON.stringify(state))}};
+  syncLabels();inspect();attachReset();window.__DE_COMBAT_HINT_POLISH={version:'v5',owner:'combat-hint-polish',locale:english?'en':'zh-CN',key:KEY,show,mark,resetTutorial,inspect,schedule:scheduleInspect,scrubLegacyFeedback,complete,get state(){return JSON.parse(JSON.stringify(state))}};
 })();
