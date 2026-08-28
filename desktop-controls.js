@@ -1,8 +1,10 @@
-/* Dungeon Echo desktop gamepad adapter v3.
+/* Dungeon Echo desktop gamepad adapter v4.
  * Translates Gamepad API input into the keyboard/menu contract owned by game.js.
  * Zero dependencies; safe no-op without a connected pad.
  * Fixed Chinese/English routes own all visible controller copy directly.
  * v3 keeps the Gamepad sampling RAF alive only while a pad is actually connected and the page is visible.
+ * v4 routes Return through the commerce extraction owner when available instead of synthesizing T,
+ * so gamepad extraction shares the same explicit two-stage Return Scroll state machine as keyboard/touch.
  */
 (() => {
   'use strict';
@@ -29,6 +31,16 @@
 
   function emitKey(key) {
     document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  }
+
+  function triggerReturn() {
+    const commerce = window.DE_COMMERCE;
+    if (commerce && typeof commerce.extractionReady === 'function' &&
+        typeof commerce.beginExtraction === 'function' && typeof commerce.completeExtraction === 'function') {
+      return commerce.extractionReady() ? commerce.completeExtraction() : commerce.beginExtraction();
+    }
+    emitKey('t');
+    return true;
   }
 
   const MENU_ROOTS = [
@@ -188,7 +200,7 @@
     if (!returnHoldStarted) returnHoldStarted = now;
     if (!returnHoldFired && now - returnHoldStarted >= LONG_PRESS_MS) {
       returnHoldFired = true;
-      emitKey('t');
+      triggerReturn();
       const badge = ensureUi();
       badge.innerHTML = copy(
         '<strong>回城指令</strong> · 长按 View 已触发',
@@ -265,8 +277,8 @@
   startLoop();
 
   window.__DE_GAMEPAD_ADAPTER = {
-    version:'v3', owner:'desktop-controls', locale:english ? 'en' : 'zh-CN',
-    showStatus, activeMenuRoot, moveMenuFocus, activateMenu, backMenu, startLoop, stopLoop,
+    version:'v4', owner:'desktop-controls', locale:english ? 'en' : 'zh-CN',
+    showStatus, activeMenuRoot, moveMenuFocus, activateMenu, backMenu, triggerReturn, startLoop, stopLoop,
     get running() { return !!rafId; },
   };
 })();
