@@ -22,7 +22,7 @@ challenge-pressure.js
 risk-reward-system.js
 visual-polish.js
 equipment-shop-ui.js
-release-stamp-v128.js
+release-stamp-v129.js
 fixed-locale-entry-v130.js
 stable-item-id-migration-v150.js
 core-screen-owner-v153.js
