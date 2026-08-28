@@ -21,6 +21,7 @@ game/core/runtime-bootstrap.js
 game/systems/challenge-pressure.js
 game/systems/risk-reward-system.js
 game/ui/visual-polish.js
+game/ui/art-runtime-v2.js
 game/ui/equipment-shop-ui.js
 game/core/release-stamp-v1211.js
 game/locale/fixed-locale-entry-v130.js
@@ -54,3 +55,7 @@ art/monster-atlas-v11.png
 art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
+art/runtime/loot-atlas-v2.svg
+art/runtime/monster-deep-atlas-v2.svg
+art/runtime/hero-action-atlas-v2.svg
+art/runtime/dungeon-props-atlas-v1.svg
