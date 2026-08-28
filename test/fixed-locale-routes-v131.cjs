@@ -13,14 +13,15 @@ ok(/<html\s+lang="en"\s+data-de-locale="en">/.test(en),'English entry owns Engli
 ok(/<base\s+href="\.\.\/">/.test(en),'English entry resolves all shared assets from the same dungeon root');
 ok(!/[\u3400-\u9fff]/.test(en),'English static entry contains no CJK presentation text');
 ok(JSON.stringify(scripts(zh))===JSON.stringify(scripts(en)),'Chinese and English entries boot the exact same synchronous gameplay script graph');
-ok(manifest.includes('index.html')&&manifest.includes('en/index.html')&&manifest.includes('fixed-locale-entry-v130.js')&&manifest.includes('core-locale-data-v139.js'),'release manifest ships both fixed routes and one-shot core locale data owner');
+ok(manifest.includes('index.html')&&manifest.includes('en/index.html')&&manifest.includes('fixed-locale-entry-v130.js')&&manifest.includes('core-locale-data-v139.js')&&manifest.includes('stable-item-id-migration-v150.js'),'release manifest ships both fixed routes, core locale data and stable item migration');
 const fixedPos=runtime.indexOf("'fixed-locale-entry-v130.js'");
+const idPos=runtime.indexOf("'stable-item-id-migration-v150.js'");
 const eventPos=runtime.indexOf("'locale-event-owner-v130.js'");
 const localePos=runtime.indexOf("'locale-runtime-v122.js'");
-ok(fixedPos>=0&&eventPos>fixedPos&&localePos>eventPos,'fixed route identity is declared before the transitional English locale bridge');
+ok(fixedPos>=0&&idPos>fixedPos&&eventPos>idPos&&localePos>eventPos,'fixed route identity and stable IDs are established before the transitional English locale bridge');
 ok(/const englishBridge = english \? \[/.test(runtime),'legacy locale bridge is gated to the English fixed route');
 ok(/const english = routeLang === 'en'/.test(runtime)&&/localeOwner\(\) \{ return english \?/.test(runtime),'runtime locale ownership is route-derived rather than query-derived');
-ok(/assetVersion = '140'/.test(runtime)&&/version:'v11'/.test(runtime),'runtime bootstrap/cache generation is aligned at 140');
+ok(/assetVersion = '140'/.test(runtime)&&/version:'v12'/.test(runtime),'runtime bootstrap remains cache generation 140 while internal bootstrap advances to v12');
 ok(/const chain = Object\.freeze\(\[\.\.\.baseChain, \.\.\.englishBridge, \.\.\.followerChain\]\)/.test(runtime),'Chinese route omits the legacy locale trio while preserving shared followers');
 ok(/const storageKey = 'de-language-v1'/.test(owner),'fixed route owner writes only the legacy language preference key');
 ok(!/de-run-v6|de-greedy-meta-v1|de-town-wheel-state-v1|de-progression-guard-v1/.test(owner),'fixed locale routing does not fork or mutate gameplay save namespaces');
