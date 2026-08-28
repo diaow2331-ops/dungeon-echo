@@ -54,7 +54,7 @@ const npcStability=read('npc-stability-system.js');
 assert(/version:'p0-v5'/.test(npcStability),'NPC stability uses targeted-action v5');
 assert(/function\s+relocationNeeded\s*\(force=false\)/.test(npcStability),'NPC relocation has an explicit floor/NPC-set invalidation gate');
 assert(/list !== lastNpcList/.test(npcStability)&&/Number\(api\.depth\) !== lastDepth/.test(npcStability)&&/count !== lastCount/.test(npcStability),'NPC relocation invalidates only for floor/NPC-set changes');
-assert(/relocationNeeded\(force\) \? relocateChokepoints\(\) : 0/.test(npcStability),'map-wide chokepoint scan is skipped on steady-state inputs');
+assert(/relocationNeeded\(force\) \? relocateChokepoints\(\) : 0/.test(npcStability),'map-wide relocation is skipped on steady-state inputs');
 assert(/const ACTION_KEYS = new Set/.test(npcStability)&&/const ACTION_TARGETS = \[/.test(npcStability),'NPC cleanup scheduling has explicit action allowlists');
 assert(/function\s+scheduleFromKey\s*\(/.test(npcStability)&&/ACTION_KEYS\.has/.test(npcStability),'NPC key scheduling ignores unrelated keys');
 assert(/function\s+scheduleFromClick\s*\(/.test(npcStability)&&/closest\(ACTION_TARGETS\)/.test(npcStability),'NPC click scheduling ignores unrelated controls');
@@ -66,17 +66,28 @@ const mobile=read('mobile-ux.js');
 assert(/setInterval\(\(\)=>btn\.click\(\),110\)/.test(mobile)&&/clearInterval\(interval\)/.test(mobile),'mobile repeat timer exists only for pointer-hold movement and is cleared');
 
 const runtime=read('runtime-bootstrap.js');
-assert(/const englishBridge = english \? \[/.test(runtime),'legacy locale bridge remains explicitly English-only while core source migration is unfinished');
-assert(/locale-runtime-v122\.js/.test(runtime)&&/locale-completeness-v128\.js/.test(runtime),'transitional English locale debt remains visible instead of being hidden by another patch layer');
-const localeOwner=read('locale-event-owner-v130.js');
-assert(/version:'v145'/.test(localeOwner),'transitional locale owner is the visible-only v145 contract');
-assert(!/translateTree\(document\.body\)/.test(localeOwner),'English per-action locale sync must not traverse the whole document body');
-assert(/const legacyRoots = Object\.freeze\(\[/.test(localeOwner),'remaining Chinese-first screens are an explicit shrinking allowlist');
-assert(/function\s+activeResidualRoots\s*\(/.test(localeOwner)&&/for \(const root of activeResidualRoots\(\)\)/.test(localeOwner),'legacy bridge scans only visible residual screens');
-assert(/classList\.contains\('hidden'\)/.test(localeOwner)&&/aria-hidden/.test(localeOwner),'hidden residual screens must stay out of per-action translation');
-for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#bagdetail','#tooltip','#hint','#help','#talent-screen','#shrine-screen','#echo-screen','#achv-screen'])
-  assert(!localeOwner.includes(`'${migrated}'`),`${migrated} must not re-enter the transitional bridge`);
-const record=read('expedition-record-v126.js');
-assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender instead of relying on legacy translation');
+const manifest=read('ops/release/static-files.txt');
+for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
+  assert(!runtime.includes(retired),`${retired} must stay out of the production runtime graph`);
+  assert(!manifest.split(/\r?\n/).includes(retired),`${retired} must stay out of the release manifest`);
+}
+assert(/const chain = Object\.freeze\(\[\.\.\.baseChain, \.\.\.followerChain\]\)/.test(runtime),'both locales share one bridge-free runtime chain');
+assert(/assetVersion = '153'/.test(runtime)&&/version:'v13'/.test(runtime),'final runtime graph is cache generation 153 / bootstrap v13');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + semantic gamepad Return + scoped shop/forge feedback + completion-aware onboarding + targeted-action NPC cleanup + visible-only six-root locale bridge)`);
+const screenOwner=read('core-screen-owner-v153.js');
+assert(/version:'v153'/.test(screenOwner)&&/owner:'core-screen-owner-v153'/.test(screenOwner),'final core screen owner is explicit');
+assert(!/MutationObserver|translateTree|setInterval|requestAnimationFrame/.test(screenOwner),'core screen owner uses exact event-driven sinks without translation scans or permanent loops');
+assert(/renderTitle/.test(screenOwner)&&/renderClassSelect/.test(screenOwner)&&/renderPause/.test(screenOwner)&&/renderOverlay/.test(screenOwner)&&/renderDungeonShop/.test(screenOwner)&&/renderTown/.test(screenOwner),'all six former legacy locale roots have exact render owners');
+assert(/ACTION_KEYS/.test(screenOwner)&&/ACTION_TARGETS/.test(screenOwner),'core screen synchronization is narrowed to explicit actions');
+assert(/api\.useEscape = wrapped/.test(screenOwner),'semantic gamepad Return gets the same post-transition fixed-route repaint');
+
+const canvasOwner=read('town-canvas-locale-v153.js');
+assert(/owner:'town-canvas-locale-v153'/.test(canvasOwner),'town canvas has an explicit fixed-route sink owner');
+assert(!/MutationObserver|setInterval|requestAnimationFrame/.test(canvasOwner),'town canvas sink adds no observer, polling or animation follower');
+assert(/ctx\.canvas && ctx\.canvas\.id/.test(canvasOwner)&&/id==='town-scene'/.test(canvasOwner)&&/id==='wheel-canvas'/.test(canvasOwner),'canvas localization is scoped to the two town canvases only');
+assert(/data\.itemName/.test(canvasOwner)&&/shortLegacy/.test(canvasOwner),'wheel equipment labels localize from data without mutating saved names');
+
+const record=read('expedition-record-v126.js');
+assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender');
+
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + semantic gamepad Return + scoped shop/forge feedback + completion-aware onboarding + targeted NPC cleanup + bridge-free fixed core screen/canvas ownership)`);
