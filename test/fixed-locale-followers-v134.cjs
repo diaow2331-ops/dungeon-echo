@@ -1,7 +1,15 @@
 'use strict';
 const fs=require('fs'),path=require('path');
 const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
-const read=f=>fs.readFileSync(path.join(root,f),'utf8');
+const moved={
+  'audio-director.js':'game/ui/audio-director.js',
+  'combat-hint-polish.js':'game/ui/combat-hint-polish.js',
+  'help-copy-v126.js':'game/ui/help-copy-v126.js',
+  'mobile-ux.js':'game/ui/mobile-ux.js',
+  'expedition-record-v126.js':'game/ui/expedition-record-v126.js',
+  'forge-feedback-v122.js':'game/ui/forge-feedback-v122.js',
+};
+const read=f=>fs.readFileSync(path.join(root,moved[f]||f),'utf8');
 const sources={
   data:read('locale-data-v134.js'),
   audio:read('audio-director.js'),

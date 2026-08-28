@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('fs'),path=require('path'),assert=require('assert');
-const source=fs.readFileSync(path.join(__dirname,'..','fixed-locale-entry-v130.js'),'utf8');
+const source=fs.readFileSync(path.join(__dirname,'..','game','locale','fixed-locale-entry-v130.js'),'utf8');
 assert(source.includes("version:'v138'"),'fixed locale owner must report v138');
 assert(source.includes('function installLanguageEntry()'),'route owner must create the title language selector');
 assert(source.includes("style.dataset.owner = 'fixed-locale-entry-v130'"),'selector style ownership must be explicit');

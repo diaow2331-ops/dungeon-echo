@@ -1,7 +1,17 @@
 'use strict';
 const fs=require('fs'),path=require('path'),assert=require('assert');
 const root=path.resolve(__dirname,'..');
-const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const moved={
+  'world-loot-polish-v122.js':'game/ui/world-loot-polish-v122.js',
+  'forge-feedback-v122.js':'game/ui/forge-feedback-v122.js',
+  'combat-hint-polish.js':'game/ui/combat-hint-polish.js',
+  'audio-director.js':'game/ui/audio-director.js',
+  'mobile-ux.js':'game/ui/mobile-ux.js',
+  'core-screen-owner-v153.js':'game/locale/core-screen-owner-v153.js',
+  'town-canvas-locale-v153.js':'game/locale/town-canvas-locale-v153.js',
+  'expedition-record-v126.js':'game/ui/expedition-record-v126.js',
+};
+const read=file=>fs.readFileSync(path.join(root,moved[file]||file),'utf8');
 
 const retiredPollOwners=[
   'combat-controls.js','equipment-system.js','progression-system.js','forge-system.js',
@@ -69,7 +79,7 @@ const runtime=read('runtime-bootstrap.js');
 const manifest=read('ops/release/static-files.txt');
 for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
   assert(!runtime.includes(retired),`${retired} must stay out of the production runtime graph`);
-  assert(!manifest.split(/\r?\n/).includes(retired),`${retired} must stay out of the release manifest`);
+  assert(!manifest.split(/\r?\n/).some(file=>file===retired||file.endsWith('/'+retired)),`${retired} must stay out of the release manifest`);
 }
 assert(/const chain = Object\.freeze\(\[\.\.\.baseChain, \.\.\.followerChain\]\)/.test(runtime),'both locales share one bridge-free runtime chain');
 assert(/assetVersion = '153'/.test(runtime)&&/version:'v13'/.test(runtime),'final runtime graph is cache generation 153 / bootstrap v13');

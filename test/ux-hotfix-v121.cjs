@@ -2,19 +2,20 @@
 const fs = require('fs');
 const assert = require('assert');
 
-const fixed = fs.readFileSync('fixed-locale-entry-v130.js','utf8');
-const screen = fs.readFileSync('core-screen-owner-v153.js','utf8');
+const fixed = fs.readFileSync('game/locale/fixed-locale-entry-v130.js','utf8');
+const screen = fs.readFileSync('game/locale/core-screen-owner-v153.js','utf8');
 const runtime = fs.readFileSync('runtime-bootstrap.js','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/).filter(Boolean);
 
-// Historical hotfix/translator layers may remain in source control for archaeology,
+// Historical hotfix/translator layers are quarantined under archive/ for archaeology,
 // but none may return to the production runtime or release package.
 for (const retired of [
   'ux-hotfix-v121.js','i18n-runtime.js','i18n-content.js',
   'locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js'
 ]) {
   assert(!runtime.includes(`'${retired}'`), `retired locale layer must not load: ${retired}`);
-  assert(!manifest.includes(retired), `retired locale layer must not ship: ${retired}`);
+  assert(!manifest.some(file=>file===retired||file.endsWith('/'+retired)), `retired locale layer must not ship: ${retired}`);
+  assert(fs.existsSync(`archive/runtime/${retired}`), `retired locale layer must remain available in archive: ${retired}`);
 }
 
 assert(/box\.id\s*=\s*'de-title-language'/.test(fixed), 'fixed-route title language picker missing');

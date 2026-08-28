@@ -2,7 +2,7 @@
 const fs = require('fs');
 const assert = require('assert');
 
-const audio = fs.readFileSync('audio-director.js','utf8');
+const audio = fs.readFileSync('game/ui/audio-director.js','utf8');
 
 assert(audio.includes('function resumeContext()'), 'audio resume helper missing');
 assert(audio.includes("ctx.state === 'running' || ctx.state === 'closed'"), 'resume helper must ignore only healthy/closed contexts');

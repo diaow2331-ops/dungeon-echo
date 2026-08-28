@@ -4,61 +4,49 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/en/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.2.9 is the current repository release line. Public deployment is only considered complete after the game-only bundle upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
+> **Status:** v1.2.9 is the current repository release line. Public deployment is complete only after the game-only bundle, version endpoint and health checks pass. Compatible browser saves remain valid.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
-Dungeon Echo is a vanilla HTML/CSS/JavaScript roguelike built around one continuous journey from **floor 1 to floor 100**.
+Dungeon Echo is a vanilla HTML/CSS/JavaScript roguelike built around one continuous journey from **floor 1 to floor 100**:
 
 `descend → fight → loot → decide whether to push deeper → return safely → secure the build → descend again`
 
-No account is required. Saves live in the browser. The production game is static and has no runtime backend dependency.
+No account or runtime backend is required. Saves live in browser `localStorage`.
 
-## Start here in the source
+## Start here
 
-The repository root intentionally keeps the production entry and active browser runtime visible. Historical release notes and maintenance material are collected under `docs/` so the playable game code is easy to find.
+The repository is organized so a visitor should not need to scroll through dozens of loose runtime files.
 
-- [`game.js`](game.js) — core state, map generation and turn engine.
-- [`content-system.js`](content-system.js) — late floors, guardians and the floor-100 finale.
-- [`equipment-system.js`](equipment-system.js) — equipment generation, fit/value and swap-turn ownership.
-- [`commerce-system.js`](commerce-system.js) — town supply economy and Return Scroll extraction state machine.
-- [`runtime-bootstrap.js`](runtime-bootstrap.js) — late presentation/runtime graph for both fixed language routes.
-- [`index.html`](index.html) / [`en/index.html`](en/index.html) — fixed Chinese / English production entries.
-- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — engineering map and validation guidance.
-- [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) — current production contract.
-- [`docs/releases/`](docs/releases/) — historical release notes.
+- [`index.html`](index.html) — fixed Chinese production entry.
+- [`en/index.html`](en/index.html) — fixed English production entry; shares the same gameplay graph and saves.
+- [`game.js`](game.js) — core map, state and turn engine.
+- [`game/`](game/) — grouped active presentation/localization runtime.
+  - [`game/locale/`](game/locale/) — fixed-route locale ownership, stable display IDs and exact English screen/Canvas sinks.
+  - [`game/ui/`](game/ui/) — bounded presentation followers such as audio, mobile UX, help, record and visual feedback.
+- [`profiles/`](profiles/) — production and deterministic development profiles.
+- [`art/`](art/) — production artwork.
+- [`docs/`](docs/) — current engineering, maintenance, localization and design documentation.
+- [`test/`](test/) — deterministic repository and gameplay contracts.
+- [`ops/`](ops/) — release, deployment, rollback and site integration tooling.
+- [`archive/`](archive/) — retired runtime and historical release stamps kept for provenance; nothing here is loaded by production.
 
-## See the journey
+Current fixed-route render owners live under `game/locale/`: `fixed-locale-entry-v130.js`, `stable-item-id-migration-v150.js`, `core-screen-owner-v153.js` and `town-canvas-locale-v153.js`. The retired translation-after-render stack (`locale-event-owner-v130.js`, `locale-runtime-v122.js`, `locale-completeness-v128.js`, and the older i18n bridge) is archived and no longer loaded or shipped.
 
-| Four classes | Return to town | Floor 100 |
-| --- | --- | --- |
-| ![Warrior, Ranger, Arcanist and Assassin](art/class-roster.webp) | ![Dungeon Echo town](art/town-backdrop-v11.webp) | ![Dungeon Echo final boss](art/final-boss-v11.png) |
+For engineering details, read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) and [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md). Historical release notes are collected under [`docs/releases/`](docs/releases/).
 
-The launch media intentionally uses current shipped art. A fresh post-v1.2.9 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
+## What is in the game?
 
-## Why play it?
-
-- One production route: **1 → 100**, with conquered-depth checkpoints instead of paid skips.
+- One production route: **1 → 100**, with earned checkpoints rather than paid skips.
 - Four classes: **Warrior, Ranger, Arcanist, Assassin**.
-- Six equipment slots with tier-specific art, rarity, affixes and build tradeoffs.
-- Greedy Expedition town loop with safe storage, finite supplies, forging and commerce.
+- Six equipment slots with rarity, affixes, forging and build tradeoffs.
+- Greedy Expedition town loop with safe storage, finite supplies and commerce.
 - Skill evolution at **20 / 40 / 60 / 80**.
-- Ten guardian/finale nodes with readable movement, interrupt and armor-break counterplay.
-- A three-phase floor-100 finale.
-- Explicit **J Attack / K Skill** combat with class-specific mana capacity, skill cost and recovery rhythm.
-- Adaptive procedural BGM plus independent **Music / SFX 0–100%** controls and persistent master mute.
-- Desktop keyboard/mouse, native Gamepad API and portrait/landscape touch controls.
-- Progressive onboarding that teaches mechanics without covering the mobile action deck.
-- Fixed Chinese and English production routes on the same origin, sharing the same gameplay/save data.
-- v1.2.3 device/presentation cleanup: no always-on player halo, camera-aware visual overlays, steadier non-fullscreen mobile layout, faster pointer-down touch response and a four-way D-pad without the accidental center Wait target.
-- v1.2.4 navigation hotfix: **How to Play / 玩法说明** and **Expedition Record / 远征录** are restored as native top-level UI screens, including the town → record → town return path.
-- v1.2.5 cache-coherence hotfix: release-critical CSS/JS use a shared version fingerprint so a new HTML release cannot silently run against old cached presentation assets.
-- v1.2.6 record/localization polish: Help control copy stays in the selected language on both desktop and mobile, while Expedition Record always exposes the full 12-achievement catalog with progress, locked goals and a zero-state before the first Greedy Expedition.
-- v1.2.7 ownership hardening: equipment swap turns, risk/reward interactions, permanent growth/XP bounds and utility-NPC path stability now have explicit production owners; `production-bootstrap.js` no longer carries gameplay rules.
-- v1.2.8 locale/save/input hardening: malformed persistent blobs are rejected before core restore, core text escaping is correct, Greedy town resumes restore a valid economy/state, gamepads expose RT Attack and the floor-100 choice cannot settle twice.
-- v1.2.9 convergence release: the final translation-after-render bridge is retired from production, `/` is fixed Chinese, `/en/` is fixed English, both boot the same gameplay/runtime graph, Return Scroll extraction has one guarded two-stage owner, stable language-neutral item IDs preserve shared saves, and the release runs on cache generation 153.
-
-The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
+- Guardians at each tenth-floor milestone and a three-phase floor-100 finale.
+- Explicit **J Attack / K Skill** combat with class-specific Mana.
+- Adaptive procedural BGM with independent Music/SFX controls.
+- Keyboard/mouse, Gamepad API and portrait/landscape touch support.
+- Fixed Chinese and English routes on the same origin with shared gameplay/save data.
 
 ## Controls
 
@@ -76,23 +64,11 @@ The project favors readable counterplay over hidden punishment, human playtestin
 | Master mute | `M` | — | Sound |
 | Fullscreen | `F` | RB | Fullscreen |
 
-Skills use mana. Each class has a different mana capacity, skill cost and recovery rhythm. Mana mutations are persisted through the existing run-save path so refreshing the page cannot restore a pre-cost or pre-recovery snapshot.
+## Language and saves
 
-## Language
+`/dungeon-echo/` is the fixed Chinese route and `/dungeon-echo/en/` is the fixed English route. Legacy `?lang=` links redirect to those paths. Language switching is navigation, not live whole-page translation.
 
-The production UI supports **中文 / English** through fixed routes rather than live whole-page translation.
-
-- `/dungeon-echo/` is the Chinese production entry.
-- `/dungeon-echo/en/` is the English production entry.
-- Legacy `?lang=en`, `?lang=zh` and `?lang=zh-CN` links are redirected onto those fixed paths for compatibility.
-- The title-screen language selector navigates between the two routes and reloads the page; it never translates an active dungeon session in place.
-- Both routes stay on the same origin and boot the same gameplay scripts, so `de-run-v6`, `de-greedy-meta-v1`, stash/equipment progress and other gameplay state are shared.
-- `locale-data-v134.js` provides language-neutral catalog/display helpers; `core-locale-data-v139.js` localizes core class/achievement display data once; `core-screen-owner-v153.js` owns the remaining exact English core screens; `town-canvas-locale-v153.js` owns only the two legacy town Canvas text sinks.
-- `stable-item-id-migration-v150.js` adds language-neutral item IDs without renaming stored items or forking save namespaces.
-- The retired translation-after-render stack (`locale-event-owner-v130.js`, `locale-runtime-v122.js`, `locale-completeness-v128.js`) is no longer loaded or shipped by the production bundle.
-- Expedition Record uses display-only localization and reads the existing Greedy Expedition meta save without mutating it.
-
-Localization keeps gameplay/save identities language-independent. Class IDs, equipment slot IDs, item base/rarity IDs, monster/content IDs, profile IDs and save keys stay stable; only displayed copy varies by fixed route.
+Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and other gameplay namespaces. `stable-item-id-migration-v150.js` adds language-neutral item IDs without renaming historical stored items. v1.2.9 does not require a progress reset.
 
 ## Run locally
 
@@ -100,7 +76,7 @@ Localization keeps gameplay/save identities language-independent. Class IDs, equ
 python3 -m http.server 8000
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:8000/
@@ -108,68 +84,50 @@ http://localhost:8000/en/
 http://localhost:8000/dev.html
 ```
 
-`index.html` and `en/index.html` are the fixed production 1→100 routes. `dev.html` is an internal short-profile harness and must track the same current runtime/control contract without entering the production release package.
+`dev.html` is an internal short-profile harness and is intentionally excluded from the production release package.
 
 ## Repository layout
 
 ```text
 .
-├── index.html                     # fixed Chinese production entry
-├── en/index.html                  # fixed English production entry, shared root assets
-├── dev.html                       # internal multi-profile development harness
-├── game.js                        # core state / map / turn engine
-├── *-system.js                    # explicit gameplay/system owners
-├── *-controls.js                  # keyboard/gamepad/combat input owners
-├── *-v*.js / *-polish.js          # bounded presentation/data migration followers
-├── runtime-bootstrap.js           # generation-153 late presentation/runtime graph
-├── style.css                      # production styles
-├── profiles/                      # production + deterministic fixtures
-├── art/                           # production art assets
-├── docs/                          # engineering, maintenance and design documentation
-│   ├── releases/                  # historical Dungeon Echo / site / Moyu release notes
-│   └── archive/                   # superseded loose-form documentation kept for provenance
-├── test/                          # targeted deterministic contracts
-├── ops/                           # file-upload release and rollback tooling
-├── README.md                      # project overview + source map
-├── CONTRIBUTING.md                # contribution contract
-├── SECURITY.md                    # public security policy
+├── index.html                 # Chinese production entry
+├── en/                        # English production entry
+├── game.js                    # core turn/map engine
+├── *-system.js                # remaining synchronous gameplay owners
+├── *-controls.js              # synchronous input owners
+├── game/
+│   ├── locale/                # fixed-route display ownership
+│   └── ui/                    # bounded presentation followers
+├── profiles/                  # production + dev profiles
+├── art/                       # production artwork
+├── docs/                      # current documentation + releases
+├── test/                      # deterministic contracts
+├── ops/                       # build/deploy/rollback tooling
+├── archive/                   # historical code; never production
+├── README.md
+├── CONTRIBUTING.md
+├── SECURITY.md
 ├── LICENSE
 └── VERSION
 ```
 
-Active production JavaScript remains at the repository root for the current static release line. This avoids a high-risk path-only rewrite after the game has converged, while the source map above makes the ownership boundaries discoverable. Historical and process-heavy material is collected under `docs/` instead of competing with the playable source in the root listing.
+The remaining root JavaScript is intentionally limited to synchronous engine/gameplay/input files that are directly referenced by the production entries or deployment contract. New presentation/localization followers should go under `game/` rather than returning to the root.
 
-## Validation philosophy
+## Validation and release boundary
 
-Engineering checks protect contracts; they do **not** replace human playtesting.
+Engineering checks protect contracts but do not replace human playtesting. High-value checks cover 1→100 descent, save compatibility, Return Scroll extraction, fixed-route localization, input/mana, equipment, mobile UX and release packaging.
 
-High-value checks cover production entry, 1→100 descent, guardian state machines, skill evolution, save compatibility, deployment boundaries, input/mana, equipment art, mobile UX, fixed-route localization, repository release alignment and human-play pressure.
+`VERSION` is the semantic release authority. v1.2.9 uses static cache generation **153**; those numbers are intentionally independent. The game-only package is built by `ops/release/build-site-bundle.sh` and overlays only `/dungeon-echo/`, preserving the existing site and Moyu release tree.
 
-The v1.2 release line does not claim a fresh complete GitHub Actions suite when no run exists. Changes are kept as focused reviewable diffs with targeted static/deterministic contracts and real-browser verification where feel or presentation matters.
-
-## Save compatibility
-
-Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
-
-v1.2.9 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The save-integrity guard preserves valid compatible blobs unchanged, while malformed/impossible blobs are rejected and valid Greedy town meta is repaired through existing defaults. Fixed Chinese/English routes share these same namespaces; language is not part of save identity. Stable item IDs are additive and do not require a progress reset.
-
-## Release boundary
-
-`VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. v1.2.9 is a Dungeon Echo-only convergence release built with `ops/release/build-site-bundle.sh`; it overlays only `/dungeon-echo/` and preserves the existing site and Moyu release tree. Semantic version **1.2.9** is intentionally independent from static cache generation **153**. The unified three-bundle builder remains pinned to the last unified boundary: Dungeon Echo v1.2.7 + site v1.3.3 + Moyu v1.11.3.
-
-Release notes: [`docs/releases/RELEASE_NOTES_v1.2.9.md`](docs/releases/RELEASE_NOTES_v1.2.9.md). Last unified companion web release: [`docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md`](docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md).
-
-## AI-assisted development
-
-OpenAI ChatGPT has been used as an AI engineering collaborator for repository inspection, systems analysis, debugging, regression strategy, gameplay/economy reasoning, deployment review, documentation, art integration, localization architecture and release governance.
-
-The current refinement work was assisted by **GPT-5.6 Sol**. Product direction, acceptance decisions, deployment and final quality judgment remain human-controlled. Dungeon Echo is an independent project and is not an OpenAI product or endorsement.
-
-See [`docs/AI_COLLABORATION.md`](docs/AI_COLLABORATION.md) for the collaboration record.
+Release notes: [`docs/releases/RELEASE_NOTES_v1.2.9.md`](docs/releases/RELEASE_NOTES_v1.2.9.md).
 
 ## Contributing
 
-Focused issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before large changes and [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for the production contract.
+Focused issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) before changing production ownership or persistent state.
+
+## AI-assisted development
+
+OpenAI ChatGPT has been used as an engineering collaborator for repository inspection, debugging, gameplay/economy reasoning, deployment review, localization architecture and release governance. See [`docs/AI_COLLABORATION.md`](docs/AI_COLLABORATION.md).
 
 ## License
 

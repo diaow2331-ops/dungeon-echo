@@ -1,5 +1,5 @@
 'use strict';
-const fs=require('fs'),assert=require('assert');
+const fs=require('fs'),path=require('path'),assert=require('assert');
 const version=fs.readFileSync('VERSION','utf8').trim();
 const readme=fs.readFileSync('README.md','utf8');
 const maintenance=fs.readFileSync('docs/MAINTENANCE.md','utf8');
@@ -11,16 +11,31 @@ const english=fs.readFileSync('en/index.html','utf8');
 const dev=fs.readFileSync('dev.html','utf8');
 const runtime=fs.readFileSync('runtime-bootstrap.js','utf8');
 const manifest=fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/).filter(Boolean);
+const rootJs=fs.readdirSync('.',{withFileTypes:true}).filter(entry=>entry.isFile()&&entry.name.endsWith('.js')).map(entry=>entry.name);
+const localeOwners=['game/locale/fixed-locale-entry-v130.js','game/locale/stable-item-id-migration-v150.js','game/locale/core-screen-owner-v153.js','game/locale/town-canvas-locale-v153.js'];
+const retiredRuntime=['i18n.js','i18n-runtime.js','i18n-content.js','ux-hotfix-v121.js','locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js'];
 
-assert.strictEqual(version,'1.2.8','repository governance contract targets the current semantic release line');
-assert(readme.includes('**Status:** v1.2.8'),'README must identify v1.2.8 as the semantic release line');
+assert.strictEqual(version,'1.2.9','repository governance contract targets the current semantic release line');
+assert(readme.includes('**Status:** v1.2.9'),'README must identify v1.2.9 as the semantic release line');
 assert(readme.includes('https://play.91hwl.cn/dungeon-echo/en/'),'README must publish the fixed English route');
-assert(readme.includes('core-screen-owner-v153.js')&&readme.includes('town-canvas-locale-v153.js'),'README must document final fixed-route render owners');
-assert(readme.includes('locale-event-owner-v130.js')&&readme.includes('no longer loaded or shipped'),'README must record the retired translation-after-render stack as history only');
+assert(readme.includes('game/locale/')&&readme.includes('game/ui/'),'README must expose organized active runtime folders');
+assert(readme.includes('archive/'),'README must explain historical code quarantine');
 assert(readme.includes('docs/releases/'),'README must expose collected release history instead of loose root notes');
 assert(readme.includes('docs/DEVELOPMENT.md')&&readme.includes('docs/MAINTENANCE.md'),'README source map must expose collected engineering docs');
 
-assert(maintenance.includes('post-v1.2.8 fixed-route convergence'),'maintenance guide must describe the current post-release architecture');
+assert(rootJs.length<=24,`repository root must stay compact; found ${rootJs.length} root JavaScript files`);
+for(const retired of retiredRuntime){
+  assert(!rootJs.includes(retired),`retired runtime must not remain loose at root: ${retired}`);
+  assert(fs.existsSync(path.join('archive','runtime',retired)),`retired runtime missing from archive: ${retired}`);
+}
+for(let patch=122;patch<=128;patch++){
+  const stamp=`release-stamp-v${patch}.js`;
+  assert(!rootJs.includes(stamp),`historical release stamp must leave root: ${stamp}`);
+  assert(fs.existsSync(path.join('archive','release-stamps',stamp)),`historical release stamp missing from archive: ${stamp}`);
+}
+assert(rootJs.includes('release-stamp-v129.js'),'current visible release stamp must remain directly discoverable');
+
+assert(maintenance.includes('**v1.2.9**'),'maintenance guide must describe the current release architecture');
 assert(maintenance.includes('Production localization is now **fixed-route and source-owned**'),'maintenance guide must name fixed-route localization ownership');
 assert(maintenance.includes('must not patch `CanvasRenderingContext2D.prototype`'),'maintenance guide must preserve exact Canvas sink scoping');
 assert(maintenance.includes('de-language-v1` is presentation state'),'maintenance guide must keep language outside gameplay save identity');
@@ -33,9 +48,9 @@ assert(localization.includes('must not patch `CanvasRenderingContext2D.prototype
 
 for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
   assert(!runtime.includes(retired),`runtime must not load retired locale layer ${retired}`);
-  assert(!manifest.includes(retired),`release manifest must not ship retired locale layer ${retired}`);
+  assert(!manifest.some(file=>file===retired||file.endsWith('/'+retired)),`release manifest must not ship retired locale layer ${retired}`);
 }
-for(const owner of ['fixed-locale-entry-v130.js','stable-item-id-migration-v150.js','core-screen-owner-v153.js','town-canvas-locale-v153.js']){
+for(const owner of localeOwners){
   assert(runtime.includes(owner),`runtime missing fixed-route owner ${owner}`);
   assert(manifest.includes(owner),`release manifest missing fixed-route owner ${owner}`);
 }

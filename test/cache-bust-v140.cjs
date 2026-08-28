@@ -14,7 +14,7 @@ for(const [name,html] of [['zh',zh],['en',en]]){
 }
 const runtime=fs.readFileSync(path.join(root,'runtime-bootstrap.js'),'utf8');
 ok(runtime.includes("assetVersion = '153'"),'runtime followers use the same generation 153 cache key');
-ok(runtime.includes("fresh('core-screen-owner-v153.js')")&&runtime.includes("fresh('town-canvas-locale-v153.js')"),'final fixed-route core screen owners are cache-busted by generation 153');
-ok(runtime.includes("fresh('forge-feedback-v122.js')")&&runtime.includes("fresh('world-loot-polish-v122.js')")&&runtime.includes("fresh('expedition-record-v126.js')"),'shared followers are cache-busted by runtime generation 153');
+ok(runtime.includes("fresh('game/locale/core-screen-owner-v153.js')")&&runtime.includes("fresh('game/locale/town-canvas-locale-v153.js')"),'final fixed-route core screen owners are cache-busted by generation 153');
+ok(runtime.includes("fresh('game/ui/forge-feedback-v122.js')")&&runtime.includes("fresh('game/ui/world-loot-polish-v122.js')")&&runtime.includes("fresh('game/ui/expedition-record-v126.js')"),'shared followers are cache-busted by runtime generation 153');
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail?1:0);
