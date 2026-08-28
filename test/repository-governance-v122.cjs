@@ -1,60 +1,47 @@
 'use strict';
-const fs = require('fs');
-const assert = require('assert');
+const fs=require('fs'),assert=require('assert');
+const version=fs.readFileSync('VERSION','utf8').trim();
+const readme=fs.readFileSync('README.md','utf8');
+const maintenance=fs.readFileSync('MAINTENANCE.md','utf8');
+const development=fs.readFileSync('DEVELOPMENT.md','utf8');
+const localization=fs.readFileSync('docs/LOCALIZATION.md','utf8');
+const ai=fs.readFileSync('AI_COLLABORATION.md','utf8');
+const index=fs.readFileSync('index.html','utf8');
+const english=fs.readFileSync('en/index.html','utf8');
+const dev=fs.readFileSync('dev.html','utf8');
+const runtime=fs.readFileSync('runtime-bootstrap.js','utf8');
+const manifest=fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/).filter(Boolean);
 
-const version = fs.readFileSync('VERSION', 'utf8').trim();
-const readme = fs.readFileSync('README.md', 'utf8');
-const maintenance = fs.readFileSync('MAINTENANCE.md', 'utf8');
-const roadmap = fs.readFileSync('PRODUCTION_ROADMAP.md', 'utf8');
-const development = fs.readFileSync('DEVELOPMENT.md', 'utf8');
-const ai = fs.readFileSync('AI_COLLABORATION.md', 'utf8');
-const xLaunch = fs.readFileSync('docs/X_LAUNCH_CHECKLIST.md', 'utf8');
-const index = fs.readFileSync('index.html', 'utf8');
-const dev = fs.readFileSync('dev.html', 'utf8');
-const runtime = fs.readFileSync('runtime-bootstrap.js', 'utf8');
-const manifest = fs.readFileSync('ops/release/static-files.txt', 'utf8').split(/\r?\n/).filter(Boolean);
+assert.strictEqual(version,'1.2.8','repository governance contract targets the current semantic release line');
+assert(readme.includes('**Status:** v1.2.8'),'README must identify v1.2.8 as the semantic release line');
+assert(readme.includes('https://play.91hwl.cn/dungeon-echo/en/'),'README must publish the fixed English route');
+assert(readme.includes('core-screen-owner-v153.js')&&readme.includes('town-canvas-locale-v153.js'),'README must document final fixed-route render owners');
+assert(readme.includes('locale-event-owner-v130.js')&&readme.includes('no longer loaded or shipped'),'README must record the retired translation-after-render stack as history only');
 
-assert.strictEqual(version, '1.2.3', 'repository governance contract targets v1.2.3');
-assert(readme.includes('**Status:** v1.2.3'), 'README must identify v1.2.3 as current repository release line');
-assert(readme.includes('locale-runtime-v122.js'), 'README must document the stable locale owner');
-assert(!readme.includes('├── i18n.js') && !readme.includes('├── i18n-runtime.js') && !readme.includes('├── i18n-content.js') && !readme.includes('├── ux-hotfix-v121.js'), 'README must not advertise retired localization layers');
-assert(!readme.includes('mobile-visual-final-v123.js'), 'README must not document a discarded hotfix layer');
+assert(maintenance.includes('post-v1.2.8 fixed-route convergence'),'maintenance guide must describe the current post-release architecture');
+assert(maintenance.includes('Production localization is now **fixed-route and source-owned**'),'maintenance guide must name fixed-route localization ownership');
+assert(maintenance.includes('must not patch `CanvasRenderingContext2D.prototype`'),'maintenance guide must preserve exact Canvas sink scoping');
+assert(maintenance.includes('de-language-v1` is presentation state'),'maintenance guide must keep language outside gameplay save identity');
 
-assert(maintenance.includes('**v1.2.3**'), 'maintenance guide must identify v1.2.3 as current contract');
-assert(maintenance.includes('`locale-runtime-v122.js` is the current language owner'), 'maintenance guide must name the current locale owner');
-assert(maintenance.includes('deliberately not exposed on the mobile D-pad'), 'maintenance guide must preserve the mobile wait-control decision');
-assert(!maintenance.includes('Frozen release candidate: **v1.2.0**'), 'maintenance guide must not freeze current state at v1.2.0');
-assert(!maintenance.includes('`i18n.js` is the language owner'), 'maintenance guide must not restore the retired locale owner');
+assert(development.includes('Production routes: `index.html` = fixed Chinese, `en/index.html` = fixed English'),'development guide must expose both fixed production routes');
+assert(development.includes('translation-after-render stack'),'development guide must quarantine the retired locale architecture');
+assert(development.includes('node test/final-fixed-locale-v153.cjs'),'development guide must expose the final locale contract');
+assert(localization.includes('/dungeon-echo/en/'),'localization contract must use the fixed English route');
+assert(localization.includes('must not patch `CanvasRenderingContext2D.prototype`'),'localization contract must scope Canvas ownership');
 
-assert(roadmap.includes('当前仓库基线：**v1.2.3**'), 'roadmap must start from v1.2.3');
-assert(roadmap.includes('仓库治理 → 分支收束 → 91hwl 网站展示'), 'roadmap must preserve the post-game governance/site sequence');
-assert(roadmap.includes('美术线到此收尾'), 'roadmap must keep the broad art pass closed');
-assert(roadmap.includes('v1.2.3 移除 PC / 手机主角常驻光圈'), 'roadmap must record the final visual-device defect fix');
-assert(!roadmap.includes('v1.2.0 已冻结为发布候选'), 'roadmap must not advertise v1.2.0 as current candidate');
-
-assert(development.includes('Attack: **J**') && development.includes('Skill: **K** + Mana'), 'development guide must expose the current J/K contract');
-assert(development.includes('Localization owner: `locale-runtime-v122.js`'), 'development guide must expose the current locale owner');
-assert(development.includes('The old C-skill / J-quick-dive UI is also retired'), 'development guide must explicitly quarantine the old control contract');
-
-assert(ai.includes('current active-skill input is **K**'), 'AI collaboration history must distinguish current K from historical C');
-assert(ai.includes('v1.2.2 art/UX pass is treated as the end of this broad game-polish cycle'), 'AI collaboration record must preserve the broad art-closure provenance');
-
-assert(xLaunch.includes('standard non-Premium X account'), 'X launch plan must target the actual standard-account publishing constraint');
-assert(xLaunch.includes('Preferred four-image set'), 'X launch plan must prioritize a media-first four-image package');
-assert(!xLaunch.includes('Long-form story / X Article'), 'X launch plan must not depend on Premium Article publishing');
-
-assert(runtime.includes('release-stamp-v123.js'), 'runtime must expose the current release stamp');
-assert(!runtime.includes('mobile-visual-final-v123.js'), 'runtime must not accumulate a redundant finalizer layer');
-assert(!index.includes('正式版 <b>v1.2.1</b>'), 'static footer must not regress to v1.2.1');
-assert(dev.includes('data-act="skill">技能 <span>K</span>'), 'dev shell must use current K skill control');
-assert(dev.includes('J 攻击') && dev.includes('K 职业技能'), 'dev shell must describe current J/K combat controls');
-assert(!dev.includes('quickdive-fab') && !dev.includes('快速下潜：<b>J</b>'), 'dev shell must not reuse J for obsolete quick-dive UI');
-for (const f of ['equipment-system.js','town-system.js','commerce-system.js','forge-system.js','progression-system.js','content-system.js','combat-pressure.js','visual-polish.js','equipment-shop-ui.js','gameplay-tuning.js','defense-system.js','desktop-controls.js','combat-controls.js','challenge-pressure.js','runtime-bootstrap.js']) {
-  assert(dev.includes(`<script src="${f}"></script>`), `dev shell missing current shared runtime layer: ${f}`);
+for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
+  assert(!runtime.includes(retired),`runtime must not load retired locale layer ${retired}`);
+  assert(!manifest.includes(retired),`release manifest must not ship retired locale layer ${retired}`);
 }
-assert(dev.includes('id="town-growth"') && dev.includes('data-service="market"'), 'dev town shell must retain the current service/progression structure');
-assert(!manifest.includes('dev.html'), 'development harness must remain outside the production release package');
-assert(manifest.includes('release-stamp-v123.js'), 'production manifest must include the current release stamp');
-assert(!manifest.includes('mobile-visual-final-v123.js'), 'production manifest must not include discarded hotfix layers');
+for(const owner of ['fixed-locale-entry-v130.js','stable-item-id-migration-v150.js','core-screen-owner-v153.js','town-canvas-locale-v153.js']){
+  assert(runtime.includes(owner),`runtime missing fixed-route owner ${owner}`);
+  assert(manifest.includes(owner),`release manifest missing fixed-route owner ${owner}`);
+}
+assert(/data-de-locale="zh-CN"/.test(index)&&/data-de-locale="en"/.test(english),'production entries must own explicit route locale identity');
+assert(/<base href="\.\.\/">/.test(english),'English entry must share the root asset graph');
+assert(!/[\u3400-\u9fff]/.test(english),'English static entry must contain no CJK presentation copy');
+assert(!manifest.includes('dev.html'),'development harness must remain outside the production release package');
+assert(dev.includes('data-act="skill">技能 <span>K</span>')&&dev.includes('J 攻击')&&dev.includes('K 职业技能'),'dev shell must retain current J/K controls');
+assert(ai.includes('current active-skill input is **K**'),'AI collaboration history must distinguish current K from historical C');
 
 console.log('repository_governance_current=PASS');
