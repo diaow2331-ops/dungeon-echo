@@ -77,7 +77,8 @@ assert(runtime.includes("window.__DE_ART_RUNTIME_V2"));
 
 assert(bootstrap.includes("game/ui/art-runtime-v2.js?v=157") || bootstrap.includes("../ui/art-runtime-v2.js?v=157"),
   'production bootstrap must load v2 art runtime');
-assert(bootstrap.includes('The v2 layer is optional presentation') || bootstrap.includes('v2 layer is optional presentation'),
+assert(bootstrap.includes('The v2 layer is optional presentation') ||
+  bootstrap.includes('Art overlays are optional presentation'),
   'fallback contract must remain explicit');
 
 for (const forbidden of [
