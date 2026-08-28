@@ -1,0 +1,18 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const src=fs.readFileSync(path.join(root,'desktop-controls.js'),'utf8');
+
+assert(/desktop gamepad adapter v3/.test(src),'gamepad adapter must be v3');
+assert(/function\s+startLoop\s*\(/.test(src)&&/function\s+stopLoop\s*\(/.test(src),'gamepad adapter owns explicit RAF lifecycle');
+assert(/if \(rafId \|\| document\.hidden \|\| typeof navigator\.getGamepads !== 'function'/.test(src),'startLoop must refuse to run while hidden or already active');
+assert(/const pad = pickPad\(\);\n\s*if \(!pad\) return false;/.test(src),'startLoop must require a connected pad before scheduling RAF');
+assert(/if \(!pad\) \{ resetInput\(\); showStatus\(null\); return; \}/.test(src),'tick must self-terminate when no pad remains');
+assert(/gamepadconnected[\s\S]*startLoop\(\)/.test(src),'gamepad connection must start sampling');
+assert(/gamepaddisconnected[\s\S]*stopLoop\(\)/.test(src),'gamepad disconnection must stop sampling');
+assert(/visibilitychange[\s\S]*document\.hidden\) stopLoop\(\)[\s\S]*else startLoop\(\)/.test(src),'visibility lifecycle must stop and resume sampling');
+assert(/pagehide', stopLoop/.test(src)&&/pageshow', startLoop/.test(src),'page lifecycle must own RAF shutdown/resume');
+assert(/get running\(\) \{ return !!rafId; \}/.test(src),'adapter must expose running state for browser verification');
+assert(!/function\s+tick\s*\([^)]*\)\s*\{\s*rafId\s*=\s*requestAnimationFrame\(tick\)/.test(src),'tick must not schedule the next frame before confirming lifecycle state');
+new Function(src);
+console.log('gamepad_lifecycle_v142=PASS');
