@@ -22,7 +22,7 @@ game/systems/challenge-pressure.js
 game/systems/risk-reward-system.js
 game/ui/visual-polish.js
 game/ui/equipment-shop-ui.js
-game/core/release-stamp-v129.js
+game/core/release-stamp-v1210.js
 game/locale/fixed-locale-entry-v130.js
 game/locale/stable-item-id-migration-v150.js
 game/locale/core-screen-owner-v153.js
@@ -34,6 +34,7 @@ game/input/combat-controls.js
 game/ui/combat-hint-polish.js
 game/ui/audio-director.js
 game/ui/mobile-ux.js
+game/ui/responsive-final-v154.js
 game/ui/help-copy-v126.js
 game/ui/expedition-record-v126.js
 game/systems/gameplay-tuning.js
