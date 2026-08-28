@@ -1,7 +1,8 @@
-/* Dungeon Echo desktop gamepad adapter v2.
+/* Dungeon Echo desktop gamepad adapter v3.
  * Translates Gamepad API input into the keyboard/menu contract owned by game.js.
  * Zero dependencies; safe no-op without a connected pad.
  * Fixed Chinese/English routes own all visible controller copy directly.
+ * v3 keeps the Gamepad sampling RAF alive only while a pad is actually connected and the page is visible.
  */
 (() => {
   'use strict';
@@ -197,39 +198,75 @@
     }
   }
 
-  function tick(now) {
-    rafId = requestAnimationFrame(tick);
-    if (document.hidden || now - lastFrame < 16) return;
-    lastFrame = now;
-    const pad = pickPad();
-    if (!pad) return;
-    handleDirection(pad, now);
-    edgeButton(pad, 0, () => { if (!activateMenu()) emitKey('Enter'); });
-    edgeButton(pad, 1, () => { if (activeMenuRoot()) { if (!backMenu()) emitKey('Escape'); } else emitKey(' '); });
-    edgeButton(pad, 2, 'k'); edgeButton(pad, 3, 'q'); edgeButton(pad, 4, 'e');
-    edgeButton(pad, 5, () => { const btn = document.getElementById('fullscreen-toggle'); if (btn) btn.click(); else emitKey('f'); });
-    edgeButton(pad, 7, 'j');
-    edgeButton(pad, 9, 'Escape');
-    handleReturnHold(pad, now);
-  }
-
   function resetInput() {
     buttons.clear(); directions.clear(); returnHoldStarted = 0; returnHoldFired = false;
   }
 
-  window.addEventListener('gamepadconnected', e => { activeIndex = e.gamepad.index; resetInput(); showStatus(e.gamepad); });
+  function stopLoop() {
+    if (rafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rafId);
+    const had = !!rafId;
+    rafId = 0;
+    lastFrame = 0;
+    return had;
+  }
+
+  function tick(now) {
+    rafId = 0;
+    if (document.hidden) { resetInput(); return; }
+    const pad = pickPad();
+    if (!pad) { resetInput(); showStatus(null); return; }
+    if (now - lastFrame >= 16) {
+      lastFrame = now;
+      handleDirection(pad, now);
+      edgeButton(pad, 0, () => { if (!activateMenu()) emitKey('Enter'); });
+      edgeButton(pad, 1, () => { if (activeMenuRoot()) { if (!backMenu()) emitKey('Escape'); } else emitKey(' '); });
+      edgeButton(pad, 2, 'k'); edgeButton(pad, 3, 'q'); edgeButton(pad, 4, 'e');
+      edgeButton(pad, 5, () => { const btn = document.getElementById('fullscreen-toggle'); if (btn) btn.click(); else emitKey('f'); });
+      edgeButton(pad, 7, 'j');
+      edgeButton(pad, 9, 'Escape');
+      handleReturnHold(pad, now);
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startLoop() {
+    if (rafId || document.hidden || typeof navigator.getGamepads !== 'function' || typeof requestAnimationFrame !== 'function') return false;
+    const pad = pickPad();
+    if (!pad) return false;
+    lastFrame = 0;
+    rafId = requestAnimationFrame(tick);
+    return true;
+  }
+
+  window.addEventListener('gamepadconnected', e => {
+    activeIndex = e.gamepad.index;
+    resetInput();
+    showStatus(e.gamepad);
+    startLoop();
+  });
   window.addEventListener('gamepaddisconnected', e => {
     if (activeIndex === e.gamepad.index) activeIndex = null;
     resetInput();
+    stopLoop();
     const pad = pickPad();
-    if (!pad) showStatus(null);
+    if (pad) startLoop();
+    else showStatus(null);
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
-  if (typeof navigator.getGamepads === 'function' && typeof requestAnimationFrame === 'function') rafId = requestAnimationFrame(tick);
-  window.addEventListener('beforeunload', () => { if (rafId) cancelAnimationFrame(rafId); }, { once: true });
+  document.addEventListener('visibilitychange', () => {
+    resetInput();
+    if (document.hidden) stopLoop();
+    else startLoop();
+  });
+  window.addEventListener('pageshow', startLoop);
+  window.addEventListener('pagehide', stopLoop);
+  window.addEventListener('beforeunload', stopLoop, { once: true });
+
+  // Some browsers expose already-connected pads before gamepadconnected reaches page script.
+  startLoop();
 
   window.__DE_GAMEPAD_ADAPTER = {
-    version:'v2', owner:'desktop-controls', locale:english ? 'en' : 'zh-CN',
-    showStatus, activeMenuRoot, moveMenuFocus, activateMenu, backMenu,
+    version:'v3', owner:'desktop-controls', locale:english ? 'en' : 'zh-CN',
+    showStatus, activeMenuRoot, moveMenuFocus, activateMenu, backMenu, startLoop, stopLoop,
+    get running() { return !!rafId; },
   };
 })();
