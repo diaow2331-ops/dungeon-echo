@@ -10,9 +10,12 @@ on:
       - README.md
       - game/core/runtime-bootstrap.js
       - game/core/release-stamp-*.js
+      - game/ui/equipment-shop-ui.js
+      - game/ui/expedition-pressure-v1211.js
       - docs/releases/**
       - ops/release/**
       - ops/site-bundle/**
+      - test/expedition-pressure-v1211.cjs
       - test/release.cjs
       - test/release-freeze-v1.2.cjs
       - .github/workflows/release-governance.yml
@@ -25,9 +28,12 @@ on:
       - README.md
       - game/core/runtime-bootstrap.js
       - game/core/release-stamp-*.js
+      - game/ui/equipment-shop-ui.js
+      - game/ui/expedition-pressure-v1211.js
       - docs/releases/**
       - ops/release/**
       - ops/site-bundle/**
+      - test/expedition-pressure-v1211.cjs
       - test/release.cjs
       - test/release-freeze-v1.2.cjs
       - .github/workflows/release-governance.yml
@@ -40,6 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify v1.2.11 expedition pressure
+        run: node test/expedition-pressure-v1211.cjs
       - name: Verify release freeze
         run: node test/release-freeze-v1.2.cjs
       - name: Verify immutable Dungeon bundle
