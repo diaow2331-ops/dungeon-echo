@@ -8,12 +8,12 @@ const html = fs.readFileSync('index.html','utf8');
 const stampPath = `release-stamp-v${version.replace(/\./g,'')}.js`;
 const stamp = fs.readFileSync(stampPath,'utf8');
 const readme = fs.readFileSync('README.md','utf8');
-const notesPath = `RELEASE_NOTES_v${version}.md`;
+const notesPath = `docs/releases/RELEASE_NOTES_v${version}.md`;
 const siteReadme = fs.readFileSync('ops/site-bundle/README.txt','utf8');
 const homeReadme = fs.readFileSync('ops/home-mount/README.txt','utf8');
 const health = fs.readFileSync('ops/site-bundle/healthcheck.sh','utf8');
-const maintenance = fs.readFileSync('MAINTENANCE.md','utf8');
-const roadmap = fs.readFileSync('PRODUCTION_ROADMAP.md','utf8');
+const maintenance = fs.readFileSync('docs/MAINTENANCE.md','utf8');
+const roadmap = fs.readFileSync('docs/PRODUCTION_ROADMAP.md','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/).filter(Boolean);
 
 assert(/^1\.2\.\d+$/.test(version), 'release must stay on the v1.2 patch line');
