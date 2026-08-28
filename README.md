@@ -16,22 +16,24 @@ No account or runtime backend is required. Saves live in browser `localStorage`.
 
 ## Start here
 
-The repository is organized so a visitor should not need to scroll through dozens of loose runtime files.
+The repository is folder-first: all active JavaScript lives under `game/`, so a new visitor does not have to scroll through dozens of loose runtime files.
 
 - [`index.html`](index.html) — fixed Chinese production entry.
 - [`en/index.html`](en/index.html) — fixed English production entry; shares the same gameplay graph and saves.
-- [`game.js`](game.js) — core map, state and turn engine.
-- [`game/`](game/) — grouped active presentation/localization runtime.
-  - [`game/locale/`](game/locale/) — fixed-route locale ownership, stable display IDs and exact English screen/Canvas sinks.
-  - [`game/ui/`](game/ui/) — bounded presentation followers such as audio, mobile UX, help, record and visual feedback.
+- [`game/`](game/) — all active game JavaScript.
+  - [`game/core/`](game/core/) — core engine, production bootstrap, save guard, runtime bootstrap and current release stamp.
+  - [`game/systems/`](game/systems/) — gameplay owners for equipment, town, commerce, progression, encounters and balance pressure.
+  - [`game/input/`](game/input/) — keyboard/gamepad and J/K + Mana input ownership.
+  - [`game/locale/`](game/locale/) — fixed-route locale data, stable display IDs and exact English screen/Canvas sinks.
+  - [`game/ui/`](game/ui/) — bounded presentation followers such as audio, mobile UX, onboarding, help and visual feedback.
 - [`profiles/`](profiles/) — production and deterministic development profiles.
 - [`art/`](art/) — production artwork.
 - [`docs/`](docs/) — current engineering, maintenance, localization and design documentation.
 - [`test/`](test/) — deterministic repository and gameplay contracts.
-- [`ops/`](ops/) — release, deployment, rollback and site integration tooling.
+- [`ops/`](ops/) — release, deployment, rollback and repository-maintenance tooling.
 - [`archive/`](archive/) — retired runtime and historical release stamps kept for provenance; nothing here is loaded by production.
 
-Current fixed-route render owners live under `game/locale/`: `fixed-locale-entry-v130.js`, `stable-item-id-migration-v150.js`, `core-screen-owner-v153.js` and `town-canvas-locale-v153.js`. The retired translation-after-render stack (`locale-event-owner-v130.js`, `locale-runtime-v122.js`, `locale-completeness-v128.js`, and the older i18n bridge) is archived and no longer loaded or shipped.
+The core turn/map engine is [`game/core/game.js`](game/core/game.js). Fixed-route render owners live under `game/locale/`, while the retired translation-after-render stack is quarantined under `archive/runtime/` and is neither loaded nor shipped.
 
 For engineering details, read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) and [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md). Historical release notes are collected under [`docs/releases/`](docs/releases/).
 
@@ -92,17 +94,17 @@ http://localhost:8000/dev.html
 .
 ├── index.html                 # Chinese production entry
 ├── en/                        # English production entry
-├── game.js                    # core turn/map engine
-├── *-system.js                # remaining synchronous gameplay owners
-├── *-controls.js              # synchronous input owners
 ├── game/
+│   ├── core/                  # engine / boot / save / runtime boundary
+│   ├── systems/               # gameplay owners
+│   ├── input/                 # keyboard + gamepad + combat input
 │   ├── locale/                # fixed-route display ownership
 │   └── ui/                    # bounded presentation followers
 ├── profiles/                  # production + dev profiles
 ├── art/                       # production artwork
 ├── docs/                      # current documentation + releases
 ├── test/                      # deterministic contracts
-├── ops/                       # build/deploy/rollback tooling
+├── ops/                       # build/deploy/rollback/repo tooling
 ├── archive/                   # historical code; never production
 ├── README.md
 ├── CONTRIBUTING.md
@@ -111,7 +113,7 @@ http://localhost:8000/dev.html
 └── VERSION
 ```
 
-The remaining root JavaScript is intentionally limited to synchronous engine/gameplay/input files that are directly referenced by the production entries or deployment contract. New presentation/localization followers should go under `game/` rather than returning to the root.
+The repository root intentionally contains **zero active `.js` files**. New JavaScript must be placed under the appropriate `game/` ownership folder rather than reintroducing root-level clutter. The production entries reference those organized paths directly; there is no compatibility copy or duplicate runtime at root.
 
 ## Validation and release boundary
 
