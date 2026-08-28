@@ -5,12 +5,34 @@
  * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
  * equipment atlas without changing any equipment IDs, save keys or save schemas.
  *
+ * Production input integrity: movement keys may use normal OS key repeat, while
+ * tactical one-shot actions are edge-triggered across keyboard, touch and gamepad.
+ * This guard boots before game.js/combat-controls so repeated keydown events cannot
+ * consume extra turns/items or oscillate pause/audio/fullscreen state.
+ *
  * Gameplay systems own their own mechanics. Bootstrap is limited to production-entry
- * policy and the legacy equipment-atlas presentation compatibility bridge.
+ * policy, input-edge policy and the legacy equipment-atlas presentation compatibility bridge.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined') return;
+
+  const ONE_SHOT_REPEAT_KEYS = new Set([
+    'Escape', ' ', 'Spacebar', '.',
+    'q', 'Q', 'e', 'E', 't', 'T', 'c', 'C', 'j', 'J', 'k', 'K',
+    'm', 'M', 'f', 'F', 'r', 'R', 'n', 'N', 'Enter', 'PageDown', '>',
+  ]);
+  if (!window.__DE_ONE_SHOT_REPEAT_GUARD && typeof window.addEventListener === 'function') {
+    const repeatGuard = event => {
+      if (!event || !event.repeat || !ONE_SHOT_REPEAT_KEYS.has(String(event.key || ''))) return;
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    };
+    window.addEventListener('keydown', repeatGuard, true);
+    window.__DE_ONE_SHOT_REPEAT_GUARD = {
+      version:'v1', owner:'production-bootstrap', keys:ONE_SHOT_REPEAT_KEYS, repeatGuard,
+    };
+  }
 
   const EQUIPMENT_ATLAS = 'art/loot-atlas-v12.svg';
 
