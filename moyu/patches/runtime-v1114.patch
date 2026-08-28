@@ -1,0 +1,89 @@
+--- game.js
++++ game.js
+@@ -70,11 +70,14 @@
+ function toggleLanguage(){currentLang=currentLang==='en'?'zh':'en';applyLanguage(true)}
+ function updateRouteStrip(){if(!routeStrip)return;routeStrip.querySelectorAll('[data-route]').forEach(el=>{const i=Number(el.dataset.route);const active=(endingPhase==='decision'||endingPhase==='ontime'||endingPhase==='overtime')?i===4:i===Math.min(3,Math.max(0,sceneIndex));const done=(endingPhase!=='none')?i<4:i<Math.max(0,sceneIndex);el.classList.toggle('active',active);el.classList.toggle('done',done)})}
+-function syncPresentationState(){
+-  document.documentElement.dataset.gameState=state;
++function syncPresentationState(force=false){
+   const pressure=stageIndex>=4?'climax':(stageIndex>=3?'high':'normal');
+-  frame.dataset.pressure=pressure;
+   const routeIndex=(endingPhase==='decision'||endingPhase==='ontime'||endingPhase==='overtime')?4:Math.min(3,Math.max(0,sceneIndex));
++  const signature=`${state}|${pressure}|${routeIndex}`;
++  if(!force&&syncPresentationState.signature===signature)return;
++  syncPresentationState.signature=signature;
++  if(document.documentElement.dataset.gameState!==state)document.documentElement.dataset.gameState=state;
++  if(frame.dataset.pressure!==pressure)frame.dataset.pressure=pressure;
+   const active=routeStrip?.querySelector('.route-step.active');
+   if(active&&matchMedia('(max-width:700px)').matches&&state==='playing'&&syncPresentationState.routeIndex!==routeIndex){
+     const left=active.offsetLeft-routeStrip.clientWidth*.12;routeStrip.scrollTo({left,behavior:'smooth'});
+@@ -184,11 +187,15 @@
+ }
+ syncStats();renderDiscoveries();
+ 
+-function resizeCanvas(){
++let canvasLayoutDirty=true;
++function invalidateCanvasLayout(){canvasLayoutDirty=true}
++function resizeCanvas(force=false){
++  if(!force&&!canvasLayoutDirty)return false;
+   const rect=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,DPR_LIMIT);
+   const pxW=Math.max(1,Math.round(rect.width*dpr)),pxH=Math.max(1,Math.round(rect.height*dpr));
+   if(canvas.width!==pxW||canvas.height!==pxH){canvas.width=pxW;canvas.height=pxH}
+   ctx.setTransform(pxW/W,0,0,pxH/H,0,0);ctx.imageSmoothingEnabled=true;
++  canvasLayoutDirty=false;return true;
+ }
+ 
+ function ensureAudio(){
+@@ -552,10 +559,15 @@
+   if(prev==='BUG'&&next==='邮件')min=Math.max(min,455);
+   return min
+ }
+ function enforcePairGapPx(gapPx,prev,next){return Math.max(gapPx,minimumPairGapPx(prev,next))}
++function effectiveSpawnWidth(spawned){
++  // Long-mutating BUGs expand from 56px to 116px after their warning. Reserve the
++  // final width now so the visible mutation cannot silently consume the next gap.
++  if(spawned.label==='BUG'&&spawned.mutation==='long')return Math.max(116,spawned.w);
++  return Math.max(36,spawned.w);
++}
+ function delayForClearGap(gapPx,spawned){
+   // 下一障碍从同一出生线进入，因此 delay * speed - 当前宽度 ≈ 实际净空。
+   // 速度变化很缓慢，这个换算比“固定秒数”稳定得多。
+-  return Math.max(.62,(gapPx+Math.max(36,spawned.w))/Math.max(300,speed));
++  return Math.max(.62,(gapPx+effectiveSpawnWidth(spawned))/Math.max(300,speed));
+ }
+ function maybeQueueDirectorPattern(){
+   if(directorQueue.length)return false;
+@@ -1280,7 +1292,7 @@
+ function activate(e){if(e&&e.cancelable)e.preventDefault();jump()}
+ function isFormTarget(target){return target instanceof Element&&Boolean(target.closest('input,textarea,select,button,label,[contenteditable="true"]'))}
+-frame.addEventListener('pointerdown',e=>{if(!settingsPop.classList.contains('hidden')){toggleSettings(false);return}if(!overlay.classList.contains('hidden')||isFormTarget(e.target))return;activate(e)},{passive:false});
++frame.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;if(!settingsPop.classList.contains('hidden')){toggleSettings(false);return}if(!overlay.classList.contains('hidden')||isFormTarget(e.target))return;activate(e)},{passive:false});
+ startBtn.addEventListener('click',e=>{e.stopPropagation();if(state==='paused')togglePause();else start()});
+ settingsBtn.addEventListener('click',e=>{e.stopPropagation();if(state==='playing')togglePause();toggleSettings()});
+ masterSoundBtn.addEventListener('click',e=>{e.stopPropagation();setSound()});
+@@ -1290,14 +1302,17 @@
+ settingsPop.addEventListener('pointerdown',e=>e.stopPropagation());
+ document.addEventListener('pointerdown',e=>{if(!e.target.closest('.settings-wrap'))toggleSettings(false)});
+ fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(!document.fullscreenElement)await frame.requestFullscreen();else await document.exitFullscreen()}catch{}});
+-document.addEventListener('fullscreenchange',()=>{const on=Boolean(document.fullscreenElement);fullscreenLabel.textContent=currentLang==='en'?(on?'Exit fullscreen':'Fullscreen'):(on?'退出全屏':'全屏');fullscreenBtn.setAttribute('aria-label',currentLang==='en'?(on?'Exit fullscreen':'Enter fullscreen'):(on?'退出全屏':'进入全屏'));resizeCanvas();draw()});
++document.addEventListener('fullscreenchange',()=>{const on=Boolean(document.fullscreenElement);fullscreenLabel.textContent=currentLang==='en'?(on?'Exit fullscreen':'Fullscreen'):(on?'退出全屏':'全屏');fullscreenBtn.setAttribute('aria-label',currentLang==='en'?(on?'Exit fullscreen':'Enter fullscreen'):(on?'退出全屏':'进入全屏'));invalidateCanvasLayout();resizeCanvas();syncPresentationState(true);draw()});
+ langBtn.addEventListener('click',e=>{e.stopPropagation();toggleLanguage()});
+ messageBtn.addEventListener('click',e=>{e.stopPropagation();if(state!=='ended'||!MESSAGE_ENABLED)return;messageComposer.classList.toggle('hidden');if(!messageComposer.classList.contains('hidden'))messageText.focus()});
+ messageText.addEventListener('input',()=>{messageCount.textContent=String([...messageText.value].length)});
+ messageSubmit.addEventListener('click',e=>{e.stopPropagation();submitMessage()});
+-window.addEventListener('keydown',e=>{if(isFormTarget(e.target))return;if(['Space','ArrowUp'].includes(e.code)){e.preventDefault();jump()}else if(e.code==='KeyP'||e.code==='Escape'){e.preventDefault();togglePause()}else if(e.code==='KeyR'&&(state==='gameover'||state==='menu'||state==='ended')){e.preventDefault();start()}else if(e.code==='KeyF'){e.preventDefault();fullscreenBtn.click()}else if(e.code==='KeyM'){e.preventDefault();setSound()}else if(e.code==='KeyS'&&(state==='menu'||state==='paused'||state==='gameover'||state==='ended')){e.preventDefault();toggleSettings()}});
+-window.addEventListener('resize',()=>{resizeCanvas();draw()});
++const repeatSensitiveKeys=new Set(['Space','ArrowUp','KeyP','Escape','KeyR','KeyF','KeyM','KeyS']);
++window.addEventListener('keydown',e=>{if(isFormTarget(e.target))return;if(e.repeat&&repeatSensitiveKeys.has(e.code)){e.preventDefault();return}if(['Space','ArrowUp'].includes(e.code)){e.preventDefault();jump()}else if(e.code==='KeyP'||e.code==='Escape'){e.preventDefault();togglePause()}else if(e.code==='KeyR'&&(state==='gameover'||state==='menu'||state==='ended')){e.preventDefault();start()}else if(e.code==='KeyF'){e.preventDefault();fullscreenBtn.click()}else if(e.code==='KeyM'){e.preventDefault();setSound()}else if(e.code==='KeyS'&&(state==='menu'||state==='paused'||state==='gameover'||state==='ended')){e.preventDefault();toggleSettings()}});
++const handleViewportResize=()=>{invalidateCanvasLayout();resizeCanvas();syncPresentationState(true);draw()};
++window.addEventListener('resize',handleViewportResize);window.visualViewport?.addEventListener('resize',handleViewportResize);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing')togglePause()});
+ window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
+ syncAudioControls();updateMusicHud();resetMessageComposer();reset();applyLanguage(false);resizeCanvas();draw();
+@@ -1316,5 +1331,5 @@
+   debugClear:()=>{obstacles=[];pickups=[];return true},debugSetRunDistance:(v)=>{runDistance=Number(v)||0;updateStage(true);return runDistance},
+   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
+   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,layers:p.layers})),debugMusicState:()=>({soundOn,musicVolume,sfxVolume,stageIndex,profile:profile().name,bpm:profile().bpm,layers:profile().layers,musicStep}),debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();return {runDistance,stageIndex,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
+-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.11.3';
++};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.11.4';
+ })();
