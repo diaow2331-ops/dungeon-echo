@@ -11,18 +11,24 @@ const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Bool
 const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const deployReadme = read('ops/site-bundle/README.txt');
-const runtime = read('runtime-bootstrap.js');
+const runtimePath = 'game/core/runtime-bootstrap.js';
+const saveIntegrityPath = 'game/core/save-integrity-system.js';
+const desktopControlsPath = 'game/input/desktop-controls.js';
 const fixedLocalePath = 'game/locale/fixed-locale-entry-v130.js';
 const stableIdsPath = 'game/locale/stable-item-id-migration-v150.js';
 const screenOwnerPath = 'game/locale/core-screen-owner-v153.js';
 const canvasOwnerPath = 'game/locale/town-canvas-locale-v153.js';
+const npcPath = 'game/systems/npc-stability-system.js';
+const progressionGuardPath = 'game/systems/progression-guard-system.js';
+const riskRewardPath = 'game/systems/risk-reward-system.js';
+const runtime = read(runtimePath);
 const fixedLocale = read(fixedLocalePath);
 const screenOwner = read(screenOwnerPath);
 const canvasOwner = read(canvasOwnerPath);
-const saveIntegrity = read('save-integrity-system.js');
-const desktopControls = read('desktop-controls.js');
-const releaseStampName = `release-stamp-v${version.replace(/\./g, '')}.js`;
-const releaseStamp = fs.existsSync(path.join(root, releaseStampName)) ? read(releaseStampName) : '';
+const saveIntegrity = read(saveIntegrityPath);
+const desktopControls = read(desktopControlsPath);
+const releaseStampPath = `game/core/release-stamp-v${version.replace(/\./g, '')}.js`;
+const releaseStamp = fs.existsSync(path.join(root, releaseStampPath)) ? read(releaseStampPath) : '';
 const assetVersion = (runtime.match(/const assetVersion = '(\d+)'/) || [,''])[1];
 const cleanRef = ref => ref.split(/[?#]/, 1)[0];
 
@@ -35,7 +41,7 @@ function ok(cond, name) {
 console.log('[release] static package');
 ok(/^\d+\.\d+\.\d+$/.test(version), 'VERSION uses SemVer');
 ok(/^\d+$/.test(assetVersion), 'runtime declares an explicit numeric asset generation');
-ok(manifest.includes(releaseStampName) && runtime.includes(releaseStampName) && releaseStamp.includes(`const version = '${version}'`),
+ok(manifest.includes(releaseStampPath) && runtime.includes(releaseStampPath) && releaseStamp.includes(`const version = '${version}'`),
   'runtime release stamp matches semantic VERSION');
 ok(manifest.every(file => fs.existsSync(path.join(root, file))), 'every release-manifest resource exists');
 ok(!manifest.some(file => /^(?:dev\.html|test\/|profiles\/classic-(?:10|20|30|40|50|60)\.profile\.js$)/.test(file)),
@@ -63,7 +69,7 @@ ok(/<base href="\.\.\/">/.test(en), 'English entry shares the root asset graph t
 ok(!/[\u3400-\u9fff]/.test(en), 'English static entry contains no CJK presentation text');
 
 console.log('\n[release] ownership');
-ok(runtime.includes(`const assetVersion = '${assetVersion}'`) && runtime.includes(`fresh('${releaseStampName}')`),
+ok(runtime.includes(`const assetVersion = '${assetVersion}'`) && runtime.includes(`fresh('${releaseStampPath}')`),
   'late followers share the direct-entry cache generation');
 const pFixed=runtime.indexOf(`fresh('${fixedLocalePath}')`);
 const pIds=runtime.indexOf(`fresh('${stableIdsPath}')`);
@@ -74,7 +80,7 @@ ok(pFixed>0 && pIds>pFixed && pScreen>pIds && pCanvas>pScreen,
 for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
   ok(!runtime.includes(retired) && !manifest.some(file=>file===retired||file.endsWith('/'+retired)), `${retired} is retired from production and release`);
 }
-ok(manifest.includes('npc-stability-system.js') && manifest.includes('progression-guard-system.js') && manifest.includes('risk-reward-system.js'),
+ok(manifest.includes(npcPath) && manifest.includes(progressionGuardPath) && manifest.includes(riskRewardPath),
   'explicit gameplay owners are release-manifested');
 ok(fixedLocale.includes("const storageKey = 'de-language-v1'") && !/de-run-v6|de-greedy-meta-v1|de-town-wheel-state-v1/.test(fixedLocale),
   'fixed locale routing cannot fork gameplay save namespaces');
