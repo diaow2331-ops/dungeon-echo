@@ -1,15 +1,18 @@
 {
   "version": 2,
   "runtimePath": "art/hero-action-atlas-v2.png",
-  "source": "art/source-atlases/candidate/hero-action-source-v2.png",
+  "sourceArchive": "dungeon-echo-art-library-batch-2026-08-29.zip",
+  "sourceFile": "candidate/hero-action-source-v2.png",
   "columns": 4,
   "rows": 4,
   "cellPixels": 128,
   "atlasPixels": [512, 512],
+  "runtimeSha256": "deb97bc2594b3cb5086f666482ea922bec52b2a865421c4e161955f1fb8f8c19",
   "rowsByClass": ["warrior", "ranger", "mage", "assassin"],
   "columnsByState": ["idle", "attack", "hurt", "skill"],
   "notes": [
     "State art is presentation-only; class ids, stats, cooldowns and save data do not change.",
-    "Idle remains the fallback whenever a transient action state is unavailable."
+    "Idle remains the fallback whenever a transient action state is unavailable.",
+    "Source PNG is currently held in the immutable art archive; it is not falsely represented as repository-resident."
   ]
 }
