@@ -5,6 +5,9 @@ const fs = require('fs');
 const [,, homePath, dePath, moyuPath] = process.argv;
 assert(homePath && dePath && moyuPath, 'usage: node build-social-v134.cjs <home.html> <dungeon-detail.html> <moyu-detail.html>');
 
+const ADSENSE_CLIENT = 'ca-pub-2648680835467283';
+const ADSENSE_SNIPPET = `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>`;
+
 const replaceOnce = (text, from, to, label) => {
   const first = text.indexOf(from);
   assert(first >= 0, `missing ${label}`);
@@ -18,8 +21,14 @@ const addSocialMeta = (text, { url, title, description, image, imageAlt }) => {
   return replaceOnce(text, anchor, block, `${title} social card anchor`);
 };
 
+const addAdSense = (text, label) => {
+  assert(!text.includes(ADSENSE_CLIENT), `${label} already contains AdSense client`);
+  return replaceOnce(text, '</head>', `${ADSENSE_SNIPPET}\n</head>`, `${label} head close`);
+};
+
 let home = fs.readFileSync(homePath, 'utf8');
 let de = fs.readFileSync(dePath, 'utf8');
+let moyu = fs.readFileSync(moyuPath, 'utf8');
 
 home = addSocialMeta(home, {
   url: 'https://91hwl.cn/',
@@ -49,6 +58,10 @@ de = replaceOnce(
   'Dungeon open-source chip'
 );
 
+home = addAdSense(home, 'homepage');
+de = addAdSense(de, 'Dungeon detail');
+moyu = addAdSense(moyu, 'Moyu detail');
+
 for (const [name, text] of [['home', home], ['Dungeon', de]]) {
   assert(text.includes('name="robots" content="index,follow,max-image-preview:large"'), `${name} robots preview policy missing`);
   assert(text.includes('property="og:url"'), `${name} og:url missing`);
@@ -59,8 +72,13 @@ for (const [name, text] of [['home', home], ['Dungeon', de]]) {
   assert(text.includes('name="twitter:image"'), `${name} twitter:image missing`);
   assert(text.includes('name="twitter:image:alt"'), `${name} twitter:image:alt missing`);
 }
+for (const [name, text] of [['home', home], ['Dungeon', de], ['Moyu', moyu]]) {
+  assert(text.includes(ADSENSE_CLIENT), `${name} AdSense client missing`);
+  assert.equal(text.split(ADSENSE_CLIENT).length - 1, 1, `${name} AdSense client must appear exactly once`);
+}
 assert(de.includes('GitHub / Source'));
 assert(de.includes('MIT · OPEN SOURCE'));
 
 fs.writeFileSync(homePath, home);
 fs.writeFileSync(dePath, de);
+fs.writeFileSync(moyuPath, moyu);
