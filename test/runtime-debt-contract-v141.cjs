@@ -43,6 +43,12 @@ assert(!/requestAnimationFrame|MutationObserver|setInterval/.test(forgeFeedback)
 assert(/window\.addEventListener\('keydown',scheduleFromKey,true\)/.test(forgeFeedback)&&/TOWN_TRANSITION_KEYS/.test(forgeFeedback),'forge feedback sees town transitions without running for unrelated keys');
 assert(/queueMicrotask/.test(forgeFeedback)&&/defer\(decorateRows\)/.test(forgeFeedback),'forge decoration is post-event microtask driven');
 
+const onboarding=read('combat-hint-polish.js');
+assert(/version:'v5'/.test(onboarding),'onboarding uses completion-aware v5');
+assert(/const complete=\(\)=>ALL\.every\(done\)/.test(onboarding),'onboarding exposes an explicit completion state');
+assert(/function\s+scheduleInspect\s*\(\)[\s\S]*complete\(\)\|\|inspectQueued/.test(onboarding),'completed tutorial must not schedule post-input inspections');
+assert(/#de-audio-settings-btn/.test(onboarding)&&/defer\(attachReset\)/.test(onboarding),'tutorial reset stays discoverable after inspections stop');
+
 const audio=read('audio-director.js');
 assert(/setInterval\(pump,\s*70\)/.test(audio)&&/clearInterval\(timer\)/.test(audio),'audio keeps only its lifecycle-scoped WebAudio look-ahead timer');
 assert(/document\.hidden/.test(audio)&&/pagehide/.test(audio),'audio timer stops with page lifecycle');
@@ -63,4 +69,4 @@ for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#ba
 const record=read('expedition-record-v126.js');
 assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender instead of relying on legacy translation');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop/forge feedback + visible-only six-root locale bridge)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop/forge feedback + completion-aware onboarding + visible-only six-root locale bridge)`);
