@@ -20,7 +20,6 @@ const addSocialMeta = (text, { url, title, description, image, imageAlt }) => {
 
 let home = fs.readFileSync(homePath, 'utf8');
 let de = fs.readFileSync(dePath, 'utf8');
-let moyu = fs.readFileSync(moyuPath, 'utf8');
 
 home = addSocialMeta(home, {
   url: 'https://91hwl.cn/',
@@ -50,15 +49,7 @@ de = replaceOnce(
   'Dungeon open-source chip'
 );
 
-moyu = addSocialMeta(moyu, {
-  url: 'https://91hwl.cn/toys/moyu/',
-  title: 'Clock Out Alive · Browser Office Runner',
-  description: 'Survive the office from 14:00 to 18:00 in a roughly four-minute browser run with four scenes, two endings and no install.',
-  image: 'https://91hwl.cn/toys/moyu/social-card.png',
-  imageAlt: 'Clock Out Alive project card for the 91hwl browser office runner.'
-});
-
-for (const [name, text] of [['home', home], ['Dungeon', de], ['Moyu', moyu]]) {
+for (const [name, text] of [['home', home], ['Dungeon', de]]) {
   assert(text.includes('name="robots" content="index,follow,max-image-preview:large"'), `${name} robots preview policy missing`);
   assert(text.includes('property="og:url"'), `${name} og:url missing`);
   assert(text.includes('property="og:site_name" content="91hwl"'), `${name} og:site_name missing`);
@@ -73,4 +64,3 @@ assert(de.includes('MIT · OPEN SOURCE'));
 
 fs.writeFileSync(homePath, home);
 fs.writeFileSync(dePath, de);
-fs.writeFileSync(moyuPath, moyu);
