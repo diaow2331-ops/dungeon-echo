@@ -15,7 +15,9 @@ on:
       - docs/releases/**
       - ops/release/**
       - ops/site-bundle/**
+      - ops/home-mount/**
       - test/expedition-pressure-v1211.cjs
+      - test/home-mount.cjs
       - test/release.cjs
       - test/release-freeze-v1.2.cjs
       - .github/workflows/release-governance.yml
@@ -33,7 +35,9 @@ on:
       - docs/releases/**
       - ops/release/**
       - ops/site-bundle/**
+      - ops/home-mount/**
       - test/expedition-pressure-v1211.cjs
+      - test/home-mount.cjs
       - test/release.cjs
       - test/release-freeze-v1.2.cjs
       - .github/workflows/release-governance.yml
@@ -52,3 +56,7 @@ jobs:
         run: node test/release-freeze-v1.2.cjs
       - name: Verify immutable Dungeon bundle
         run: node test/release.cjs
+      - name: Verify 91hwl trust surfaces
+        run: node test/home-mount.cjs
+      - name: Verify immutable public release ZIP
+        run: bash ops/release/build-public-release-zip.sh "$RUNNER_TEMP/91hwl-public-release.zip"
