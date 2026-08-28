@@ -3,15 +3,15 @@
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  * Fixed-route locale identity and language-neutral item migration are established before presentation owners boot.
  *
- * v13 removed the last translation-after-render bridge from production. Chinese and English now boot the
- * same graph; the fixed English route owns its remaining legacy core sinks through exact screen/canvas owners.
- * v1.2.10 keeps runtime ownership at v13; launch hotfix generation 155 refreshes the fixed-locale boundary.
+ * v13 removed the last generic translation-after-render bridge from production. Chinese and English boot the
+ * same graph; exact fixed-route owners cover the remaining legacy sinks. Generation 156 installs the bounded
+ * town workspace before the exact town-canvas locale owner so the visible wheel canvas has one stable owner.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '155';
+  const assetVersion = '156';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
@@ -21,6 +21,7 @@
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
+    [fresh('game/ui/town-workspace-v156.js'), 'data-de-town-workspace-v156', () => !!window.__DE_TOWN_WORKSPACE_V156],
     [fresh('game/locale/town-canvas-locale-v153.js'), 'data-de-town-canvas-locale-v153', () => !!window.__DE_TOWN_CANVAS_LOCALE_V153],
   ];
   const followerChain = [
