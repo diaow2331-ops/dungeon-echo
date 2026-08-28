@@ -3,13 +3,19 @@ const fs = require('fs');
 const assert = require('assert');
 
 const pressure = fs.readFileSync('challenge-pressure.js','utf8');
-const fixed = fs.readFileSync('fixed-locale-entry-v130.js','utf8');
-const screen = fs.readFileSync('core-screen-owner-v153.js','utf8');
-const canvas = fs.readFileSync('town-canvas-locale-v153.js','utf8');
+const fixedPath = 'game/locale/fixed-locale-entry-v130.js';
+const screenPath = 'game/locale/core-screen-owner-v153.js';
+const canvasPath = 'game/locale/town-canvas-locale-v153.js';
+const lootPath = 'game/ui/world-loot-polish-v122.js';
+const forgePath = 'game/ui/forge-feedback-v122.js';
+const tutorialPath = 'game/ui/combat-hint-polish.js';
+const fixed = fs.readFileSync(fixedPath,'utf8');
+const screen = fs.readFileSync(screenPath,'utf8');
+const canvas = fs.readFileSync(canvasPath,'utf8');
 const loader = fs.readFileSync('runtime-bootstrap.js','utf8');
-const loot = fs.readFileSync('world-loot-polish-v122.js','utf8');
-const forge = fs.readFileSync('forge-feedback-v122.js','utf8');
-const tutorial = fs.readFileSync('combat-hint-polish.js','utf8');
+const loot = fs.readFileSync(lootPath,'utf8');
+const forge = fs.readFileSync(forgePath,'utf8');
+const tutorial = fs.readFileSync(tutorialPath,'utf8');
 const html = fs.readFileSync('index.html','utf8');
 const en = fs.readFileSync('en/index.html','utf8');
 const release = fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?\n/).filter(Boolean);
@@ -32,7 +38,7 @@ assert(canvas.includes("owner:'town-canvas-locale-v153'"), 'exact English town C
 // Performance contract: all runtime translation layers are retired from production.
 for (const retired of ['i18n.js','i18n-runtime.js','i18n-content.js','ux-hotfix-v121.js','locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']) {
   assert(!loader.includes(`'${retired}'`), `retired locale layer still loads: ${retired}`);
-  assert(!release.includes(retired), `retired locale layer still ships: ${retired}`);
+  assert(!release.some(file=>file===retired||file.endsWith('/'+retired)), `retired locale layer still ships: ${retired}`);
 }
 assert(!/MutationObserver|translateTree|setInterval|requestAnimationFrame/.test(screen), 'core locale screen owner must stay exact and follower-free');
 assert(!/MutationObserver|setInterval|requestAnimationFrame/.test(canvas), 'Canvas locale sink must not add a follower');
@@ -45,12 +51,12 @@ const challengePos = html.indexOf('challenge-pressure.js?v=153');
 const bootstrapPos = html.indexOf('runtime-bootstrap.js?v=153');
 assert(desktopPos >= 0 && controlsPos > desktopPos && challengePos > controlsPos && bootstrapPos > challengePos,
   'desktop -> combat-controls -> challenge -> bootstrap order broken');
-const fixedPos = loader.indexOf("'fixed-locale-entry-v130.js'");
-const screenPos = loader.indexOf("'core-screen-owner-v153.js'");
-const canvasPos = loader.indexOf("'town-canvas-locale-v153.js'");
-const lootPos = loader.indexOf("'world-loot-polish-v122.js'");
-const forgePos = loader.indexOf("'forge-feedback-v122.js'");
-const hintPos = loader.indexOf("'combat-hint-polish.js'");
+const fixedPos = loader.indexOf(`'${fixedPath}'`);
+const screenPos = loader.indexOf(`'${screenPath}'`);
+const canvasPos = loader.indexOf(`'${canvasPath}'`);
+const lootPos = loader.indexOf(`'${lootPath}'`);
+const forgePos = loader.indexOf(`'${forgePath}'`);
+const hintPos = loader.indexOf(`'${tutorialPath}'`);
 assert(fixedPos >= 0 && screenPos > fixedPos && canvasPos > screenPos && lootPos > canvasPos && forgePos > lootPos && hintPos > forgePos,
   'fixed route -> exact locale sinks -> loot -> forge -> tutorial order broken');
 assert(loader.includes("assetVersion = '153'") && loader.includes("version:'v13'"), 'final runtime generation mismatch');
@@ -68,7 +74,7 @@ assert(forge.includes('Refinement unlocked') && forge.includes('Masterwork compl
 assert(forge.includes('de-forge-stage'), 'forge stage badge missing');
 assert(!/item\.forge\s*=|item\.stats\s*=|meta\.gold\s*=|addStats\(/.test(forge), 'forge feedback must remain presentation-only');
 
-for (const f of ['runtime-bootstrap.js','challenge-pressure.js','core-screen-owner-v153.js','town-canvas-locale-v153.js','world-loot-polish-v122.js','forge-feedback-v122.js','combat-controls.js','combat-hint-polish.js','audio-director.js','mobile-ux.js']) {
+for (const f of ['runtime-bootstrap.js','challenge-pressure.js',screenPath,canvasPath,lootPath,forgePath,'combat-controls.js',tutorialPath,'game/ui/audio-director.js','game/ui/mobile-ux.js']) {
   assert(release.includes(f), `release manifest missing ${f}`);
 }
 
