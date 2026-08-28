@@ -1,7 +1,6 @@
 'use strict';
 
 const assert=require('assert');
-const crypto=require('crypto');
 const fs=require('fs');
 const os=require('os');
 const path=require('path');
@@ -40,6 +39,10 @@ assert.match(sourceDeploy,/Clock Out Alive v1\.11\.5 detail marker missing/);
 assert.match(sourceDeploy,/GitHub \/ Source/);
 assert.match(sourceDeploy,/web-toys-v134/);
 assert.match(sourceDeploy,/web_toys_home_mount=ROLLED_BACK/);
+assert.match(sourceDeploy,/previous_home_sha256=/);
+assert.match(sourceDeploy,/LIVE_INDEX_SHA256/);
+assert.doesNotMatch(sourceDeploy,/EXPECTED_INDEX_SHA256/,'immutable site artifact must not depend on a historical live homepage hash');
+assert.doesNotMatch(sourceDeploy,/live homepage changed unexpectedly/,'legitimate live drift must be backed up, not block a validated artifact');
 assert.match(sourceHealth,/public site v1\.3\.4 check failed/);
 assert.match(sourceHealth,/de_origin.*1\.2\.10/s);
 assert.match(sourceHealth,/moyu_origin.*1\.11\.5/s);
@@ -57,13 +60,14 @@ assert.equal(r.status,0,r.stderr);
 assert.match(r.stdout,/site_version=1\.3\.4/);
 assert.match(r.stdout,/game_version=1\.2\.10/);
 assert.match(r.stdout,/moyu_version=1\.11\.5/);
-assert.match(r.stdout,/previous_home_sha256=/);
+assert.doesNotMatch(r.stdout,/previous_home_sha256=/);
 assert.match(r.stdout,/site_bundle_build=PASS/);
 
 r=run('unzip',['-Z1',archive]);
 assert.equal(r.status,0,r.stderr);
 const files=r.stdout.trim().split(/\r?\n/);
-for(const required of ['EXPECTED_INDEX_SHA256','README.txt','REVISION','VERSION','SHA256SUMS','ops/deploy.sh','ops/healthcheck.sh','public/index.html','public/toys/dungeon-echo/index.html','public/toys/moyu/index.html']) assert(files.includes(required),`mount bundle missing ${required}`);
+for(const required of ['README.txt','REVISION','VERSION','SHA256SUMS','ops/deploy.sh','ops/healthcheck.sh','public/index.html','public/toys/dungeon-echo/index.html','public/toys/moyu/index.html']) assert(files.includes(required),`mount bundle missing ${required}`);
+assert(!files.includes('EXPECTED_INDEX_SHA256'),'historical live homepage hash must not ship in the artifact');
 
 const unzipText=file=>{const x=run('unzip',['-p',archive,file]);assert.equal(x.status,0,x.stderr);return x.stdout};
 const bundledHome=unzipText('public/index.html');
@@ -88,10 +92,5 @@ for(const [name,text] of [['deploy.sh',bundledDeploy],['healthcheck.sh',bundledH
   const p=path.join(tmp,name);fs.writeFileSync(p,text);const x=run('bash',['-n',p]);assert.equal(x.status,0,x.stderr);
 }
 
-const previous=run('git',['show','79d3ad94568447068f37419b24b0851cfbf94850:ops/home-mount/public/index.html']);
-assert.equal(previous.status,0,previous.stderr);
-const expected=crypto.createHash('sha256').update(previous.stdout).digest('hex');
-assert.equal(unzipText('EXPECTED_INDEX_SHA256').trim(),expected,'homepage overwrite guard must pin accepted site v1.3.3');
-
 fs.rmSync(tmp,{recursive:true,force:true});
-console.log('RESULT  91hwl site v1.3.4 launch contract PASS');
+console.log('RESULT  91hwl site v1.3.4 immutable-artifact launch contract PASS');
