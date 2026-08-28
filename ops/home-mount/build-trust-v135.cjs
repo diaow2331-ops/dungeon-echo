@@ -42,7 +42,7 @@ home = replaceOnce(home, '</head>', `${trustCss}\n</head>`, 'homepage trust hub 
 const oldLegal = '<nav class="site-legal" aria-label="Site information"><a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></nav>';
 const trustHub = `<section class="site-trust-hub" aria-labelledby="site-trust-title">
   <div class="site-trust-head">
-    <div><div class="kicker"><span class="i18n-zh">站点信息</span><span class="i18n-en">SITE INFORMATION</span></div><h2 id="site-trust-title"><span class="i18n-zh">关于、隐私与联系，不应该藏在角落。</span><span class="i18n-en">About, privacy and contact should not be hidden in a corner.</span></h2></div>
+    <div><div class="kicker"><span class="i18n-zh">站点信息</span><span class="i18n-en">SITE INFORMATION</span></div><h2 id="site-trust-title"><span class="i18n-zh">关于、隐私与联系，一眼就能找到。</span><span class="i18n-en">About, privacy and contact — easy to find.</span></h2></div>
     <p><span class="i18n-zh">91hwl 是独立维护的浏览器游戏站点。游戏无需账号，核心进度留在当前浏览器；站点如何运行、广告如何使用、问题如何反馈，都在这里公开说明。</span><span class="i18n-en">91hwl is an independently maintained browser-game site. Games require no account and core progress stays in your browser; how the site works, how ads are used and how to reach us are documented openly here.</span></p>
   </div>
   <div class="site-trust-grid">
@@ -54,8 +54,8 @@ const trustHub = `<section class="site-trust-hub" aria-labelledby="site-trust-ti
 home = replaceOnce(home, oldLegal, trustHub, 'homepage compact legal navigation');
 
 assert(home.includes('site-trust-hub-v135'));
-assert(home.includes('关于、隐私与联系，不应该藏在角落。'));
-assert(home.includes('About, privacy and contact should not be hidden in a corner.'));
+assert(home.includes('关于、隐私与联系，一眼就能找到。'));
+assert(home.includes('About, privacy and contact — easy to find.'));
 assert(home.includes('mailto:diaow2331@gmail.com'));
 assert(home.includes('游戏运行界面本身不作为广告展示面'));
 assert(!home.includes(oldLegal), 'homepage compact legal nav must be replaced by visible trust hub');
