@@ -34,6 +34,7 @@ game/ui/world-loot-polish-v122.js
 game/ui/forge-feedback-v122.js
 game/input/combat-controls.js
 game/ui/combat-hint-polish.js
+game/ui/expedition-pressure-v1211.js
 game/ui/audio-director.js
 game/ui/mobile-ux.js
 game/ui/responsive-final-v154.js
