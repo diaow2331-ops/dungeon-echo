@@ -31,6 +31,12 @@ assert(/function\s+startLoop\s*\(/.test(gamepad)&&/function\s+stopLoop\s*\(/.tes
 assert(/const pad = pickPad\(\);\n\s*if \(!pad\) return false;/.test(gamepad),'gamepad RAF must not start without a connected pad');
 assert(/gamepaddisconnected[\s\S]*stopLoop\(\)/.test(gamepad),'gamepad disconnection must stop sampling');
 
+const shopArt=read('equipment-shop-ui.js');
+assert(/version:'v3'/.test(shopArt),'shop art preview uses scoped event-driven v3');
+assert(!/MutationObserver|requestAnimationFrame|setInterval/.test(shopArt),'shop art preview owns no observer, frame follower or polling loop');
+assert(/function\s+scheduleFromKey\s*\(/.test(shopArt)&&/MOVEMENT_KEYS/.test(shopArt),'shop art key work is limited to shop or merchant-entering movement');
+assert(/queueMicrotask/.test(shopArt)&&/defer\(sync\)/.test(shopArt),'shop art sync runs after the core transition without allocating a frame callback');
+
 const audio=read('audio-director.js');
 assert(/setInterval\(pump,\s*70\)/.test(audio)&&/clearInterval\(timer\)/.test(audio),'audio keeps only its lifecycle-scoped WebAudio look-ahead timer');
 assert(/document\.hidden/.test(audio)&&/pagehide/.test(audio),'audio timer stops with page lifecycle');
@@ -51,4 +57,4 @@ for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#ba
 const record=read('expedition-record-v126.js');
 assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender instead of relying on legacy translation');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + visible-only six-root locale bridge)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop art + visible-only six-root locale bridge)`);

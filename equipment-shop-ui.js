@@ -1,9 +1,11 @@
-/* Dungeon Echo underground shop equipment preview v1.
+/* Dungeon Echo underground shop equipment preview v3.
  * Presentation-only: reuses the shipped v13 tier resolver to preview the actual
  * equipment offered by the dungeon merchant. It never changes stock, price, purchases
  * or production UX boot order.
  *
- * Shop art is synchronized after real input/page transitions; no subtree observer is needed.
+ * v3 follows only transitions that can open or mutate the shop. It uses a deferred
+ * microtask instead of allocating a requestAnimationFrame callback for every key/click.
+ * No subtree observer or permanent polling loop is needed.
  */
 (() => {
   'use strict';
@@ -18,6 +20,8 @@
     weapon: { url: 'art/equipment-weapons-v13.png', cols: 6, rows: 4 },
     wearable: { url: 'art/equipment-wearables-v13.png', cols: 6, rows: 5 },
   });
+  const MOVEMENT_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','W','a','A','s','S','d','D']);
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
 
   const preload = [];
   if (typeof Image !== 'undefined') {
@@ -84,17 +88,33 @@
 
   let queued = false;
   function schedule() {
-    if (queued) return;
+    if (queued) return false;
     queued = true;
-    requestAnimationFrame(sync);
+    defer(sync);
+    return true;
   }
 
-  document.addEventListener('keydown', schedule, true);
-  document.addEventListener('click', schedule, true);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(); });
-  window.addEventListener('focus', schedule);
-  window.addEventListener('pageshow', schedule);
-  schedule();
+  function scheduleFromKey(e) {
+    if (api.state === 'shop' || MOVEMENT_KEYS.has(String(e && e.key || ''))) schedule();
+  }
 
-  window.__DE_EQUIPMENT_SHOP_ART = { version: 'v2', owner:'equipment-shop-ui', sync, schedule, applyArt, preload };
+  function scheduleFromClick(e) {
+    const target = e && e.target;
+    if (api.state === 'shop') { schedule(); return; }
+    if (!target || typeof target.closest !== 'function') return;
+    // Clicking the explored map can path into the merchant and open the shop.
+    if (target.closest('#game')) schedule();
+  }
+
+  document.addEventListener('keydown', scheduleFromKey, true);
+  document.addEventListener('click', scheduleFromClick, true);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && api.state === 'shop') schedule(); });
+  window.addEventListener('focus', () => { if (api.state === 'shop') schedule(); });
+  window.addEventListener('pageshow', () => { if (api.state === 'shop') schedule(); });
+  if (api.state === 'shop') schedule();
+
+  window.__DE_EQUIPMENT_SHOP_ART = {
+    version:'v3', owner:'equipment-shop-ui', sync, schedule, scheduleFromKey, scheduleFromClick, applyArt, preload,
+    movementKeys:MOVEMENT_KEYS,
+  };
 })();
