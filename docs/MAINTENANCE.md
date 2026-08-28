@@ -1,12 +1,13 @@
 # Dungeon Echo Maintenance Guide
 
-This document describes the current production and repository contract for **v1.2.8 plus the post-v1.2.8 fixed-route convergence work on `main`**.
+This document describes the current production and repository contract for **v1.2.9**, which formalizes the post-v1.2.8 fixed-route convergence work as the current release line.
 
 For product-facing information, start with `README.md`. Historical release notes preserve old implementation context; current documents must describe the product as it exists now.
 
 ## Current release contract
 
-- Repository semantic release line: **v1.2.8**.
+- Repository semantic release line: **v1.2.9**.
+- Static cache generation: **153**; semantic version and cache generation are intentionally independent.
 - `VERSION` is the repository version authority; deployment is only proven after the normal activation and health checks pass.
 - Production journey: **floor 1 → floor 100**.
 - Chinese entry: `https://play.91hwl.cn/dungeon-echo/`.
@@ -225,7 +226,7 @@ Expected markers include:
 
 If deployment disconnects or fails, identify the last proven PASS marker before rerunning anything. Do not bypass checksum guards or rollback protection simply to force a release through.
 
-## Repository governance after v1.2.8
+## Repository governance after v1.2.9
 
 The current priority is convergence, not another broad rewrite:
 
@@ -254,13 +255,13 @@ Merged feature branches are historical pointers, not permanent development lines
 ## Recommended reading order
 
 1. `README.md`
-2. `RELEASE_NOTES_v1.2.8.md`
-3. `PRODUCTION_ROADMAP.md`
+2. `docs/releases/RELEASE_NOTES_v1.2.9.md`
+3. `docs/PRODUCTION_ROADMAP.md`
 4. current open Issues
-5. `DEVELOPMENT.md`
+5. `docs/DEVELOPMENT.md`
 6. `docs/LOCALIZATION.md`
 7. relevant production modules
-8. `BALANCE_NOTES.md` when balance context is needed
-9. `AI_COLLABORATION.md` when collaboration provenance matters
+8. `docs/BALANCE_NOTES.md` when balance context is needed
+9. `docs/AI_COLLABORATION.md` when collaboration provenance matters
 
 If documentation and code disagree, treat current production behavior plus the latest accepted changes as the source of truth, then fix the documentation.

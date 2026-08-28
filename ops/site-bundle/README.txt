@@ -5,8 +5,8 @@ This package extends the existing play.91hwl.cn release tree. It preserves
 /srv/91hwl-play/current symlink atomically, and rolls back on failed checks.
 
 Server usage:
-  unzip 91hwl-play-dungeon-echo-v1.2.8.zip -d /tmp/91hwl-play-dungeon-echo-v1.2.8
-  cd /tmp/91hwl-play-dungeon-echo-v1.2.8
+  unzip 91hwl-play-dungeon-echo-v1.2.9.zip -d /tmp/91hwl-play-dungeon-echo-v1.2.9
+  cd /tmp/91hwl-play-dungeon-echo-v1.2.9
   sudo ./ops/deploy.sh
 
 Success markers:
