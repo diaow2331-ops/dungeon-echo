@@ -1,13 +1,14 @@
 # Dungeon Echo Maintenance Guide
 
-This document describes the current production and repository contract for **v1.2.9**, which formalizes the post-v1.2.8 fixed-route convergence work as the current release line.
+This document describes the current production and repository contract for **v1.2.10**, which finalizes the fixed-route convergence line with the last input-integrity and dual-end responsive release pass.
 
 For product-facing information, start with `README.md`. Historical release notes preserve old implementation context; current documents must describe the product as it exists now.
 
 ## Current release contract
 
-- Repository semantic release line: **v1.2.9**.
-- Static cache generation: **153**; semantic version and cache generation are intentionally independent.
+- Repository semantic release line: **v1.2.10**.
+- Public static cache generation: **154**; semantic version and cache generation are intentionally independent.
+- Stable source entries remain on generation 153 and the release builder deterministically upgrades both packaged zh/en entries to generation 154.
 - `VERSION` is the repository version authority; deployment is only proven after the normal activation and health checks pass.
 - Production journey: **floor 1 → floor 100**.
 - Chinese entry: `https://play.91hwl.cn/dungeon-echo/`.
@@ -64,7 +65,7 @@ Changes to combat, equipment, return scrolls, death risk, town economy, forging 
 - Master mute: M / mobile Sound.
 - Fullscreen: F.
 
-J/K + Mana are gameplay-critical and load synchronously. Mana mutations must commit through the existing run-save path after the final mutation.
+J/K + Mana are gameplay-critical and load synchronously. Mana mutations must commit through the existing run-save path after the final mutation. Production also owns a pre-core repeat guard: tactical one-shot keys are edge-triggered, while movement keys retain normal OS repeat.
 
 Current class Mana contracts:
 
@@ -174,6 +175,7 @@ Presentation/runtime:
 - `combat-hint-polish.js` — action-driven onboarding.
 - `audio-director.js` — music/SFX mixer.
 - `mobile-ux.js` — mobile layout/haptics/direct pointer-down movement.
+- `responsive-final-v154.js` — bounded final responsive layer: 901–1180px PC stacking and portrait touch target minimums.
 - `help-copy-v126.js` — fixed-route help/device copy.
 - `expedition-record-v126.js` — fixed-route achievement catalog/progress UI.
 - `runtime-bootstrap.js` — late follower loader; both fixed routes must expose the same chain.
@@ -206,7 +208,7 @@ Presentation-only JS/CSS/art/localization changes should not reset player progre
 
 Use the smallest check set that can falsify the affected change. Simulation is diagnostic, not proof of human game feel.
 
-For the fixed-route convergence, high-value checks include `test/final-fixed-locale-v153.cjs`, `test/fixed-locale-routes-v131.cjs`, `test/cache-bust-v140.cjs`, `test/runtime-debt-contract-v141.cjs`, `test/save-integrity-v128.cjs`, `test/extraction-channel.cjs` and `test/release.cjs`.
+For the fixed-route convergence, high-value checks include `test/final-fixed-locale-v153.cjs`, `test/fixed-locale-routes-v131.cjs`, `test/cache-bust-v140.cjs`, `test/runtime-debt-contract-v141.cjs`, `test/save-integrity-v128.cjs`, `test/extraction-channel.cjs`, `test/release.cjs` and `test/release-freeze-v1.2.cjs`.
 
 Do not claim a fresh complete GitHub Actions or browser suite when no run exists. Human browser play remains the source of truth for repeated Return Scroll T×2 behavior, responsive presentation and full-session language leakage.
 
@@ -218,17 +220,20 @@ Activation path:
 
 Expected markers include:
 
+- `dungeon_echo_bundle_build=PASS`
 - `dungeon_echo_healthcheck=PASS`
 - `dungeon_echo_site_deploy=PASS`
 - `dungeon_echo_home_health=PASS`
 - `dungeon_echo_home_mount=PASS`
 - `dungeon_echo_file_release=PASS`
 
+The current v1.2.10 game deployer supports the organized `game/core`, `game/ui`, `game/input` and `game/systems` release tree directly. Do not restore the pre-governance assumption that active JS is flattened at `/dungeon-echo/` root.
+
 If deployment disconnects or fails, identify the last proven PASS marker before rerunning anything. Do not bypass checksum guards or rollback protection simply to force a release through.
 
-## Repository governance after v1.2.9
+## Repository governance after v1.2.10
 
-The current priority is convergence, not another broad rewrite:
+The current priority is evidence-driven maintenance, not another broad rewrite:
 
 1. keep `main` as the durable development line;
 2. keep fixed Chinese/English routes and shared saves stable;
@@ -255,7 +260,7 @@ Merged feature branches are historical pointers, not permanent development lines
 ## Recommended reading order
 
 1. `README.md`
-2. `docs/releases/RELEASE_NOTES_v1.2.9.md`
+2. `docs/releases/RELEASE_NOTES_v1.2.10.md`
 3. `docs/PRODUCTION_ROADMAP.md`
 4. current open Issues
 5. `docs/DEVELOPMENT.md`
