@@ -53,7 +53,7 @@
  }
  function maybeQueueDirectorPattern(){
    if(directorQueue.length)return false;
-@@ -1280,7 +1292,7 @@
+@@ -1280,6 +1292,6 @@
  function activate(e){if(e&&e.cancelable)e.preventDefault();jump()}
  function isFormTarget(target){return target instanceof Element&&Boolean(target.closest('input,textarea,select,button,label,[contenteditable="true"]'))}
 -frame.addEventListener('pointerdown',e=>{if(!settingsPop.classList.contains('hidden')){toggleSettings(false);return}if(!overlay.classList.contains('hidden')||isFormTarget(e.target))return;activate(e)},{passive:false});
