@@ -4,7 +4,7 @@
  *
  * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
  * equipment atlas without changing any equipment IDs, save keys or save schemas.
- * v2/v3 art runtimes: load presentation-only atlas overlays after DOM bootstrap.
+ * v2/v3 art runtimes and town art: load presentation-only overlays after DOM bootstrap.
  * They may replace visible art, but core canvas/gameplay remains the fail-safe fallback.
  *
  * Production input integrity: movement keys may use normal OS key repeat, while
@@ -89,6 +89,7 @@
   const loadArtRuntimes = () => {
     appendArtRuntime('de-art-runtime-v2-loader', '../ui/art-runtime-v2.js?v=157', '__DE_ART_RUNTIME_V2');
     appendArtRuntime('de-art-runtime-v3-loader', '../ui/art-runtime-v3.js?v=158', '__DE_ART_RUNTIME_V3');
+    appendArtRuntime('de-town-art-v157-loader', '../ui/town-art-v157.js?v=159', '__DE_TOWN_ART_V157');
   };
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
