@@ -4,8 +4,8 @@
   "source": "art/source-atlases/alternate/loot-equipment-source-v2-alt-a.png",
   "columns": 4,
   "rows": 8,
-  "cellPixels": 128,
-  "atlasPixels": [512, 1024],
+  "cellPixels": 80,
+  "atlasPixels": [320, 640],
   "ids": [
     "iron-sword", "broad-sword", "battle-axe", "rune-blade",
     "leather-armor", "chain-mail", "plate-armor", "mithril-armor",
@@ -17,6 +17,7 @@
     "amulet-moonstone", "amulet-guardian", "amulet-abyss"
   ],
   "spareCell": [3, 7],
+  "runtimeSha256": "e2cc1492fde043179d9b3cc2566cfb86960eec870097c63cd5cff9d3d96fc491",
   "notes": [
     "Grid order matches LOOT_ICON_IDS exactly.",
     "No gameplay IDs or save keys change.",
