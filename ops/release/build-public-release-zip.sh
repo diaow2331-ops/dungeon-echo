@@ -13,7 +13,7 @@ site_version="$(tr -d '\r\n' < ops/home-mount/SITE_VERSION)"
 revision="$(git rev-parse HEAD)"
 test "$dungeon_version" = '1.2.11' || fail "unexpected Dungeon Echo version: $dungeon_version"
 test "$moyu_version" = '1.11.5' || fail "unexpected Moyu version: $moyu_version"
-test "$site_version" = '1.3.4' || fail "unexpected site version: $site_version"
+test "$site_version" = '1.3.5' || fail "unexpected site version: $site_version"
 test -z "$(git status --porcelain --untracked-files=no)" || fail 'tracked worktree is not clean'
 
 output="${1:-$repo_root/91hwl-public-dungeon-${dungeon_version}-moyu-${moyu_version}-site-${site_version}.zip}"
@@ -61,6 +61,8 @@ test "$actual_de" = "$expected_de" || fail "Dungeon version mismatch: $actual_de
 test "$actual_moyu" = "$expected_moyu" || fail "Moyu version mismatch: $actual_moyu"
 grep -Fq "data-site-version=\"$expected_site\"" "$home_body" || fail "site version marker missing: $expected_site"
 grep -Fq 'GitHub / Source' "$home_body" || fail 'homepage GitHub CTA missing'
+grep -Fq 'site-trust-hub-v135' "$home_body" || fail 'homepage visible trust hub missing'
+grep -Fq 'mailto:diaow2331@gmail.com' "$home_body" || fail 'homepage contact email missing'
 echo "revision=$revision"
 echo "dungeon_echo_version=$actual_de"
 echo "moyu_version=$actual_moyu"
