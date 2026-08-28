@@ -38,7 +38,7 @@ function ok(cond, name) {
 }
 
 const bridge = window.__DE_DISPOSABLE_NPC_CLEANUP;
-ok(bridge && bridge.version === 'p0-v3' && bridge.owner === 'npc-stability-system', 'NPC stability owner boots explicitly');
+ok(bridge && bridge.version === 'p0-v5' && bridge.owner === 'npc-stability-system', 'NPC stability owner boots explicitly');
 ok(npcs.length === 2, 'already-used shrine and rest are removed at install');
 ok(npcs.some(n => n.type === 'shop'), 'repeatable shop NPC is preserved');
 ok(npcs.some(n => n.type === 'shrine' && !n.used), 'unused shrine remains interactable');
@@ -49,9 +49,9 @@ ok(persisted === 1, 'cleanup persists the collision-state repair');
   shrine.used = true;
   const clicks = listeners.click || [];
   const cleanupClick = clicks[clicks.length - 1];
-  if (cleanupClick) cleanupClick({ target: null });
+  if (cleanupClick) cleanupClick({ target: { closest(selector) { return selector.includes('#btn-shrine-ok') ? {} : null; } } });
   await new Promise(resolve => queueMicrotask(resolve));
-  ok(!npcs.some(n => n.type === 'shrine'), 'newly consumed shrine clears after the interaction event');
+  ok(!npcs.some(n => n.type === 'shrine'), 'newly consumed shrine clears after the targeted interaction event');
   ok(persisted === 2, 'post-interaction cleanup persists exactly once');
   const bootstrap = fs.readFileSync(path.join(root, 'production-bootstrap.js'), 'utf8');
   ok(!bootstrap.includes('__DE_DISPOSABLE_NPC_CLEANUP') && !bootstrap.includes('installDisposableNpcCleanup'), 'production bootstrap no longer owns NPC stability');
