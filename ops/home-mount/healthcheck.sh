@@ -23,7 +23,7 @@ DELAY=2
 fail(){ echo "WEB_TOYS_HOME_HEALTH_ERROR: $*" >&2; exit 1; }
 revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v134-health.XXXXXX)"
+work_dir="$(mktemp -d /tmp/web-toys-home-v135-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
@@ -67,7 +67,7 @@ check_adsense_surface(){
 
 check_home(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.3.4"' 'homepage site version' || return 1
+  require_fixed "$file" 'data-site-version="1.3.5"' 'homepage site version' || return 1
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
@@ -75,6 +75,10 @@ check_home(){
   require_fixed "$file" 'v1.11.5' 'homepage Moyu version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开仓库' 'homepage open-source copy' || return 1
+  require_fixed "$file" 'site-trust-hub-v135' 'homepage visible trust hub style' || return 1
+  require_fixed "$file" '关于、隐私与联系，不应该藏在角落。' 'homepage visible trust hub heading' || return 1
+  require_fixed "$file" 'mailto:diaow2331@gmail.com' 'homepage visible contact email' || return 1
+  require_fixed "$file" '游戏运行界面本身不作为广告展示面' 'homepage ad-surface disclosure' || return 1
   grep -Eq 'Open\.|打开。' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage open CTA' >&2; return 1; }
   require_fixed "$file" 'min-height:42px' 'homepage control height' || return 1
   check_social_contract "$file" 'https://91hwl.cn/' '91hwl · Browser Games' || return 1
@@ -84,7 +88,7 @@ check_home(){
 
 check_de_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.3.4"' 'Dungeon Echo detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.3.5"' 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.2.11"' 'Dungeon Echo detail software version' || return 1
   require_fixed "$file" '901–1180px' 'Dungeon Echo responsive release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
@@ -101,7 +105,7 @@ check_de_detail(){
 
 check_moyu_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.3.4"' 'Moyu detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.3.5"' 'Moyu detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.11.5"' 'Moyu detail software version' || return 1
   require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
   require_fixed "$file" '双端更稳' 'Moyu current Chinese release copy' || return 1
@@ -164,7 +168,7 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
   fi
   if (( attempt < ATTEMPTS )); then sleep "$DELAY"; fi
 done
-test "$public_ok" = true || fail "public site v1.3.4 check failed after $ATTEMPTS attempts"
+test "$public_ok" = true || fail "public site v1.3.5 check failed after $ATTEMPTS attempts"
 
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"
