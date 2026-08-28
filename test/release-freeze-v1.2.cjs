@@ -31,7 +31,7 @@ assert(health.includes('/dungeon-echo/VERSION'), 'health check must verify deplo
 assert(health.includes('test "$actual" = "$expected"'), 'VERSION health check must be exact');
 assert(readme.includes('> **Live:**'), 'repository README must keep an explicit live release line');
 assert(readme.includes(`Dungeon Echo **v${version}**`), 'repository README live version must match VERSION');
-assert(readme.includes(`public runtime cache generation **${assetVersion}**`) || readme.includes(`public runtime cache generation **${assetVersion}**;`) || readme.includes(`public runtime cache generation **${assetVersion}**.`), 'README cache generation must match runtime bootstrap');
+assert(readme.includes(`public runtime cache generation **${assetVersion}**`), 'README cache generation must match runtime bootstrap');
 assert(fs.existsSync(notesPath), `release notes missing: ${notesPath}`);
 const notes = fs.readFileSync(notesPath,'utf8');
 assert(notes.includes(`# Dungeon Echo v${version}`), 'current release-note heading mismatch');
@@ -40,8 +40,7 @@ assert(/GitHub Actions|Actions|targeted|deterministic/i.test(notes), 'release no
 assert(siteReadme.includes(`91hwl-play-dungeon-echo-v${version}.zip`), 'game deployment README version mismatch');
 assert(homeReadme.includes(`site v${homeSiteVersion}`), 'home deployment README must identify the explicit SITE_VERSION');
 assert(maintenance.includes('Active skill: **K**'), 'maintenance must not restore the old C-skill contract');
-assert(roadmap.includes('build-site-bundle.sh'), 'current game-only hotfix builder must be explicit');
-assert(roadmap.includes('build-web-toys-release.sh') && roadmap.includes('v1.2.7'),
-  'the prior unified release boundary must remain explicit and immutable');
+assert(roadmap.includes('生产服务器不是构建机'), 'roadmap must preserve artifact-only production governance');
+assert(roadmap.includes('immutable ZIP'), 'roadmap must preserve immutable ZIP patch governance');
 
 console.log('release_freeze_v1_2=PASS');
