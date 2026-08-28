@@ -8,7 +8,7 @@ const runtime = read('runtime-bootstrap.js');
 const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
 const mobile = read('mobile-ux.js');
 const visual = read('visual-polish.js');
-const notes = read('RELEASE_NOTES_v1.2.3.md');
+const notes = read('docs/releases/RELEASE_NOTES_v1.2.3.md');
 
 assert.strictEqual(version, '1.2.3', 'final mobile/visual hotfix must publish as v1.2.3');
 assert(runtime.includes('release-stamp-v123.js'), 'runtime must load the v1.2.3 release stamp');
