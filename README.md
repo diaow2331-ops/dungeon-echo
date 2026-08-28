@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/en/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.2.9 is the current repository release line. Public deployment is complete only after the game-only bundle, version endpoint and health checks pass. Compatible browser saves remain valid.
+> **Status:** v1.2.10 is the current repository release line. Public deployment is complete only after the game-only bundle, generation-154 asset checks, version endpoint and health checks pass. Compatible browser saves remain valid.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -25,7 +25,7 @@ The repository is folder-first: all active JavaScript lives under `game/`, so a 
   - [`game/systems/`](game/systems/) — gameplay owners for equipment, town, commerce, progression, encounters and balance pressure.
   - [`game/input/`](game/input/) — keyboard/gamepad and J/K + Mana input ownership.
   - [`game/locale/`](game/locale/) — fixed-route locale data, stable display IDs and exact English screen/Canvas sinks.
-  - [`game/ui/`](game/ui/) — bounded presentation followers such as audio, mobile UX, onboarding, help and visual feedback.
+  - [`game/ui/`](game/ui/) — bounded presentation followers such as audio, mobile UX, responsive layout, onboarding, help and visual feedback.
 - [`profiles/`](profiles/) — production and deterministic development profiles.
 - [`art/`](art/) — production artwork.
 - [`docs/`](docs/) — current engineering, maintenance, localization and design documentation.
@@ -70,7 +70,7 @@ For engineering details, read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) and [
 
 `/dungeon-echo/` is the fixed Chinese route and `/dungeon-echo/en/` is the fixed English route. Legacy `?lang=` links redirect to those paths. Language switching is navigation, not live whole-page translation.
 
-Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and other gameplay namespaces. `stable-item-id-migration-v150.js` adds language-neutral item IDs without renaming historical stored items. v1.2.9 does not require a progress reset.
+Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and other gameplay namespaces. `stable-item-id-migration-v150.js` adds language-neutral item IDs without renaming historical stored items. v1.2.10 does not require a progress reset.
 
 ## Run locally
 
@@ -117,11 +117,11 @@ The repository root intentionally contains **zero active `.js` files**. New Java
 
 ## Validation and release boundary
 
-Engineering checks protect contracts but do not replace human playtesting. High-value checks cover 1→100 descent, save compatibility, Return Scroll extraction, fixed-route localization, input/mana, equipment, mobile UX and release packaging.
+Engineering checks protect contracts but do not replace human playtesting. High-value checks cover 1→100 descent, save compatibility, Return Scroll extraction, fixed-route localization, input/mana, equipment, mobile UX, responsive layout and release packaging.
 
-`VERSION` is the semantic release authority. v1.2.9 uses static cache generation **153**; those numbers are intentionally independent. The game-only package is built by `ops/release/build-site-bundle.sh` and overlays only `/dungeon-echo/`, preserving the existing site and Moyu release tree.
+`VERSION` is the semantic release authority. v1.2.10 publishes static cache generation **154**; semantic and cache versions are intentionally independent. The stable source entries remain on the accepted generation-153 references, while `ops/release/build-site-bundle.sh` deterministically rewrites both packaged zh/en entries to generation 154. The game-only package overlays only `/dungeon-echo/`, preserving the existing site and Moyu release tree.
 
-Release notes: [`docs/releases/RELEASE_NOTES_v1.2.9.md`](docs/releases/RELEASE_NOTES_v1.2.9.md).
+Release notes: [`docs/releases/RELEASE_NOTES_v1.2.10.md`](docs/releases/RELEASE_NOTES_v1.2.10.md).
 
 ## Contributing
 

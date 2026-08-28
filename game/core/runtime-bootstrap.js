@@ -5,19 +5,19 @@
  *
  * v13 removed the last translation-after-render bridge from production. Chinese and English now boot the
  * same graph; the fixed English route owns its remaining legacy core sinks through exact screen/canvas owners.
- * v1.2.9 finalizes this graph as a release boundary without changing cache generation 153 or gameplay/save semantics.
+ * v1.2.10 keeps runtime ownership at v13, advances cache generation to 154, and adds the final responsive owner.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '153';
+  const assetVersion = '154';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
 
   const baseChain = [
-    [fresh('game/core/release-stamp-v129.js'), 'data-de-release-stamp-v129', () => !!window.__DE_RELEASE_STAMP_V129],
+    [fresh('game/core/release-stamp-v1210.js'), 'data-de-release-stamp-v1210', () => !!window.__DE_RELEASE_STAMP_V1210],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
@@ -30,6 +30,7 @@
     [fresh('game/ui/combat-hint-polish.js'), 'data-de-combat-hint', () => !!window.__DE_COMBAT_HINT_POLISH],
     [fresh('game/ui/audio-director.js'), 'data-de-audio-director', () => !!window.__DE_AUDIO_DIRECTOR],
     [fresh('game/ui/mobile-ux.js'), 'data-de-mobile-ux', () => !!window.__DE_MOBILE_UX],
+    [fresh('game/ui/responsive-final-v154.js'), 'data-de-responsive-final-v154', () => !!window.__DE_RESPONSIVE_FINAL_V154],
     [fresh('game/ui/help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],
     [fresh('game/ui/expedition-record-v126.js'), 'data-de-expedition-record-v126', () => !!window.__DE_EXPEDITION_RECORD_V126],
   ];

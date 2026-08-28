@@ -5,9 +5,12 @@ This package extends the existing play.91hwl.cn release tree. It preserves
 /srv/91hwl-play/current symlink atomically, and rolls back on failed checks.
 
 Server usage:
-  unzip 91hwl-play-dungeon-echo-v1.2.9.zip -d /tmp/91hwl-play-dungeon-echo-v1.2.9
-  cd /tmp/91hwl-play-dungeon-echo-v1.2.9
+  unzip 91hwl-play-dungeon-echo-v1.2.10.zip -d /tmp/91hwl-play-dungeon-echo-v1.2.10
+  cd /tmp/91hwl-play-dungeon-echo-v1.2.10
   sudo ./ops/deploy.sh
+
+The v1.2.10 bundle publishes cache generation 154 for both zh/en entries and
+includes the final responsive owner for mid-width PC and portrait touch layouts.
 
 Success markers:
   dungeon_echo_healthcheck=PASS

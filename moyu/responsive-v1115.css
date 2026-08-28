@@ -1,0 +1,44 @@
+/* Clock Out Alive v1.11.5 final responsive pass.
+ * Presentation only: safe-area padding and narrow-phone header compaction.
+ * Gameplay geometry, speed, hitboxes, obstacle spacing and input semantics stay unchanged.
+ */
+@supports (padding:max(0px)) {
+  body {
+    padding-left:max(18px, env(safe-area-inset-left));
+    padding-right:max(18px, env(safe-area-inset-right));
+    padding-bottom:calc(30px + env(safe-area-inset-bottom));
+  }
+  @media(max-width:720px) {
+    body {
+      padding-left:max(8px, env(safe-area-inset-left));
+      padding-right:max(8px, env(safe-area-inset-right));
+      padding-bottom:calc(22px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+@media(max-width:560px) {
+  header { align-items:center; gap:8px; }
+  .brand { min-width:0; flex:1 1 auto; }
+  .top-actions { flex:0 0 auto; gap:4px; }
+  .home-link {
+    width:44px;
+    min-width:44px;
+    padding:0;
+    overflow:hidden;
+    font-size:0;
+    white-space:nowrap;
+    display:inline-grid;
+    place-items:center;
+  }
+  .home-link::before { content:"←"; font-size:18px; line-height:1; }
+  #settingsBtn { width:44px; min-width:44px; padding:0; }
+  #settingsBtn [data-i18n="settings"] { display:none; }
+  #fullscreenBtn { min-width:44px; padding-left:9px; padding-right:9px; }
+}
+
+@media(max-width:380px) {
+  header { flex-wrap:wrap; }
+  .brand { flex:1 0 100%; }
+  .top-actions { width:100%; justify-content:flex-end; }
+}
