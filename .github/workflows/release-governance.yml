@@ -19,6 +19,8 @@ jobs:
         run: node test/release-freeze-v1.2.cjs
       - name: Verify site deploy release boundary
         run: node test/site-bundle-version-contract.cjs
+      - name: Verify offline public release boundary
+        run: node test/dual-public-release.cjs
       - name: Verify immutable Dungeon bundle
         run: node test/release.cjs
       - name: Verify 91hwl trust surfaces
