@@ -10,8 +10,8 @@ assert(locale.includes('installNoTranslateBoundary'),'fixed locale owner must in
 assert(locale.includes("setAttribute('translate', 'no')"),'fixed locale owner must set translate=no');
 assert(locale.includes("classList.add('notranslate')"),'fixed locale owner must mark the route notranslate');
 assert(locale.includes("meta[name=\"google\"][content=\"notranslate\"]"),'fixed locale owner must install browser translation metadata');
-assert(runtime.includes("const assetVersion = '155'"),'launch hotfix must use cache generation 155');
-assert(bundle.includes('asset_generation=155'),'release bundle must publish cache generation 155');
-assert(health.includes('ASSET_GENERATION=155')&&health.includes('browser retranslation guard missing'),'healthcheck must validate the new locale boundary');
+assert(runtime.includes("const assetVersion = '156'"),'current fixed-route hotfix must use cache generation 156');
+assert(bundle.includes('asset_generation=156'),'release bundle must publish cache generation 156');
+assert(health.includes('ASSET_GENERATION=156')&&health.includes('browser retranslation guard missing'),'healthcheck must retain the fixed locale boundary');
 new Function(locale);new Function(runtime);
-console.log('fixed_locale_notranslate_v155=PASS');
+console.log('fixed_locale_notranslate_v155_boundary_on_v156=PASS');
