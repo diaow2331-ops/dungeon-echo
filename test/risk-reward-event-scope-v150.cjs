@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const src=fs.readFileSync(path.join(root,'risk-reward-system.js'),'utf8');
+assert(src.includes("version:'p0-v4'"),'risk/reward owner must declare scoped v4');
+assert(!src.includes('armCaskWatch'),'risk/reward must not snapshot casks from every input');
+assert(!src.includes("document.addEventListener('keydown'")&&!src.includes("document.addEventListener('click'"),'risk/reward owns no broad document input followers');
+assert(src.includes("window.addEventListener('click', interceptShrine, true)"),'shrine acceptance remains an explicit click interceptor');
+assert(/api\.tryMove = function[\s\S]*settleCasks\(before\);[\s\S]*defer\(syncShrineCopy\)/.test(src),'movement owns cask settlement and shrine presentation handoff');
+assert(/api\.useSkill = function[\s\S]*settleCasks\(before\)/.test(src),'skill path preserves cask settlement');
+assert(/api\.pickupHere = function[\s\S]*settleCasks\(before\)/.test(src),'pickup path preserves cask settlement');
+assert(!src.includes('setInterval')&&!src.includes('requestAnimationFrame')&&!src.includes('MutationObserver'),'risk/reward stays polling/RAF/observer free');
+new Function(src);
+console.log('risk_reward_event_scope_v150=PASS');
