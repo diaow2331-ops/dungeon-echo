@@ -8,7 +8,7 @@ CURRENT_LINK="$SITE_ROOT/current"
 GAME_SOURCE="$BUNDLE_ROOT/public/dungeon-echo"
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 EXPECTED_VERSION=1.2.10
-EXPECTED_GENERATION=156
+EXPECTED_GENERATION=155
 
 fail(){ echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
@@ -22,7 +22,6 @@ for f in \
   "$GAME_SOURCE/game/core/production-bootstrap.js" \
   "$GAME_SOURCE/game/core/release-stamp-v1210.js" \
   "$GAME_SOURCE/game/locale/fixed-locale-entry-v130.js" \
-  "$GAME_SOURCE/game/ui/town-workspace-v156.js" \
   "$GAME_SOURCE/game/ui/responsive-final-v154.js" \
   "$BUNDLE_ROOT/VERSION" \
   "$BUNDLE_ROOT/REVISION" \
@@ -44,8 +43,6 @@ for entry in "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html"; do
 done
 grep -Fq "const assetVersion = '$EXPECTED_GENERATION'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime cache generation mismatch'
 grep -Fq 'installNoTranslateBoundary' "$GAME_SOURCE/game/locale/fixed-locale-entry-v130.js" || fail 'fixed-locale no-translate boundary missing'
-grep -Fq 'town-workspace-v156.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'town workspace owner not wired'
-grep -Fq '__DE_TOWN_WORKSPACE_V156' "$GAME_SOURCE/game/ui/town-workspace-v156.js" || fail 'town workspace owner missing'
 grep -Fq 'responsive-final-v154.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'responsive owner not wired'
 grep -Fq 'ONE_SHOT_REPEAT_KEYS' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'one-shot keyboard repeat guard missing'
 
