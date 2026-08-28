@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const src=fs.readFileSync(path.join(root,'npc-stability-system.js'),'utf8');
+assert(src.includes("version:'p0-v4'"),'NPC stability must declare v4');
+assert(src.includes('function relocationNeeded(force=false)'),'relocation must have an explicit floor/NPC-set invalidation gate');
+assert(src.includes('list !== lastNpcList')&&src.includes('Number(api.depth) !== lastDepth')&&src.includes('count !== lastCount'),'relocation invalidation must follow list identity, depth and NPC count');
+assert(/const moved = relocationNeeded\(force\) \? relocateChokepoints\(\) : 0/.test(src),'map-wide relocation must run only when invalidated');
+assert(src.includes('rememberNpcSet();'),'successful inspection must stamp the current NPC set');
+assert(/function\s+schedule\s*\(\)[\s\S]*if \(queued\) return false/.test(src),'input scheduling must coalesce duplicate microtasks');
+assert(src.includes('stabilize(true);'),'bootstrap must force one initial relocation pass');
+assert(!src.includes('setInterval')&&!src.includes('requestAnimationFrame')&&!src.includes('MutationObserver'),'NPC stability remains polling/RAF/observer free');
+new Function(src);
+console.log('npc_stability_floor_scope_v149=PASS');
