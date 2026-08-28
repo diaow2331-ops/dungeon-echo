@@ -16,21 +16,28 @@ Primary candidate source sheets:
 
 1. `candidate/loot-equipment-source-v2.png`
    - weapons, armor, rings, consumables, key/gold, helmets, boots, amulets
-   - future target: normalized loot/equipment atlas
 2. `candidate/monster-deep-source-v2.png`
    - deep-floor monster archetypes and variants
-   - future target: additive monster atlas covering currently unmapped archetypes
 3. `candidate/hero-action-source-v2.png`
    - Warrior / Ranger / Mage / Assassin action-state source art
-   - future target: normalized hero action atlas
 4. `candidate/dungeon-props-source-v1.png`
    - torches, bones, obelisks, crates, barrels, webs, crystals, lava, portals, altars, gates, camp/shop fixtures
-   - future target: additive environment-prop atlas
 
 Alternate sheets are retained for selective harvesting. Large collage boards are art-direction references only and should not ship in gameplay releases.
 
+## Normalized runtime candidates
+
+The first normalization pass is complete and pinned by JSON maps under `runtime-maps/`:
+
+- loot/equipment: 4×8, 31 live ids + 1 spare cell
+- deep monsters: 4×4, first-pass direct coverage for `abomination`, `seraph`, `voidspawn`, `voidlord`
+- hero actions: 4 classes × 4 states (`idle`, `attack`, `hurt`, `skill`)
+- dungeon props: 6×4, 24 decorative/interaction-source props
+
+The normalized PNGs are staged outside production until binary admission and visual QA are complete. No gameplay id, save key, stat or collision rule changes are implied by this art batch.
+
 ## Promotion workflow
 
-`source sheet -> per-object extraction -> alpha cleanup -> scale/anchor normalization -> deterministic grid -> mapping table -> code integration -> release manifest`
+`source sheet -> extraction/normalization -> deterministic grid -> mapping table -> binary admission -> code integration -> visual QA -> release manifest`
 
-The current priority is to promote the four candidate sheets above one by one rather than generate more near-duplicate source sheets.
+Do not merge a runtime atlas only because the source sheet looks good. Every promoted atlas must keep a stable coordinate map and an explicit fallback path.
