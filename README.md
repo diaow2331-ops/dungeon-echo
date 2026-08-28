@@ -4,7 +4,7 @@
 
 [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/en/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Status:** v1.2.8 is the current repository release line. Public deployment is only considered complete after the game-only bundle upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
+> **Status:** v1.2.9 is the current repository release line. Public deployment is only considered complete after the game-only bundle upload, version-endpoint and health checks pass. Existing compatible browser saves remain valid.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -34,7 +34,7 @@ The repository root intentionally keeps the production entry and active browser 
 | --- | --- | --- |
 | ![Warrior, Ranger, Arcanist and Assassin](art/class-roster.webp) | ![Dungeon Echo town](art/town-backdrop-v11.webp) | ![Dungeon Echo final boss](art/final-boss-v11.png) |
 
-The launch media intentionally uses current shipped art. A fresh post-v1.2.8 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
+The launch media intentionally uses current shipped art. A fresh post-v1.2.9 real gameplay screenshot can replace the title image later; pre-v1.2.3 screenshots showing the retired center Wait target or old player halo are not treated as current product media.
 
 ## Why play it?
 
@@ -56,7 +56,7 @@ The launch media intentionally uses current shipped art. A fresh post-v1.2.8 rea
 - v1.2.6 record/localization polish: Help control copy stays in the selected language on both desktop and mobile, while Expedition Record always exposes the full 12-achievement catalog with progress, locked goals and a zero-state before the first Greedy Expedition.
 - v1.2.7 ownership hardening: equipment swap turns, risk/reward interactions, permanent growth/XP bounds and utility-NPC path stability now have explicit production owners; `production-bootstrap.js` no longer carries gameplay rules.
 - v1.2.8 locale/save/input hardening: malformed persistent blobs are rejected before core restore, core text escaping is correct, Greedy town resumes restore a valid economy/state, gamepads expose RT Attack and the floor-100 choice cannot settle twice.
-- Current post-v1.2.8 convergence retires the final translation-after-render bridge from production: `/` is fixed Chinese, `/en/` is fixed English, both boot the same synchronous gameplay graph and the same late runtime graph.
+- v1.2.9 convergence release: the final translation-after-render bridge is retired from production, `/` is fixed Chinese, `/en/` is fixed English, both boot the same gameplay/runtime graph, Return Scroll extraction has one guarded two-stage owner, stable language-neutral item IDs preserve shared saves, and the release runs on cache generation 153.
 
 The project favors readable counterplay over hidden punishment, human playtesting over bot-only balance claims, and rollback-capable static releases over unnecessary infrastructure.
 
@@ -151,13 +151,13 @@ The v1.2 release line does not claim a fresh complete GitHub Actions suite when 
 
 Progress is stored in browser `localStorage`. Normal static-file updates and hard refreshes do not remove saves. Clearing site data, changing browser profile/device, or changing storage origin can make local saves unavailable.
 
-v1.2.8 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The save-integrity guard preserves valid compatible blobs unchanged, while malformed/impossible blobs are rejected and valid Greedy town meta is repaired through existing defaults. Fixed Chinese/English routes share these same namespaces; language is not part of save identity. No progress reset is required.
+v1.2.9 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1` town/meta save. The save-integrity guard preserves valid compatible blobs unchanged, while malformed/impossible blobs are rejected and valid Greedy town meta is repaired through existing defaults. Fixed Chinese/English routes share these same namespaces; language is not part of save identity. Stable item IDs are additive and do not require a progress reset.
 
 ## Release boundary
 
-`VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. v1.2.8 is a Dungeon Echo-only hotfix built with `ops/release/build-site-bundle.sh`; it overlays only `/dungeon-echo/` and preserves the existing site and Moyu release tree. The unified three-bundle builder intentionally remains pinned to the last unified boundary: Dungeon Echo v1.2.7 + site v1.3.3 + Moyu v1.11.3.
+`VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. v1.2.9 is a Dungeon Echo-only convergence release built with `ops/release/build-site-bundle.sh`; it overlays only `/dungeon-echo/` and preserves the existing site and Moyu release tree. Semantic version **1.2.9** is intentionally independent from static cache generation **153**. The unified three-bundle builder remains pinned to the last unified boundary: Dungeon Echo v1.2.7 + site v1.3.3 + Moyu v1.11.3.
 
-Release notes: [`docs/releases/RELEASE_NOTES_v1.2.8.md`](docs/releases/RELEASE_NOTES_v1.2.8.md). Last unified companion web release: [`docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md`](docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md).
+Release notes: [`docs/releases/RELEASE_NOTES_v1.2.9.md`](docs/releases/RELEASE_NOTES_v1.2.9.md). Last unified companion web release: [`docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md`](docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md).
 
 ## AI-assisted development
 
