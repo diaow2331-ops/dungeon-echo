@@ -3,9 +3,9 @@
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  * Fixed-route locale identity and language-neutral item migration are established before presentation owners boot.
  *
- * v13 removed the last translation-after-render bridge from production. Chinese and English now boot the
- * same graph; the fixed English route owns its remaining legacy core sinks through exact screen/canvas owners.
- * v1.2.10 keeps runtime ownership at v13; launch hotfix generation 155 refreshes the fixed-locale boundary.
+ * v13 removed the last generic translation-after-render bridge from production. Chinese and English boot the
+ * same graph; exact fixed-route owners cover remaining legacy sinks. The pre-launch town hotfix keeps public
+ * generation 155 while adding new-path workspace owners before exact town-canvas localization binds its canvas.
  */
 (() => {
   'use strict';
@@ -21,6 +21,8 @@
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
+    [fresh('game/ui/town-workspace-v156.js'), 'data-de-town-workspace-v156', () => !!window.__DE_TOWN_WORKSPACE_V156],
+    [fresh('game/ui/town-workspace-events-v156.js'), 'data-de-town-workspace-events-v156', () => !!window.__DE_TOWN_WORKSPACE_EVENTS_V156],
     [fresh('game/locale/town-canvas-locale-v153.js'), 'data-de-town-canvas-locale-v153', () => !!window.__DE_TOWN_CANVAS_LOCALE_V153],
   ];
   const followerChain = [
@@ -37,18 +39,13 @@
   const chain = Object.freeze([...baseChain, ...followerChain]);
 
   let started = false;
-
   function loadScript(src, marker, ready) {
     return new Promise(resolve => {
       if (ready()) { resolve('ready'); return; }
       const existing = document.querySelector(`script[${marker}]`);
       if (existing) {
         let done = false;
-        const settle = status => {
-          if (done) return;
-          done = true;
-          resolve(status || (ready() ? 'ready' : 'existing'));
-        };
+        const settle = status => { if (done) return; done = true; resolve(status || (ready() ? 'ready' : 'existing')); };
         existing.addEventListener('load', () => settle(ready() ? 'ready' : 'existing'), { once:true });
         existing.addEventListener('error', () => settle('error'), { once:true });
         setTimeout(() => settle('timeout'), 1200);
@@ -59,33 +56,21 @@
       script.async = false;
       script.setAttribute(marker, 'v13');
       let done = false;
-      const settle = status => {
-        if (done) return;
-        done = true;
-        resolve(status);
-      };
+      const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
       script.addEventListener('error', () => settle('error'), { once:true });
       document.body.appendChild(script);
       setTimeout(() => settle('timeout'), 3000);
     });
   }
-
   async function start() {
     if (started) return false;
     started = true;
     for (const [src, marker, ready] of chain) {
-      try { await loadScript(src, marker, ready); }
-      catch (_err) { /* optional presentation/data migration layers must not block later followers */ }
+      try { await loadScript(src, marker, ready); } catch (_err) {}
     }
     return true;
   }
-
-  if (document.body) start();
-  else window.addEventListener('DOMContentLoaded', start, { once:true });
-
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = {
-    version:'v13', assetVersion, locale:english ? 'en' : 'zh-CN', english,
-    start, loadScript, chain, baseChain:Object.freeze(baseChain), followerChain:Object.freeze(followerChain),
-  };
+  if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v13',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
 })();
