@@ -9,7 +9,6 @@ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'moyu1115-')),js=path.join(tmp,'g
 let r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1111.patch'),encoding:'utf8'});assert.equal(r.status,0,r.stderr);assert.equal(digest(fs.readFileSync(js,'utf8')),expected['game-v1111.js']);
 r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1112.patch'),encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1113.cjs'),indexPath,js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
-r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1114.patch'),encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1114.cjs'),indexPath,js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync('patch',['--silent',js],{input:read('moyu/patches/runtime-v1115.patch'),encoding:'utf8'});assert.equal(r.status,0,r.stderr);
 r=spawnSync(process.execPath,[path.join(root,'moyu/build-v1115.cjs'),indexPath,js],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);
