@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "runtimePath": "art/dungeon-props-atlas-v1.png",
+  "runtimePath": "art/runtime/dungeon-props-atlas-v1.svg",
   "sourceArchive": "dungeon-echo-art-library-batch-2026-08-29.zip",
   "sourceFile": "candidate/dungeon-props-source-v1.png",
   "columns": 6,
   "rows": 4,
-  "cellPixels": 128,
-  "atlasPixels": [768, 512],
-  "runtimeSha256": "d3ad0a3e87d4d48d5b2d8313063bc0a8e23480cf9629fb928e7f7c32e708ef36",
+  "cellPixels": 48,
+  "atlasPixels": [288, 192],
+  "runtimeSha256": "4fa97d0486fa8a3e756631f74fcd86134ff56256cba9652834dee6d7986e090b",
   "cells": [
     "wall-torch", "bone-pile", "rune-obelisk", "wood-crate", "wood-barrel", "lantern-post",
     "web-nest", "ice-crystal", "red-mushroom", "lava-vent", "void-rift", "blood-altar",
@@ -17,6 +17,6 @@
   "notes": [
     "Environment props are decorative unless an existing gameplay object explicitly owns the interaction.",
     "Do not derive collision, loot or trigger behavior from the artwork alone.",
-    "Source PNG is currently held in the immutable art archive; it is not falsely represented as repository-resident."
+    "Optimized repo-resident runtime art uses 48px cells."
   ]
 }
