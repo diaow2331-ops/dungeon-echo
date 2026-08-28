@@ -1,54 +1,54 @@
 # 地牢回响：v1.2.8 之后的产品路线图
 
-> 当前游戏热修复候选：**Dungeon Echo v1.2.8**。最近一次统一发布边界仍是 **Dungeon Echo v1.2.7 + 91hwl site v1.3.3 + Clock Out Alive / 摸鱼到下班 v1.11.3**。
->
-> 当前游戏仍是固定 **1 → 100** 正式路线；本轮没有重做战斗数值、经济、掉落、守卫、技能进化、存档 schema 或正式美术。
+> 当前语义版本仍为 **Dungeon Echo v1.2.8**。固定中英文路线、共享存档、输入/运行时治理与最终 locale 收口已经进入 `main`；缓存 generation 已推进到 153。最近一次统一三包发布边界仍是 **Dungeon Echo v1.2.7 + 91hwl site v1.3.3 + Moyu v1.11.3**。
 
-Dungeon Echo 已具备四职业、六装备栏、Greedy Expedition、城镇整备、10/20/…/90 守卫链、100 层三阶段终局、20/40/60/80 技能进化、J/K + Mana、中文 / English、PC/手机操作与完整正式美术。
+Dungeon Echo 已具备四职业、六装备栏、Greedy Expedition、城镇整备、10/20/…/90 守卫链、100 层三阶段终局、20/40/60/80 技能进化、J/K + Mana、固定中文/English 路线、PC/手机/手柄操作与正式美术基线。
 
-当前主线不再是“继续堆功能”，而是：
+当前主线不再是继续堆功能，而是：
 
-**明确机制 owner → 真人 1→100 证据 → 定点修复 → 发布/展示事实持续一致**
+**真实浏览器验收 → 发布/部署 → 仓库治理 → 仅根据真人证据做定点修复。**
 
-## 已完成：机制所有权第一阶段
+## 已完成：运行时与双语架构收口
 
-历史版本最大的代码风险不是缺功能，而是同一机制可能由多个 follower、事件监听、轮询或 monkey-patch 同时维护。v1.2.7 前后的治理已经完成以下收拢：
+当前生产架构已经完成以下关键治理：
 
-- ✅ `equipment-system.js`：地牢内换装耗回合的唯一生产 owner。
-- ✅ `risk-reward-system.js`：神龛赌注与木桶负面事件的明确 owner。
-- ✅ `progression-guard-system.js`：永久等级/HP/ATK 上限与动作期 XP 暂存的明确 owner。
-- ✅ `npc-stability-system.js`：一次性 shrine/rest 清理与 utility NPC 防堵路的明确 owner。
-- ✅ `production-bootstrap.js`：退出实际玩法职责，只保留正式入口策略与旧装备图集兼容桥。
-- ✅ 永久成长守卫由 150ms 常驻轮询改为初始同步 + 玩家动作后的微任务同步。
-- ✅ 生产入口、发布白名单、部署门禁和回归契约均认识上述 owner。
+- ✅ `/` 固定中文、`/en/` 固定英文；两者同源、同 gameplay/runtime graph、同存档命名空间。
+- ✅ `locale-event-owner-v130.js`、`locale-runtime-v122.js`、`locale-completeness-v128.js` 已退出生产加载链和 release manifest。
+- ✅ 动态英文改为业务 owner / 精确 screen owner 源头输出，不再做 whole-document DOM 翻译。
+- ✅ `town-canvas-locale-v153.js` 只处理城镇与转盘两个 Canvas 文本 sink，不修改全局 Canvas prototype。
+- ✅ `stable-item-id-migration-v150.js` 为旧装备非破坏性补充 `baseId / rarityId / slotId`，不改旧名称、不拆中英文存档。
+- ✅ Return Scroll 已收敛到 Commerce 两阶段语义状态机；手柄不再合成键盘 T。
+- ✅ 城镇、装备、成长、战斗压力、Guardian、视觉层、新手引导等大部分常驻 polling / 无意义 RAF / DOM follower 已移除或改为生命周期驱动。
+- ✅ 游戏手柄采样只在真实连接且页面可见时运行。
+- ✅ 当前生产静态资源 cache generation 为 153。
 
-治理原则继续保持：
+这些结构性修改的目标是减少冻结、后台无效工作、输入 owner 冲突和中英文混杂，而不是改变战斗数值或经济平衡。
 
-1. 每个玩家可见机制只有一个生产 owner；
-2. fallback 只能服务隔离开发/测试，权威 owner 存在时不得并行执行；
-3. 不用新的第三层补丁掩盖旧重复所有权；
-4. 先修结构性歧义，再根据真人证据调数值；
-5. 每次只改可以独立说明、验证和回滚的边界。
+## 当前 P0：真实浏览器验收与发布
 
-## 当前 P0：完成 v1.2.8 游戏热修复发布与真实部署验证
+源码和仓库契约不能替代真实浏览器。当前需要人工确认的高价值场景为：
 
-Dungeon Echo 仓库当前版本事实已收口到 **v1.2.8**。本次只发布游戏包，不修改 site v1.3.3 或 Moyu v1.11.3；`build-web-toys-release.sh` 继续保留为 v1.2.7 的历史三包统一边界，不为这次游戏热修复改标。
+1. Greedy Expedition 持有 Return Scroll 时连续执行两阶段 T 回城，重复多次不冻结、不重复消耗。
+2. `/` 与 `/en/` 相互切换后，`de-run-v6`、`de-greedy-meta-v1`、背包/装备/金库进度连续可见。
+3. 英文代表性流程不存在明显中文泄漏：标题、职业、HUD、战斗日志、装备 tooltip、地下商店、Town、轮盘、Pause、死亡/胜利 Overlay。
+4. PC 键盘、Gamepad、手机触控的 Attack / Skill / Return / Descend / Pause 行为一致。
+5. 页面后台/恢复、长时间运行、城镇停留和 Boss telegraph 不出现新的持续 CPU/DOM churn。
 
-v1.2.8 使用 `ops/release/build-site-bundle.sh` 从精确合并 revision 构建，部署时只覆盖 `/dungeon-echo/` 并保留当前站点与 Moyu 内容。仓库合并、tag 或 GitHub Release 页面本身不等于已上线。
+本月 GitHub Actions 额度已用完，因此当前治理周期不把 Actions 作为前置条件，也不再重复查询 Actions 状态。任何 PASS 都必须对应实际执行过的源码检查、部署检查或人工浏览器验证。
 
-发布完成必须观察到：
+## 当前 P1：仓库可读性与治理
 
-- Dungeon Echo bundle 构建成功；
-- bundle revision、版本、校验和与合并 revision 一致；
-- 部署后原有 site/home 与 Moyu 内容未被改写；
-- 服务器部署脚本完成且未回滚；
-- origin health check PASS；
-- public health check PASS；
-- 英文 PC 页面完成主验收，并用手机复核语言、布局和触控主流程。
+游戏代码已经基本收尾，仓库开始从“高速迭代工作台”收敛为“游客容易理解的公开项目”。当前治理原则：
 
-GitHub Actions 当前额度不可用时，不把 Actions 作为发布前置条件，也不得伪造 CI PASS。
+- `README.md`、`LICENSE`、`SECURITY.md`、`CONTRIBUTING.md`、`VERSION` 保持根目录可见。
+- 活跃生产入口和运行时 JavaScript 暂时保持根目录，避免在收尾阶段做高风险的纯路径大迁移。
+- 工程/维护/平衡/AI 协作文档统一进入 `docs/`。
+- 历史 release notes 统一进入 `docs/releases/`。
+- 被替代的松散文档进入 `docs/archive/`。
+- README 首页提供明确的 source map，让游客直接找到 `game.js`、主要 system owner、中英文入口和开发文档。
+- 后续只有在路径迁移能带来明确维护收益时，才考虑把活跃 JS 进一步移动到 `src/`；不为了“目录看起来漂亮”承担生产 URL、release manifest 和大量测试引用同时变更的风险。
 
-## 当前 P1：真人 1→100 证据
+## 当前 P2：真人 1→100 证据
 
 下一轮真正影响玩法的调整，应优先来自真人长局，而不是继续凭静态阅读猜数值。
 
@@ -63,52 +63,22 @@ GitHub Actions 当前额度不可用时，不把 Actions 作为发布前置条�
 - Mana、J/K 与技能进化的真实使用节奏；
 - 守卫提示是否清晰、是否被地图几何放大或削弱。
 
-现有 Issue #3/#4/#5/#7/#10/#11 继续作为这些证据的归档入口，不为“看起来更忙”重新造一套重复 Issue。
+只有这些证据指出具体问题时，再做定点数值、美术或交互修复。
 
-## 当前 P2：剩余代码债
+## 发布边界
 
-### 1. `equipment-system.js` 状态轮询
+v1.2.8 仍使用 `ops/release/build-site-bundle.sh` 构建 Dungeon Echo 单包，并只覆盖 `/dungeon-echo/`，保留当前 site 与 Moyu 内容。`build-web-toys-release.sh` 继续作为 v1.2.7 的历史统一三包边界，不为当前游戏治理改标。
 
-装备系统仍保留周期同步。后续应审查哪些状态已经可以由装备动作、载入和显式事件驱动，逐步减少“靠轮询维持正确”的部分。
-
-### 2. `gameplay-tuning.js` 继续瘦身
-
-它仍同时覆盖职业 baseline、守卫完整性以及若干兼容逻辑。下一步只在找到明确重复 owner 时继续拆，不做一次大型重写。
-
-### 3. `game.js` 旧核心假设
-
-逐步删除与正式 1→100 契约不一致的旧入口假设和重复逻辑；每次保持小 diff、可回滚。
-
-## 美术与内容策略
-
-v1.2.8 不重新开启“为了版本号而全面重做美术”。现有主角、怪物、守卫、终局、装备和城镇已经构成正式基线。
-
-只有真人 1→100 证据显示某个画面影响：
-
-- 机制辨识；
-- 战斗 telegraph；
-- 装备判断；
-- UI 层级；
-- PC 网页沉浸感；
-
-才进行定点美术/视觉修复。
-
-## 站点与 Moyu
-
-site v1.3.3 与 Moyu v1.11.3 已完成首屏 locale/theme prepaint、浏览器自动翻译抑制、字体/控件尺度收口及相应构建/部署契约。
-
-后续网站工作同样遵循“证据驱动”：先完成真实部署和双端验收，再根据实际问题迭代，不把已经完成的 v1.3.3/v1.11.3 工作重新写成未来任务。
+发布完成需要真实观察到构建、校验、服务器切换、origin/public health check 和双端浏览器验收结果。GitHub 合并、tag 或 Release 页面本身不等于已经上线。
 
 ## 停止条件
 
-满足以下条件后，v1.2.8 这一治理周期结束：
+满足以下条件后，本轮 Dungeon Echo 治理可以关闭：
 
-- 边界修复 PR 合并；
-- `v1.2.8` tag / GitHub Release 与合并 revision 一致；
-- Dungeon Echo 单包从该 revision 构建并通过校验；
-- 服务器部署和 origin/public health checks 有真实 PASS；
-- 英文 PC 主流程与手机复核人工验收完成。
+- 固定中英文架构与运行时治理已合并；
+- 仓库根目录完成文档/历史文件收敛并保持生产路径稳定；
+- Return Scroll T×2、共享存档、中英文可见文本、PC/手机/手柄主流程完成真实浏览器验收；
+- 从精确 `main` revision 构建并完成服务器/public health checks；
+- 没有新的 P0 冻结、存档损坏或明显语言泄漏。
 
-Issue #33 继续保留 v1.2.7/site v1.3.3 统一部署的既有证据与关闭条件；v1.2.8 游戏热修复不能篡改或替代那条历史发布记录。
-
-之后再进入下一轮真人长局与定点玩法优化。
+之后进入“真人证据 → 定点修复”的维护模式，不再开启无边界的大型架构或美术重做。
