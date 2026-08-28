@@ -61,3 +61,5 @@ art/runtime/loot-atlas-v2.svg
 art/runtime/monster-deep-atlas-v2.svg
 art/runtime/hero-action-atlas-v2.svg
 art/runtime/dungeon-props-atlas-v1.svg
+art/runtime/boss-guardian-atlas-v3.png
+art/runtime/final-boss-v3.png
