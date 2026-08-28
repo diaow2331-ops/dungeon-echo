@@ -48,7 +48,8 @@ grep -Fq '双端更稳' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moy
 grep -Fq 'Cleaner across screens' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
 grep -Fq 'About 91hwl' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
 grep -Fq 'Google AdSense and consent' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy page marker missing'
-grep -Fq 'Feedback and contact' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page marker missing'
+grep -Fq 'Bugs and technical feedback' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page content marker missing'
+grep -Fq 'mailto:diaow2331@gmail.com' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact email marker missing'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$PUBLIC_ROOT/$ADS_REL" || fail 'ads.txt content mismatch'
 
 # The validated immutable bundle is authoritative. Existing live content is
