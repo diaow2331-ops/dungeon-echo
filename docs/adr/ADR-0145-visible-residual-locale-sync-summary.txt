@@ -1,0 +1,1 @@
+ADR-0145 narrows the transitional English bridge to the currently visible residual screen only.
