@@ -1,42 +1,45 @@
 # Dungeon Echo Maintenance Guide
 
-This document describes the current production and repository contract for **v1.2.3**.
+This document describes the current production and repository contract for **v1.2.8 plus the post-v1.2.8 fixed-route convergence work on `main`**.
 
-For product-facing information, start with `README.md`. For current priorities, use `PRODUCTION_ROADMAP.md`. Historical release notes preserve old implementation context; current documents must describe the product as it exists now.
+For product-facing information, start with `README.md`. Historical release notes preserve old implementation context; current documents must describe the product as it exists now.
 
 ## Current release contract
 
-- Repository release line: **v1.2.3**.
+- Repository semantic release line: **v1.2.8**.
 - `VERSION` is the repository version authority; deployment is only proven after the normal activation and health checks pass.
 - Production journey: **floor 1 → floor 100**.
-- Play: `https://play.91hwl.cn/dungeon-echo/`
-- English: `https://play.91hwl.cn/dungeon-echo/?lang=en`
-- Project page: `https://91hwl.cn/toys/dungeon-echo/`
+- Chinese entry: `https://play.91hwl.cn/dungeon-echo/`.
+- English entry: `https://play.91hwl.cn/dungeon-echo/en/`.
+- Legacy `?lang=` links remain compatibility redirects only.
+- Project page: `https://91hwl.cn/toys/dungeon-echo/`.
 - Runtime: static HTML / CSS / JavaScript; no core gameplay backend dependency.
 - Saves: browser `localStorage`; no account, cloud save or cross-device synchronization.
 - Primary experiences: desktop browser plus dedicated portrait/landscape touch layouts; Gamepad API is also supported.
 
 ## Production vs development
 
-### `index.html`
+### Fixed production entries
 
-The public route:
+`index.html` and `en/index.html` are separate fixed-language source pages that:
 
-- always uses `classic-100`;
-- starts new players at floor 1;
-- allows return only to earned checkpoints;
-- never exposes player-selectable skips into unconquered content;
-- advertises and implements **J Attack / K Skill / Mana**;
-- uses one locale per page load through `locale-runtime-v122.js` and `?lang=en` / `?lang=zh`.
+- always use `classic-100`;
+- start new players at floor 1;
+- allow return only to earned checkpoints;
+- never expose player-selectable skips into unconquered content;
+- advertise and implement **J Attack / K Skill / Mana**;
+- boot the exact same synchronous gameplay graph;
+- share the same origin, gameplay data and save namespaces;
+- differ only in player-facing source copy and route-owned display rendering.
 
-Changing language is a title-screen choice that reloads into the selected locale. Do not reintroduce whole-run live translation observers or polling.
+Changing language is a title-screen navigation action that reloads into the other fixed route. Do not reintroduce whole-page live translation, generic DOM tree scans, localization observers or locale polling.
 
 ### `dev.html`
 
 The internal development harness:
 
 - exposes short deterministic profiles for regression/reproduction work;
-- shares the current gameplay/UI runtime contract with production;
+- shares the current gameplay/UI contract with production;
 - is excluded from the public release allowlist;
 - must never become a second stale product implementation.
 
@@ -51,7 +54,7 @@ Changes to combat, equipment, return scrolls, death risk, town economy, forging 
 - Movement/facing: WASD / arrows / map click; mobile four-way D-pad.
 - Attack: **J** / mobile Attack.
 - Active skill: **K** / mobile Skill.
-- Wait/focus: Space or `.` on keyboard; deliberately not exposed on the mobile D-pad because the center target caused accidental turn consumption.
+- Wait/focus: Space or `.` on keyboard; deliberately not exposed on the mobile D-pad.
 - Potion: Q.
 - Scroll: E.
 - Return: T.
@@ -85,7 +88,9 @@ Six slots: weapon, armor, helmet, boots, ring and amulet.
 
 The production contract includes class-relative combat fit, class-independent intrinsic value, Epic/Legendary mechanic traits, deterministic +1…+5 forging, +3 refinement choices and +5 masterwork completion.
 
-Tier-specific v13 equipment art is authoritative for item presentation. The current line deliberately suppresses obsolete equipment-derived hero geometry/overlays so the hero atlas remains the sole character-art owner. Do not restore those retired character overlay paths.
+Tier-specific v13 equipment art is authoritative for item presentation. The hero atlas remains the sole character-art owner; do not restore obsolete equipment-derived hero geometry/overlays.
+
+Stable localization identity is additive: `stable-item-id-migration-v150.js` may attach language-neutral `baseId`, `rarityId` and `slotId` fields to compatible equipment records, but it must not rename stored items, fork save namespaces or invalidate old compatible saves.
 
 ### Guardians and finale
 
@@ -93,22 +98,39 @@ Floors 10 / 20 / … / 90 and the floor-100 finale have explicit readable mechan
 
 ### Town
 
-The town owns risky carried assets, safe storage, banked gold, finite supplies, forging/selling, earned checkpoints and the optional fortune wheel. Service identity and progression feedback are already part of the current presentation; future work should be evidence-driven rather than another broad town rewrite.
+The town owns risky carried assets, safe storage, banked gold, finite supplies, forging/selling, earned checkpoints and the optional fortune wheel. Return Scroll extraction is a two-stage semantic state machine; desktop keyboard, touch and gamepad must delegate to that owner instead of inventing independent return behavior.
 
 ## Localization ownership
 
-`locale-runtime-v122.js` is the current language owner.
+Production localization is now **fixed-route and source-owned**, not translation-after-render.
 
-The retired production chain — `i18n.js`, `i18n-runtime.js`, `i18n-content.js`, `ux-hotfix-v121.js` — must not return to the production manifest or current architecture documentation.
+Current owners:
+
+- `index.html` — fixed Chinese shell/source route.
+- `en/index.html` — fixed English shell/source route using `<base href="../">` so both entries share the same assets and origin.
+- `fixed-locale-entry-v130.js` — title language selector plus legacy `?lang=` compatibility redirects; it may write `de-language-v1` only as a presentation preference.
+- `locale-data-v134.js` — route-aware catalog/display helpers and stable identity lookup.
+- `core-locale-data-v139.js` — one-shot class/achievement display localization after core boot.
+- `core-screen-owner-v153.js` — exact remaining English core screen render owner: title, class select, pause, death/victory overlay, dungeon shop and town dynamic rows.
+- `town-canvas-locale-v153.js` — exact `town-scene` / `wheel-canvas` text sink owner; it must stay scoped to those concrete contexts and must not patch `CanvasRenderingContext2D.prototype`.
+- feature modules such as `town-system.js`, `commerce-system.js`, `forge-system.js`, `combat-hint-polish.js`, `help-copy-v126.js` and `expedition-record-v126.js` render their own fixed-route copy directly.
+
+Retired from production:
+
+- `i18n.js`, `i18n-runtime.js`, `i18n-content.js`, `ux-hotfix-v121.js`;
+- `locale-event-owner-v130.js`, `locale-runtime-v122.js`, `locale-completeness-v128.js`.
+
+Those files may remain as historical repository artifacts, but they must not return to `runtime-bootstrap.js` or `ops/release/static-files.txt`.
 
 Rules:
 
-1. one locale is selected per page load;
+1. route identity is fixed for the page load;
 2. gameplay/content/save IDs remain language-independent;
-3. saved item/monster/profile identities are never translated in storage;
-4. dynamic translation is event-driven and narrowly scoped;
-5. no global character-data observer or locale polling loop;
-6. canvas translation stays cached rather than repeating expensive work every paint.
+3. stored item/monster/profile identity is never translated or renamed merely for display;
+4. Chinese and English production entries boot the same gameplay/runtime graph;
+5. no global character-data observer, generic `translateTree`, locale polling loop or whole-document scan;
+6. Canvas localization is limited to exact legacy sinks;
+7. language selection never changes gameplay state, RNG, balance or save identity.
 
 ## Audio ownership
 
@@ -126,42 +148,48 @@ Do not introduce a second mute state in a mobile-only layer.
 Core/shared gameplay:
 
 - `game.js` — state, map, turn engine and mechanics requiring direct engine access.
-- `equipment-system.js` — equipment generation, fit/value and progression.
+- `save-integrity-system.js` — pre-core run/meta validation.
+- `npc-stability-system.js` — consumed utility cleanup + path stability.
+- `equipment-system.js` — equipment generation, fit/value and swap-turn authority.
 - `town-system.js` — checkpoint progression and town/wheel policy.
-- `commerce-system.js` — finite supply stock and chapter-scaled prices.
+- `commerce-system.js` — finite supply stock, chapter pricing and Return extraction state machine.
 - `forge-system.js` — +3 refinement and +5 masterwork.
 - `progression-system.js` — talents and milestone skill evolution.
+- `progression-guard-system.js` — permanent growth / XP bounds.
 - `content-system.js` — late-floor content and guardian/finale state machines.
 - `combat-pressure.js` / `challenge-pressure.js` — readable deep-floor pressure layers.
 - `gameplay-tuning.js` / `defense-system.js` — production-route and mitigation semantics.
 - `desktop-controls.js` / `combat-controls.js` — desktop/gamepad plus J/K/Mana controls.
 
-Presentation/runtime followers:
+Presentation/runtime:
 
-- `visual-polish.js` — camera-aware atmosphere and town/equipment presentation; it must not restore an always-on player halo.
+- `locale-data-v134.js`, `core-locale-data-v139.js`, `stable-item-id-migration-v150.js` — language-neutral catalog/data boundary.
+- `core-screen-owner-v153.js`, `town-canvas-locale-v153.js` — exact residual fixed-route render sinks.
+- `visual-polish.js` — camera-aware atmosphere and town/equipment presentation.
 - `equipment-shop-ui.js` — equipment/shop presentation bridge.
-- `locale-runtime-v122.js` — stable zh/en locale runtime.
 - `character-art-cleanup-v122.js` — presentation-only hero cleanup.
 - `world-loot-polish-v122.js` — visible ground-loot presentation.
 - `forge-feedback-v122.js` — post-result forge feedback.
+- `combat-hint-polish.js` — action-driven onboarding.
 - `audio-director.js` — music/SFX mixer.
-- `mobile-ux.js` — mobile layout/haptics/direct pointer-down movement; it owns non-fullscreen browser-chrome stabilization and the four-way D-pad.
-- `runtime-bootstrap.js` — late presentation/runtime followers.
-
-Profiles:
-
-- `profiles/classic-100.profile.js` — production content/data.
-- short profiles — development/regression fixtures only.
+- `mobile-ux.js` — mobile layout/haptics/direct pointer-down movement.
+- `help-copy-v126.js` — fixed-route help/device copy.
+- `expedition-record-v126.js` — fixed-route achievement catalog/progress UI.
+- `runtime-bootstrap.js` — late follower loader; both fixed routes must expose the same chain.
 
 The architecture rule is incremental extraction, not rewrite for rewrite's sake.
 
 ## Save compatibility
 
-v1.2.3 intentionally preserves:
+The current line preserves:
 
 - run key `de-run-v6`, save version 2;
 - town/meta key `de-greedy-meta-v1`;
-- existing item/profile identities.
+- wheel state key `de-town-wheel-state-v1`;
+- existing profile/class/monster/content identities;
+- compatible historical item names as migration fallback only.
+
+`de-language-v1` is presentation state and must never become part of run/meta identity.
 
 When changing persistent state:
 
@@ -171,15 +199,15 @@ When changing persistent state:
 4. never silently clear progress as a repair strategy;
 5. keep temporary UI/presentation state out of persistent gameplay data.
 
-Presentation-only JS/CSS/art/localization changes should not alter player `localStorage` unless the change explicitly includes a reviewed migration.
+Presentation-only JS/CSS/art/localization changes should not reset player progress.
 
 ## Validation policy
 
 Use the smallest check set that can falsify the affected change. Simulation is diagnostic, not proof of human game feel.
 
-The repository contains focused contracts covering production entry, deterministic descent, guardian mechanics, skill evolution, save compatibility, release boundaries, equipment art, J/K+Mana, Mana persistence, localization, audio/mobile behavior, repository governance and late challenge pressure.
+For the fixed-route convergence, high-value checks include `test/final-fixed-locale-v153.cjs`, `test/fixed-locale-routes-v131.cjs`, `test/cache-bust-v140.cjs`, `test/runtime-debt-contract-v141.cjs`, `test/save-integrity-v128.cjs`, `test/extraction-channel.cjs` and `test/release.cjs`.
 
-Do not claim a fresh complete GitHub Actions suite for the v1.2 release line when one was not run. Human play remains the source of truth for feel and long-run balance.
+Do not claim a fresh complete GitHub Actions or browser suite when no run exists. Human browser play remains the source of truth for repeated Return Scroll T×2 behavior, responsive presentation and full-session language leakage.
 
 ## Release and deployment
 
@@ -197,19 +225,17 @@ Expected markers include:
 
 If deployment disconnects or fails, identify the last proven PASS marker before rerunning anything. Do not bypass checksum guards or rollback protection simply to force a release through.
 
-## Repository governance after v1.2.3
+## Repository governance after v1.2.8
 
-The broad game/art line remains frozen. v1.2.3 is a narrow device/visual defect patch, not a reopened redesign cycle.
+The current priority is convergence, not another broad rewrite:
 
-Current order of work:
+1. keep `main` as the durable development line;
+2. keep fixed Chinese/English routes and shared saves stable;
+3. remove short-lived merged branches once their history is safely in Git;
+4. use current Issues for unresolved browser acceptance or concrete player-facing defects;
+5. do not reopen large architecture/art cycles without evidence.
 
-1. finish repository metadata/release/tag and branch hygiene;
-2. modernize 91hwl.cn and the Dungeon Echo project page;
-3. bring first-class Chinese/English site navigation and metadata to the website;
-4. prepare screenshots/GIFs/social-preview assets and a standard-account X launch package;
-5. return to game balance/content only when evidence identifies a specific need.
-
-Merged feature branches are historical pointers, not permanent development lines. Once immutable release/tag boundaries exist, old release branches may be pruned as well; Git history remains the archive.
+Merged feature branches are historical pointers, not permanent development lines. Git history remains the archive.
 
 ## Decisions that should not regress
 
@@ -222,17 +248,19 @@ Merged feature branches are historical pointers, not permanent development lines
 - Do not collapse equipment choice into a universal score.
 - Do not reintroduce hidden random punishment where readable counterplay is possible.
 - Do not break compatible local saves for presentation-only work.
-- Do not restart a finished art pass without a concrete player-facing defect.
+- Do not restore translation-after-render, whole-document localization observers or polling.
+- Do not make Chinese and English separate gameplay/save products.
 
 ## Recommended reading order
 
 1. `README.md`
-2. `RELEASE_NOTES_v1.2.3.md`
+2. `RELEASE_NOTES_v1.2.8.md`
 3. `PRODUCTION_ROADMAP.md`
 4. current open Issues
 5. `DEVELOPMENT.md`
-6. relevant production modules
-7. `BALANCE_NOTES.md` when balance context is needed
-8. `AI_COLLABORATION.md` when collaboration provenance matters
+6. `docs/LOCALIZATION.md`
+7. relevant production modules
+8. `BALANCE_NOTES.md` when balance context is needed
+9. `AI_COLLABORATION.md` when collaboration provenance matters
 
 If documentation and code disagree, treat current production behavior plus the latest accepted changes as the source of truth, then fix the documentation.
