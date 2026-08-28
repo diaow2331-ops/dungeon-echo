@@ -8,11 +8,11 @@ let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fa
 for(const [name,html] of [['zh',zh],['en',en]]){
   ok(!/\?v=(?:128|130|131|132|133|134|138|139|140)\b/.test(html),`${name} entry no longer requests stale pre-153 generations`);
   ok((html.match(/\?v=153/g)||[]).length>=22,`${name} entry cache-busts core/style assets to generation 153`);
-  ok(html.includes('locale-data-v134.js?v=153')&&html.indexOf('locale-data-v134.js?v=153')<html.indexOf('game.js?v=153'),`${name} fixed locale data boots before core at generation 153`);
-  ok(html.includes('game.js?v=153')&&html.includes('core-locale-data-v139.js?v=153')&&html.indexOf('game.js?v=153')<html.indexOf('core-locale-data-v139.js?v=153'),`${name} one-shot core locale data owner boots immediately after core`);
-  ok(html.includes('runtime-bootstrap.js?v=153'),`${name} runtime entry uses generation 153`);
+  ok(html.includes('game/locale/locale-data-v134.js?v=153')&&html.indexOf('game/locale/locale-data-v134.js?v=153')<html.indexOf('game/core/game.js?v=153'),`${name} fixed locale data boots before core at generation 153`);
+  ok(html.includes('game/core/game.js?v=153')&&html.includes('game/locale/core-locale-data-v139.js?v=153')&&html.indexOf('game/core/game.js?v=153')<html.indexOf('game/locale/core-locale-data-v139.js?v=153'),`${name} one-shot core locale data owner boots immediately after core`);
+  ok(html.includes('game/core/runtime-bootstrap.js?v=153'),`${name} runtime entry uses generation 153`);
 }
-const runtime=fs.readFileSync(path.join(root,'runtime-bootstrap.js'),'utf8');
+const runtime=fs.readFileSync(path.join(root,'game','core','runtime-bootstrap.js'),'utf8');
 ok(runtime.includes("assetVersion = '153'"),'runtime followers use the same generation 153 cache key');
 ok(runtime.includes("fresh('game/locale/core-screen-owner-v153.js')")&&runtime.includes("fresh('game/locale/town-canvas-locale-v153.js')"),'final fixed-route core screen owners are cache-busted by generation 153');
 ok(runtime.includes("fresh('game/ui/forge-feedback-v122.js')")&&runtime.includes("fresh('game/ui/world-loot-polish-v122.js')")&&runtime.includes("fresh('game/ui/expedition-record-v126.js')"),'shared followers are cache-busted by runtime generation 153');
