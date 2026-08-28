@@ -28,13 +28,18 @@ while IFS= read -r file; do
   cp -a "$repo_root/$file" "$bundle/public/dungeon-echo/$file"
 done < "$manifest"
 
+# Semantic VERSION must already be correct in source. Packaging only advances
+# cache query parameters from the stable source generation to the public one.
+grep -Fq "正式版 <b>v$version</b>" "$bundle/public/dungeon-echo/index.html"
+grep -Fq "Release <b>v$version</b>" "$bundle/public/dungeon-echo/en/index.html"
+
 # v1.2.10 keeps the stable source entry generation at 153 while the public cache
 # generation advances independently. Generation 155 forces the fixed-locale launch
 # hotfix to bypass any cached v154 follower scripts.
 for entry in "$bundle/public/dungeon-echo/index.html" "$bundle/public/dungeon-echo/en/index.html"; do
   test -r "$entry"
   grep -Fq "?v=$source_generation" "$entry"
-  sed -i "s/?v=$source_generation/?v=$asset_generation/g; s/v1\.2\.9/v1.2.10/g" "$entry"
+  sed -i "s/?v=$source_generation/?v=$asset_generation/g" "$entry"
   grep -Fq "?v=$asset_generation" "$entry"
   ! grep -Fq "?v=$source_generation" "$entry"
 done
