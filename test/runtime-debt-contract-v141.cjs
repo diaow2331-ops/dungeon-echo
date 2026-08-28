@@ -49,6 +49,12 @@ assert(/const complete=\(\)=>ALL\.every\(done\)/.test(onboarding),'onboarding ex
 assert(/function\s+scheduleInspect\s*\(\)[\s\S]*complete\(\)\|\|inspectQueued/.test(onboarding),'completed tutorial must not schedule post-input inspections');
 assert(/#de-audio-settings-btn/.test(onboarding)&&/defer\(attachReset\)/.test(onboarding),'tutorial reset stays discoverable after inspections stop');
 
+const npcStability=read('npc-stability-system.js');
+assert(/version:'p0-v4'/.test(npcStability),'NPC stability uses floor-scoped v4');
+assert(/function\s+relocationNeeded\s*\(force=false\)/.test(npcStability),'NPC relocation has an explicit invalidation gate');
+assert(/list !== lastNpcList/.test(npcStability)&&/Number\(api\.depth\) !== lastDepth/.test(npcStability)&&/count !== lastCount/.test(npcStability),'NPC relocation invalidates only for floor/NPC-set changes');
+assert(/relocationNeeded\(force\) \? relocateChokepoints\(\) : 0/.test(npcStability),'map-wide chokepoint scan is skipped on steady-state inputs');
+
 const audio=read('audio-director.js');
 assert(/setInterval\(pump,\s*70\)/.test(audio)&&/clearInterval\(timer\)/.test(audio),'audio keeps only its lifecycle-scoped WebAudio look-ahead timer');
 assert(/document\.hidden/.test(audio)&&/pagehide/.test(audio),'audio timer stops with page lifecycle');
@@ -69,4 +75,4 @@ for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#ba
 const record=read('expedition-record-v126.js');
 assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender instead of relying on legacy translation');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop/forge feedback + completion-aware onboarding + visible-only six-root locale bridge)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop/forge feedback + completion-aware onboarding + floor-scoped NPC relocation + visible-only six-root locale bridge)`);
