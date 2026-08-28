@@ -16,11 +16,11 @@ command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v patch >/dev/null
 command -v node >/dev/null
-test "$version" = '1.11.3'
-for f in index.html style.css visual-v1113.css build-v1113.cjs SOURCE_SHA256 patches/runtime-v1111.patch patches/runtime-v1112.patch; do test -r "$source_root/$f"; done
+test "$version" = '1.11.4'
+for f in index.html style.css visual-v1113.css build-v1113.cjs build-v1114.cjs SOURCE_SHA256 patches/runtime-v1111.patch patches/runtime-v1112.patch patches/runtime-v1114.patch; do test -r "$source_root/$f"; done
 parts=("$source_root"/src/game.part*.js)
 test "${#parts[@]}" -eq 15 || { echo "expected 15 game source parts, found ${#parts[@]}" >&2; exit 2; }
-for file in "$source_root/index.html" "$source_root/style.css" "$source_root/visual-v1113.css" "$source_root/build-v1113.cjs" "$source_root/VERSION" "$source_root/SOURCE_SHA256" "$source_root/patches/runtime-v1111.patch" "$source_root/patches/runtime-v1112.patch" "${parts[@]}"; do
+for file in "$source_root/index.html" "$source_root/style.css" "$source_root/visual-v1113.css" "$source_root/build-v1113.cjs" "$source_root/build-v1114.cjs" "$source_root/VERSION" "$source_root/SOURCE_SHA256" "$source_root/patches/runtime-v1111.patch" "$source_root/patches/runtime-v1112.patch" "$source_root/patches/runtime-v1114.patch" "${parts[@]}"; do
   rel="${file#$repo_root/}"; git -C "$repo_root" cat-file -e "HEAD:$rel" 2>/dev/null || { echo "untracked release source: $rel" >&2; exit 2; }
 done
 cat "${parts[@]}" > "$base_game"
@@ -34,13 +34,19 @@ test "$(sha256sum "$assembled" | awk '{print $1}')" = "$expected_v1111" || { ech
 patch --silent "$assembled" < "$source_root/patches/runtime-v1112.patch"
 cp "$source_root/index.html" "$assembled_index"
 node "$source_root/build-v1113.cjs" "$assembled_index" "$assembled"
+patch --silent "$assembled" < "$source_root/patches/runtime-v1114.patch"
+node "$source_root/build-v1114.cjs" "$assembled_index" "$assembled"
 node --check "$assembled" >/dev/null
 final_game_sha="$(sha256sum "$assembled" | awk '{print $1}')"
-grep -Fq '<meta name="version" content="1.11.3"' "$assembled_index"
-grep -Fq 'style.css?v=1113' "$assembled_index"; grep -Fq 'visual-v1113.css?v=1113' "$assembled_index"; grep -Fq 'game.js?v=1113' "$assembled_index"
+grep -Fq '<meta name="version" content="1.11.4"' "$assembled_index"
+grep -Fq 'style.css?v=1114' "$assembled_index"; grep -Fq 'visual-v1113.css?v=1114' "$assembled_index"; grep -Fq 'game.js?v=1114' "$assembled_index"
 grep -Fq 'translate="no"' "$assembled_index"; grep -Fq 'name="google" content="notranslate"' "$assembled_index"
-grep -Fq "dataset.gameVersion='1.11.3'" "$assembled"; grep -Fq 'DAY_END_DISTANCE=2200' "$assembled"; grep -Fq 'const groundTakeoff=before===0' "$assembled"
+grep -Fq "dataset.gameVersion='1.11.4'" "$assembled"; grep -Fq 'DAY_END_DISTANCE=2200' "$assembled"; grep -Fq 'const groundTakeoff=before===0' "$assembled"
 grep -Fq 'writeSharedLangCookie(currentLang)' "$assembled"; grep -Fq "home.searchParams.set('lang',currentLang)" "$assembled"
+grep -Fq "repeatSensitiveKeys=new Set(['Space','ArrowUp','KeyP','Escape','KeyR','KeyF','KeyM','KeyS'])" "$assembled" || { echo 'Moyu repeat-input guard missing' >&2; exit 2; }
+grep -Fq 'if(!force&&!canvasLayoutDirty)return false' "$assembled" || { echo 'Moyu canvas layout invalidation guard missing' >&2; exit 2; }
+grep -Fq 'syncPresentationState.signature===signature' "$assembled" || { echo 'Moyu presentation memoization missing' >&2; exit 2; }
+grep -Fq "spawned.label==='BUG'&&spawned.mutation==='long'" "$assembled" || { echo 'Moyu long BUG spacing reserve missing' >&2; exit 2; }
 ! grep -Fq 'drawPlayerFocus(drawX,footY,altitude);' "$assembled"; ! grep -Fq 'drawBackground();drawAmbientOfficeLife();drawRunAtmosphere();' "$assembled"
 grep -Fq 'font-size:17px' "$source_root/visual-v1113.css"; grep -Fq 'font-size:14.5px' "$source_root/visual-v1113.css"; grep -Fq 'height:44px' "$source_root/visual-v1113.css"
 mkdir -p "$bundle/public/moyu" "$bundle/ops"
