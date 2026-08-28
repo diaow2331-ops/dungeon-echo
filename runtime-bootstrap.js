@@ -1,11 +1,11 @@
-/* Dungeon Echo production UX bootstrap v13.
+/* Dungeon Echo production UX bootstrap v14.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  * Fixed-route locale identity and language-neutral item migration are established before presentation owners boot.
  *
- * v13 removes the last translation-after-render bridge from production. Chinese and English now boot the
- * same graph; the fixed English route owns its remaining legacy core sinks through exact screen/canvas owners
- * rather than generic DOM translation, observers or tree scans.
+ * v13 removed the last translation-after-render bridge from production. Chinese and English now boot the
+ * same graph; the fixed English route owns its remaining legacy core sinks through exact screen/canvas owners.
+ * v14 finalizes the v1.2.9 release boundary without changing cache generation 153 or gameplay/save semantics.
  */
 (() => {
   'use strict';
@@ -17,7 +17,7 @@
   const fresh = src => `${src}?v=${assetVersion}`;
 
   const baseChain = [
-    [fresh('release-stamp-v128.js'), 'data-de-release-stamp-v128', () => !!window.__DE_RELEASE_STAMP_V128],
+    [fresh('release-stamp-v129.js'), 'data-de-release-stamp-v129', () => !!window.__DE_RELEASE_STAMP_V129],
     [fresh('fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
@@ -56,7 +56,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v13');
+      script.setAttribute(marker, 'v14');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -84,7 +84,7 @@
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
   window.__DE_PRODUCTION_UX_BOOTSTRAP = {
-    version:'v13', assetVersion, locale:english ? 'en' : 'zh-CN', english,
+    version:'v14', assetVersion, locale:english ? 'en' : 'zh-CN', english,
     start, loadScript, chain, baseChain:Object.freeze(baseChain), followerChain:Object.freeze(followerChain),
   };
 })();
