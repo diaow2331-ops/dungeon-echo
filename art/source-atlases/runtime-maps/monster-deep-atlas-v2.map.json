@@ -1,11 +1,13 @@
 {
   "version": 2,
   "runtimePath": "art/monster-deep-atlas-v2.png",
-  "source": "art/source-atlases/candidate/monster-deep-source-v2.png",
+  "sourceArchive": "dungeon-echo-art-library-batch-2026-08-29.zip",
+  "sourceFile": "candidate/monster-deep-source-v2.png",
   "columns": 4,
   "rows": 4,
   "cellPixels": 128,
   "atlasPixels": [512, 512],
+  "runtimeSha256": "281df9a8566e36f041ec90f265413ccb82187a45e187c7565d4c4a1a01ba4db8",
   "cells": [
     "abomination", "seraph", "voidspawn", "voidlord",
     "frost-revenant", "magma-titan", "astral-warden", "plague-brood",
@@ -21,6 +23,7 @@
   "notes": [
     "Additive atlas; existing monster-atlas-v11.png remains authoritative for the original sixteen archetypes.",
     "Only the four currently unmapped profile sprite ids are direct replacements in the first integration pass.",
-    "Remaining cells are reserved for depth-band visual variants and must not change combat identity."
+    "Remaining cells are reserved for depth-band visual variants and must not change combat identity.",
+    "Source PNG is currently held in the immutable art archive; it is not falsely represented as repository-resident."
   ]
 }
