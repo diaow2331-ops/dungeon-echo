@@ -17,10 +17,10 @@ command -v sha256sum >/dev/null
 command -v patch >/dev/null
 command -v node >/dev/null
 test "$version" = '1.11.5'
-for f in index.html style.css visual-v1113.css responsive-v1115.css build-v1113.cjs build-v1114.cjs build-v1115.cjs SOURCE_SHA256 patches/runtime-v1111.patch patches/runtime-v1112.patch patches/runtime-v1115.patch; do test -r "$source_root/$f"; done
+for f in index.html style.css visual-v1113.css responsive-v1115.css build-v1113.cjs build-v1114.cjs build-v1115.cjs SOURCE_SHA256 patches/runtime-v1111.patch patches/runtime-v1112.patch; do test -r "$source_root/$f"; done
 parts=("$source_root"/src/game.part*.js)
 test "${#parts[@]}" -eq 15 || { echo "expected 15 game source parts, found ${#parts[@]}" >&2; exit 2; }
-for file in "$source_root/index.html" "$source_root/style.css" "$source_root/visual-v1113.css" "$source_root/responsive-v1115.css" "$source_root/build-v1113.cjs" "$source_root/build-v1114.cjs" "$source_root/build-v1115.cjs" "$source_root/VERSION" "$source_root/SOURCE_SHA256" "$source_root/patches/runtime-v1111.patch" "$source_root/patches/runtime-v1112.patch" "$source_root/patches/runtime-v1115.patch" "${parts[@]}"; do
+for file in "$source_root/index.html" "$source_root/style.css" "$source_root/visual-v1113.css" "$source_root/responsive-v1115.css" "$source_root/build-v1113.cjs" "$source_root/build-v1114.cjs" "$source_root/build-v1115.cjs" "$source_root/VERSION" "$source_root/SOURCE_SHA256" "$source_root/patches/runtime-v1111.patch" "$source_root/patches/runtime-v1112.patch" "${parts[@]}"; do
   rel="${file#$repo_root/}"; git -C "$repo_root" cat-file -e "HEAD:$rel" 2>/dev/null || { echo "untracked release source: $rel" >&2; exit 2; }
 done
 cat "${parts[@]}" > "$base_game"
@@ -35,7 +35,6 @@ patch --silent "$assembled" < "$source_root/patches/runtime-v1112.patch"
 cp "$source_root/index.html" "$assembled_index"
 node "$source_root/build-v1113.cjs" "$assembled_index" "$assembled"
 node "$source_root/build-v1114.cjs" "$assembled_index" "$assembled"
-patch --silent "$assembled" < "$source_root/patches/runtime-v1115.patch"
 node "$source_root/build-v1115.cjs" "$assembled_index" "$assembled"
 node --check "$assembled" >/dev/null
 final_game_sha="$(sha256sum "$assembled" | awk '{print $1}')"
