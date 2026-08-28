@@ -14,6 +14,20 @@ Dungeon Echo is a vanilla HTML/CSS/JavaScript roguelike built around one continu
 
 No account is required. Saves live in the browser. The production game is static and has no runtime backend dependency.
 
+## Start here in the source
+
+The repository root intentionally keeps the production entry and active browser runtime visible. Historical release notes and maintenance material are collected under `docs/` so the playable game code is easy to find.
+
+- [`game.js`](game.js) — core state, map generation and turn engine.
+- [`content-system.js`](content-system.js) — late floors, guardians and the floor-100 finale.
+- [`equipment-system.js`](equipment-system.js) — equipment generation, fit/value and swap-turn ownership.
+- [`commerce-system.js`](commerce-system.js) — town supply economy and Return Scroll extraction state machine.
+- [`runtime-bootstrap.js`](runtime-bootstrap.js) — late presentation/runtime graph for both fixed language routes.
+- [`index.html`](index.html) / [`en/index.html`](en/index.html) — fixed Chinese / English production entries.
+- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — engineering map and validation guidance.
+- [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) — current production contract.
+- [`docs/releases/`](docs/releases/) — historical release notes.
+
 ## See the journey
 
 | Four classes | Return to town | Floor 100 |
@@ -104,46 +118,26 @@ http://localhost:8000/dev.html
 ├── en/index.html                  # fixed English production entry, shared root assets
 ├── dev.html                       # internal multi-profile development harness
 ├── game.js                        # core state / map / turn engine
-├── save-integrity-system.js       # pre-core persistent blob validation
-├── production-bootstrap.js        # production profile + presentation compatibility only
-├── locale-data-v134.js            # route-aware display catalog + stable item identity helpers
-├── core-locale-data-v139.js       # one-shot class/achievement display localization
-├── stable-item-id-migration-v150.js # language-neutral item identity migration
-├── core-screen-owner-v153.js      # exact remaining English core screen render owner
-├── town-canvas-locale-v153.js     # exact town/wheel Canvas text owner
-├── npc-stability-system.js        # consumed utility cleanup + chokepoint stability owner
-├── equipment-system.js            # equipment generation / fit / swap-turn owner
-├── town-system.js                 # town progression / checkpoints
-├── commerce-system.js             # finite supply stock and pricing
-├── forge-system.js                # refinement / masterwork
-├── progression-system.js          # talents + skill evolution
-├── progression-guard-system.js    # permanent growth + XP cap owner
-├── content-system.js              # late-floor themes + guardian/finale states
-├── combat-pressure.js             # readable deep-floor / guardian pressure
-├── risk-reward-system.js          # shrine/cask risk-reward owner
-├── visual-polish.js               # camera-aware atmosphere + equipment/town presentation
-├── equipment-shop-ui.js           # equipment/town presentation bridge
-├── gameplay-tuning.js             # production gameplay tuning / compatibility
-├── defense-system.js              # defense semantics / mitigation layer
-├── desktop-controls.js            # desktop + gamepad input adapter
-├── combat-controls.js             # J/K controls + mana resource
-├── challenge-pressure.js          # mild human-play pressure follow-up
+├── *-system.js                    # explicit gameplay/system owners
+├── *-controls.js                  # keyboard/gamepad/combat input owners
+├── *-v*.js / *-polish.js          # bounded presentation/data migration followers
 ├── runtime-bootstrap.js           # generation-153 late presentation/runtime graph
-├── release-stamp-v128.js          # visible v1.2.8 release marker
-├── fixed-locale-entry-v130.js     # fixed route navigation/language selector owner
-├── character-art-cleanup-v122.js  # presentation-only hero cleanup
-├── world-loot-polish-v122.js      # visible ground-loot presentation
-├── forge-feedback-v122.js         # post-result forge feedback
-├── audio-director.js              # adaptive BGM + Music/SFX mixer
-├── mobile-ux.js                   # stable mobile layout + direct touch input owner
-├── help-copy-v126.js              # locale-aware desktop/mobile Help owner
-├── expedition-record-v126.js      # localized achievement catalog + progress UI
+├── style.css                      # production styles
 ├── profiles/                      # production + deterministic fixtures
 ├── art/                           # production art assets
+├── docs/                          # engineering, maintenance and design documentation
+│   ├── releases/                  # historical Dungeon Echo / site / Moyu release notes
+│   └── archive/                   # superseded loose-form documentation kept for provenance
 ├── test/                          # targeted deterministic contracts
-├── docs/                          # focused gameplay / governance docs
-└── ops/                           # file-upload release and rollback tooling
+├── ops/                           # file-upload release and rollback tooling
+├── README.md                      # project overview + source map
+├── CONTRIBUTING.md                # contribution contract
+├── SECURITY.md                    # public security policy
+├── LICENSE
+└── VERSION
 ```
+
+Active production JavaScript remains at the repository root for the current static release line. This avoids a high-risk path-only rewrite after the game has converged, while the source map above makes the ownership boundaries discoverable. Historical and process-heavy material is collected under `docs/` instead of competing with the playable source in the root listing.
 
 ## Validation philosophy
 
@@ -163,7 +157,7 @@ v1.2.8 keeps the existing `de-run-v6` version-2 run save and `de-greedy-meta-v1`
 
 `VERSION` is authoritative for the repository release version. The production package is controlled by `ops/release/static-files.txt`. v1.2.8 is a Dungeon Echo-only hotfix built with `ops/release/build-site-bundle.sh`; it overlays only `/dungeon-echo/` and preserves the existing site and Moyu release tree. The unified three-bundle builder intentionally remains pinned to the last unified boundary: Dungeon Echo v1.2.7 + site v1.3.3 + Moyu v1.11.3.
 
-Release notes: [`RELEASE_NOTES_v1.2.8.md`](RELEASE_NOTES_v1.2.8.md). Last unified companion web release: [`RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md`](RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md).
+Release notes: [`docs/releases/RELEASE_NOTES_v1.2.8.md`](docs/releases/RELEASE_NOTES_v1.2.8.md). Last unified companion web release: [`docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md`](docs/releases/RELEASE_NOTES_moyu-v1.11.3-site-v1.3.3.md).
 
 ## AI-assisted development
 
@@ -171,11 +165,11 @@ OpenAI ChatGPT has been used as an AI engineering collaborator for repository in
 
 The current refinement work was assisted by **GPT-5.6 Sol**. Product direction, acceptance decisions, deployment and final quality judgment remain human-controlled. Dungeon Echo is an independent project and is not an OpenAI product or endorsement.
 
-See [`AI_COLLABORATION.md`](AI_COLLABORATION.md) for the collaboration record.
+See [`docs/AI_COLLABORATION.md`](docs/AI_COLLABORATION.md) for the collaboration record.
 
 ## Contributing
 
-Focused issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before large changes and [`MAINTENANCE.md`](MAINTENANCE.md) for the production contract.
+Focused issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before large changes and [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for the production contract.
 
 ## License
 
