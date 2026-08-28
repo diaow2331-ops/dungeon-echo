@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const locale=read('game/locale/fixed-locale-entry-v130.js');
+const runtime=read('game/core/runtime-bootstrap.js');
+const bundle=read('ops/release/build-site-bundle.sh');
+const health=read('ops/site-bundle/healthcheck.sh');
+assert(locale.includes('installNoTranslateBoundary'),'fixed locale owner must install a no-translate boundary');
+assert(locale.includes("setAttribute('translate', 'no')"),'fixed locale owner must set translate=no');
+assert(locale.includes("classList.add('notranslate')"),'fixed locale owner must mark the route notranslate');
+assert(locale.includes("meta[name=\"google\"][content=\"notranslate\"]"),'fixed locale owner must install browser translation metadata');
+assert(runtime.includes("const assetVersion = '155'"),'launch hotfix must use cache generation 155');
+assert(bundle.includes('asset_generation=155'),'release bundle must publish cache generation 155');
+assert(health.includes('ASSET_GENERATION=155')&&health.includes('browser retranslation guard missing'),'healthcheck must validate the new locale boundary');
+new Function(locale);new Function(runtime);
+console.log('fixed_locale_notranslate_v155=PASS');
