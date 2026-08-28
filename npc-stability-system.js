@@ -1,9 +1,10 @@
-/* Dungeon Echo NPC stability owner v4.
+/* Dungeon Echo NPC stability owner v5.
  * Removes consumed one-shot utility NPCs and relocates utility spawns away from
  * narrow chokepoints without changing interaction rewards or persistence schemas.
  *
- * v4 keeps cleanup action-driven but makes the expensive map-wide relocation pass
- * floor/NPC-set scoped instead of rescanning every tile after every key or click.
+ * v4 made the expensive map-wide relocation pass floor/NPC-set scoped. v5 also
+ * narrows post-action cleanup scheduling to interactions that can actually move the
+ * player, consume a utility NPC, restore a run, or create/leave a floor.
  */
 (() => {
   'use strict';
@@ -16,7 +17,16 @@
   const disposable = new Set(['shrine', 'rest']);
   const utilities = new Set(['shrine', 'rest', 'shop']);
   const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+  const ACTION_KEYS = new Set([
+    'ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','W','a','A','s','S','d','D',
+    'Enter','n','N','PageDown','>',
+  ]);
+  const ACTION_TARGETS = [
+    '[data-act="up"]','[data-act="down"]','[data-act="left"]','[data-act="right"]',
+    '#game','#btn-shrine-ok','#descend-fab','#btn-depart','#btn-continue','[data-class]','[data-checkpoint]',
+  ].join(',');
   let queued = false;
+  let queuedForce = false;
   let lastNpcList = null;
   let lastDepth = null;
   let lastCount = -1;
@@ -108,24 +118,44 @@
     return changed;
   }
 
-  function schedule() {
+  function schedule(force=false) {
+    if (force) queuedForce = true;
     if (queued) return false;
     queued = true;
-    queueMicrotask(() => { queued = false; stabilize(false); });
+    queueMicrotask(() => {
+      const forceNow = queuedForce;
+      queuedForce = false;
+      queued = false;
+      stabilize(forceNow);
+    });
     return true;
   }
-  document.addEventListener('keydown', schedule, false);
-  document.addEventListener('click', schedule, false);
+
+  function scheduleFromKey(e) {
+    if (!e || !ACTION_KEYS.has(String(e.key || ''))) return false;
+    return schedule(false);
+  }
+
+  function scheduleFromClick(e) {
+    const t = e && e.target;
+    if (!t || typeof t.closest !== 'function' || !t.closest(ACTION_TARGETS)) return false;
+    return schedule(false);
+  }
+
+  document.addEventListener('keydown', scheduleFromKey, false);
+  document.addEventListener('click', scheduleFromClick, false);
   stabilize(true);
 
   window.__DE_DISPOSABLE_NPC_CLEANUP = {
-    version:'p0-v4',
+    version:'p0-v5',
     owner:'npc-stability-system',
     cleanup,
     relocateChokepoints,
     relocationNeeded,
     stabilize,
     schedule,
+    scheduleFromKey,
+    scheduleFromClick,
     walkableNeighbors,
     get relocationStamp(){ return { depth:lastDepth, count:lastCount, list:lastNpcList }; },
   };

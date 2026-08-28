@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const src=fs.readFileSync(path.join(root,'npc-stability-system.js'),'utf8');
+assert(src.includes("version:'p0-v5'"),'NPC stability must declare targeted-action v5');
+assert(/const ACTION_KEYS = new Set/.test(src),'NPC key scheduling must use an explicit allowlist');
+assert(/const ACTION_TARGETS = \[/.test(src),'NPC click scheduling must use an explicit target allowlist');
+assert(/function\s+scheduleFromKey\s*\(e\)[\s\S]*ACTION_KEYS\.has/.test(src),'unrelated key presses must not enqueue NPC cleanup');
+assert(/function\s+scheduleFromClick\s*\(e\)[\s\S]*closest\(ACTION_TARGETS\)/.test(src),'unrelated clicks must not enqueue NPC cleanup');
+assert(src.includes("'#btn-shrine-ok'")&&src.includes("'#game'")&&src.includes("'#btn-depart'"),'utility consumption and floor-transition actions remain covered');
+assert(/if \(force\) queuedForce = true/.test(src)&&/const forceNow = queuedForce/.test(src),'coalescing must not lose a force request');
+assert(!src.includes('setInterval')&&!src.includes('requestAnimationFrame')&&!src.includes('MutationObserver'),'NPC stability stays polling/RAF/observer free');
+new Function(src);
+console.log('npc_stability_event_scope_v151=PASS');
