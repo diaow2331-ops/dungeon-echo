@@ -26,10 +26,11 @@ assert(/startWarningLoop/.test(guardian)&&/stopWarningLoop/.test(guardian)&&/war
 assert(!/\n\s*requestAnimationFrame\(frame\);\s*\n\}\)\(\);\s*$/.test(guardian),'guardian system must not boot an unconditional permanent RAF');
 
 const gamepad=read('desktop-controls.js');
-assert(/desktop gamepad adapter v3/.test(gamepad),'gamepad adapter must use connected-pad lifecycle ownership');
+assert(/desktop gamepad adapter v4/.test(gamepad),'gamepad adapter must use connected-pad lifecycle and semantic Return ownership');
 assert(/function\s+startLoop\s*\(/.test(gamepad)&&/function\s+stopLoop\s*\(/.test(gamepad),'gamepad adapter must expose start/stop RAF lifecycle');
 assert(/const pad = pickPad\(\);\n\s*if \(!pad\) return false;/.test(gamepad),'gamepad RAF must not start without a connected pad');
 assert(/gamepaddisconnected[\s\S]*stopLoop\(\)/.test(gamepad),'gamepad disconnection must stop sampling');
+assert(/function\s+triggerReturn\s*\(\)/.test(gamepad)&&/commerce\.extractionReady\(\) \? commerce\.completeExtraction\(\) : commerce\.beginExtraction\(\)/.test(gamepad),'gamepad Return delegates to the commerce extraction state machine');
 
 const shopArt=read('equipment-shop-ui.js');
 assert(/version:'v3'/.test(shopArt),'shop art preview uses scoped event-driven v3');
@@ -78,4 +79,4 @@ for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#ba
 const record=read('expedition-record-v126.js');
 assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender instead of relying on legacy translation');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop/forge feedback + completion-aware onboarding + targeted-action NPC cleanup + visible-only six-root locale bridge)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + semantic gamepad Return + scoped shop/forge feedback + completion-aware onboarding + targeted-action NPC cleanup + visible-only six-root locale bridge)`);
