@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "runtimePath": "art/loot-atlas.png",
+  "runtimePath": "art/runtime/loot-atlas-v2.svg",
   "sourceArchive": "dungeon-echo-art-library-batch-2026-08-29.zip",
   "sourceFile": "alternate/loot-equipment-source-v2-alt-a.png",
   "columns": 4,
   "rows": 8,
-  "cellPixels": 128,
-  "atlasPixels": [512, 1024],
+  "cellPixels": 48,
+  "atlasPixels": [192, 384],
   "ids": [
     "iron-sword", "broad-sword", "battle-axe", "rune-blade",
     "leather-armor", "chain-mail", "plate-armor", "mithril-armor",
@@ -18,11 +18,11 @@
     "amulet-moonstone", "amulet-guardian", "amulet-abyss"
   ],
   "spareCell": [3, 7],
-  "runtimeSha256": "bd93e7a31fa1d091fe920a06fe612e097ce954cf5cccb645313d4c2a711bcb97",
+  "runtimeSha256": "02fbe27278111017f5414932ccdc613a08471158a1f565a18ac213a295c67164",
   "notes": [
     "Grid order matches LOOT_ICON_IDS exactly.",
     "No gameplay IDs or save keys change.",
-    "Source PNG is currently held in the immutable art archive; it is not falsely represented as repository-resident.",
-    "Runtime atlas remains 4x8 so existing CSS and canvas coordinate math stay compatible."
+    "Optimized repo-resident runtime asset uses 48px cells while preserving the 4x8 coordinate contract.",
+    "The final spare cell remains intentionally unused."
   ]
 }
