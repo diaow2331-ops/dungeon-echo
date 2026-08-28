@@ -13,6 +13,7 @@ Small, focused changes are usually easier to review and safer to validate than b
 3. For large design changes, open an Issue first so the intended player behavior is clear before implementation.
 4. Keep the production route fixed to `classic-100`; short profiles are deterministic development fixtures only.
 5. Preserve compatible browser saves whenever practical.
+6. Put active JavaScript under the appropriate `game/core`, `game/systems`, `game/input`, `game/locale` or `game/ui` ownership folder; do not add loose `.js` files at repository root.
 
 ## Current priorities
 
@@ -36,7 +37,8 @@ A contribution should normally preserve these principles:
 - **Builds over score.** Equipment and talents should change decisions, not only increase one universal rating.
 - **Readable danger.** Important enemy mechanics should be observable and learnable rather than unexplained random punishment.
 - **One production journey.** Players start at floor 1 and progress toward floor 100. Returning to conquered checkpoints is allowed; skipping unconquered content is not.
-- **Incremental modularization.** Do not rewrite `game.js` wholesale merely to improve architecture. Extract a boundary when the affected system has a real responsibility.
+- **Incremental modularization.** Do not rewrite `game/core/game.js` wholesale merely to improve architecture. Extract a boundary when the affected system has a real responsibility.
+- **Explicit ownership.** Core, gameplay systems, input, locale and presentation code stay in their corresponding `game/` folders; historical code belongs under `archive/` rather than being kept as active compatibility copies.
 - **Visual clarity serves gameplay.** Art, VFX and UI should make classes, equipment and encounter states easier to read, not obscure the grid.
 
 ## Development setup

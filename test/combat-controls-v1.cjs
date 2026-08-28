@@ -3,14 +3,14 @@ const fs = require('fs');
 const assert = require('assert');
 const vm = require('vm');
 
-const controls = fs.readFileSync('combat-controls.js','utf8');
-const game = fs.readFileSync('game.js','utf8');
+const controls = fs.readFileSync('game/input/combat-controls.js','utf8');
+const game = fs.readFileSync('game/core/game.js','utf8');
 const hint = fs.readFileSync('game/ui/combat-hint-polish.js','utf8');
 const audio = fs.readFileSync('game/ui/audio-director.js','utf8');
 const mobile = fs.readFileSync('game/ui/mobile-ux.js','utf8');
-const shop = fs.readFileSync('equipment-shop-ui.js','utf8');
-const bootstrap = fs.readFileSync('runtime-bootstrap.js','utf8');
-const desktop = fs.readFileSync('desktop-controls.js','utf8');
+const shop = fs.readFileSync('game/ui/equipment-shop-ui.js','utf8');
+const bootstrap = fs.readFileSync('game/core/runtime-bootstrap.js','utf8');
+const desktop = fs.readFileSync('game/input/desktop-controls.js','utf8');
 const html = fs.readFileSync('index.html','utf8');
 const manifest = fs.readFileSync('ops/release/static-files.txt','utf8');
 
@@ -92,15 +92,15 @@ assert(mobile.includes("window.addEventListener('resize'") && mobile.includes("w
 
 const productionScripts = [...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)]
   .map(match => match[1].split('?')[0]);
-const desktopPos = productionScripts.indexOf('desktop-controls.js');
-const controlsPos = productionScripts.indexOf('combat-controls.js');
-const challengePos = productionScripts.indexOf('challenge-pressure.js');
+const desktopPos = productionScripts.indexOf('game/input/desktop-controls.js');
+const controlsPos = productionScripts.indexOf('game/input/combat-controls.js');
+const challengePos = productionScripts.indexOf('game/systems/challenge-pressure.js');
 assert(desktopPos >= 0 && controlsPos > desktopPos && challengePos > controlsPos, 'combat controls must be synchronous before final challenge pressure');
-assert(!bootstrap.includes("'combat-controls.js'"), 'late UX bootstrap must not own core combat controls');
+assert(!bootstrap.includes("'game/input/combat-controls.js'"), 'late UX bootstrap must not own core combat controls');
 assert(bootstrap.includes("'game/ui/combat-hint-polish.js'") && bootstrap.includes("'game/ui/audio-director.js'") && bootstrap.includes("'game/ui/mobile-ux.js'"), 'late UX follower chain incomplete');
-assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('combat-controls.js'"), 'shop preview regained production UX ownership');
+assert(!shop.includes('loadProductionUx') && !shop.includes("loadScript('combat-controls.js'") && !shop.includes("loadScript('game/input/combat-controls.js'"), 'shop preview regained production UX ownership');
 const files = manifest.split(/\r?\n/);
-for (const file of ['combat-controls.js','game/ui/combat-hint-polish.js','game/ui/audio-director.js','game/ui/mobile-ux.js']) assert(files.includes(file), `release manifest missing ${file}`);
+for (const file of ['game/input/combat-controls.js','game/ui/combat-hint-polish.js','game/ui/audio-director.js','game/ui/mobile-ux.js']) assert(files.includes(file), `release manifest missing ${file}`);
 
 {
   const emitted = [];

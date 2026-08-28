@@ -4,7 +4,7 @@ const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
 const zh=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const en=fs.readFileSync(path.join(root,'en','index.html'),'utf8');
 const owner=fs.readFileSync(path.join(root,'game','locale','fixed-locale-entry-v130.js'),'utf8');
-const runtime=fs.readFileSync(path.join(root,'runtime-bootstrap.js'),'utf8');
+const runtime=fs.readFileSync(path.join(root,'game','core','runtime-bootstrap.js'),'utf8');
 const screen=fs.readFileSync(path.join(root,'game','locale','core-screen-owner-v153.js'),'utf8');
 const canvas=fs.readFileSync(path.join(root,'game','locale','town-canvas-locale-v153.js'),'utf8');
 const manifest=fs.readFileSync(path.join(root,'ops','release','static-files.txt'),'utf8').split(/\r?\n/).filter(Boolean);
@@ -15,7 +15,7 @@ ok(/<html\s+lang="en"\s+data-de-locale="en">/.test(en),'English entry owns Engli
 ok(/<base\s+href="\.\.\/">/.test(en),'English entry resolves all shared assets from the same dungeon root');
 ok(!/[\u3400-\u9fff]/.test(en),'English static entry contains no CJK presentation text');
 ok(JSON.stringify(scripts(zh))===JSON.stringify(scripts(en)),'Chinese and English entries boot the exact same synchronous gameplay script graph');
-ok(manifest.includes('index.html')&&manifest.includes('en/index.html')&&manifest.includes('game/locale/fixed-locale-entry-v130.js')&&manifest.includes('core-locale-data-v139.js')&&manifest.includes('game/locale/stable-item-id-migration-v150.js')&&manifest.includes('game/locale/core-screen-owner-v153.js')&&manifest.includes('game/locale/town-canvas-locale-v153.js'),'release manifest ships both fixed routes, stable IDs and exact core screen/canvas owners');
+ok(manifest.includes('index.html')&&manifest.includes('en/index.html')&&manifest.includes('game/locale/fixed-locale-entry-v130.js')&&manifest.includes('game/locale/core-locale-data-v139.js')&&manifest.includes('game/locale/stable-item-id-migration-v150.js')&&manifest.includes('game/locale/core-screen-owner-v153.js')&&manifest.includes('game/locale/town-canvas-locale-v153.js'),'release manifest ships both fixed routes, stable IDs and exact core screen/canvas owners');
 for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
   ok(!runtime.includes(retired),`${retired} is absent from production bootstrap`);
   ok(!manifest.some(file=>file===retired||file.endsWith('/'+retired)),`${retired} is absent from the release manifest`);

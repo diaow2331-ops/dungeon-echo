@@ -17,7 +17,7 @@
   const fresh = src => `${src}?v=${assetVersion}`;
 
   const baseChain = [
-    [fresh('release-stamp-v129.js'), 'data-de-release-stamp-v129', () => !!window.__DE_RELEASE_STAMP_V129],
+    [fresh('game/core/release-stamp-v129.js'), 'data-de-release-stamp-v129', () => !!window.__DE_RELEASE_STAMP_V129],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],

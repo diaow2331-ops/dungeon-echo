@@ -6,14 +6,15 @@ The engineering goal is to keep changes understandable, testable and safe to dep
 
 ## Current baseline
 
-- Repository semantic release line: **v1.2.8**.
+- Repository semantic release line: **v1.2.9**.
 - Production routes: `index.html` = fixed Chinese, `en/index.html` = fixed English; both use `classic-100` and the same origin/assets/save namespaces.
 - Development route: `dev.html` → internal short deterministic profiles using the current shared gameplay/UI runtime.
 - Attack: **J**.
 - Skill: **K** + Mana.
 - Localization is fixed-route/source-owned. The production bundle does not load a translation-after-render stack.
+- Active JavaScript lives under `game/`; the repository root intentionally contains zero `.js` runtime files.
 
-Do not add player-facing starting-depth selection back into production. Do not let `dev.html` become a second stale implementation.
+Do not add player-facing starting-depth selection back into production. Do not let `dev.html` become a second stale implementation. Do not reintroduce loose JavaScript at repository root.
 
 ## Local server
 
@@ -31,60 +32,67 @@ http://localhost:8000/dev.html
 
 ## Current module boundaries
 
-Core/shared gameplay:
+### Core runtime — `game/core/`
 
-- `game.js` — core state, map generation, turn loop and mechanics requiring direct engine access.
-- `save-integrity-system.js` — synchronous validation of persistent run/meta blobs before core restore; valid compatible saves remain untouched.
-- `npc-stability-system.js` — consumed shrine/rest cleanup and utility-NPC chokepoint relocation.
-- `equipment-system.js` — equipment generation, class-relative fit, intrinsic value, deep-floor scaling and in-dungeon swap-turn authority.
-- `town-system.js` — conquered-depth checkpoints, town progression and wheel policy.
-- `commerce-system.js` — finite town supply stock, chapter-scaled pricing and the semantic Return Scroll extraction state machine.
-- `forge-system.js` — bounded +3 refinement choices and +5 masterwork completion.
-- `progression-system.js` — talents and 20/40/60/80 milestone skill evolution.
-- `progression-guard-system.js` — permanent level/HP/ATK growth bounds and event-time XP parking.
-- `content-system.js` — late-floor themes plus guardian/finale state machines.
-- `combat-pressure.js` — readable deep-floor/guardian pressure.
-- `challenge-pressure.js` — final mild late-game attack-pressure layer.
-- `risk-reward-system.js` — shrine wagers and cask downside resolution.
-- `gameplay-tuning.js` — production-route tuning and remaining compatibility logic; it must yield when an explicit owner is present.
-- `defense-system.js` — armor/fixed-reduction semantics.
-- `desktop-controls.js` — desktop/gamepad adapter. RT maps to Attack; gamepad Return delegates to the commerce extraction owner instead of synthesizing keyboard T.
-- `combat-controls.js` — synchronous J/K + Mana contract.
+- `game/core/game.js` — core state, map generation, turn loop and mechanics requiring direct engine access.
+- `game/core/production-bootstrap.js` — production profile selection plus remaining presentation compatibility only. Do not put gameplay rules back into it.
+- `game/core/save-integrity-system.js` — synchronous validation of persistent run/meta blobs before core restore; valid compatible saves remain untouched.
+- `game/core/runtime-bootstrap.js` — generation-keyed late runtime loader. Chinese and English must expose the same chain.
+- `game/core/release-stamp-v129.js` — current semantic release stamp used by the v1.2.9 runtime boundary.
 
-Production entry/data boundary:
+### Gameplay owners — `game/systems/`
 
-- `production-bootstrap.js` — production profile selection plus remaining presentation compatibility only. Do not put gameplay rules back into it.
-- `locale-data-v134.js` — route-aware display catalog and stable item identity lookup.
-- `core-locale-data-v139.js` — one-shot class/achievement display localization after core boot.
-- `stable-item-id-migration-v150.js` — additive migration for language-neutral item IDs; it must not rename stored items or fork save namespaces.
+- `game/systems/npc-stability-system.js` — consumed shrine/rest cleanup and utility-NPC chokepoint relocation.
+- `game/systems/equipment-system.js` — equipment generation, class-relative fit, intrinsic value, deep-floor scaling and in-dungeon swap-turn authority.
+- `game/systems/town-system.js` — conquered-depth checkpoints, town progression and wheel policy.
+- `game/systems/commerce-system.js` — finite town supply stock, chapter-scaled pricing and the semantic Return Scroll extraction state machine.
+- `game/systems/forge-system.js` — bounded +3 refinement choices and +5 masterwork completion.
+- `game/systems/progression-system.js` — talents and 20/40/60/80 milestone skill evolution.
+- `game/systems/progression-guard-system.js` — permanent level/HP/ATK growth bounds and event-time XP parking.
+- `game/systems/content-system.js` — late-floor themes plus guardian/finale state machines.
+- `game/systems/combat-pressure.js` — readable deep-floor/guardian pressure.
+- `game/systems/challenge-pressure.js` — final mild late-game attack-pressure layer.
+- `game/systems/risk-reward-system.js` — shrine wagers and cask downside resolution.
+- `game/systems/gameplay-tuning.js` — production-route tuning and remaining compatibility logic; it must yield when an explicit owner is present.
+- `game/systems/defense-system.js` — armor/fixed-reduction semantics.
 
-Presentation/runtime followers:
+### Input owners — `game/input/`
 
-- `fixed-locale-entry-v130.js` — fixed-route language navigation and legacy `?lang=` redirect compatibility.
-- `core-screen-owner-v153.js` — exact remaining English core screens: title, class select, pause, overlay, dungeon shop and town rows.
-- `town-canvas-locale-v153.js` — exact `town-scene` / `wheel-canvas` text sink owner. It must not patch `CanvasRenderingContext2D.prototype`.
-- `visual-polish.js` — atmosphere plus equipment/town presentation.
-- `equipment-shop-ui.js` — equipment/shop presentation bridge.
-- `character-art-cleanup-v122.js` — presentation-only hero cleanup.
-- `world-loot-polish-v122.js` — visible ground-loot presentation.
-- `forge-feedback-v122.js` — post-result forge feedback.
-- `combat-hint-polish.js` — action-driven fixed-route onboarding.
-- `audio-director.js` — adaptive music/SFX mixer.
-- `mobile-ux.js` — mobile layout, haptics and hold-to-walk.
-- `help-copy-v126.js` — device-aware fixed-route Help copy.
-- `expedition-record-v126.js` — fixed-route achievement catalog/progress UI.
-- `runtime-bootstrap.js` — generation-keyed late runtime loader. Chinese and English must expose the same chain.
+- `game/input/desktop-controls.js` — desktop/gamepad adapter. RT maps to Attack; gamepad Return delegates to the commerce extraction owner instead of synthesizing keyboard T.
+- `game/input/combat-controls.js` — synchronous J/K + Mana contract.
 
-Profiles:
+### Fixed-route locale/data ownership — `game/locale/`
+
+- `game/locale/locale-data-v134.js` — route-aware display catalog and stable item identity lookup.
+- `game/locale/core-locale-data-v139.js` — one-shot class/achievement display localization after core boot.
+- `game/locale/fixed-locale-entry-v130.js` — fixed-route language navigation and legacy `?lang=` redirect compatibility.
+- `game/locale/stable-item-id-migration-v150.js` — additive migration for language-neutral item IDs; it must not rename stored items or fork save namespaces.
+- `game/locale/core-screen-owner-v153.js` — exact remaining English core screens: title, class select, pause, overlay, dungeon shop and town rows.
+- `game/locale/town-canvas-locale-v153.js` — exact `town-scene` / `wheel-canvas` text sink owner. It must not patch `CanvasRenderingContext2D.prototype`.
+
+### Presentation followers — `game/ui/`
+
+- `game/ui/visual-polish.js` — atmosphere plus equipment/town presentation.
+- `game/ui/equipment-shop-ui.js` — equipment/shop presentation bridge.
+- `game/ui/character-art-cleanup-v122.js` — presentation-only hero cleanup.
+- `game/ui/world-loot-polish-v122.js` — visible ground-loot presentation.
+- `game/ui/forge-feedback-v122.js` — post-result forge feedback.
+- `game/ui/combat-hint-polish.js` — action-driven fixed-route onboarding.
+- `game/ui/audio-director.js` — adaptive music/SFX mixer.
+- `game/ui/mobile-ux.js` — mobile layout, haptics and hold-to-walk.
+- `game/ui/help-copy-v126.js` — device-aware fixed-route Help copy.
+- `game/ui/expedition-record-v126.js` — fixed-route achievement catalog/progress UI.
+
+### Profiles
 
 - `profiles/classic-100.profile.js` — production data.
 - other short profiles — deterministic development/regression fixtures only.
 
-The intended direction remains gradual extraction from `game.js`, not a rewrite. A new module should own a real responsibility instead of duplicating state merely to increase module count.
+The intended direction remains gradual extraction from `game/core/game.js`, not a rewrite. A new module should own a real responsibility instead of duplicating state merely to increase module count.
 
 ## Retired localization architecture
 
-The following are historical files only and must not return to production runtime or release manifest:
+The following are historical files only under `archive/runtime/` and must not return to production runtime or release manifest:
 
 - `i18n.js`
 - `i18n-runtime.js`
@@ -124,7 +132,7 @@ Presentation-only art/CSS/UI/localization changes should not require a progress 
 
 ## Balance workflow
 
-`BALANCE_NOTES.md` records human-play context.
+`docs/BALANCE_NOTES.md` records human-play context.
 
 When changing class or combat balance, evaluate at least damage rhythm, incoming damage/healing pressure, resource usage, positioning burden, equipment dependence, retreat incentives, early/mid/late-floor behavior and guardian-specific counterplay.
 
@@ -166,7 +174,7 @@ node test/repository-governance-v122.cjs
 
 `node test/smoke.cjs` preserves broader historical feature/save coverage on development fixtures. `node test/sim.cjs` remains an optional balance diagnostic and should not be run as ritual validation for documentation or presentation-only work.
 
-For focused JavaScript changes, `node --check <file>` is cheap and appropriate. A real browser remains mandatory before claiming the repeated Return Scroll T×2 flow or full-session visual/language presentation is verified.
+For focused JavaScript changes, `node --check game/<owner>/<file>.js` is cheap and appropriate. A real browser remains mandatory before claiming the repeated Return Scroll T×2 flow or full-session visual/language presentation is verified.
 
 ## Release boundary
 
@@ -178,13 +186,15 @@ The deployment model overlays `/dungeon-echo/` into the existing immutable `91hw
 
 `VERSION` is authoritative for the semantic repository version. The cache generation is independent and may advance without changing `VERSION` when the goal is to force coherent static assets.
 
-v1.2.8 remains the semantic release line until a separately reviewed version bump is made. Do not silently label fixed-route convergence as v1.3.0.
+v1.2.9 is the current semantic release line. Do not silently label repository-layout work as v1.3.0.
 
 ## Repository governance
 
-The default repository shape should converge toward:
+The default repository shape is:
 
 - `main` as the durable development line;
+- all active JavaScript under `game/core`, `game/systems`, `game/input`, `game/locale` or `game/ui`;
+- zero loose `.js` files at repository root;
 - short-lived feature/fix/art/chore/security branches deleted after their PR is merged;
 - Git history used as the archive;
 - current Issues describing current work rather than frozen implementation history;
