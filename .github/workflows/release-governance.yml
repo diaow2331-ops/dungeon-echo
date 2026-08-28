@@ -1,42 +1,10 @@
 name: release-governance
 
+# Automatic GitHub Actions triggers are intentionally paused while the monthly
+# Actions quota is exhausted. Run this workflow manually only when quota is
+# available again; repository/release governance must not depend on CI meanwhile.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - VERSION
-      - index.html
-      - en/index.html
-      - README.md
-      - game/core/runtime-bootstrap.js
-      - game/core/release-stamp-*.js
-      - game/ui/equipment-shop-ui.js
-      - game/ui/expedition-pressure-v1211.js
-      - docs/releases/**
-      - ops/release/**
-      - ops/site-bundle/**
-      - test/expedition-pressure-v1211.cjs
-      - test/release.cjs
-      - test/release-freeze-v1.2.cjs
-      - .github/workflows/release-governance.yml
-  push:
-    branches: [main]
-    paths:
-      - VERSION
-      - index.html
-      - en/index.html
-      - README.md
-      - game/core/runtime-bootstrap.js
-      - game/core/release-stamp-*.js
-      - game/ui/equipment-shop-ui.js
-      - game/ui/expedition-pressure-v1211.js
-      - docs/releases/**
-      - ops/release/**
-      - ops/site-bundle/**
-      - test/expedition-pressure-v1211.cjs
-      - test/release.cjs
-      - test/release-freeze-v1.2.cjs
-      - .github/workflows/release-governance.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
