@@ -2,10 +2,10 @@
 const fs=require('fs'),assert=require('assert');
 const version=fs.readFileSync('VERSION','utf8').trim();
 const readme=fs.readFileSync('README.md','utf8');
-const maintenance=fs.readFileSync('MAINTENANCE.md','utf8');
-const development=fs.readFileSync('DEVELOPMENT.md','utf8');
+const maintenance=fs.readFileSync('docs/MAINTENANCE.md','utf8');
+const development=fs.readFileSync('docs/DEVELOPMENT.md','utf8');
 const localization=fs.readFileSync('docs/LOCALIZATION.md','utf8');
-const ai=fs.readFileSync('AI_COLLABORATION.md','utf8');
+const ai=fs.readFileSync('docs/AI_COLLABORATION.md','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const english=fs.readFileSync('en/index.html','utf8');
 const dev=fs.readFileSync('dev.html','utf8');
@@ -17,6 +17,8 @@ assert(readme.includes('**Status:** v1.2.8'),'README must identify v1.2.8 as the
 assert(readme.includes('https://play.91hwl.cn/dungeon-echo/en/'),'README must publish the fixed English route');
 assert(readme.includes('core-screen-owner-v153.js')&&readme.includes('town-canvas-locale-v153.js'),'README must document final fixed-route render owners');
 assert(readme.includes('locale-event-owner-v130.js')&&readme.includes('no longer loaded or shipped'),'README must record the retired translation-after-render stack as history only');
+assert(readme.includes('docs/releases/'),'README must expose collected release history instead of loose root notes');
+assert(readme.includes('docs/DEVELOPMENT.md')&&readme.includes('docs/MAINTENANCE.md'),'README source map must expose collected engineering docs');
 
 assert(maintenance.includes('post-v1.2.8 fixed-route convergence'),'maintenance guide must describe the current post-release architecture');
 assert(maintenance.includes('Production localization is now **fixed-route and source-owned**'),'maintenance guide must name fixed-route localization ownership');
