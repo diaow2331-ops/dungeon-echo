@@ -1,0 +1,46 @@
+name: release-governance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - VERSION
+      - index.html
+      - en/index.html
+      - README.md
+      - game/core/runtime-bootstrap.js
+      - game/core/release-stamp-*.js
+      - docs/releases/**
+      - ops/release/**
+      - ops/site-bundle/**
+      - test/release.cjs
+      - test/release-freeze-v1.2.cjs
+      - .github/workflows/release-governance.yml
+  push:
+    branches: [main]
+    paths:
+      - VERSION
+      - index.html
+      - en/index.html
+      - README.md
+      - game/core/runtime-bootstrap.js
+      - game/core/release-stamp-*.js
+      - docs/releases/**
+      - ops/release/**
+      - ops/site-bundle/**
+      - test/release.cjs
+      - test/release-freeze-v1.2.cjs
+      - .github/workflows/release-governance.yml
+
+permissions:
+  contents: read
+
+jobs:
+  release-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release freeze
+        run: node test/release-freeze-v1.2.cjs
+      - name: Verify immutable Dungeon bundle
+        run: node test/release.cjs
