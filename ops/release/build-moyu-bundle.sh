@@ -43,6 +43,8 @@ final_game_sha="$(sha256sum "$assembled" | awk '{print $1}')"
 grep -Fq '<meta name="version" content="1.11.5"' "$assembled_index"
 grep -Fq 'style.css?v=1115' "$assembled_index"; grep -Fq 'visual-v1113.css?v=1115' "$assembled_index"; grep -Fq 'responsive-v1115.css?v=1115' "$assembled_index"; grep -Fq 'game.js?v=1115' "$assembled_index"
 grep -Fq 'translate="no"' "$assembled_index"; grep -Fq 'name="google" content="notranslate"' "$assembled_index"
+grep -Fq "(cl==='zh'||cl==='en')?cl:((sl==='zh'||sl==='en')?sl:bl)" "$assembled_index" || { echo 'Moyu validated prepaint precedence missing' >&2; exit 2; }
+! grep -Fq "c('91hwl_lang')||localStorage.getItem('91hwl_lang')||" "$assembled_index" || { echo 'Moyu legacy prepaint precedence remains' >&2; exit 2; }
 grep -Fq "dataset.gameVersion='1.11.5'" "$assembled"; grep -Fq 'DAY_END_DISTANCE=2200' "$assembled"; grep -Fq 'const groundTakeoff=before===0' "$assembled"
 grep -Fq 'writeSharedLangCookie(currentLang)' "$assembled"; grep -Fq "home.searchParams.set('lang',currentLang)" "$assembled"
 grep -Fq 'const storedLang=storageGet(LANG_KEY)' "$assembled" || { echo 'Moyu stored-language validation missing' >&2; exit 2; }
