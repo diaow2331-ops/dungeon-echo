@@ -1,7 +1,8 @@
-/* Dungeon Echo production UX bootstrap v11.
+/* Dungeon Echo production UX bootstrap v12.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  * Fixed route locale identity is established before any presentation follower boots.
+ * Stable item identity migration runs once per page boot and only adds language-neutral IDs.
  *
  * Chinese is now a true fixed-source route: it never loads the legacy runtime translator,
  * completeness layer or locale-event owner. English keeps the transitional bridge only until
@@ -20,6 +21,7 @@
   const baseChain = [
     [fresh('release-stamp-v128.js'), 'data-de-release-stamp-v128', () => !!window.__DE_RELEASE_STAMP_V128],
     [fresh('fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
+    [fresh('stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
   ];
   const englishBridge = english ? [
     [fresh('locale-event-owner-v130.js'), 'data-de-locale-event-owner-v130', () => !!window.__DE_LOCALE_EVENT_OWNER],
@@ -59,7 +61,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v11');
+      script.setAttribute(marker, 'v12');
       let done = false;
       const settle = status => {
         if (done) return;
@@ -91,7 +93,7 @@
     try {
       for (const [src, marker, ready] of chain) {
         try { await loadScript(src, marker, ready); }
-        catch (_err) { /* optional presentation layers must not block later followers */ }
+        catch (_err) { /* optional presentation/data migration layers must not block later followers */ }
         afterFollower(src);
       }
     } finally {
@@ -105,7 +107,7 @@
   else window.addEventListener('DOMContentLoaded', start, { once:true });
 
   window.__DE_PRODUCTION_UX_BOOTSTRAP = {
-    version:'v11', assetVersion, locale:english ? 'en' : 'zh-CN', english,
+    version:'v12', assetVersion, locale:english ? 'en' : 'zh-CN', english,
     start, loadScript, chain, baseChain:Object.freeze(baseChain),
     englishBridge:Object.freeze(englishBridge), followerChain:Object.freeze(followerChain), afterFollower,
   };
