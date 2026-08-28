@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "runtimePath": "art/loot-atlas.png",
+  "source": "art/source-atlases/alternate/loot-equipment-source-v2-alt-a.png",
+  "columns": 4,
+  "rows": 8,
+  "cellPixels": 128,
+  "atlasPixels": [512, 1024],
+  "ids": [
+    "iron-sword", "broad-sword", "battle-axe", "rune-blade",
+    "leather-armor", "chain-mail", "plate-armor", "mithril-armor",
+    "copper-ring", "ruby-ring", "guardian-ring", "healing-potion",
+    "teleport-scroll", "gold-pile", "dungeon-heart", "dungeon-key",
+    "dagger", "hunting-bow", "arcane-staff", "helm-cloth",
+    "helm-iron", "helm-knight", "helm-dragon", "boots-cloth",
+    "boots-leather", "boots-steel", "boots-wind", "amulet-copper",
+    "amulet-moonstone", "amulet-guardian", "amulet-abyss"
+  ],
+  "spareCell": [3, 7],
+  "notes": [
+    "Grid order matches LOOT_ICON_IDS exactly.",
+    "No gameplay IDs or save keys change.",
+    "Source art is normalized and repacked before runtime use.",
+    "Runtime atlas remains 4x8 so existing CSS and canvas coordinate math stay compatible."
+  ]
+}
