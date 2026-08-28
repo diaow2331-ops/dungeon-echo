@@ -4,14 +4,14 @@
  * Fixed-route locale identity and language-neutral item migration are established before presentation owners boot.
  *
  * v13 removed the last generic translation-after-render bridge from production. Chinese and English boot the
- * same graph; exact fixed-route owners cover the remaining legacy sinks. Generation 156 installs the bounded
- * town workspace plus its event bridge before exact town-canvas localization binds the visible wheel canvas.
+ * same graph; exact fixed-route owners cover remaining legacy sinks. The pre-launch town hotfix keeps public
+ * generation 155 while adding new-path workspace owners before exact town-canvas localization binds its canvas.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '156';
+  const assetVersion = '155';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
@@ -39,18 +39,13 @@
   const chain = Object.freeze([...baseChain, ...followerChain]);
 
   let started = false;
-
   function loadScript(src, marker, ready) {
     return new Promise(resolve => {
       if (ready()) { resolve('ready'); return; }
       const existing = document.querySelector(`script[${marker}]`);
       if (existing) {
         let done = false;
-        const settle = status => {
-          if (done) return;
-          done = true;
-          resolve(status || (ready() ? 'ready' : 'existing'));
-        };
+        const settle = status => { if (done) return; done = true; resolve(status || (ready() ? 'ready' : 'existing')); };
         existing.addEventListener('load', () => settle(ready() ? 'ready' : 'existing'), { once:true });
         existing.addEventListener('error', () => settle('error'), { once:true });
         setTimeout(() => settle('timeout'), 1200);
@@ -61,33 +56,21 @@
       script.async = false;
       script.setAttribute(marker, 'v13');
       let done = false;
-      const settle = status => {
-        if (done) return;
-        done = true;
-        resolve(status);
-      };
+      const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
       script.addEventListener('error', () => settle('error'), { once:true });
       document.body.appendChild(script);
       setTimeout(() => settle('timeout'), 3000);
     });
   }
-
   async function start() {
     if (started) return false;
     started = true;
     for (const [src, marker, ready] of chain) {
-      try { await loadScript(src, marker, ready); }
-      catch (_err) { /* optional presentation/data migration layers must not block later followers */ }
+      try { await loadScript(src, marker, ready); } catch (_err) {}
     }
     return true;
   }
-
-  if (document.body) start();
-  else window.addEventListener('DOMContentLoaded', start, { once:true });
-
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = {
-    version:'v13', assetVersion, locale:english ? 'en' : 'zh-CN', english,
-    start, loadScript, chain, baseChain:Object.freeze(baseChain), followerChain:Object.freeze(followerChain),
-  };
+  if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v13',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
 })();
