@@ -68,8 +68,26 @@ assert.doesNotMatch(staticFiles, /art\/source-atlases\//, 'source art must never
 for (const rel of runtimePaths) assert(staticFiles.includes(rel), `release boundary missing: ${rel}`);
 assert(staticFiles.includes('game/ui/art-runtime-v2.js'));
 
+const runtime = read('game/ui/art-runtime-v2.js');
+assert.match(runtime, /loot-atlas-v2\.svg/);
+assert.match(runtime, /monster-deep-atlas-v2\.svg/);
+assert.match(runtime, /hero-action-atlas-v2\.svg/);
+assert.match(runtime, /dungeon-props-atlas-v1\.svg/);
+assert.match(runtime, /DEEP_MONSTER.*abomination.*seraph.*voidspawn.*voidlord/s);
+assert.match(runtime, /HERO_STATE.*idle.*attack.*hurt.*skill/s);
+
+for (const route of ['index.html', 'en/index.html']) {
+  const html = read(route);
+  const scriptMatches = html.match(/game\/ui\/art-runtime-v2\.js\?v=157/g) || [];
+  assert.equal(scriptMatches.length, 1, `${route}: art runtime must load exactly once`);
+  for (const rel of runtimePaths) {
+    assert(html.includes(`<link rel="preload" href="${rel}" as="image" type="image/svg+xml">`),
+      `${route}: runtime preload missing: ${rel}`);
+  }
+}
+
 const game = read('game/core/game.js');
 for (const id of expectedLoot) assert(game.includes(`'${id}'`), `runtime loot identity missing: ${id}`);
 assert.match(game, /background-size:\s*400%\s+800%/);
 
-console.log('RESULT  art batch v2 provenance + mapping contract PASS');
+console.log('RESULT  art batch v2 provenance + runtime route contract PASS');
