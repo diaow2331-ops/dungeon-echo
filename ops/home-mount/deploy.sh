@@ -42,13 +42,14 @@ grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-car
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
 grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage AdSense client missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
-grep -Fq 'softwareVersion":"1.2.10"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.10 detail marker missing'
+grep -Fq 'softwareVersion":"1.2.11"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.11 detail marker missing'
 grep -Fq 'softwareVersion":"1.11.5"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.11.5 detail marker missing'
 grep -Fq '双端更稳' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
 grep -Fq 'Cleaner across screens' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
 grep -Fq 'About 91hwl' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
 grep -Fq 'Google AdSense and consent' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy page marker missing'
-grep -Fq 'Feedback and contact' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page marker missing'
+grep -Fq 'Bugs and technical feedback' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page content marker missing'
+grep -Fq 'mailto:diaow2331@gmail.com' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact email marker missing'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$PUBLIC_ROOT/$ADS_REL" || fail 'ads.txt content mismatch'
 
 # The validated immutable bundle is authoritative. Existing live content is

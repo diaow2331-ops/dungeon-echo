@@ -10,13 +10,13 @@
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '155';
+  const assetVersion = '156';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
 
   const baseChain = [
-    [fresh('game/core/release-stamp-v1210.js'), 'data-de-release-stamp-v1210', () => !!window.__DE_RELEASE_STAMP_V1210],
+    [fresh('game/core/release-stamp-v1211.js'), 'data-de-release-stamp-v1211', () => !!window.__DE_RELEASE_STAMP_V1211],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],

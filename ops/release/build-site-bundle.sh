@@ -9,13 +9,13 @@ manifest="$repo_root/ops/release/static-files.txt"
 stage_root="$(mktemp -d)"
 bundle="$stage_root/91hwl-play-dungeon-echo-v$version"
 source_generation=153
-asset_generation=155
+asset_generation=156
 
 cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
 
 test -r "$manifest"
-test "$version" = '1.2.10'
+test "$version" = '1.2.11'
 command -v zip >/dev/null
 mkdir -p "$bundle/public/dungeon-echo" "$bundle/ops"
 
@@ -33,9 +33,9 @@ done < "$manifest"
 grep -Fq "正式版 <b>v$version</b>" "$bundle/public/dungeon-echo/index.html"
 grep -Fq "Release <b>v$version</b>" "$bundle/public/dungeon-echo/en/index.html"
 
-# v1.2.10 keeps the stable source entry generation at 153 while the public cache
-# generation advances independently. Generation 155 forces the fixed-locale launch
-# hotfix to bypass any cached v154 follower scripts.
+# v1.2.11 keeps the stable source entry generation at 153 while the public cache
+# generation advances independently. Generation 156 forces the fixed-locale launch
+# hotfix to bypass any cached v155 follower scripts.
 for entry in "$bundle/public/dungeon-echo/index.html" "$bundle/public/dungeon-echo/en/index.html"; do
   test -r "$entry"
   grep -Fq "?v=$source_generation" "$entry"
@@ -45,7 +45,7 @@ for entry in "$bundle/public/dungeon-echo/index.html" "$bundle/public/dungeon-ec
 done
 
 grep -Fq "const assetVersion = '$asset_generation'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-grep -Fq "release-stamp-v1210.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "release-stamp-v1211.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 grep -Fq "responsive-final-v154.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 grep -Fq "installNoTranslateBoundary" "$bundle/public/dungeon-echo/game/locale/fixed-locale-entry-v130.js"
 

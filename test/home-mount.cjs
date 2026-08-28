@@ -21,7 +21,7 @@ const sourceDeploy=read('ops/home-mount/deploy.sh');
 const sourceHealth=read('ops/home-mount/healthcheck.sh');
 const sourceSocial=read('ops/home-mount/build-social-v134.cjs');
 
-assert.equal(read('VERSION').trim(),'1.2.10');
+assert.equal(read('VERSION').trim(),'1.2.11');
 assert.equal(read('moyu/VERSION').trim(),'1.11.5');
 assert.equal(siteVersion,'1.3.4');
 assert.equal(sourceAds,'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0');
@@ -34,13 +34,14 @@ for(const page of [sourceHome,sourceDe,sourceMoyu]){
   assert.match(page,/window\.__91HWL_PREFS/);
   assert(page.indexOf('window.__91HWL_PREFS')<page.indexOf('<style>'),'prepaint preference bootstrap must run before CSS paint');
 }
-for(const [name,page,marker] of [['About',sourceAbout,/About 91hwl/],['Privacy',sourcePrivacy,/Google AdSense and consent/],['Contact',sourceContact,/Feedback and contact/]]){
+for(const [name,page,marker] of [['About',sourceAbout,/About 91hwl/],['Privacy',sourcePrivacy,/Google AdSense and consent/],['Contact',sourceContact,/mailto:diaow2331@gmail\.com/]]){
   assert.match(page,marker,`${name} content marker missing`);
   assert.match(page,/ca-pub-2648680835467283/,`${name} AdSense client missing`);
   assert.match(page,/href="\/about\/"/);
   assert.match(page,/href="\/privacy\/"/);
   assert.match(page,/href="\/contact\/"/);
 }
+assert.match(sourceContact,/Bugs and technical feedback/);
 
 for(const script of ['ops/home-mount/deploy.sh','ops/home-mount/healthcheck.sh','ops/release/build-home-mount-bundle.sh']){
   const r=run('bash',['-n',path.join(root,script)]);
@@ -56,9 +57,10 @@ assert.match(sourceSocial,/MIT · OPEN SOURCE/);
 assert.match(sourceSocial,/ca-pub-2648680835467283/);
 assert.match(sourceSocial,/href="\/privacy\/"/);
 assert.match(sourceDeploy,/test "\$version" = '1\.3\.4'/);
-assert.match(sourceDeploy,/Dungeon Echo v1\.2\.10 detail marker missing/);
+assert.match(sourceDeploy,/Dungeon Echo v1\.2\.11 detail marker missing/);
 assert.match(sourceDeploy,/Clock Out Alive v1\.11\.5 detail marker missing/);
 assert.match(sourceDeploy,/Google AdSense and consent/);
+assert.match(sourceDeploy,/mailto:diaow2331@gmail\.com/);
 assert.match(sourceDeploy,/pub-2648680835467283/);
 assert.match(sourceDeploy,/web-toys-v134/);
 assert.match(sourceDeploy,/web_toys_home_mount=ROLLED_BACK/);
@@ -67,10 +69,10 @@ assert.match(sourceDeploy,/LIVE_INDEX_SHA256/);
 assert.doesNotMatch(sourceDeploy,/EXPECTED_INDEX_SHA256/,'immutable site artifact must not depend on a historical live homepage hash');
 assert.doesNotMatch(sourceDeploy,/live homepage changed unexpectedly/,'legitimate live drift must be backed up, not block a validated artifact');
 assert.match(sourceHealth,/public site v1\.3\.4 check failed/);
-assert.match(sourceHealth,/de_origin.*1\.2\.10/s);
+assert.match(sourceHealth,/de_origin.*1\.2\.11/s);
 assert.match(sourceHealth,/moyu_origin.*1\.11\.5/s);
 assert.match(sourceHealth,/Google AdSense and consent/);
-assert.match(sourceHealth,/Feedback and contact/);
+assert.match(sourceHealth,/mailto:diaow2331@gmail\.com/);
 assert.match(sourceHealth,/pub-2648680835467283/);
 assert.match(sourceHealth,/HEALTH_CONTRACT_MISS:/);
 assert.match(sourceHealth,/MAIN_RESOLVE=91hwl\.cn:443:127\.0\.0\.1/);
@@ -81,7 +83,7 @@ const archive=path.join(tmp,'mount.zip');
 let r=run('bash',[path.join(root,'ops/release/build-home-mount-bundle.sh'),archive]);
 assert.equal(r.status,0,r.stderr);
 assert.match(r.stdout,/site_version=1\.3\.4/);
-assert.match(r.stdout,/game_version=1\.2\.10/);
+assert.match(r.stdout,/game_version=1\.2\.11/);
 assert.match(r.stdout,/moyu_version=1\.11\.5/);
 assert.doesNotMatch(r.stdout,/previous_home_sha256=/);
 assert.match(r.stdout,/site_bundle_build=PASS/);
@@ -103,7 +105,7 @@ const bundledAds=unzipText('public/ads.txt').trim();
 const bundledDeploy=unzipText('ops/deploy.sh');
 const bundledHealth=unzipText('ops/healthcheck.sh');
 assert.match(bundledHome,/data-site-version="1\.3\.4"/);
-assert.match(bundledHome,/v1\.2\.10/);
+assert.match(bundledHome,/v1\.2\.11/);
 assert.match(bundledHome,/v1\.11\.5/);
 assert.match(bundledHome,/GitHub \/ Source/);
 assert.match(bundledHome,/公开仓库/);
@@ -112,7 +114,7 @@ assert.match(bundledHome,/name="twitter:title" content="91hwl · Browser Games"/
 assert.match(bundledHome,/name="twitter:image" content="https:\/\/play\.91hwl\.cn\/dungeon-echo\/art\/title-backdrop\.webp"/);
 assert.match(bundledHome,/ca-pub-2648680835467283/);
 assert.match(bundledHome,/href="\/privacy\/"/);
-assert.match(bundledDe,/softwareVersion":"1\.2\.10"/);
+assert.match(bundledDe,/softwareVersion":"1\.2\.11"/);
 assert.match(bundledDe,/901–1180px/);
 assert.match(bundledDe,/property="og:url" content="https:\/\/91hwl\.cn\/toys\/dungeon-echo\/"/);
 assert.match(bundledDe,/name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguelike"/);
@@ -123,7 +125,8 @@ assert.match(bundledMoyu,/双端更稳/);
 assert.match(bundledMoyu,/Cleaner across screens/);
 assert.match(bundledAbout,/About 91hwl/);
 assert.match(bundledPrivacy,/Google AdSense and consent/);
-assert.match(bundledContact,/Feedback and contact/);
+assert.match(bundledContact,/mailto:diaow2331@gmail\.com/);
+assert.match(bundledContact,/Bugs and technical feedback/);
 assert.equal(bundledAds,'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0');
 assert.equal(bundledDeploy,sourceDeploy,'builder must package deploy.sh byte-for-byte');
 assert.equal(bundledHealth,sourceHealth,'builder must package healthcheck.sh byte-for-byte');

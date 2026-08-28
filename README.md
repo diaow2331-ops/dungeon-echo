@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/en/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Live:** Dungeon Echo **v1.2.10** is deployed publicly. Chinese and English fixed routes, shared browser saves, the Return Scroll flow, the bounded town workspace and representative PC/mobile use have completed launch acceptance.
+> **Live:** Dungeon Echo **v1.2.11** is deployed publicly. Chinese and English fixed routes, shared browser saves, the Return Scroll flow, the bounded town workspace and representative PC/mobile use have completed launch acceptance.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -65,7 +65,7 @@ The repository root intentionally contains **zero active `.js` files**. New runt
 
 `/dungeon-echo/` is the fixed Chinese route and `/dungeon-echo/en/` is the fixed English route. Language switching is navigation, not whole-page live translation.
 
-Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and related gameplay namespaces. `stable-item-id-migration-v150.js` adds language-neutral display IDs without destructively renaming historical stored items. v1.2.10 does not require a progress reset.
+Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and related gameplay namespaces. `stable-item-id-migration-v150.js` adds language-neutral display IDs without destructively renaming historical stored items. v1.2.11 does not require a progress reset.
 
 ## Run locally
 
@@ -112,11 +112,11 @@ http://localhost:8000/dev.html
 
 Engineering checks protect contracts but do not replace human playtesting. Launch acceptance now covers the fixed Chinese/English routes, Return Scroll town transition, save continuity, town presentation and representative desktop/mobile use. Long-run balance/economy/guardian evidence remains intentionally tracked as post-launch validation rather than a launch blocker.
 
-`VERSION` is the semantic release authority. The deployed v1.2.10 line currently uses public runtime cache generation **155**; semantic and cache generations are intentionally independent.
+`VERSION` is the semantic release authority. The deployed v1.2.11 line currently uses public runtime cache generation **156**; semantic and cache generations are intentionally independent.
 
 Production release governance follows one rule: **build elsewhere, deploy artifacts only**. The server receives a validated immutable ZIP and only performs checksum verification, staging/backup, atomic activation, health checks and rollback. It must not fetch Git, build, patch or transform production content. See [`.agents/skills/91hwl-static-release/SKILL.md`](.agents/skills/91hwl-static-release/SKILL.md).
 
-Release notes: [`docs/releases/RELEASE_NOTES_v1.2.10.md`](docs/releases/RELEASE_NOTES_v1.2.10.md).
+Release notes: [`docs/releases/RELEASE_NOTES_v1.2.11.md`](docs/releases/RELEASE_NOTES_v1.2.11.md).
 
 ## Contributing
 
