@@ -13,6 +13,31 @@
   const lang = declared === 'en' ? 'en' : 'zh-CN';
   const storageKey = 'de-language-v1';
 
+  // Fixed locale routes are already fully authored in their target language. Browser-level
+  // translators must not translate the English route back into Chinese (or vice versa).
+  function installNoTranslateBoundary() {
+    if (rootEl) {
+      rootEl.setAttribute('translate', 'no');
+      rootEl.classList.add('notranslate');
+      rootEl.lang = lang === 'en' ? 'en' : 'zh-CN';
+    }
+    let meta = document.querySelector('meta[name="google"][content="notranslate"]');
+    if (!meta && document.head) {
+      meta = document.createElement('meta');
+      meta.name = 'google';
+      meta.content = 'notranslate';
+      document.head.appendChild(meta);
+    }
+    const protectBody = () => {
+      if (!document.body) return;
+      document.body.setAttribute('translate', 'no');
+      document.body.classList.add('notranslate');
+    };
+    if (document.body) protectBody();
+    else document.addEventListener('DOMContentLoaded', protectBody, { once:true });
+  }
+  installNoTranslateBoundary();
+
   function siteRoot() {
     try { return new URL('./', document.baseURI || location.href); }
     catch (_e) { return null; }
@@ -107,6 +132,7 @@
     targetUrl,
     navigate,
     installLanguageEntry,
+    installNoTranslateBoundary,
     redirected:false,
   };
 })();

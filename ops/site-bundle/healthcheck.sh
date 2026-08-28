@@ -9,7 +9,7 @@ VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
 ORIGIN_RESOLVE=play.91hwl.cn:443:127.0.0.1
 PUBLIC_ATTEMPTS=6
 PUBLIC_DELAY=2
-ASSET_GENERATION=154
+ASSET_GENERATION=155
 
 fail(){ echo "DUNGEON_ECHO_HEALTHCHECK_ERROR: $*" >&2; exit 1; }
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
@@ -48,6 +48,11 @@ curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
 grep -Fq "const assetVersion = '$ASSET_GENERATION'" "$work_dir/runtime.js" || fail 'runtime cache generation mismatch'
 grep -Fq 'release-stamp-v1210.js' "$work_dir/runtime.js" || fail 'v1.2.10 release stamp owner missing'
 grep -Fq 'responsive-final-v154.js' "$work_dir/runtime.js" || fail 'responsive owner not wired into runtime'
+
+curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
+  "https://$HOST/dungeon-echo/game/locale/fixed-locale-entry-v130.js?v=$ASSET_GENERATION" -o "$work_dir/locale.js" || fail 'fixed locale owner asset missing'
+grep -Fq 'installNoTranslateBoundary' "$work_dir/locale.js" || fail 'browser retranslation guard missing'
+grep -Fq "setAttribute('translate', 'no')" "$work_dir/locale.js" || fail 'translate=no boundary missing'
 
 curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
   "https://$HOST/dungeon-echo/game/ui/responsive-final-v154.js?v=$ASSET_GENERATION" -o "$work_dir/responsive.js" || fail 'responsive owner asset missing'

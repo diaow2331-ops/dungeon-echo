@@ -5,13 +5,13 @@
  *
  * v13 removed the last translation-after-render bridge from production. Chinese and English now boot the
  * same graph; the fixed English route owns its remaining legacy core sinks through exact screen/canvas owners.
- * v1.2.10 keeps runtime ownership at v13, advances cache generation to 154, and adds the final responsive owner.
+ * v1.2.10 keeps runtime ownership at v13; launch hotfix generation 155 refreshes the fixed-locale boundary.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '154';
+  const assetVersion = '155';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
