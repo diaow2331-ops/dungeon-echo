@@ -70,6 +70,9 @@ grep -Fq 'Dungeon Echo v1.2.10 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'Clock Out Alive v1.11.5 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'web-toys-v134' "$source_root/deploy.sh"
 grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$source_root/deploy.sh"
+grep -Fq 'previous_home_sha256=' "$source_root/deploy.sh"
+! grep -Fq 'EXPECTED_INDEX_SHA256' "$source_root/deploy.sh"
+! grep -Fq 'live homepage changed unexpectedly' "$source_root/deploy.sh"
 grep -Fq 'public site v1.3.4 check failed' "$source_root/healthcheck.sh"
 grep -Fq 'GitHub / Source' "$source_root/healthcheck.sh"
 grep -Fq '双端更稳' "$source_root/healthcheck.sh"
@@ -87,14 +90,11 @@ install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
 cmp -s "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
 cmp -s "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 
-# The overwrite guard pins the exact public homepage used by the accepted site v1.3.3 boundary.
-git -C "$repo_root" show "$accepted_site_v133:ops/home-mount/public/index.html" > "$stage_root/previous-index.html"
-sha256sum "$stage_root/previous-index.html" | awk '{print $1}' > "$bundle/EXPECTED_INDEX_SHA256"
 printf '%s\n' "$revision" > "$bundle/REVISION"
 printf '%s\n' "$site_version" > "$bundle/VERSION"
 (
   cd "$bundle"
-  find EXPECTED_INDEX_SHA256 README.txt REVISION VERSION ops public -type f -print0 | sort -z |
+  find README.txt REVISION VERSION ops public -type f -print0 | sort -z |
     while IFS= read -r -d '' file; do sha256sum "$file"; done > SHA256SUMS
 )
 
@@ -107,5 +107,4 @@ echo "site_version=$site_version"
 echo "game_version=$game_version"
 echo "moyu_version=$moyu_version"
 echo "revision=$revision"
-echo "previous_home_sha256=$(cat "$bundle/EXPECTED_INDEX_SHA256")"
 echo 'site_bundle_build=PASS'
