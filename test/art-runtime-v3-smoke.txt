@@ -1,0 +1,1 @@
+static smoke contract: node test/art-runtime-v2.cjs && node test/art-runtime-v3.cjs
