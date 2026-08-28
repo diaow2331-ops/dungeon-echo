@@ -12,7 +12,9 @@ assert(/Fixed-route locale owns every visible label/.test(record)&&/function\s+r
 assert(/\['btn-achv','btn-achv-town'\]/.test(record)&&/scheduleRender/.test(record),'expedition record rerenders from actual open actions');
 assert(!src.includes('translateTree(document.body)'),'legacy bridge must never return to body-wide translation');
 assert(/function\s+primeStaticOwners\s*\(/.test(src),'broad static compatibility is isolated to one-time priming');
-assert(/function\s+sync\s*\(\)\s*\{[\s\S]*for \(const selector of legacyRoots\)/.test(src),'event sync iterates only the residual root allowlist');
-assert(/version:'v144'/.test(src),'bridge version documents narrowed scope');
+assert(/function\s+activeResidualRoots\s*\(/.test(src),'bridge resolves visible residual screens explicitly');
+assert(/function\s+sync\s*\(\)\s*\{[\s\S]*for \(const root of activeResidualRoots\(\)\)/.test(src),'event sync translates only visible residual roots');
+assert(/classList\.contains\('hidden'\)/.test(src)&&/aria-hidden/.test(src),'visibility guard rejects hidden residual screens');
+assert(/version:'v145'/.test(src),'bridge version documents visible-only scope');
 new Function(src);
-console.log(`legacy_locale_scope_v144=PASS (${required.length} residual roots, ${retired.length} retired roots)`);
+console.log(`legacy_locale_scope_v145=PASS (${required.length} residual roots, visible-only sync, ${retired.length} retired roots)`);

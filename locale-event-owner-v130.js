@@ -1,10 +1,10 @@
-/* Dungeon Echo locale event owner v1.4.4.
+/* Dungeon Echo locale event owner v1.4.5.
  * Transitional owner for the legacy locale-runtime/completeness pair.
  * It virtualizes only the MutationObserver instances those two scripts create during
  * bootstrap, restores the native constructor immediately afterward, then resynchronizes
- * only the remaining Chinese-first core screens from real UI/state transitions.
+ * only the remaining visible Chinese-first core screen after real UI/state transitions.
  *
- * The fixed-route migration now owns HUD, combat log, equipment, tooltip, touch/help,
+ * The fixed-route migration owns HUD, combat log, equipment, tooltip, touch/help,
  * shrine/echo, talent and expedition-record presentation at source. Do not re-expand this
  * bridge to body-wide translation; residual roots should shrink until it can be deleted.
  */
@@ -47,6 +47,23 @@
     return true;
   }
 
+  function isVisibleResidualRoot(root) {
+    if (!root) return false;
+    if (root.hidden) return false;
+    if (root.classList && typeof root.classList.contains === 'function' && root.classList.contains('hidden')) return false;
+    if (typeof root.getAttribute === 'function' && root.getAttribute('aria-hidden') === 'true') return false;
+    return true;
+  }
+
+  function activeResidualRoots() {
+    const out = [];
+    for (const selector of legacyRoots) {
+      const root = document.querySelector(selector);
+      if (isVisibleResidualRoot(root)) out.push(root);
+    }
+    return out;
+  }
+
   function translateResidualRoot(root) {
     if (!root) return 0;
     let changed = 0;
@@ -63,10 +80,7 @@
 
   function sync() {
     let changed = 0;
-    for (const selector of legacyRoots) {
-      const root = document.querySelector(selector);
-      if (root) changed += translateResidualRoot(root);
-    }
+    for (const root of activeResidualRoots()) changed += translateResidualRoot(root);
     return changed;
   }
 
@@ -105,7 +119,7 @@
   }
 
   window.__DE_LOCALE_EVENT_OWNER = {
-    version:'v144',
+    version:'v145',
     get active(){ return active; },
     get intercepting(){ return intercepting; },
     get primed(){ return primed; },
@@ -116,6 +130,8 @@
     schedule,
     sync,
     primeStaticOwners,
+    isVisibleResidualRoot,
+    activeResidualRoots,
     translateResidualRoot,
   };
 })();
