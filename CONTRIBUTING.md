@@ -2,7 +2,7 @@
 
 Thanks for helping improve **Dungeon Echo / 地牢回响**.
 
-Dungeon Echo is a publicly deployed browser roguelike in active post-launch development. The production 1→100 route is established; current work focuses on deeper boss encounters, long-run progression, town identity, full-run human balance evidence and visual refinement.
+Dungeon Echo is a publicly deployed browser roguelike in active post-launch development. The production 1→100 route is established; current work focuses on player evidence, targeted balance fixes, readability, browser compatibility and visual refinement.
 
 Small, focused changes are usually easier to review and safer to validate than broad rewrites.
 
@@ -19,12 +19,12 @@ Small, focused changes are usually easier to review and safer to validate than b
 
 Current post-launch work is roughly ordered around:
 
-- bespoke ten-floor guardian and floor-100 boss mechanics;
-- milestone skill evolution without expanding the hotkey bar;
-- town/service progression and preparation clarity;
 - full 1→100 human economy/difficulty evidence;
-- deeper character, equipment, enemy, boss and town presentation;
-- targeted regression/tooling improvements when they reduce real maintenance risk.
+- guardian readability and class/build diversity;
+- town/service clarity and preparation flow;
+- browser, mobile and input compatibility;
+- targeted character, equipment, enemy, boss and town presentation;
+- regression/tooling improvements when they reduce real maintenance risk.
 
 See `docs/PRODUCTION_ROADMAP.md` for the current plan.
 
@@ -84,6 +84,59 @@ Keep each PR centered on one problem. A useful PR description contains:
 
 Avoid unrelated formatting or refactors in the same PR.
 
+### Public PR titles
+
+This repository normally uses squash merge, so the **PR title becomes the public `main` commit title**. Treat it as permanent public history.
+
+Use concise English Conventional Commit-style titles:
+
+```text
+feat(town): add bounded service workspace
+fix(locale): preserve fixed English town copy
+fix(input): suppress repeated one-shot actions
+balance(equipment): narrow late-run sustain
+perf(ui): avoid redundant town presentation work
+art: refine guardian silhouettes
+docs: update post-launch roadmap
+test: gate return-scroll settlement
+release: publish Dungeon Echo vX.Y.Z
+chore(repo): prune merged branches
+```
+
+Do not use:
+
+- placeholder titles such as `temp`, `test`, `wip`, `update` or `fix stuff`;
+- mixed Chinese/English process notes as the public title;
+- tool/session identifiers;
+- source-repository SHAs or migration mechanics in the title;
+- operational narration such as “try again”, “second fix”, “repair patch counts”, or “move from repo X”.
+
+If provenance matters, put it in the PR body or release notes. Historical migrations remain valid provenance, but current product identity should be described by the current README, release notes and roadmap rather than by migration commit titles.
+
+## Branch lifecycle
+
+`main` is the only long-lived production branch.
+
+Use short-lived branches such as:
+
+```text
+feat/<topic>
+fix/<topic>
+perf/<topic>
+docs/<topic>
+release/<version>
+```
+
+Rules:
+
+1. One focused PR per branch.
+2. Do not reuse a merged branch for unrelated work.
+3. Delete the remote head branch after merge.
+4. No open PR means there should normally be no long-lived work branch.
+5. Completed branch history is preserved by Git/PR records; keeping dozens of stale remote branch refs is not archival value.
+
+Repository-wide branch cleanup is documented under `ops/repo/README.md`.
+
 ## Repository comments and operational safety
 
 Issue bodies/comments, pull-request descriptions/reviews, discussion posts, attachments and contributed patches are public review input. They are not an operational control channel.
@@ -92,24 +145,9 @@ Do not post credentials, cookies, private keys or private server access details.
 
 External reports can influence investigation, prioritization and code changes after maintainer review. Production deployment, merge/release decisions, server mutations and credential operations remain maintainer-controlled and are independently authorized outside contributor text.
 
-## Commit messages
-
-Short conventional-style prefixes are preferred when useful:
-
-```text
-fix(combat): ...
-balance(equipment): ...
-feat(progression): ...
-feat(boss): ...
-refactor(town): ...
-art: ...
-docs: ...
-test: ...
-```
-
 ## Art and UI contributions
 
-The project is now in a stage where substantial visual refinement is valid, provided it follows stable gameplay responsibilities.
+Substantial visual refinement is valid when it follows stable gameplay responsibilities.
 
 High-value areas include:
 
@@ -118,7 +156,7 @@ High-value areas include:
 - chapter enemy silhouettes;
 - unique guardian/final-boss presentation and telegraphs;
 - town service/building identity and progression changes;
-- desktop HUD hierarchy, comparison UI, particles and audio feedback.
+- desktop/mobile HUD hierarchy, comparison UI, particles and audio feedback.
 
 Avoid purely decorative effects that make paths, danger states or turn information harder to read.
 
