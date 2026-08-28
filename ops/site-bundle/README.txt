@@ -9,7 +9,7 @@ Server usage:
   cd /tmp/91hwl-play-dungeon-echo-v1.2.10
   sudo ./ops/deploy.sh
 
-The v1.2.10 bundle publishes cache generation 154 for both zh/en entries and
+The v1.2.10 bundle publishes cache generation 155 for both zh/en entries and
 includes the final responsive owner for mid-width PC and portrait touch layouts.
 
 Success markers:
