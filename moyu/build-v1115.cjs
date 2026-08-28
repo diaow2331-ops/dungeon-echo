@@ -8,6 +8,7 @@ let index=fs.readFileSync(indexPath,'utf8');
 index=replaceOnce(index,'<meta name="version" content="1.11.4" />','<meta name="version" content="1.11.5" />','version meta');
 index=replaceOnce(index,'style.css?v=1114','style.css?v=1115','base css fingerprint');
 index=replaceOnce(index,'visual-v1113.css?v=1114','visual-v1113.css?v=1115','visual css fingerprint');
+index=replaceOnce(index,'<link rel="stylesheet" href="visual-v1113.css?v=1115" />','<link rel="stylesheet" href="visual-v1113.css?v=1115" />\n<link rel="stylesheet" href="responsive-v1115.css?v=1115" />','final responsive stylesheet');
 index=replaceOnce(index,'<span class="version-badge">v1.11.4</span>','<span class="version-badge">v1.11.5</span>','visible version badge');
 index=replaceOnce(index,'91HWL / CLOCK OUT ALIVE / v1.11.4','91HWL / CLOCK OUT ALIVE / v1.11.5','footer version');
 index=replaceOnce(index,'game.js?v=1114','game.js?v=1115','game fingerprint');
@@ -19,4 +20,5 @@ assert(!game.includes("storageGet(LANG_KEY)||(navigator.language||'zh').toLowerC
 assert(index.includes('translate="no"'));
 assert(index.includes('name="google" content="notranslate"'));
 assert(index.includes('visual-v1113.css?v=1115'));
+assert(index.includes('responsive-v1115.css?v=1115'));
 fs.writeFileSync(indexPath,index);
