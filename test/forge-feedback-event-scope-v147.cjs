@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..');
+const src=fs.readFileSync(path.join(root,'forge-feedback-v122.js'),'utf8');
+assert(src.includes("version:'v4'"),'forge feedback must declare v4');
+assert(!src.includes('requestAnimationFrame'),'forge feedback must not allocate frame callbacks for decoration/refinement');
+assert(!src.includes('MutationObserver')&&!src.includes('setInterval'),'forge feedback must remain observer/polling free');
+assert(src.includes('queueMicrotask')&&src.includes('defer(decorateRows)'),'town decoration must run in a deferred post-event microtask');
+assert(src.includes('function scheduleFromKey')&&src.includes('TOWN_TRANSITION_KEYS'),'keyboard work must be limited to town or actions that can transition into town');
+assert(src.includes("window.addEventListener('keydown',scheduleFromKey,true)"),'window capture must see Return Scroll/turn keys even when document capture consumes them');
+assert(src.includes("target.closest('#game,#touch')"),'map/touch actions that can end a run must still schedule town decoration');
+assert(src.includes("if(api.state==='town')scheduleDecorate()"),'initial/resume work must be town-state gated');
+assert(src.includes('defer(()=>{showToast')&&src.includes('decorateRows()});'),'refinement confirmation must defer until after forge-system handles the click');
+new Function(src);
+console.log('forge_feedback_event_scope_v147=PASS');

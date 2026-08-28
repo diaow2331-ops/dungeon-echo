@@ -1,7 +1,10 @@
-/* Dungeon Echo forge feedback v3.
+/* Dungeon Echo forge feedback v4.
  * Presentation only: forge stage badges + success/refinement/masterwork feedback.
  * Core forge cost/stat mutation remains owned by game.js + forge-system.js.
  * Fixed-route locale and DE_LOCALE_DATA own visible copy; no runtime translator dependency remains.
+ *
+ * v4 removes per-input requestAnimationFrame work. Forge decoration is deferred with a microtask
+ * only for town activity or gameplay inputs that can transition into town.
  */
 (() => {
   'use strict';
@@ -16,6 +19,11 @@
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = localeData ? !!localeData.isEnglish : routeLang === 'en';
   const copy = (zh, en) => english ? en : zh;
+  const defer = typeof queueMicrotask === 'function' ? queueMicrotask : (fn => Promise.resolve().then(fn));
+  const TOWN_TRANSITION_KEYS = new Set([
+    'ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','W','a','A','s','S','d','D',
+    ' ',' .'.trim(),'q','Q','e','E','t','T','j','J','k','K','c','C','Enter','n','N','PageDown'
+  ]);
 
   const esc = value => String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const statLabels = {atk:['攻击','ATK'],def:['防御','DEF'],hp:['生命','HP'],crit:['暴击','Crit'],leech:['吸血','Leech'],gold:['金币','Gold Find'],thorns:['反伤','Thorns'],regen:['击杀回复','Kill Heal']};
@@ -94,14 +102,27 @@
     return changed>0;
   }
   function scheduleDecorate(){
-    if(decorateQueued)return;
+    if(decorateQueued)return false;
     decorateQueued=true;
-    requestAnimationFrame(decorateRows);
+    defer(decorateRows);
+    return true;
+  }
+
+  function scheduleFromKey(e){
+    const key=String(e&&e.key||'');
+    if(api.state==='town'||TOWN_TRANSITION_KEYS.has(key))scheduleDecorate();
+  }
+
+  function scheduleFromClick(e){
+    const target=e&&e.target;
+    if(api.state==='town'){scheduleDecorate();return}
+    if(!target||typeof target.closest!=='function')return;
+    if(target.closest('#game,#touch'))scheduleDecorate();
   }
 
   document.addEventListener('click',e=>{
-    scheduleDecorate();
     const btn=e.target&&e.target.closest?e.target.closest('[data-forge]'):null;if(!btn||api.state!=='town')return;
+    scheduleDecorate();
     const [where,raw]=String(btn.dataset.forge||'').split(':');const index=Number(raw),item=itemAt(where,index);if(!item)return;
     pending={where,index,before:snapshot(item)};
   },true);
@@ -121,18 +142,23 @@
   },false);
 
   // Forge-system handles refinement on document capture and stops the click there.
-  // Window capture sees the source-localized choice first, then confirms on the next frame.
+  // Window capture sees the choice first; the deferred task confirms after the core handler.
   window.addEventListener('click',e=>{
     const btn=e.target&&e.target.closest?e.target.closest('[data-de-refine]'):null;if(!btn)return;
     const choice=String(btn.textContent||'').replace(/\s+/g,' ').trim();
-    requestAnimationFrame(()=>{showToast(copy('精炼路线已确定','Refinement locked in'),choice,copy('该路线会在 +5 时完成最终淬炼。','This path receives its final bonus at +5.'));decorateRows()});
+    defer(()=>{showToast(copy('精炼路线已确定','Refinement locked in'),choice,copy('该路线会在 +5 时完成最终淬炼。','This path receives its final bonus at +5.'));decorateRows()});
   },true);
 
-  document.addEventListener('keydown',scheduleDecorate,true);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleDecorate()});
-  window.addEventListener('focus',scheduleDecorate);
-  window.addEventListener('pageshow',scheduleDecorate);
+  window.addEventListener('keydown',scheduleFromKey,true);
+  document.addEventListener('click',scheduleFromClick,true);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&api.state==='town')scheduleDecorate()});
+  window.addEventListener('focus',()=>{if(api.state==='town')scheduleDecorate()});
+  window.addEventListener('pageshow',()=>{if(api.state==='town')scheduleDecorate()});
 
-  ensureStyle();scheduleDecorate();
-  window.__DE_FORGE_FEEDBACK_V122={version:'v3',owner:'forge-feedback-v122',locale:english?'en':'zh-CN',decorateRows,scheduleDecorate,stageText,statDelta,showToast};
+  ensureStyle();if(api.state==='town')scheduleDecorate();
+  window.__DE_FORGE_FEEDBACK_V122={
+    version:'v4',owner:'forge-feedback-v122',locale:english?'en':'zh-CN',
+    decorateRows,scheduleDecorate,scheduleFromKey,scheduleFromClick,stageText,statDelta,showToast,
+    transitionKeys:TOWN_TRANSITION_KEYS,
+  };
 })();

@@ -37,6 +37,12 @@ assert(!/MutationObserver|requestAnimationFrame|setInterval/.test(shopArt),'shop
 assert(/function\s+scheduleFromKey\s*\(/.test(shopArt)&&/MOVEMENT_KEYS/.test(shopArt),'shop art key work is limited to shop or merchant-entering movement');
 assert(/queueMicrotask/.test(shopArt)&&/defer\(sync\)/.test(shopArt),'shop art sync runs after the core transition without allocating a frame callback');
 
+const forgeFeedback=read('forge-feedback-v122.js');
+assert(/version:'v4'/.test(forgeFeedback),'forge feedback uses scoped event-driven v4');
+assert(!/requestAnimationFrame|MutationObserver|setInterval/.test(forgeFeedback),'forge feedback owns no frame follower, observer or polling loop');
+assert(/window\.addEventListener\('keydown',scheduleFromKey,true\)/.test(forgeFeedback)&&/TOWN_TRANSITION_KEYS/.test(forgeFeedback),'forge feedback sees town transitions without running for unrelated keys');
+assert(/queueMicrotask/.test(forgeFeedback)&&/defer\(decorateRows\)/.test(forgeFeedback),'forge decoration is post-event microtask driven');
+
 const audio=read('audio-director.js');
 assert(/setInterval\(pump,\s*70\)/.test(audio)&&/clearInterval\(timer\)/.test(audio),'audio keeps only its lifecycle-scoped WebAudio look-ahead timer');
 assert(/document\.hidden/.test(audio)&&/pagehide/.test(audio),'audio timer stops with page lifecycle');
@@ -57,4 +63,4 @@ for(const migrated of ['#stats','#equipbar','#stage','#touch','#log','#bag','#ba
 const record=read('expedition-record-v126.js');
 assert(/Fixed-route locale owns every visible label/.test(record)&&/\['btn-achv','btn-achv-town'\]/.test(record),'expedition record owns its fixed-route rerender instead of relying on legacy translation');
 
-console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop art + visible-only six-root locale bridge)`);
+console.log(`runtime_debt_contract_v141=PASS (${retiredPollOwners.length} retired poll owners guarded + connected-pad RAF gating + scoped shop/forge feedback + visible-only six-root locale bridge)`);
