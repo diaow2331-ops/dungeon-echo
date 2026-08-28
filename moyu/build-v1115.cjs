@@ -9,6 +9,7 @@ index=replaceOnce(index,'<meta name="version" content="1.11.4" />','<meta name="
 index=replaceOnce(index,'style.css?v=1114','style.css?v=1115','base css fingerprint');
 index=replaceOnce(index,'visual-v1113.css?v=1114','visual-v1113.css?v=1115','visual css fingerprint');
 index=replaceOnce(index,'<link rel="stylesheet" href="visual-v1113.css?v=1115" />','<link rel="stylesheet" href="visual-v1113.css?v=1115" />\n<link rel="stylesheet" href="responsive-v1115.css?v=1115" />','final responsive stylesheet');
+index=replaceOnce(index,"let l=q.get('lang');if(l!=='zh'&&l!=='en')l=c('91hwl_lang')||localStorage.getItem('91hwl_lang')||((navigator.language||'').toLowerCase().startsWith('zh')?'zh':'en');","let l=q.get('lang'),cl=c('91hwl_lang'),sl=localStorage.getItem('91hwl_lang'),bl=(navigator.language||'').toLowerCase().startsWith('zh')?'zh':'en';if(l!=='zh'&&l!=='en')l=(cl==='zh'||cl==='en')?cl:((sl==='zh'||sl==='en')?sl:bl);",'validated prepaint language precedence');
 index=replaceOnce(index,'<span class="version-badge">v1.11.4</span>','<span class="version-badge">v1.11.5</span>','visible version badge');
 index=replaceOnce(index,'91HWL / CLOCK OUT ALIVE / v1.11.4','91HWL / CLOCK OUT ALIVE / v1.11.5','footer version');
 index=replaceOnce(index,'game.js?v=1114','game.js?v=1115','game fingerprint');
@@ -17,6 +18,8 @@ assert(game.includes("dataset.gameVersion='1.11.5'"),'runtime version missing');
 assert(game.includes('const storedLang=storageGet(LANG_KEY)'),'stored language validation missing');
 assert(game.includes("(storedLang==='en'||storedLang==='zh')?storedLang:browserLang"),'stored language fallback missing');
 assert(!game.includes("storageGet(LANG_KEY)||(navigator.language||'zh').toLowerCase().startsWith('zh')?'zh':'en'"),'ambiguous language precedence remains');
+assert(index.includes("(cl==='zh'||cl==='en')?cl:((sl==='zh'||sl==='en')?sl:bl)"),'validated prepaint precedence missing');
+assert(!index.includes("c('91hwl_lang')||localStorage.getItem('91hwl_lang')||"),'legacy prepaint precedence remains');
 assert(index.includes('translate="no"'));
 assert(index.includes('name="google" content="notranslate"'));
 assert(index.includes('visual-v1113.css?v=1115'));
