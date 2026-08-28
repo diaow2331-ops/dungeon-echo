@@ -1,1 +1,0 @@
-Source contract only. No GitHub Actions or real-browser PASS is claimed by this change. Browser verification should cover connect, disconnect, reconnect, background/resume, menu navigation, RT attack, X skill, and View-hold Return Scroll.
