@@ -6,12 +6,15 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const rel = 'game/domain/inventory/equipment-rules-v130.js';
 const source = fs.readFileSync(path.join(root, rel), 'utf8');
+const executableSource = source
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
 assert.equal(rules.authority, 'none');
 assert.equal(rules.version, 'v1.3.0-staged');
 assert.equal(rules.source, 'archive/quarantine-v130/gameplay/equipment/equipment-system.js');
-assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|fetch\s*\(/.test(source), 'staged inventory rules must stay pure and disconnected');
+assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|fetch\s*\(/.test(executableSource), 'staged inventory rules must stay pure and disconnected');
 
 const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8')
   .split(/\r?\n/).filter(Boolean);
