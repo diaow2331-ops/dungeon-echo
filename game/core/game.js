@@ -44,6 +44,8 @@ const MAP_W = 40, MAP_H = 28, TILE = 32;
 const SAVE_KEY = 'de-run-v6';
 const SAVE_VERSION = 2;
 const META_KEY = 'de-greedy-meta-v1';
+const RECORD_KEY = 'de-expedition-record-v1';
+const RECORD_VERSION = 1;
 const GREEDY_KEY = 'de-greedy-on-v1';
 const GUIDE_KEY = 'de-guide-v1';
 const GUIDE_VERSION = 1;
@@ -62,6 +64,65 @@ try {
 } catch (e) { /* 无 localStorage 环境 */ }
 
 let meta = null;
+let record = null;
+function defaultRecord() {
+  return {
+    v: RECORD_VERSION,
+    runs: 0, wins: 0, totalKills: 0, deaths: 0, bestDepth: 0,
+    safeReturns: 0, guardians: 0, legends: 0,
+    achv: {},
+  };
+}
+function sanitizeRecord(raw) {
+  const out = defaultRecord();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  const num = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+  for (const k of ['runs','wins','totalKills','deaths','bestDepth','safeReturns','guardians','legends']) out[k] = num(raw[k]);
+  if (raw.achv && typeof raw.achv === 'object' && !Array.isArray(raw.achv)) {
+    for (const k of Object.keys(raw.achv)) if (raw.achv[k]) out.achv[k] = 1;
+  }
+  return out;
+}
+function loadRecord() {
+  let out = defaultRecord();
+  try { out = sanitizeRecord(JSON.parse(localStorage.getItem(RECORD_KEY))); } catch (e) { /* start clean */ }
+  // One-way lower-bound migration from pre-v1.3.5 history. This never writes back into Greedy economy.
+  try {
+    const oldMeta = JSON.parse(localStorage.getItem(META_KEY));
+    if (oldMeta && typeof oldMeta === 'object') {
+      out.runs = Math.max(out.runs, Number(oldMeta.runs) || 0);
+      out.wins = Math.max(out.wins, Number(oldMeta.wins) || 0);
+      out.totalKills = Math.max(out.totalKills, Number(oldMeta.totalKills) || 0);
+      out.deaths = Math.max(out.deaths, Number(oldMeta.deaths) || 0);
+      out.bestDepth = Math.max(out.bestDepth, Number(oldMeta.bestDepth) || 0);
+      out.legends = Math.max(out.legends, oldMeta.gotLegend ? 1 : 0);
+      if (oldMeta.achv && typeof oldMeta.achv === 'object')
+        for (const k of Object.keys(oldMeta.achv)) if (oldMeta.achv[k]) out.achv[k] = 1;
+    }
+    const best = JSON.parse(localStorage.getItem('de-best'));
+    if (best && typeof best === 'object') {
+      out.bestDepth = Math.max(out.bestDepth, Number(best.bestDepth) || 0);
+      out.totalKills = Math.max(out.totalKills, Number(best.bestKills) || 0);
+    }
+  } catch (e) { /* legacy data is optional */ }
+  return sanitizeRecord(out);
+}
+function saveRecord() {
+  if (!record) return;
+  try { localStorage.setItem(RECORD_KEY, JSON.stringify(record)); } catch (e) { /* non-critical profile */ }
+}
+function ensureRecord() {
+  if (!record) record = loadRecord();
+  return record;
+}
+function recordRunStart() { const r=ensureRecord(); r.runs++; r.bestDepth=Math.max(r.bestDepth, depth || 1); saveRecord(); }
+function recordDepth() { const r=ensureRecord(); r.bestDepth=Math.max(r.bestDepth, Math.max(1, Number(depth)||1)); }
+function recordKill(m) { const r=ensureRecord(); r.totalKills++; if (m && m.midBoss) r.guardians++; }
+function recordDeath() { const r=ensureRecord(); r.deaths++; saveRecord(); }
+function recordWin() { const r=ensureRecord(); r.wins++; r.bestDepth=Math.max(r.bestDepth, Number(depth)||0); saveRecord(); }
+function recordSafeReturn() { const r=ensureRecord(); r.safeReturns++; r.bestDepth=Math.max(r.bestDepth, Number(depth)||0); saveRecord(); }
+function recordLegend() { const r=ensureRecord(); r.legends=Math.max(1,r.legends||0); saveRecord(); }
+record = loadRecord();
 function defaultMeta(classId) {
   const c = CLASSES[classId] || CLASSES.warrior;
   return {
@@ -515,6 +576,10 @@ const LOOT_ICON_IDS = Object.freeze([
 const LOOT_ICON_INDEX = Object.fromEntries(LOOT_ICON_IDS.map((id, i) => [id, i]));
 const lootAtlas = new Image();
 lootAtlas.src = 'art/loot-atlas.png';
+const equipmentWeaponsV13 = new Image();
+equipmentWeaponsV13.src = 'art/equipment-weapons-v13.png';
+const equipmentWearablesV13 = new Image();
+equipmentWearablesV13.src = 'art/equipment-wearables-v13.png';
 const heroAtlasV11 = new Image();
 heroAtlasV11.src = 'art/hero-atlas-v11.png';
 const heroActionAtlasV2 = new Image();
@@ -558,6 +623,55 @@ const lootMarkup = id => {
   const p = lootCoord(id);
   return `<span class="loot-icon" style="--ix:${p.x};--iy:${p.y}" aria-hidden="true"></span>`;
 };
+
+const EQUIPMENT_SOURCE_BY_ICON = Object.freeze({
+  'iron-sword':['weapon',0,0],'broad-sword':['weapon',1,0],'battle-axe':['weapon',3,1],'rune-blade':['weapon',3,0],
+  'dagger':['weapon',2,3],'hunting-bow':['weapon',5,1],'arcane-staff':['weapon',4,2],
+  'leather-armor':['wearable',0,0],'chain-mail':['wearable',2,0],'plate-armor':['wearable',4,0],'mithril-armor':['wearable',3,0],
+  'copper-ring':['wearable',0,3],'ruby-ring':['wearable',2,3],'guardian-ring':['wearable',4,3],
+  'helm-cloth':['wearable',0,1],'helm-iron':['wearable',2,1],'helm-knight':['wearable',3,1],'helm-dragon':['wearable',5,1],
+  'boots-cloth':['wearable',0,2],'boots-leather':['wearable',1,2],'boots-steel':['wearable',2,2],'boots-wind':['wearable',4,2],
+  'amulet-copper':['wearable',0,4],'amulet-moonstone':['wearable',1,4],'amulet-guardian':['wearable',3,4],'amulet-abyss':['wearable',5,4],
+});
+const WEAPON_ART_THRESHOLDS = Object.freeze([1,3,5,7,10,14,17,22,32,44,58,74,92]);
+const ARMOR_ART_THRESHOLDS = Object.freeze([1,3,5,7,14,22,32,44,58,74,92]);
+const RING_ART_THRESHOLDS = Object.freeze([1,3,6,13,21,32,44,58,74,92]);
+const WEAPON_TIER_ART = Object.freeze({
+  warrior:[[0,0],[1,0],[2,1],[3,0],[4,0],[0,1],[3,1],[5,0],[4,1],[3,0],[5,3],[4,3],[5,3]],
+  ranger:[[5,1],[0,2],[1,2],[2,2],[0,2],[1,2],[2,2],[0,2],[1,2],[2,2],[1,2],[2,2],[2,2]],
+  mage:[[3,2],[4,2],[0,3],[4,2],[3,2],[5,2],[4,2],[0,3],[1,3],[5,2],[4,2],[5,2],[5,2]],
+  assassin:[[2,3],[3,3],[4,3],[2,3],[3,3],[4,3],[3,3],[4,3],[2,3],[4,3],[3,3],[4,3],[4,3]],
+});
+const ARMOR_TIER_ART = Object.freeze([[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[4,0],[5,0],[5,0],[5,0],[5,0]]);
+const RING_TIER_ART = Object.freeze([[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[4,3],[5,3],[5,3],[5,3]]);
+function equipmentTierIndex(min, thresholds) {
+  const value=Math.max(1,Number(min)||1); let idx=0;
+  for(let i=0;i<thresholds.length;i++) if(value>=thresholds[i]) idx=i;
+  return idx;
+}
+function equipmentArtSource(item) {
+  if (!item || typeof item !== 'object') return null;
+  const base=item.base && typeof item.base==='object' ? item.base : null;
+  if (item.slot==='weapon' && base) {
+    const row=WEAPON_TIER_ART[base.cls] || WEAPON_TIER_ART.warrior;
+    const cell=row[equipmentTierIndex(base.min,WEAPON_ART_THRESHOLDS)] || row[0];
+    return ['weapon',cell[0],cell[1]];
+  }
+  if (item.slot==='armor' && base) return ['wearable',...(ARMOR_TIER_ART[equipmentTierIndex(base.min,ARMOR_ART_THRESHOLDS)]||ARMOR_TIER_ART[0])];
+  if (item.slot==='ring' && base) return ['wearable',...(RING_TIER_ART[equipmentTierIndex(base.min,RING_ART_THRESHOLDS)]||RING_TIER_ART[0])];
+  return EQUIPMENT_SOURCE_BY_ICON[item.icon] || null;
+}
+function drawGroundEquipment(item, px, py, size=29) {
+  const src=equipmentArtSource(item); if(!src) return false;
+  const [sheetId,sx,sy]=src;
+  const image=sheetId==='weapon' ? equipmentWeaponsV13 : equipmentWearablesV13;
+  if(!imageReady(image)) return false;
+  const cols=6, rows=sheetId==='weapon'?4:5, sw=image.naturalWidth/cols, sh=image.naturalHeight/rows;
+  ctx.save(); ctx.imageSmoothingEnabled=false;
+  ctx.shadowColor='rgba(0,0,0,.8)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
+  ctx.drawImage(image,sx*sw,sy*sh,sw,sh,px-size/2,py-size/2,size,size);
+  ctx.restore(); return true;
+}
 
 // ================= 内容 Profile 加载与校验（fail-closed） =================
 function validateProfile(p) {
@@ -2617,6 +2731,7 @@ function killMonster(m) {
   }
   const kh = Math.round(pKillHeal() * healMult());
   if (greedyMode && meta) meta.totalKills = (meta.totalKills || 0) + 1;
+  recordKill(m);
   if (kh > 0 && player.hp > 0 && player.hp < pMaxHp()) {
     const h = Math.min(pMaxHp() - player.hp, kh);
     player.hp += h;
@@ -2643,6 +2758,7 @@ function killMonster(m) {
   if (pendingTalent) openTalent();
 }
 function die() {
+  recordDeath();
   if (greedyMode && meta) {
     const hasIns = (meta.insurance || 0) > 0;
     const lostGold = player.gold;
@@ -2669,6 +2785,7 @@ function die() {
     bestText());
 }
 function winGame() {
+  recordWin();
   if (greedyMode && meta) {
     syncMetaFromPlayer(false);
     meta.bestDepth = Math.max(meta.bestDepth || 0, depth);
@@ -3023,6 +3140,7 @@ function descend() {
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
   if (map[player.y][player.x] !== STAIRS) { msg(ui('这里没有向下的楼梯。站上去再按 Enter。','There are no stairs here. Stand on them and press Enter.')); return; }
   depth++;
+  recordDepth();
   buildThemeTex(depth);
   genLevel(); computeFov(); sfx.stairs();
   const themeName = THEMES[themeIdx(depth)] ? visibleWorldName(THEMES[themeIdx(depth)].name) : ui('未知层域','Unknown Depths');
@@ -3056,6 +3174,7 @@ function quickDive(n) {
   }
   player.gold -= cost;
   depth += skip;
+  recordDepth();
   buildThemeTex(depth);
   genLevel(); computeFov(); sfx.stairs();
   msg(isFinalFloor()
@@ -3273,7 +3392,11 @@ function equipFromBag(i) {
   player.hp = Math.min(player.hp, pMaxHp());
   selectedBagIndex = -1;
   sfx.equip();
-  if ((it.rarity || 0) >= 4 && greedyMode && meta) { meta.gotLegend = 1; msg(ui('传说藏品入账！远征录已记录。','Legendary item acquired! The Expedition Record has been updated.'), 'gold'); }
+  if ((it.rarity || 0) >= 4) {
+    recordLegend();
+    if (greedyMode && meta) meta.gotLegend = 1;
+    msg(ui('传说藏品入账！远征录已记录。','Legendary item acquired! The Expedition Record has been updated.'), 'gold');
+  }
   msg(ui(`你装备了【${it.name}】。`, `You equipped [${visibleItemName(it)}].`), rarityLogCls(it.rarity));
   renderBag(); renderEquip(); updateHud();
   persistRun();
@@ -4253,12 +4376,15 @@ function draw(now) {
       continue;
     }
     if (it.type === 'equip') {
-      const glow = .45 + .3 * Math.sin(now * 4 + it.x);
-      ctx.strokeStyle = RARITIES[it.item.rarity].color;
-      ctx.globalAlpha = Math.max(.15, glow);
-      ctx.lineWidth = 2;
-      ctx.strokeRect(px - 12, it.y * TILE + 4, 24, 24);
-      ctx.globalAlpha = 1;
+      const glow = .34 + .18 * Math.sin(now * 3.5 + it.x);
+      const rarityColor = RARITIES[it.item.rarity].color;
+      const rg = ctx.createRadialGradient(px, py + 7, 1, px, py + 7, 18);
+      rg.addColorStop(0, rarityColor);
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save(); ctx.globalAlpha = Math.max(.12, glow * .42); ctx.fillStyle = rg;
+      ctx.fillRect(px - 20, py - 13, 40, 40);
+      ctx.globalAlpha = .38 + glow * .45; ctx.strokeStyle = rarityColor; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(px, py + 11, 11, 3.5, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
     if (it.type === 'amulet') {
       const g2 = ctx.createRadialGradient(px, py, 2, px, py, TILE);
@@ -4270,6 +4396,8 @@ function draw(now) {
     if (it.type === 'chest') {
       if (!drawDungeonProp(DUNGEON_PROP_ART.treasureChest, px, py, 30, 28, .98) && spr)
         ctx.drawImage(spr.img, px - 12, py - 12, 24, 24);
+    } else if (it.type === 'equip' && drawGroundEquipment(it.item, px, py, 29)) {
+      // canonical Canvas owns tier-specific ground equipment art
     } else if (!drawLootIcon(iconId, px, py, 24) && spr) {
       ctx.drawImage(spr.img, px - 11, py - 11, 22, 22);
     }
@@ -4444,7 +4572,8 @@ function updateHud() {
   $('st-potion').textContent = player.potions;
   $('st-scroll').textContent = player.scrolls;
   if ($('st-key')) $('st-key').textContent = player.keys || 0;
-  if ($('st-escape')) $('st-escape').textContent = greedyMode ? (player.escapes || 0) : '—';
+  if ($('st-escape')) $('st-escape').textContent = player.escapes || 0;
+  if ($('st-escape-wrap')) $('st-escape-wrap').style.display = greedyMode ? '' : 'none';
   if ($('st-mobs')) {
     const mobsEl = $('st-mobs');
     const bossHere = monsters && monsters.some(m => m.boss || m.midBoss);
@@ -4468,7 +4597,7 @@ function updateHud() {
   const shopHere = npcAt(player.x + (player.facing ? player.facing[0] : 0), player.y + (player.facing ? player.facing[1] : 0));
   $('hint').classList.toggle('active', onStairs);
   $('hint').textContent = onStairs
-    ? (canDescendNow() ? ui(`> Enter 下潜 · J 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, '> Press Enter to descend') : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
+    ? (canDescendNow() ? ui(`> Enter 下潜 · J 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, `> Enter Descend · J Quick Dive (${quickDiveCost(depth, QUICK_DIVE_STEP)} G for ${QUICK_DIVE_STEP} floors)`) : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
     : shopHere && shopHere.type === 'shop'
       ? ui('> 撞向商人即可交易','> Walk into the merchant to trade')
       : shopHere && shopHere.type === 'shrine'
@@ -4536,7 +4665,7 @@ function persistRun() {
     decals: [...decals],
     logLines: logLines.slice(0, 12),
   };
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(blob)); return true; }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(blob)); saveRecord(); return true; }
   catch (e) { return false; }
 }
 function manualSaveNow() {
@@ -4880,56 +5009,66 @@ function syncMetaFromPlayer(died) {
     meta.gold = (meta.gold || 0) + (player.gold || 0);
   }
 }
-// ================= 远征录：统计 + 成就 =================
+// ================= 远征录：跨局档案 + 成就 =================
 const ACHV = [
-  { id: 'first_run', name: '初次远征', desc: '出发进行一次贪婪远征', test: m => (m.runs || 0) >= 1 },
-  { id: 'depth_10', name: '深入地底', desc: '到达第 10 层', test: m => (m.bestDepth || 0) >= 10 },
-  { id: 'depth_30', name: '地底行者', desc: '到达第 30 层', test: m => (m.bestDepth || 0) >= 30 },
-  { id: 'depth_60', name: '深渊旅人', desc: '到达第 60 层', test: m => (m.bestDepth || 0) >= 60 },
-  { id: 'depth_100', name: '百层勇者', desc: '到达第 100 层', test: m => (m.bestDepth || 0) >= 100 },
-  { id: 'kills_100', name: '屠戮者', desc: '累计击杀 100 个敌人', test: m => (m.totalKills || 0) >= 100 },
-  { id: 'kills_500', name: '千斩万剐', desc: '累计击杀 500 个敌人', test: m => (m.totalKills || 0) >= 500 },
-  { id: 'rich', name: '富甲一方', desc: '金库单次持有 1000 金币', test: m => (m.gold || 0) >= 1000 },
-  { id: 'wheel_10', name: '回响赌徒', desc: '转盘累计抽奖 10 次', test: m => (m.wheelTotal || 0) >= 10 },
-  { id: 'deaths_5', name: '死神常客', desc: '远征中死亡 5 次', test: m => (m.deaths || 0) >= 5 },
-  { id: 'legend', name: '传说收藏家', desc: '装备过一件传说装备', test: m => !!m.gotLegend },
-  { id: 'win', name: '心之归途', desc: '带走地牢之心（任意档位通关）', test: m => (m.wins || 0) >= 1 },
+  { id:'first_run', zh:'初次远征', en:'First Descent', zhDesc:'完成一次出发。', enDesc:'Begin your first expedition.', value:r=>r.runs, target:1 },
+  { id:'depth_10', zh:'深入地底', en:'Below the Threshold', zhDesc:'到达第 10 层。', enDesc:'Reach Floor 10.', value:r=>r.bestDepth, target:10 },
+  { id:'depth_30', zh:'地底行者', en:'Deep Walker', zhDesc:'到达第 30 层。', enDesc:'Reach Floor 30.', value:r=>r.bestDepth, target:30 },
+  { id:'depth_60', zh:'深渊旅人', en:'Abyss Traveler', zhDesc:'到达第 60 层。', enDesc:'Reach Floor 60.', value:r=>r.bestDepth, target:60 },
+  { id:'depth_100', zh:'百层勇者', en:'Hundred-Floor Hero', zhDesc:'到达第 100 层。', enDesc:'Reach Floor 100.', value:r=>r.bestDepth, target:100 },
+  { id:'kills_100', zh:'屠戮者', en:'Monster Slayer', zhDesc:'累计击杀 100 个敌人。', enDesc:'Defeat 100 enemies across runs.', value:r=>r.totalKills, target:100 },
+  { id:'kills_500', zh:'千斩万剐', en:'Five Hundred Echoes', zhDesc:'累计击杀 500 个敌人。', enDesc:'Defeat 500 enemies across runs.', value:r=>r.totalKills, target:500 },
+  { id:'returns_5', zh:'知进知退', en:'Live to Delve Again', zhDesc:'安全回城 5 次。', enDesc:'Return safely to town 5 times.', value:r=>r.safeReturns, target:5 },
+  { id:'guardians_9', zh:'守卫猎手', en:'Guardian Hunter', zhDesc:'累计击败 9 位深层守卫。', enDesc:'Defeat 9 deep guardians across runs.', value:r=>r.guardians, target:9 },
+  { id:'rich', zh:'富甲一方', en:'Vault Keeper', zhDesc:'贪婪远征金库持有 1000 金币。', enDesc:'Hold 1000 Gold in the Greedy vault.', value:(_,e)=>e.gold, target:1000 },
+  { id:'wheel_10', zh:'回响赌徒', en:'Echo Gambler', zhDesc:'幸运转盘累计抽奖 10 次。', enDesc:'Spin the town wheel 10 times.', value:(_,e)=>e.wheelTotal, target:10 },
+  { id:'deaths_5', zh:'死神常客', en:'Frequent Visitor', zhDesc:'累计死亡 5 次。', enDesc:'Die 5 times across expeditions.', value:r=>r.deaths, target:5 },
+  { id:'legend', zh:'传说收藏家', en:'Legend Collector', zhDesc:'获得一件传说装备。', enDesc:'Acquire a legendary item.', value:r=>r.legends, target:1 },
+  { id:'win', zh:'心之归途', en:'Heartbound', zhDesc:'带走终焉之心，完成百层远征。', enDesc:'Carry the Dungeon Heart out and finish the hundred-floor journey.', value:r=>r.wins, target:1 },
 ];
-function checkAchv() {
-  if (!meta) return [];
-  const newly = [];
+function achievementEconomy() {
+  const m=meta || loadMeta() || null;
+  return { gold:Math.max(0,Number(m&&m.gold)||0), wheelTotal:Math.max(0,Number(m&&m.wheelTotal)||0) };
+}
+function checkAchv(announce=true) {
+  const r=ensureRecord(), econ=achievementEconomy(), newly=[];
   for (const a of ACHV) {
-    if (!meta.achv[a.id] && a.test(meta)) {
-      meta.achv[a.id] = 1;
-      newly.push(a);
-      msg(ui(`成就达成：【${a.name}】——${a.desc}。`, `Achievement unlocked: [${a.name}] — ${a.desc}.`), 'gold');
+    if (!r.achv[a.id] && a.value(r,econ) >= a.target) {
+      r.achv[a.id]=1; newly.push(a);
+      if (announce) msg(ui(`成就达成：【${a.zh}】——${a.zhDesc}`, `Achievement unlocked: [${a.en}] — ${a.enDesc}`), 'gold');
     }
   }
-  if (newly.length) sfx.levelup();
+  if (newly.length) { saveRecord(); if (announce) sfx.levelup(); }
   return newly;
 }
 function renderAchv() {
-  if (!meta) return;
-  checkAchv();
-  const statsEl = $('achv-stats');
-  if (statsEl) statsEl.innerHTML = [
-    [ui('最深到达','Deepest Floor'), ui(`${meta.bestDepth || 0} 层`, `Floor ${meta.bestDepth || 0}`)],
-    [ui('远征次数','Expeditions'), `${meta.runs || 0}`],
-    [ui('通关次数','Wins'), `${meta.wins || 0}`],
-    [ui('累计击杀','Total Kills'), `${meta.totalKills || 0}`],
-    [ui('死亡次数','Deaths'), `${meta.deaths || 0}`],
-    [ui('金库金币','Vault Gold'), `${meta.gold || 0} G`],
-    [ui('转盘总抽数','Wheel Spins'), `${meta.wheelTotal || 0}`],
-  ].map(([k, v]) => `<div class="shop-row"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
-  const gridEl = $('achv-grid');
-  if (gridEl) gridEl.innerHTML = ACHV.map(a => {
-    const got = !!meta.achv[a.id];
-    return `<div class="class-card achv-card${got ? '' : ' achv-locked'}">` +
-      `<h3>${got ? '🏆' : '🔒'} ${esc(a.name)}</h3><p>${esc(a.desc)}</p></div>`;
+  const r=ensureRecord(), econ=achievementEconomy();
+  checkAchv(false);
+  const unlocked=ACHV.filter(a=>r.achv[a.id]).length;
+  const statsEl=$('achv-stats');
+  if (statsEl) statsEl.innerHTML=[
+    [ui('最深到达','Deepest Floor'),ui(`${r.bestDepth} 层`,`Floor ${r.bestDepth}`)],
+    [ui('累计远征','Expeditions'),`${r.runs}`],
+    [ui('累计击杀','Total Kills'),`${r.totalKills}`],
+    [ui('通关次数','Wins'),`${r.wins}`],
+    [ui('死亡次数','Deaths'),`${r.deaths}`],
+    [ui('安全回城','Safe Returns'),`${r.safeReturns}`],
+    [ui('深层守卫','Guardians'),`${r.guardians}`],
+    [ui('成就解锁','Achievements'),`${unlocked} / ${ACHV.length}`],
+  ].map(([k,v])=>`<div class="record-stat"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+  const gridEl=$('achv-grid');
+  if (gridEl) gridEl.innerHTML=ACHV.map(a=>{
+    const got=!!r.achv[a.id], value=Math.max(0,Number(a.value(r,econ))||0);
+    const pct=Math.max(0,Math.min(100,Math.round(value/a.target*100)));
+    const progress=a.target===1 ? (got?ui('已完成','Complete'):ui('未完成','Not yet')) : `${Math.min(value,a.target)} / ${a.target}`;
+    return `<div class="achv-card${got?' unlocked':' achv-locked'}">`+
+      `<div class="achv-icon" aria-hidden="true">${got?'✦':'◇'}</div><div class="achv-copy"><h3>${esc(ui(a.zh,a.en))}</h3>`+
+      `<p>${esc(ui(a.zhDesc,a.enDesc))}</p><div class="achv-progress"><i style="width:${pct}%"></i></div><small>${esc(progress)}</small></div></div>`;
   }).join('');
 }
 function enterTown() {
   skillFollowup = null;
+  recordDepth(); saveRecord();
   state = 'town';
   checkAchv();
   meta.bestDepth = Math.max(meta.bestDepth || 0, depth);
@@ -5672,6 +5811,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   // 注意：pMaxHp 读取全局 player，必须在 player 赋值完成之后再计算生命
   player.hp = pMaxHp();
   meta.runs = (meta.runs || 0) + 1;
+  recordRunStart();
   // 每次远征使用独立派生种子，保证同一次数可复现
   setSeed('greedy-' + PROFILE_ID + '-' + classId + '-' + meta.runs);
   saveMeta();
@@ -5697,6 +5837,7 @@ function useEscape() {
   }
   player.escapes--;
   const banked = player.gold;
+  recordSafeReturn();
   syncMetaFromPlayer(false);
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
@@ -5770,6 +5911,7 @@ function newGame(chosen) {
   setSeed(RUN_SEED);
   buildSprites();
   depth = 1; turns = 0; state = 'playing';
+  recordRunStart();
   const c = classDef();
   buildThemeTex(depth);
   player = {
@@ -6088,14 +6230,19 @@ if (typeof window !== 'undefined') {
     useEscape, departTown, depositStash, withdrawStash, buyTown,
     unlockedTownCheckpoints, selectTownCheckpoint, get selectedTownCheckpoint() { return selectedTownCheckpoint; },
     spinWheel, resetWheel, spinCost, resetWheelCost, applyWheelPrize, genWheelSlot,
-    ACHV, checkAchv,
+    ACHV, checkAchv, getRecord: () => ({ ...ensureRecord(), achv:{...ensureRecord().achv} }),
     sellItem, forgeItem, depositAllBag, forgeCost, sellPrice, sanitizeMeta,
     closeShop, buyShop, closeShrine, getShopStock: () => shopStock,
   };
 }
 
-if ($('title-screen')) showTitle();
-else newGame('warrior');
+if ($('title-screen')) {
+  showTitle();
+  if (typeof window !== 'undefined' && window.__DE_FRESH_CLASS_SELECT_PENDING) {
+    window.__DE_FRESH_CLASS_SELECT_PENDING = false;
+    showClassSelect();
+  }
+} else newGame('warrior');
 const seedLabel = $('seed-label');
 if (seedLabel) seedLabel.textContent = RUN_SEED + ui('（' + PROFILE_ID + '）', ' (' + PROFILE_ID + ')');
 syncFullscreenUi();
