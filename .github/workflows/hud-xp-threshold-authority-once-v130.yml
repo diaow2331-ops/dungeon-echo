@@ -1,0 +1,65 @@
+name: hud-xp-threshold-authority-once-v130
+
+on:
+  push:
+    branches:
+      - fix/hud-xp-threshold-authority-v130
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Remove residual XP threshold arithmetic from core HUD
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          game_path = Path('game/core/game.js')
+          game = game_path.read_text()
+          old = 'player.lvl * 15'
+          new = 'PROGRESSION_RULES.xpThreshold(player.lvl)'
+          count = game.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one residual XP threshold expression, found {count}')
+          game = game.replace(old, new)
+          if old in game:
+              raise SystemExit('residual XP threshold expression remains after replacement')
+          game_path.write_text(game)
+
+          test_path = Path('test/single-authority-v130.cjs')
+          test = test_path.read_text()
+          anchor = "assert(!game.includes('while (player.xp >= player.lvl * 15)'), 'core still duplicates XP threshold');"
+          guard = "assert(!game.includes('player.lvl * 15'), 'core still duplicates XP threshold arithmetic outside the progression authority');"
+          if anchor not in test:
+              raise SystemExit('single-authority progression anchor missing')
+          if guard not in test:
+              test = test.replace(anchor, anchor + '\n' + guard)
+          test_path.write_text(test)
+          PY
+      - name: Verify core and full authority gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check game/core/game.js
+          node test/single-authority-v130.cjs
+          bash ops/check-authority-local.sh
+      - name: Commit fix and remove one-shot executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/hud-xp-threshold-authority-once-v130.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --quiet && { echo "No HUD XP authority fix produced" >&2; exit 1; }
+          git commit -m "fix: remove residual HUD XP threshold duplicate"
+          git push origin HEAD:fix/hud-xp-threshold-authority-v130
