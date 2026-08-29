@@ -30,7 +30,11 @@
     "renderHelpers": "game/render/",
     "persistence": "game/persistence/"
   },
+  "stagedPureLibraries": {
+    "inventoryRules": "game/domain/inventory/equipment-rules-v130.js"
+  },
   "plannedDestinationsAreAuthorities": false,
+  "stagedPureLibrariesAreAuthorities": false,
   "authorityTransferRule": "new owner takes the complete responsibility and old owner relinquishes it in the same PR",
   "quarantineRoot": "archive/quarantine-v130",
   "releaseAllowlist": "ops/release/static-files.txt",
@@ -41,6 +45,7 @@
     "second gameplay keyboard/touch owner",
     "presentation masks or redraws core entities",
     "production loads archive content",
-    "release builder rewrites dependency graph"
+    "release builder rewrites dependency graph",
+    "staged domain library enters release allowlist before atomic authority transfer"
   ]
 }

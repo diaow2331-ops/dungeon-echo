@@ -20,6 +20,13 @@ Each shelf preserves completed work but owns **zero production authority**.
 | `art/assets/runtime/` | detailed runtime-era art | core renderer | canonical `art/` after direct core/render-owner integration |
 | `art/assets/equipment/` | equipment art | core renderer/UI | canonical `art/` only when a single consumer owns display |
 
+## Staged extraction
+
+The first re-housed implementation is `game/domain/inventory/equipment-rules-v130.js`.
+It contains only pure class-fit, affix-scaling, deep-slot and rarity-curve data/functions extracted from the old equipment wrapper. It is intentionally **not** in `ops/release/static-files.txt`, is not loaded by either production entry, and owns no runtime authority yet. CI verifies that it remains disconnected until the atomic inventory authority-transfer PR.
+
+The original quarantined `gameplay/equipment/equipment-system.js` remains intact as provenance/reference until the later transfer is complete; staging the pure subset is not permission to delete the source shelf.
+
 ## Atomic authority-transfer rule
 
 A planned destination is **not** an authority simply because its directory exists.
