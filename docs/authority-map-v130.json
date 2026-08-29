@@ -13,6 +13,7 @@
     "keyboardTouchInput": "game/core/game.js",
     "gameplayPersistence": "game/core/game.js",
     "storageEpochReset": "game/core/production-bootstrap.js",
+    "newAdventureResetOrchestration": "game/core/production-bootstrap.js",
     "gamepadTransport": "game/input/desktop-controls.js",
     "runtimeFollowerLoading": "game/core/runtime-bootstrap.js",
     "fixedRouteLocaleNavigation": "game/locale/fixed-locale-entry-v130.js",
