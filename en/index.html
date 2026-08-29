@@ -16,7 +16,7 @@
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=168">
+<link rel="stylesheet" href="style.css?v=169">
 </head>
 <body>
 <div id="wrap">
@@ -51,7 +51,7 @@
 
   <div id="main">
     <div id="stage">
-      <canvas id="game" width="1280" height="896" aria-label="Dungeon map: move and face with WASD or arrow keys, press J to attack and K to use a skill; explored tiles can also be clicked">Your browser does not support Canvas, so Dungeon Echo cannot run.</canvas>
+      <canvas id="game" width="1280" height="896" aria-label="Dungeon map: move with WASD or arrow keys, press C for class skill and J for quick dive; explored tiles can also be clicked">Your browser does not support Canvas, so Dungeon Echo cannot run.</canvas>
       <canvas id="minimap" width="160" height="112" aria-hidden="true"></canvas>
       <button type="button" id="descend-fab" class="hidden" data-act="descend">Descend to the next floor <kbd>Enter</kbd></button>
       <div id="lowhp-vignette" class="hidden" aria-hidden="true"></div>
@@ -69,7 +69,7 @@
         <button type="button" data-act="potion">Potion <span>Q</span></button>
         <button type="button" data-act="scroll">Scroll <span>E</span></button>
         <button type="button" data-act="escape">Return <span>T</span></button>
-        <button type="button" data-act="skill">Skill <span>K</span></button>
+        <button type="button" data-act="skill">Skill <span>C</span></button>
         <button type="button" data-act="descend">Descend <span>Enter</span></button>
         <button type="button" data-act="pause">Pause <span>Esc</span></button>
         <button type="button" data-act="mute">Sound <span>M</span></button>
@@ -91,7 +91,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">Move: arrows / WASD / click map · J Attack · K Class Skill · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · click backpack to equip · M Sound · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.3.0</b></footer>
+  <footer id="help">Move: arrows / WASD / click map · C Class Skill · J Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · click backpack to equip · M Sound · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.3.0</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">Restart (R)</button></div></div>
 
@@ -147,7 +147,7 @@
       <div class="help-cols">
         <div>
           <h3>Controls</h3>
-          <p>Move: <b>arrow keys / WASD / click explored tiles</b><br>Attack: <b>J</b> (current facing) · Wait: <b>Space</b><br>Skill: <b>K</b> (uses mana) · Potion: <b>Q</b> · Scroll: <b>E</b><br>Return: <b>T</b> (Greedy Expedition) · Descend: <b>Enter</b> (on stairs)<br>Pause: <b>Esc</b> · Sound: <b>M</b> · Fullscreen: <b>F</b></p>
+          <p>Move: <b>arrow keys / WASD / click explored tiles</b><br>Class Skill: <b>C</b> · Quick Dive: <b>J</b> · Wait: <b>Space</b><br>Potion: <b>Q</b> · Scroll: <b>E</b><br>Return: <b>T</b> (Greedy Expedition) · Descend: <b>Enter</b> (on stairs)<br>Pause: <b>Esc</b> · Sound: <b>M</b> · Fullscreen: <b>F</b></p>
           <h3>100-Floor Journey</h3>
           <p>Every character starts on Floor 1. Each tenth floor is a major guardian checkpoint and Floor 100 is the production finale; shorter profiles exist only for internal testing.</p>
         </div>
@@ -162,27 +162,12 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=168"></script>
-<script src="profiles/classic-100.profile.js?v=168"></script>
-<script src="game/locale/locale-data-v134.js?v=168"></script>
-<script src="game/core/game.js?v=168"></script>
-<script src="game/locale/core-locale-data-v139.js?v=168"></script>
-<script src="game/systems/npc-stability-system.js?v=168"></script>
-<script src="game/systems/equipment-system.js?v=168"></script>
-<script src="game/systems/town-system.js?v=168"></script>
-<script src="game/systems/commerce-system.js?v=168"></script>
-<script src="game/systems/forge-system.js?v=168"></script>
-<script src="game/systems/progression-system.js?v=168"></script>
-<script src="game/systems/progression-guard-system.js?v=168"></script>
-<script src="game/systems/content-system.js?v=168"></script>
-<script src="game/systems/combat-pressure.js?v=168"></script>
-<script src="game/ui/equipment-shop-ui.js?v=168"></script>
-<script src="game/systems/gameplay-tuning.js?v=168"></script>
-<script src="game/systems/defense-system.js?v=168"></script>
-<script src="game/input/desktop-controls.js?v=168"></script>
-<script src="game/input/combat-controls.js?v=168"></script>
-<script src="game/systems/challenge-pressure.js?v=168"></script>
-<script src="game/systems/risk-reward-system.js?v=168"></script>
-<script src="game/core/runtime-bootstrap.js?v=168"></script>
+<script src="game/core/production-bootstrap.js?v=169"></script>
+<script src="profiles/classic-100.profile.js?v=169"></script>
+<script src="game/locale/locale-data-v134.js?v=169"></script>
+<script src="game/core/game.js?v=169"></script>
+<script src="game/locale/core-locale-data-v139.js?v=169"></script>
+<script src="game/input/desktop-controls.js?v=169"></script>
+<script src="game/core/runtime-bootstrap.js?v=169"></script>
 </body>
 </html>
