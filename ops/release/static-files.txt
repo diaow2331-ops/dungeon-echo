@@ -29,7 +29,7 @@ game/locale/fixed-locale-entry-v130.js
 game/locale/stable-item-id-migration-v150.js
 game/locale/core-screen-owner-v153.js
 game/ui/town-workspace-v156.js
-game/ui/town-art-v157.js
+game/ui/town-art-v160.js
 game/ui/town-workspace-events-v156.js
 game/locale/town-canvas-locale-v153.js
 game/ui/character-art-cleanup-v122.js

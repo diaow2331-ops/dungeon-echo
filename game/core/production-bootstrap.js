@@ -99,7 +99,7 @@
   };
   const loadArtRuntimes = () => {
     appendArtRuntime('de-art-runtime-v4-loader', '../ui/art-runtime-v4.js?v=160', '__DE_ART_RUNTIME_V4');
-    appendArtRuntime('de-town-art-v157-loader', '../ui/town-art-v157.js?v=159', '__DE_TOWN_ART_V157');
+    appendArtRuntime('de-town-art-v160-loader', '../ui/town-art-v160.js?v=161', '__DE_TOWN_ART_V160');
   };
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
