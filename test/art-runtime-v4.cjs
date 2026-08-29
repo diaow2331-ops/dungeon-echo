@@ -10,15 +10,18 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const runtime = read('game/ui/art-runtime-v4.js');
 const entity = read('game/ui/art-runtime-v2.js');
 const bootstrap = read('game/core/production-bootstrap.js');
+const releaseRuntime = read('game/core/runtime-bootstrap.js');
+const releaseGen = (releaseRuntime.match(/const assetVersion = '(\d+)'/) || [,''])[1];
 const releaseFiles = new Set(read('ops/release/static-files.txt').trim().split(/\r?\n/));
 
+assert(/^\d+$/.test(releaseGen), 'release cache generation missing');
 assert(releaseFiles.has('game/ui/art-runtime-v4.js'), 'v4 terrain coordinator missing from release boundary');
 assert(!releaseFiles.has('game/ui/art-runtime-v3.js'), 'retired duplicate v3 runtime must leave release boundary');
-assert(bootstrap.includes("../ui/art-runtime-v4.js?v=160"), 'production bootstrap must load v4 coordinator');
+assert(bootstrap.includes(`../ui/art-runtime-v4.js?v=${releaseGen}`), 'production bootstrap must load v4 coordinator at current release generation');
 assert(!bootstrap.includes("../ui/art-runtime-v3.js"), 'production bootstrap must not load retired duplicate v3 runtime');
 assert(bootstrap.includes("version:'superseded-by-v4'"), 'legacy direct-v2 sentinel missing');
 assert(runtime.includes("./art-runtime-v2.js?v=${ENTITY_VERSION}"), 'v4 must force a fresh unified entity runtime load');
-assert(runtime.includes("const ENTITY_VERSION = '160'"), 'entity cache generation must advance with v4');
+assert(runtime.includes("const ENTITY_VERSION = '160'"), 'internal unified entity cache generation drifted unexpectedly');
 assert(entity.includes("version:'v3-unified'"), 'unified entity runtime contract missing');
 
 assert(runtime.includes('const THEME_VISUALS = Object.freeze(['), 'terrain theme table missing');
