@@ -56,6 +56,7 @@ ok(/audioFollower:'game\/ui\/adaptive-bgm-v132\.js'/.test(runtime), 'adaptive BG
 ok(/forgeFeedback:'game\/ui\/forge-feedback-v132\.js'/.test(runtime), 'forge feedback boundary is explicit');
 
 const staleSuiteEntries = [
+  'production.cjs',
   'runtime-debt-contract-v141.cjs',
   'progression-commitment.cjs',
   'extraction-channel.cjs',
@@ -67,6 +68,7 @@ const staleSuiteEntries = [
   'final-fixed-locale-v153.cjs',
 ];
 for (const name of staleSuiteEntries) ok(!suite.includes(`'${name}'`), `historical test is not a current gate: ${name}`);
+ok(suite.includes("'current-production-entry-v132.cjs'"), 'current suite uses the canonical production entry gate');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);
