@@ -9,7 +9,7 @@ manifest="$repo_root/ops/release/static-files.txt"
 stage_root="$(mktemp -d)"
 bundle="$stage_root/91hwl-play-dungeon-echo-v$version"
 source_generation=153
-asset_generation=156
+asset_generation=166
 
 cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
@@ -28,14 +28,12 @@ while IFS= read -r file; do
   cp -a "$repo_root/$file" "$bundle/public/dungeon-echo/$file"
 done < "$manifest"
 
-# Semantic VERSION must already be correct in source. Packaging only advances
-# cache query parameters from the stable source generation to the public one.
+# Semantic VERSION stays on 1.2.11 for this hot update. Packaging advances only
+# the public cache generation so browsers/CDNs cannot mix the pre-art build with
+# the final four-direction / terrain / town / boss presentation pass.
 grep -Fq "正式版 <b>v$version</b>" "$bundle/public/dungeon-echo/index.html"
 grep -Fq "Release <b>v$version</b>" "$bundle/public/dungeon-echo/en/index.html"
 
-# v1.2.11 keeps the stable source entry generation at 153 while the public cache
-# generation advances independently. Generation 156 forces the fixed-locale launch
-# hotfix to bypass any cached v155 follower scripts.
 for entry in "$bundle/public/dungeon-echo/index.html" "$bundle/public/dungeon-echo/en/index.html"; do
   test -r "$entry"
   grep -Fq "?v=$source_generation" "$entry"
