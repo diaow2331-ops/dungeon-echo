@@ -1,5 +1,7 @@
 # 地牢回响：v1.2.10 上线后维护路线图
 
+> **Superseded for Dungeon Echo:** v1.3.2 之后的产品优化以 `docs/POST_LAUNCH_OPTIMIZATION_PLAN_v132.md` 为当前计划；本文保留为 v1.2.10 上线阶段历史记录。
+
 > 当前公开集合：**Dungeon Echo v1.2.10 + Clock Out Alive v1.11.5 + 91hwl site v1.3.4**。Dungeon Echo 当前 public runtime cache generation 为 **155**，runtime owner 为 **v13**。
 
 项目已经从“首发准备”进入：

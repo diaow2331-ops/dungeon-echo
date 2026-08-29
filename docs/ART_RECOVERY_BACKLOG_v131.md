@@ -1,5 +1,7 @@
 # Dungeon Echo post-v1.3.1 art recovery backlog
 
+> **v1.3.2 update:** Hero 四状态 Canvas 集成与 21-theme tile material pass 已完成。后续美术工作以 `docs/POST_LAUNCH_OPTIMIZATION_PLAN_v132.md` 的 Guardian/Floor-100 视觉 QA 为准。
+
 The v1.3.1 recovery closeout completed the reviewed single-authority recovery sequence, but it did **not** mean that every historically shipped or staged art improvement had been re-admitted to production.
 
 ## Recovered after the v1.3.1 closeout
