@@ -9,11 +9,12 @@ Server usage:
   cd /tmp/91hwl-play-dungeon-echo-v1.2.12
   sudo ./ops/deploy.sh
 
-The v1.2.12 bundle publishes cache generation 166 for both zh/en entries and
-ships the complete art closeout together: unified entity art, nine guardians and
-the floor-100 boss, 21-theme terrain materials, detailed town/NPC presentation,
-four-class directional combat FX, four-direction hero art and the current loot/
-equipment artwork. Dynamic equipment-on-body overlays are intentionally excluded.
+The v1.2.12 corrective hotfix publishes cache generation 167 for both zh/en entries.
+It keeps the complete guardian/boss, terrain, deep monster/prop, town/NPC and current
+loot/equipment art pass while restoring the established high-detail hero/action atlas.
+The experimental pixel-direction hero overlay, line-drawn class FX and equipment-on-body
+overlay are excluded. New Run now clears the active expedition save and prepares a fresh
+seed unless the URL explicitly supplies ?seed=; Greedy meta/town progression is preserved.
 
 Success markers:
   dungeon_echo_healthcheck=PASS
