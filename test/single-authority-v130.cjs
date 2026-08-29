@@ -20,6 +20,7 @@ const cacheGeneration = String(authority.cacheGeneration);
 assert.equal(authority.authorities.gameplayState, 'game/core/game.js');
 assert.equal(authority.authorities.contentClassification, 'game/domain/content/content-rules-v130.js');
 assert.equal(authority.authorities.equipmentStatScoring, 'game/domain/inventory/equipment-rules-v130.js');
+assert.equal(authority.authorities.equipmentClassFitScoring, 'game/domain/inventory/equipment-rules-v130.js');
 assert.equal(authority.authorities.equipmentTransactionPricing, 'game/domain/economy/economy-rules-v130.js');
 assert.equal(authority.authorities.levelUpArithmetic, 'game/domain/progression/progression-rules-v130.js');
 assert.equal(authority.authorities.criticalDamageMultiplier, 'game/domain/combat/combat-rules-v130.js');
@@ -112,7 +113,7 @@ assert(production.includes("gameplayInputOwner:'game/core/game.js'"));
 assert(production.includes("gameplayPersistenceOwner:'game/core/game.js'"));
 assert(production.includes('historicalSaveMigration:false'));
 assert(runtime.includes(`const assetVersion = '${cacheGeneration}'`));
-assert(runtime.includes("followers:'dom-only'"));
+assert(runtime.includes("followers:'presentation-only'"));
 assert(runtime.includes("gameplayStateOwner:'game/core/game.js'"));
 assert(!/game\/systems\/|combat-controls|art-runtime|town-art|hero-directional|class-combat-fx/.test(runtime));
 assert(!/DE_COMMERCE|DE_TOWN_|DE_EQUIPMENT|DE_FORGE|DE_PROGRESSION/.test(gamepad), 'gamepad must be transport-only');
@@ -167,8 +168,9 @@ for (const rel of js) {
   if (rel !== 'game/core/game.js' && rel !== 'game/core/production-bootstrap.js' && rel !== 'game/locale/fixed-locale-entry-v130.js') {
     assert(!/localStorage\s*\.(setItem|removeItem|clear)\s*\(/.test(src), `${rel} writes storage outside an allowed authority`);
   }
-  if (rel !== 'game/core/game.js') {
-    assert(!/addEventListener\s*\(\s*['\"]keydown['\"]/.test(src), `${rel} captures gameplay keyboard input`);
+  if (rel !== 'game/core/game.js' && /addEventListener\s*\(\s*['\"]keydown['\"]/.test(src)) {
+    assert(!/addEventListener\s*\(\s*['\"]keydown['\"][\s\S]{0,160},\s*true\s*\)/.test(src), `${rel} registers a capture-phase keyboard owner`);
+    assert(!/preventDefault|stopPropagation|stopImmediatePropagation/.test(src), `${rel} intercepts gameplay keyboard control flow`);
   }
   assert(!/archive\/quarantine-v130/.test(src), `${rel} references quarantine`);
 }

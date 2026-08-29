@@ -29,7 +29,7 @@ const ranged=core.slice(core.indexOf('function playerRangedAttack('),core.indexO
 assert(melee.includes('consumeSkillFollowup()')&&ranged.includes('consumeSkillFollowup()'),'melee and ranged shared core paths must consume follow-up');
 assert(!core.includes('window.DE_SKILL_EVOLUTION'),'no old global wrapper API should return');
 assert(!core.includes('Press J to attack in your facing direction. Press K to use'),'legacy English K/J skill hint must be gone');
-assert(core.includes('Press C to use ${c.skill.name}. Move into an enemy to attack.'),'English launch hint must match current C contract');
+assert(core.includes("guideOnce('combat'") && core.includes('C uses your class skill.'),'English contextual combat guide must match current C contract');
 assert(docs.includes('`C` hotkey'),'formal skill-evolution docs must match production C input');
 console.log('skill_evolution_core_v131=PASS');
 

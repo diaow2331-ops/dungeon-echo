@@ -181,6 +181,18 @@ X 已开始对外引流。优化判断优先使用以下证据：
 - 发布只从 exact main 构建 immutable ZIP，执行 healthcheck 与 rollback；生产服务器不做现场 patch。
 - 日常验证只跑聚焦测试；版本发布前跑 current suite + 100 层关键 E2E。Hosted Actions 不作为日常门禁。
 
+### 9.1 公开实现优先规则
+
+遇到非本项目独有的问题，不先闭门设计。优先搜索 2–3 个成熟公开 GitHub 仓库，记录“采用的设计原则”和“明确不复制的旧拓扑/实现”。只有找不到合适先例，或先例与当前 single-authority 架构冲突时，才自行设计。
+
+本轮已采用的公开参考：
+
+- `00-Evan/shattered-pixel-dungeon/.../windows/WndInfoItem.java`：物品信息先解释对象本身，再让玩家做装备/使用决策；据此保持 Class Fit 与 Item Value 分离。
+- `00-Evan/shattered-pixel-dungeon/.../levels/rooms/standard/entrance/EntranceRoom.java` 与 `items/journal/Guidebook.java`：教程绑定早期真实事件，并用“已看过”状态避免重复；据此采用 event-driven、once-only 首局引导。
+- `00-Evan/shattered-pixel-dungeon/.../SPDSettings.java`：Music 与 SFX 分开持久化；据此作为 v1.3.3 独立音量设置的参考边界。
+
+引用只用于设计对照，不复制 GPL runtime 代码到本项目。
+
 ## 10. 实施顺序与停止条件
 
 固定顺序：

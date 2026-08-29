@@ -61,8 +61,12 @@ for (const token of [
   'game/locale/fixed-locale-entry-v130.js',
   'game/ui/responsive-final-v154.js',
   'game/ui/help-copy-v126.js',
-]) assert(runtime.includes(token), `approved DOM follower missing: ${token}`);
-assert.equal((runtime.match(/fresh\('/g) || []).length, 4, 'runtime follower list changed; review authority before adding a follower');
+  'game/ui/theme-atmosphere-v131.js',
+  'game/ui/adaptive-bgm-v132.js',
+  'game/ui/forge-feedback-v132.js',
+]) assert(runtime.includes(token), `approved presentation follower missing: ${token}`);
+assert.equal((runtime.match(/fresh\('/g) || []).length, 7, 'runtime presentation follower list changed; review authority before adding a follower');
+assert(runtime.includes("followers:'presentation-only'"), 'runtime follower boundary must remain presentation-only');
 assert(!/game\/systems\/|archive\/|art-runtime|combat-controls|town-workspace|btn-fresh-adventure/.test(runtime), 'runtime loader references non-authoritative follower or fresh-adventure owner');
 
 console.log('entry_authority_v130=PASS');
