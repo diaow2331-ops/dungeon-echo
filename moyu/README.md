@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.12.1**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.12.2**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -35,3 +35,12 @@ Two temporary pickups join Coffee without adding permanent progression. A green 
 Near-miss now has two score tiers: a normal close pass and a tighter **Perfect Near Miss**. Risk Form doubles only the near-miss component, so the fastest score route asks the player to deliberately take a harder line rather than collect an automatic upgrade.
 
 Top-run history / richer run summary and Daily Shift remain separate follow-up work. No equipment, levels or permanent stat grind are introduced.
+
+
+## v1.12.2 local run ledger
+
+v1.12.2 adds replay feedback without adding progression power. Every completed run now writes a compact local Run Summary and feeds a Top 5 history ranked by score, then peak Combo, Perfect near-misses and total near-misses. The history is browser-local and requires no account.
+
+The summary records outcome / cause, clock and scene, score distance, peak Combo, near-miss count, Perfect count and discoveries unlocked during that run. Game-over and both 18:00 endings also surface the run's peak Combo and near-miss line immediately in the result card.
+
+This is the planned P1 replay-value step before any Daily Shift experiment.

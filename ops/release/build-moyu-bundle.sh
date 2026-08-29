@@ -12,7 +12,7 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v node >/dev/null
-test "$version" = '1.12.1'
+test "$version" = '1.12.2'
 release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION)
 for rel in "${release_files[@]}"; do
   file="$source_root/$rel"
@@ -20,15 +20,17 @@ for rel in "${release_files[@]}"; do
   git -C "$repo_root" ls-files --error-unmatch "moyu/$rel" >/dev/null 2>&1 || { echo "untracked Moyu release source: $rel" >&2; exit 2; }
 done
 node --check "$source_root/game.js" >/dev/null
-grep -Fq '<meta name="version" content="1.12.1"' "$source_root/index.html"
-grep -Fq 'style.css?v=1121' "$source_root/index.html"
-grep -Fq 'visual-v1113.css?v=1121' "$source_root/index.html"
-grep -Fq 'responsive-v1120.css?v=1121' "$source_root/index.html"
-grep -Fq 'game.js?v=1121' "$source_root/index.html"
+grep -Fq '<meta name="version" content="1.12.2"' "$source_root/index.html"
+grep -Fq 'style.css?v=1122' "$source_root/index.html"
+grep -Fq 'visual-v1113.css?v=1122' "$source_root/index.html"
+grep -Fq 'responsive-v1120.css?v=1122' "$source_root/index.html"
+grep -Fq 'game.js?v=1122' "$source_root/index.html"
 grep -Fq 'translate="no"' "$source_root/index.html"
 grep -Fq "(cl==='zh'||cl==='en')?cl:((sl==='zh'||sl==='en')?sl:bl)" "$source_root/index.html"
 grep -Fq 'viewport-hint' "$source_root/index.html"
-grep -Fq "dataset.gameVersion='1.12.1'" "$source_root/game.js"
+grep -Fq 'id="lastRunSummary"' "$source_root/index.html"
+grep -Fq 'id="topRunHistory"' "$source_root/index.html"
+grep -Fq "dataset.gameVersion='1.12.2'" "$source_root/game.js"
 grep -Fq 'DAY_END_DISTANCE=2200' "$source_root/game.js"
 grep -Fq 'const groundTakeoff=before===0' "$source_root/game.js"
 grep -Fq 'const storedLang=storageGet(LANG_KEY)' "$source_root/game.js"
@@ -43,6 +45,11 @@ grep -Fq 'meetingDrift=sceneIndex===1&&!first' "$source_root/game.js"
 grep -Fq 'gymBounce=true' "$source_root/game.js"
 grep -Fq "spawnPickup('coffee')" "$source_root/game.js"
 grep -Fq 'PERFECT NEAR MISS' "$source_root/game.js"
+grep -Fq 'function recordFinishedRun' "$source_root/game.js"
+grep -Fq 'function renderRunLedger' "$source_root/game.js"
+grep -Fq '91hwl_moyu_top_runs' "$source_root/game.js"
+grep -Fq '91hwl_moyu_last_run' "$source_root/game.js"
+grep -Fq '.run-ledger-grid' "$source_root/style.css"
 grep -Fq 'window.visualViewport' "$source_root/game.js"
 grep -Fq 'env(safe-area-inset-bottom)' "$source_root/responsive-v1120.css"
 grep -Fq '@media(max-width:700px) and (orientation:portrait)' "$source_root/responsive-v1120.css"

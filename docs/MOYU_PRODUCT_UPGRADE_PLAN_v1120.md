@@ -2,7 +2,7 @@
 
 基线：Moyu v1.11.5。目标不是把它改成第二个 Dungeon Echo，而是保留“一看就会、一次只需要跳跃”的办公室跑酷身份，同时把显示、风险决策、场景差异和重玩价值补到可长期留在 91hwl 首页的水平。
 
-实施状态（2026-08-30）：**P0 已作为 v1.12.0 合并；P1 第一批正在 v1.12.1 落地**——canonical `moyu/game.js`、旧重建链归档、PC/手机 viewport-first 已完成；场景专属判断、两种临时风险拾取与分层 near-miss 得分路线已进入 focused 实现。Top Run History / Run Summary、Daily Shift 与 P2 fast-fall 仍后置。
+实施状态（2026-08-30）：**P0 v1.12.0 与 P1 场景/风险层 v1.12.1 已合并；P1 重玩层推进至 v1.12.2**——canonical `moyu/game.js`、PC/手机 viewport-first、场景专属判断、两种临时风险拾取、分层 near-miss，以及本地 Last Run Summary + Top 5 History 已落地。Daily Shift 与 P2 fast-fall 仍后置。
 
 ## 1. 真实试玩结论
 
