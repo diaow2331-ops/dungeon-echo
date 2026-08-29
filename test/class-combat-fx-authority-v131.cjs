@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs'),path=require('path');
+const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
+const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
+const runtime=fs.readFileSync(path.join(root,'game/core/runtime-bootstrap.js'),'utf8');
+let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
+ok(core.includes('function drawClassCombatFx(now)'),'canonical core renderer owns recovered class FX');
+ok(core.includes('classSkillFxT = 1;'),'successful skill use emits presentation timer inside core');
+ok(core.includes('drawEquippedHero(now);\n  drawClassCombatFx(now);'),'class FX renders in the existing Canvas pass');
+ok(core.includes("warrior:{ main:'#eca548'")&&core.includes("ranger:{ main:'#68d284'")&&core.includes("mage:{ main:'#6fa4ff'")&&core.includes("assassin:{ main:'#bb70eb'"),'all four class visual languages are present');
+ok(!core.includes('de-class-combat-fx-v163')&&!core.includes("stage.appendChild(overlay)"),'old overlay Canvas implementation remains retired');
+ok(!runtime.includes('class-combat-fx-v163.js'),'runtime does not load quarantined combat FX follower');
+ok(!runtime.includes('hero-directional-art-v165.js')&&!runtime.includes('art-runtime-v4.js'),'retired presentation runtimes remain absent');
+console.log(`\nRESULT  ${pass} passed / ${fail} failed`); process.exit(fail?1:0);

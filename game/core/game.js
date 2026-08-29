@@ -1844,6 +1844,13 @@ function snapAll() {
 function lunge(ent, tx, ty) {
   ent.lungeT = 1; ent.ldx = Math.sign(tx - ent.x); ent.ldy = Math.sign(ty - ent.y);
 }
+let classSkillFxT = 0;
+const CLASS_COMBAT_FX_STYLE = Object.freeze({
+  warrior:{ main:'#eca548', soft:'#ffd585' },
+  ranger:{ main:'#68d284', soft:'#b5f2b6' },
+  mage:{ main:'#6fa4ff', soft:'#becbff' },
+  assassin:{ main:'#bb70eb', soft:'#f49bdb' },
+});
 function applyDamageToMonster(m, dmg, crit) {
   m.hp -= dmg; m.hurtT = 1;
   floater(m, `-${dmg}`, crit ? '#eda23a' : '#fff');
@@ -2338,6 +2345,7 @@ function useSkill() {
     used = true;
   }
   if (!used) return;
+  classSkillFxT = 1;
   const echo = mechanicPower('echo_edge');
   if (echo) player.echoEdgeTurn = turns + 1;
   const afterimage = mechanicPower('afterimage');
@@ -2940,6 +2948,64 @@ function lungeOff(e) {
   }
   return [0, 0];
 }
+function drawClassCombatFx(now) {
+  if (!player) return;
+  const attack = clamp(Number(player.lungeT) || 0, 0, 1);
+  const skill = clamp(classSkillFxT, 0, 1);
+  if (attack <= .01 && skill <= .01) return;
+  const style = CLASS_COMBAT_FX_STYLE[classId] || CLASS_COMBAT_FX_STYLE.warrior;
+  const facing = Array.isArray(player.facing) ? player.facing : [1, 0];
+  let dx = Number(facing[0]) || 0, dy = Number(facing[1]) || 0;
+  if (!dx && !dy) dx = 1;
+  const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+  const [lox, loy] = lungeOff(player);
+  const bob = Math.sin(now * 2.6 + player.x * 7 + player.y * 5) * 1.3;
+  const cx = player.fx * TILE + TILE / 2 + lox;
+  const cy = player.fy * TILE + TILE / 2 + bob + loy - 3;
+  const angle = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (classId === 'warrior') {
+    ctx.strokeStyle = skill > .01 ? style.soft : style.main;
+    ctx.globalAlpha = .35 + Math.max(attack, skill) * .5;
+    ctx.lineWidth = 2 + Math.max(attack, skill) * 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 22 + skill * 10 + attack * 6, -.82, .82);
+    ctx.stroke();
+  } else if (classId === 'ranger') {
+    ctx.strokeStyle = style.main;
+    ctx.globalAlpha = .35 + Math.max(attack, skill) * .45;
+    for (let i = skill > .01 ? -1 : 0; i <= (skill > .01 ? 1 : 0); i++) {
+      ctx.lineWidth = i === 0 ? 2 : 1;
+      ctx.beginPath(); ctx.moveTo(8, i * 6); ctx.lineTo(30 + skill * 18 + attack * 8, i * 3); ctx.stroke();
+    }
+  } else if (classId === 'mage') {
+    ctx.strokeStyle = style.main;
+    ctx.fillStyle = style.soft;
+    ctx.globalAlpha = .35 + Math.max(attack, skill) * .45;
+    ctx.lineWidth = 1.5 + skill;
+    ctx.beginPath(); ctx.arc(18 + attack * 7, 0, 5 + attack * 4, 0, Math.PI * 2); ctx.fill();
+    if (skill > .01) {
+      ctx.beginPath(); ctx.arc(0, 0, 20 + (1 - skill) * 8, 0, Math.PI * 2); ctx.stroke();
+      ctx.rotate(Math.PI / 4); ctx.strokeRect(-10, -10, 20, 20);
+    }
+  } else {
+    ctx.strokeStyle = style.soft;
+    ctx.globalAlpha = .35 + Math.max(attack, skill) * .5;
+    ctx.lineWidth = 1.8;
+    const reach = 20 + attack * 9 + skill * 8;
+    ctx.beginPath(); ctx.moveTo(-7, -12); ctx.lineTo(reach, 9); ctx.moveTo(-5, 11); ctx.lineTo(reach - 2, -8); ctx.stroke();
+    if (skill > .01) {
+      ctx.strokeStyle = style.main; ctx.globalAlpha *= .55;
+      ctx.beginPath(); ctx.moveTo(-18 - (1-skill)*12, -9); ctx.lineTo(8, 0); ctx.moveTo(-24 - (1-skill)*9, 8); ctx.lineTo(5, 1); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 function drawShadow(px, py, rx, ry) {
   ctx.fillStyle = 'rgba(0,0,0,.35)';
   ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
@@ -3317,6 +3383,7 @@ function draw(now) {
   }
 
   drawEquippedHero(now);
+  drawClassCombatFx(now);
 
   ctx.strokeStyle = '#f2e3ad';
   ctx.lineWidth = 2;
@@ -3407,6 +3474,7 @@ function frame(t) {
     if (e.lungeT > 0) e.lungeT = Math.max(0, e.lungeT - dt * 5);
     if (e.hurtT > 0) e.hurtT = Math.max(0, e.hurtT - dt * 4);
   };
+  if (classSkillFxT > 0) classSkillFxT = Math.max(0, classSkillFxT - dt * (reducedMotion ? 4 : 2.2));
   if (player) lerp(player);
   for (const m of monsters || []) lerp(m);
   for (const n of npcs || []) lerp(n);
