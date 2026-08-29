@@ -17,8 +17,11 @@ game/core/release-stamp-v131.js
 game/locale/fixed-locale-entry-v130.js
 game/ui/responsive-final-v154.js
 game/ui/help-copy-v126.js
+game/ui/equipment-art-v13.css
 game/input/desktop-controls.js
 art/loot-atlas.png
+art/equipment-weapons-v13.png
+art/equipment-wearables-v13.png
 art/title-backdrop.webp
 art/class-roster.webp
 art/hero-atlas-v11.png

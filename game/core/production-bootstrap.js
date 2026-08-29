@@ -3,6 +3,7 @@
  * Production policy is deliberately simple:
  * - game/core/game.js is the sole dungeon/town Canvas renderer;
  * - no presentation overlay may redraw heroes, monsters, loot, terrain or town art;
+ * - static presentation CSS may restyle DOM icons without owning gameplay or Canvas state;
  * - the v130 storage epoch stays stable and does not migrate any historical save;
  * - New Adventure has exactly one production DOM owner: this bootstrap.
  *
@@ -18,6 +19,28 @@
   const STORAGE_EPOCH_KEY = 'de-storage-epoch';
   const LEGACY_PREFIX = 'de-';
   const FRESH_BUTTON_ID = 'btn-fresh-adventure';
+  const EQUIPMENT_STYLE_ID = 'de-equipment-art-v13-css';
+
+  function installStaticEquipmentArt() {
+    if (typeof document === 'undefined' || !document.head) return null;
+    const existing = document.getElementById(EQUIPMENT_STYLE_ID);
+    if (existing) return existing;
+    const script = document.currentScript;
+    const href = script && script.src
+      ? new URL('../ui/equipment-art-v13.css', script.src).href
+      : 'game/ui/equipment-art-v13.css';
+    const link = document.createElement('link');
+    link.id = EQUIPMENT_STYLE_ID;
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.dataset.dePresentation = 'equipment-v13';
+    document.head.appendChild(link);
+    return link;
+  }
+
+  // Static icon remapping only. This creates no Canvas, animation loop, input listener,
+  // gameplay state, persistence writer or post-render follower.
+  installStaticEquipmentArt();
 
   function clearDungeonStorage() {
     if (typeof localStorage === 'undefined') return 0;
@@ -105,6 +128,7 @@
     gameplayInput:'game/core/game.js',
     gameplayPersistence:'game/core/game.js',
     newAdventureReset:'game/core/production-bootstrap.js',
+    staticEquipmentArt:'game/ui/equipment-art-v13.css',
     gamepadTransport:'game/input/desktop-controls.js',
     dynamicFollowerLoader:'game/core/runtime-bootstrap.js',
   });
