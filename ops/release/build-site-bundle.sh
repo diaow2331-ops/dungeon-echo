@@ -17,6 +17,7 @@ cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
 
 test -r "$manifest"
+test "$version" = '1.3.0'
 command -v zip >/dev/null
 mkdir -p "$bundle/public/dungeon-echo" "$bundle/ops"
 
@@ -31,33 +32,37 @@ done < "$manifest"
 
 for entry in "$bundle/public/dungeon-echo/index.html" "$bundle/public/dungeon-echo/en/index.html"; do
   test -r "$entry"
-  # Source entries still carry a few historical tags. Immutable production bytes do not:
-  # core game.js is the only Canvas renderer and production-bootstrap owns the clean-storage epoch.
+  # Immutable production bytes are normalized to the v1.3.0 single-authority graph.
   sed -i \
     -e '/game\/core\/save-integrity-system\.js/d' \
     -e '/game\/ui\/visual-polish\.js/d' \
     -e '/game\/ui\/art-runtime-v2\.js/d' \
     -e '/art\/runtime\//d' \
+    -e 's/v1\.2\.12/v1.3.0/g' \
     -e "s/?v=$source_generation/?v=$asset_generation/g" \
     -e "s/?v=$legacy_art_generation/?v=$asset_generation/g" \
     "$entry"
   grep -Fq "?v=$asset_generation" "$entry"
+  grep -Fq 'v1.3.0' "$entry"
   ! grep -Fq "?v=$source_generation" "$entry"
   ! grep -Fq "?v=$legacy_art_generation" "$entry"
   ! grep -Eq 'save-integrity-system|visual-polish|art-runtime-v2|art-runtime-v4|town-art-v160|hero-directional|class-combat-fx|new-run-reset|art/runtime/' "$entry"
 done
 
 grep -Fq "const assetVersion = '$asset_generation'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "release-stamp-v130.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 grep -Fq "renderOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 grep -Fq "renderOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
 grep -Fq "storageEpoch:STORAGE_EPOCH" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
 grep -Fq "historicalSaveMigration:false" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
+grep -Fq "newAdventure:'full-reset'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
 grep -Fq "installNoTranslateBoundary" "$bundle/public/dungeon-echo/game/locale/fixed-locale-entry-v130.js"
 grep -Fq "responsive-final-v154.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 
 # The active artifact has exactly one Canvas renderer: game/core/game.js.
 for required in \
   game/core/game.js \
+  game/core/release-stamp-v130.js \
   art/hero-atlas-v11.png \
   art/monster-atlas-v11.png \
   art/guardian-atlas-v11.png \
@@ -68,6 +73,7 @@ done
 
 for retired in \
   game/core/save-integrity-system.js \
+  game/core/release-stamp-v1212.js \
   game/locale/stable-item-id-migration-v150.js \
   game/ui/visual-polish.js \
   game/ui/art-runtime-v2.js \
