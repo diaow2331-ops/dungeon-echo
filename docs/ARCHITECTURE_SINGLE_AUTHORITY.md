@@ -21,15 +21,31 @@ A feature may be split into data, rendering helpers, tests and archived prototyp
 | Responsive layout | `game/ui/responsive-final-v154.js` | inject CSS only | capture gameplay input or Canvas |
 | Help copy | `game/ui/help-copy-v126.js` | update bounded help DOM | alter gameplay contracts |
 
-## Active, quarantine and source assets
+The machine-readable mirror is `docs/authority-map-v130.json`. If prose and the machine map disagree, production changes must stop until they are reconciled.
 
-The repository has three states for implementation work:
+## Active, staged, quarantine and source assets
+
+The repository has four states for implementation work:
 
 1. **Active production** — files explicitly admitted by `ops/release/static-files.txt`.
-2. **Quarantine** — previously implemented features preserved under `archive/quarantine-v130/`. Quarantine code is reference material only and is never shipped or executed.
-3. **Source/provenance** — art sources, historical release stamps and Git history.
+2. **Staged pure domain libraries** — re-housed deterministic rules under `game/domain/*` with `authority: 'none'`. They are not shipped and cannot mutate runtime state.
+3. **Quarantine** — previously implemented features preserved under `archive/quarantine-v130/`. Quarantine code is reference material only and is never shipped or executed.
+4. **Source/provenance** — art sources, historical release stamps and Git history.
 
-Quarantine is not a trash can. It is the staging area for previously completed work while ownership is repaired.
+Quarantine is not a trash can. It is the staging area for previously completed work while ownership is repaired. A staged library is also not an authority: creating the future module directory never grants it production ownership.
+
+## Current staged domain shelves
+
+The currently re-housed pure libraries are registered in `docs/authority-map-v130.json` and include inventory, economy, progression, content, town and combat rules. Each must remain absent from the release allowlist and both production entries until an atomic authority transfer is deliberately performed.
+
+Cross-responsibility boundaries are strict:
+
+- inventory/equipment decides item/class-fit and item-value inputs;
+- economy converts value/depth inputs into prices and costs;
+- progression calculates thresholds, caps and milestones;
+- content classifies floor eligibility without spawning or consuming RNG;
+- town owns checkpoint/readiness policy only;
+- combat performs deterministic math from supplied values only.
 
 ## Restoring a quarantined feature
 
@@ -38,10 +54,25 @@ A quarantined feature may return only through this sequence:
 1. Name the responsibility it belongs to.
 2. Identify the sole active owner from the authority map.
 3. Extract the useful behavior/data/art from quarantine.
-4. Integrate that behavior into the owner or through a narrow read-only/data interface owned by it.
-5. Do **not** restore the old wrapper/overlay file to the production dependency graph.
-6. Add or update an authority contract proving there is still only one writer/renderer/input owner.
-7. Add the file to the release allowlist only after the authority contract passes.
+4. First prefer a staged pure library when the useful part can be expressed without runtime authority.
+5. When runtime ownership must move, integrate through an **atomic authority transfer**: new owner takes the complete responsibility and old owner relinquishes the same responsibility in the same change.
+6. Do **not** restore the old wrapper/overlay file to the production dependency graph.
+7. Add or update an authority contract proving there is still only one writer/renderer/input owner.
+8. Add a new runtime file to the release allowlist only after the transfer is complete.
+
+Never operate old and new runtime owners side by side as a migration strategy.
+
+## Local governance check
+
+Routine governance must not depend on hosted CI. Run:
+
+```bash
+bash ops/check-authority-local.sh
+```
+
+The local checker verifies the single-authority topology, production entry boundary and every currently staged pure domain rule contract. GitHub Actions is manual-only (`workflow_dispatch`) and is reserved for an explicitly requested release/governance run; ordinary repository cleanup must not consume Actions quota.
+
+A local check failure blocks the change. Do not patch around the contract or relax a check merely to merge a module.
 
 ## Forbidden production patterns
 
@@ -51,9 +82,11 @@ A quarantined feature may return only through this sequence:
 - Presentation code masking the core renderer to replace entities.
 - A release builder rewriting dependency graphs with `sed` or ad-hoc substitutions.
 - Loading anything from `archive/` in production.
+- Loading a staged `game/domain/*` library in production before the corresponding atomic authority transfer.
+- Recreating an old wrapper only to bridge two competing owners.
 
 ## Why this exists
 
 The v1.2 line accumulated independently useful additions—combat controls, town economy, progression, presentation polish, art overlays, localization fixes and save shims—but several were attached by wrapping the same runtime surfaces. The result was multiple effective authorities and regressions such as stale masks, conflicting input, duplicate persistence and state drift.
 
-v1.3.0 treats repository cleanup as a re-housing operation: preserve useful work, remove it from production, establish sole owners, then re-integrate features one responsibility at a time.
+v1.3.0 treats repository cleanup as a re-housing operation: preserve useful work, remove it from production, establish sole owners, classify reusable rules into bounded modules, then re-integrate features one responsibility at a time.
