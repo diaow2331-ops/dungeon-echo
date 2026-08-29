@@ -1,0 +1,54 @@
+/* Recovered four-class x four-state hero atlas.
+ * Production use is deliberately DOM/CSS-only here: the canonical game Canvas stays in game/core/game.js.
+ * The large class portraits remain on the newer roster art; this atlas appears as an action preview and HUD identity chip.
+ */
+
+.class-card[data-class="warrior"], .class-chip[data-class="warrior"] { --de-hero-row: 0%; }
+.class-card[data-class="ranger"], .class-chip[data-class="ranger"] { --de-hero-row: 33.333333%; }
+.class-card[data-class="mage"], .class-chip[data-class="mage"] { --de-hero-row: 66.666667%; }
+.class-card[data-class="assassin"], .class-chip[data-class="assassin"] { --de-hero-row: 100%; }
+
+.class-portrait { position: relative; isolation: isolate; }
+.class-portrait::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 64px;
+  height: 64px;
+  background: url("../../art/hero-action-atlas-v2.svg") 0 var(--de-hero-row, 0%) / 400% 400% no-repeat;
+  image-rendering: pixelated;
+  border: 1px solid rgba(242, 210, 123, .48);
+  border-radius: 10px;
+  box-shadow: 0 7px 18px rgba(0,0,0,.48), inset 0 0 0 1px rgba(255,255,255,.035);
+  opacity: .9;
+  pointer-events: none;
+}
+.title-card button.class-card:hover .class-portrait::after,
+.title-card button.class-card:focus-visible .class-portrait::after {
+  animation: de-hero-action-preview 1.55s step-end infinite;
+  opacity: 1;
+}
+
+@keyframes de-hero-action-preview {
+  0%, 24.99% { background-position: 0% var(--de-hero-row, 0%); }
+  25%, 49.99% { background-position: 33.333333% var(--de-hero-row, 0%); }
+  50%, 74.99% { background-position: 66.666667% var(--de-hero-row, 0%); }
+  75%, 100% { background-position: 100% var(--de-hero-row, 0%); }
+}
+
+.class-chip[data-class] .eqicon {
+  font-size: 0;
+  border-radius: 7px;
+  background: url("../../art/hero-action-atlas-v2.svg") 0 var(--de-hero-row, 0%) / 400% 400% no-repeat;
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 1px rgba(242,210,123,.2), 0 2px 9px rgba(0,0,0,.38);
+}
+
+@media (max-width: 520px) {
+  .class-portrait::after { width: 58px; height: 58px; right: 8px; bottom: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-card button.class-card:hover .class-portrait::after,
+  .title-card button.class-card:focus-visible .class-portrait::after { animation: none; }
+}
