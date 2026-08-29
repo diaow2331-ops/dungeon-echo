@@ -1,0 +1,49 @@
+name: level-up-cutover-once-v130
+
+on:
+  push:
+    branches:
+      - refactor/level-up-arithmetic-v130
+
+permissions:
+  contents: write
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply exact level-up arithmetic transfer
+        run: python3 .github/level-up-cutover-once.py
+      - name: Verify parity and governance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check game/core/game.js
+          node - <<'NODE'
+          const assert = require('assert');
+          const rules = require('./game/domain/progression/progression-rules-v130.js');
+          assert.equal(rules.authority, 'level-up-arithmetic');
+          for (let level = 1; level <= 100; level++) {
+            assert.equal(rules.xpThreshold(level), level * 15);
+            assert.equal(rules.talentDue(level), level > 1 && level % 3 === 0);
+          }
+          assert.deepEqual(rules.levelUpDelta(), { hpBase:6, atkBase:1, immediateHeal:8 });
+          console.log('level_up_arithmetic_parity=PASS levels=100');
+          NODE
+          bash ops/check-authority-local.sh
+      - name: Commit cutover and remove one-shot executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/level-up-cutover-once-v130.yml
+          rm -f .github/level-up-cutover-once.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --quiet && { echo "No cutover changes produced" >&2; exit 1; }
+          git commit -m "refactor: transfer level-up arithmetic authority"
+          git push origin HEAD:refactor/level-up-arithmetic-v130
