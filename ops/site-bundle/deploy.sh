@@ -8,7 +8,7 @@ CURRENT_LINK="$SITE_ROOT/current"
 GAME_SOURCE="$BUNDLE_ROOT/public/dungeon-echo"
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 EXPECTED_VERSION=1.2.11
-EXPECTED_GENERATION=156
+EXPECTED_GENERATION=166
 
 fail(){ echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
