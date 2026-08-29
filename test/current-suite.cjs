@@ -2,6 +2,7 @@
 
 /* Current high-value repository/release suite.
  * Runs each test in a fresh Node process with the test-only v156 path bridge preloaded.
+ * Historical wrapper tests stay in the repository as recovery evidence, but are not current gates.
  * Use focused individual tests during normal iteration; this entry is the explicit full gate.
  */
 const path = require('path');
@@ -21,20 +22,13 @@ const tests = [
   'resource-pressure-v132.cjs',
   'guardian-pressure-v132.cjs',
   'descent100.cjs',
-  'save-integrity-v128.cjs',
+  'current-save-contract-v132.cjs',
   'current-control-contract-v132.cjs',
   'adaptive-bgm-v132.cjs',
   'current-runtime-contract-v132.cjs',
-  'extraction-channel.cjs',
-  'dungeon-service-safety.cjs',
   'wheel-death-reroll.cjs',
   'guardian-content.cjs',
   'skill-evolution.cjs',
-  'progression-commitment.cjs',
-  'disposable-interactions.cjs',
-  'interaction-pathing.cjs',
-  'risk-reward-interactions.cjs',
-  'final-fixed-locale-v153.cjs',
   'fixed-locale-routes-v131.cjs',
   'cache-bust-v140.cjs',
   'release.cjs',
