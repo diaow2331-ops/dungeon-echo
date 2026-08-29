@@ -1,7 +1,7 @@
-/* Dungeon Echo staged content-selection rules v1.3.0.
+/* Dungeon Echo production content-classification authority v1.3.0.
  *
- * Pure floor/content classification extracted from the canonical core and quarantined
- * content work. This library owns NO production authority yet and is not shipped.
+ * Pure floor/content classification extracted from the canonical core. This module is
+ * shipped before game.js and is the sole production owner of deterministic floor eligibility.
  *
  * Boundary rule: content may answer "what is eligible on this floor"; it must not spawn,
  * mutate runtime state, consume RNG, touch the DOM, write storage or apply combat effects.
@@ -85,11 +85,10 @@
   }
 
   const api = Object.freeze({
-    version: 'v1.3.0-staged',
-    authority: 'none',
+    version: 'v1.3.0-production',
+    authority: 'content-classification',
     sources: Object.freeze([
       'game/core/game.js',
-      'archive/quarantine-v130/gameplay/content-risk/content-system.js',
     ]),
     themeIndex,
     monsterPool,

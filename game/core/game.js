@@ -482,8 +482,10 @@ const SHOP_FLOORS = RUN_PROFILE.shopFloors || [];
 const REST_FLOORS = RUN_PROFILE.restFloors || [];
 const SHOP = RUN_PROFILE.shop || { potionPrice: 16, scrollPrice: 28, keyPrice: 22, healPrice: 24, equipMult: 3 };
 const ENDLESS_AFTER = !!(RUN_PROFILE.floorRules && RUN_PROFILE.floorRules.endlessAfter);
-const themeIdx = d => Math.min(THEMES.length - 1,
-  Math.floor((Math.max(1, d) - 1) / RUN_PROFILE.floorRules.themeBandSize));
+const CONTENT_RULES = typeof window !== 'undefined' ? window.DE_CONTENT_RULES_V130 : null;
+if (!CONTENT_RULES || CONTENT_RULES.authority !== 'content-classification')
+  throw new Error('Dungeon Echo content-classification authority missing');
+const themeIdx = d => CONTENT_RULES.themeIndex(d, THEMES.length, RUN_PROFILE.floorRules.themeBandSize);
 const PROFILE_TEXT_EN = Object.freeze({
   intro:'A hundred-floor abyss opens below. Choose an echo, cut through {maxDepth} floors, reclaim the {heart} from {boss} — or descend forever.',
   bossGate:'{boss} seals the final stairs. Defeat it and reclaim the {heart}!',
@@ -1384,20 +1386,10 @@ function applyGrievous() {
   player.grievous = dur;
 }
 const classDef = () => CLASSES[classId] || CLASSES.warrior;
-const isFinalFloor = () => !player.echoMode && depth >= MAX_DEPTH;
-const canDescendNow = () => player.echoMode || depth < MAX_DEPTH;
-
-function monsterPoolFor(d) {
-  const pool = MONSTERS.filter(m => d >= m.min && d <= m.max);
-  if (pool.length) return pool;
-  let best = MONSTERS[0], bestDist = Infinity;
-  for (const m of MONSTERS) {
-    const mid = (m.min + m.max) / 2;
-    const dist = Math.abs(mid - d);
-    if (dist < bestDist) { best = m; bestDist = dist; }
-  }
-  return [best];
-}
+const echoModeNow = () => !!(player && player.echoMode);
+const isFinalFloor = () => CONTENT_RULES.isFinalFloor(depth, MAX_DEPTH, echoModeNow());
+const canDescendNow = () => CONTENT_RULES.canDescend(depth, MAX_DEPTH, echoModeNow());
+const monsterPoolFor = d => CONTENT_RULES.monsterPool(MONSTERS, d);
 
 function listWalkTiles(includeStairs) {
   const out = [];
@@ -1587,18 +1579,14 @@ function spawnMonsters(rooms, lastRoom) {
     const p = randomFloorIn([rooms[i]], 0);
     if (p) monsters.push(makeMonster(pick(pool), p));
   }
-  const want = Math.min(
-    Math.max(FR.baseMonsterCount + depth * FR.monsterPerDepth, FR.minMonsters || 5),
-    FR.maxMonsters
-  );
+  const want = CONTENT_RULES.desiredMonsterCount(depth, FR);
   let guard = 0;
   while (monsters.length < want && guard++ < 400) {
     const p = pickSpawn(6);
     if (!p) break;
     monsters.push(makeMonster(pick(pool), p));
   }
-  for (const mb of MID_BOSSES) {
-    if (depth !== mb.depth || (player && player.echoMode)) continue;
+  for (const mb of CONTENT_RULES.midBossesAtDepth(MID_BOSSES, depth, echoModeNow())) {
     const p = randomFloorIn([lastRoom], 0) || pickSpawn(4);
     if (p) {
       monsters.push(makeMonster({ ...mb, midBoss: true }, p));
@@ -1611,7 +1599,7 @@ function spawnMonsters(rooms, lastRoom) {
       monsters.push(makeMonster({ ...BOSS_BASE, boss: true }, p));
       msg(fmtText(runText('bossFloorArrive')), 'bad');
     }
-  } else if (player && player.echoMode && depth > MAX_DEPTH && depth % 5 === 0) {
+  } else if (CONTENT_RULES.echoGuardianFloor(depth, MAX_DEPTH, echoModeNow())) {
     const p = pickSpawn(5);
     if (p) {
       const echoBoss = {
@@ -1657,9 +1645,7 @@ function spawnItems(rooms) {
 }
 
 function spawnShop(rooms) {
-  const onShopFloor = SHOP_FLOORS.includes(depth) ||
-    (player && player.echoMode && depth > MAX_DEPTH && depth % 4 === 0);
-  if (!onShopFloor) return;
+  if (!CONTENT_RULES.isShopFloor(depth, SHOP_FLOORS, MAX_DEPTH, echoModeNow())) return;
   const p = randomFloorIn(rooms.slice(1), 5) || pickSpawn(5);
   if (!p) return;
   npcs.push({ type: 'shop', x: p.x, y: p.y, fx: p.x, fy: p.y, name: '蒙面商人' });
@@ -1680,7 +1666,7 @@ function spawnShop(rooms) {
 }
 
 function spawnRest(rooms) {
-  if (!REST_FLOORS.includes(depth) && !(player && player.echoMode && depth > MAX_DEPTH && depth % 10 === 5)) return;
+  if (!CONTENT_RULES.isRestFloor(depth, REST_FLOORS, MAX_DEPTH, echoModeNow())) return;
   const p = randomFloorIn(rooms.slice(1), 4) || pickSpawn(4);
   if (!p) return;
   npcs.push({ type: 'rest', x: p.x, y: p.y, fx: p.x, fy: p.y, name: '余烬营地' });
