@@ -1,0 +1,131 @@
+name: recover-town-npc-art-v131-once
+on:
+  push:
+    branches: ["feature/recover-town-npc-art-v131"]
+    paths: [".github/workflows/recover-town-npc-art-v131-once.yml"]
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/recover-town-npc-art-v131
+          fetch-depth: 0
+      - name: Promote NPC atlas and integrate with sole town renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp archive/quarantine-v130/art/assets/runtime/hero-action-atlas-v2.svg art/town-npc-atlas-v1.svg
+          python -B <<'PY'
+          from pathlib import Path
+          p=Path('game/core/game.js')
+          s=p.read_text()
+
+          art_anchor="""const townBackdropV11 = new Image();
+          townBackdropV11.src = 'art/town-backdrop-v11.webp';
+          """
+          art_add="""const townNpcAtlasV1 = new Image();
+          townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg';
+          const TOWN_NPC_ART = Object.freeze({
+            quartermaster:0, smith:1, provisioner:4, alchemist:9, oracle:10, portalWarden:12,
+          });
+          """
+          if s.count(art_anchor)!=1: raise SystemExit('town asset anchor mismatch')
+          s=s.replace(art_anchor,art_anchor+art_add,1)
+
+          growth_anchor="function drawTownGrowthVisual(ctx, now, W, H, G) {\n"
+          helper=r"""function drawTownNpcFigure(ctx, index, x, baseY, now, facing = 1, scale = 1) {
+            const bob = reducedMotion ? 0 : Math.sin(now * .0026 + x * .013) * 1.15;
+            const y = baseY + bob;
+            ctx.save();
+            ctx.fillStyle = 'rgba(0,0,0,.38)';
+            ctx.beginPath(); ctx.ellipse(x, y + 1, 12 * scale, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+            if (imageReady(townNpcAtlasV1)) {
+              const cols = 4, rows = 4;
+              const sw = townNpcAtlasV1.naturalWidth / cols, sh = townNpcAtlasV1.naturalHeight / rows;
+              const sx = (index % cols) * sw, sy = Math.floor(index / cols) * sh;
+              ctx.imageSmoothingEnabled = true;
+              ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+              ctx.translate(x, y - 23 * scale); ctx.scale(facing, 1);
+              ctx.drawImage(townNpcAtlasV1, sx, sy, sw, sh, -18 * scale, -27 * scale, 36 * scale, 50 * scale);
+            } else {
+              ctx.fillStyle = 'rgba(24,18,20,.9)';
+              ctx.beginPath(); ctx.arc(x, y - 16, 4.2 * scale, 0, Math.PI * 2); ctx.fill();
+              ctx.fillRect(x - 5 * scale, y - 12, 10 * scale, 16);
+            }
+            ctx.restore();
+          }
+          function drawTownNpcPopulation(ctx, now, W, G, tier) {
+            const roles = [
+              { min:1, cell:TOWN_NPC_ART.quartermaster, x:.12, face:1, scale:.92 },
+              { min:1, cell:TOWN_NPC_ART.provisioner, x:.50, face:-1, scale:.90 },
+              { min:2, cell:TOWN_NPC_ART.smith, x:.29, face:1, scale:.96 },
+              { min:3, cell:TOWN_NPC_ART.alchemist, x:.40, face:-1, scale:.90 },
+              { min:4, cell:TOWN_NPC_ART.oracle, x:.68, face:1, scale:.92 },
+              { min:7, cell:TOWN_NPC_ART.portalWarden, x:.86, face:-1, scale:.94 },
+            ];
+            for (const role of roles) if (tier >= role.min)
+              drawTownNpcFigure(ctx, role.cell, W * role.x, G + 13, now, role.face, role.scale);
+          }
+          """
+          if s.count(growth_anchor)!=1: raise SystemExit('town growth anchor mismatch')
+          s=s.replace(growth_anchor,helper+growth_anchor,1)
+
+          old_people="""  const people = Math.max(1, Math.floor(tier / 2));
+            for (let i = 0; i < people; i++) {
+              const x = W * .25 + i * Math.min(86, W * .1);
+              const y = G + 8 + (i % 2) * 5;
+              ctx.fillStyle = 'rgba(13,10,12,.82)';
+              ctx.beginPath(); ctx.arc(x, y - 9, 3, 0, Math.PI * 2); ctx.fill();
+              ctx.fillRect(x - 3, y - 6, 6, 12);
+            }
+          """
+          new_people="""  drawTownNpcPopulation(ctx, now, W, G, tier);
+          """
+          if s.count(old_people)!=1: raise SystemExit('generic town silhouette block mismatch')
+          s=s.replace(old_people,new_people,1)
+          p.write_text(s)
+
+          allow=Path('ops/release/static-files.txt')
+          a=allow.read_text()
+          anchor='art/town-backdrop-v11.webp\n'
+          if a.count(anchor)!=1: raise SystemExit('release allowlist anchor mismatch')
+          if 'art/town-npc-atlas-v1.svg\n' not in a:
+            a=a.replace(anchor,anchor+'art/town-npc-atlas-v1.svg\n',1)
+          allow.write_text(a)
+          PY
+
+          cat > test/town-npc-art-authority-v131.cjs <<'EOF'
+          'use strict';
+          const fs=require('fs'),path=require('path');
+          const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
+          const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
+          const runtime=fs.readFileSync(path.join(root,'game/core/runtime-bootstrap.js'),'utf8');
+          const allow=fs.readFileSync(path.join(root,'ops/release/static-files.txt'),'utf8');
+          let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
+          ok(fs.existsSync(path.join(root,'art/town-npc-atlas-v1.svg')),'promoted town NPC atlas exists outside quarantine');
+          ok(core.includes("townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg'"),'core owns town NPC asset load');
+          ok(core.includes('function drawTownNpcPopulation(')&&core.includes('drawTownNpcPopulation(ctx, now, W, G, tier);'),'sole town renderer draws tier-aware NPC population');
+          ok(core.includes('quartermaster:0')&&core.includes('smith:1')&&core.includes('provisioner:4')&&core.includes('alchemist:9')&&core.includes('oracle:10')&&core.includes('portalWarden:12'),'historical role-specific cells are preserved');
+          ok(!core.includes('const people = Math.max(1, Math.floor(tier / 2));'),'generic silhouette population loop is retired');
+          ok(allow.includes('art/town-backdrop-v11.webp')&&allow.includes('art/town-npc-atlas-v1.svg'),'baseline backdrop and promoted NPC atlas are release-allowed');
+          ok(!runtime.includes('town-art-v160.js')&&!runtime.includes('de-town-art-v160'),'old town overlay runtime remains absent');
+          console.log(`\nRESULT  ${pass} passed / ${fail} failed`); process.exit(fail?1:0);
+          EOF
+          node test/town-npc-art-authority-v131.cjs
+          node --check game/core/game.js
+          bash ops/check-authority-local.sh
+          test "$(cmp -s art/town-npc-atlas-v1.svg archive/quarantine-v130/art/assets/runtime/hero-action-atlas-v2.svg; echo $?)" = "0"
+
+      - name: Remove one-shot workflow and commit recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/recover-town-npc-art-v131-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game/core/game.js art/town-npc-atlas-v1.svg ops/release/static-files.txt test/town-npc-art-authority-v131.cjs .github/workflows/recover-town-npc-art-v131-once.yml
+          git commit -m "art: promote detailed town NPCs into canonical renderer"
+          git push origin HEAD:feature/recover-town-npc-art-v131
