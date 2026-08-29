@@ -42,7 +42,7 @@ The currently staged pure libraries are registered in `docs/authority-map-v130.j
 
 Cross-responsibility boundaries are strict:
 
-- inventory/equipment decides item/class-fit and item-value inputs;
+- inventory/equipment currently owns only canonical equipment stat scoring; affinity, rarity, depth-bonus and class-fit helpers remain dormant until separately transferred;
 - economy converts value/depth inputs into prices and costs;
 - progression calculates thresholds, caps and milestones;
 - content classifies floor eligibility without spawning or consuming RNG;
