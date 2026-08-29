@@ -27,6 +27,7 @@ const tests = [
   'decision-clarity-v133.cjs',
   'control-copy-v132.cjs',
   'adaptive-bgm-v132.cjs',
+  'audio-mix-v133.cjs',
   'forge-feedback-v132.cjs',
   'current-runtime-contract-v132.cjs',
   'wheel-death-reroll.cjs',

@@ -1,4 +1,4 @@
-/* Dungeon Echo production authority bootstrap v1.3.2.
+/* Dungeon Echo production authority bootstrap v1.3.3.
  *
  * Production policy is deliberately simple:
  * - game/core/game.js is the sole dungeon/town Canvas renderer;
@@ -18,6 +18,7 @@
   const STORAGE_EPOCH = 'v130';
   const STORAGE_EPOCH_KEY = 'de-storage-epoch';
   const LEGACY_PREFIX = 'de-';
+  const PERSISTENT_PREF_KEYS = new Set(['de-guide-v1', 'de-audio-v1']);
   const FRESH_BUTTON_ID = 'btn-fresh-adventure';
   const EQUIPMENT_STYLE_ID = 'de-equipment-art-v13-css';
 
@@ -47,7 +48,7 @@
     const remove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(LEGACY_PREFIX) && key !== STORAGE_EPOCH_KEY) remove.push(key);
+      if (key && key.startsWith(LEGACY_PREFIX) && key !== STORAGE_EPOCH_KEY && !PERSISTENT_PREF_KEYS.has(key)) remove.push(key);
     }
     for (const key of remove) localStorage.removeItem(key);
     localStorage.setItem(STORAGE_EPOCH_KEY, STORAGE_EPOCH);
@@ -122,7 +123,7 @@
   }
 
   const AUTHORITY = Object.freeze({
-    version:'1.3.2',
+    version:'1.3.3',
     renderer:'game/core/game.js',
     gameplayState:'game/core/game.js',
     gameplayInput:'game/core/game.js',
@@ -134,7 +135,7 @@
   });
 
   window.__DE_PRODUCTION_AUTHORITY_V130 = Object.freeze({
-    version:'1.3.2',
+    version:'1.3.3',
     owner:'production-authority',
     renderOwner:'game/core/game.js',
     gameplayStateOwner:'game/core/game.js',
@@ -143,7 +144,7 @@
     authority:AUTHORITY,
     storageEpoch:STORAGE_EPOCH,
     clearDungeonStorage,
-    newAdventure:'full-reset',
+    newAdventure:'gameplay-reset-preserve-preferences',
     newAdventureOwner:'single',
     newAdventureButtonId:FRESH_BUTTON_ID,
     historicalSaveMigration:false,

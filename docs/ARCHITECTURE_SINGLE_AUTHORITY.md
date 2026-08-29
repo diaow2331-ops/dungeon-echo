@@ -20,8 +20,10 @@ A feature may be split into data, rendering helpers, tests and archived prototyp
 | Keyboard + touch gameplay commands | `game/core/game.js` | transport standard commands | register competing gameplay key/click handlers |
 | Gamepad input | `game/input/desktop-controls.js` | translate pad input to canonical commands | call gameplay systems or mutate state/storage |
 | Gameplay persistence | `game/core/game.js` | read for diagnostics only | write run/meta/gameplay storage |
-| Storage epoch reset | `game/core/production-bootstrap.js` | clear obsolete `de-*` data before boot | mutate live run state after core starts |
-| Runtime follower loading | `game/core/runtime-bootstrap.js` | load approved DOM-only followers | load gameplay wrappers or Canvas overlays |
+| Audio preferences + SFX graph | `game/core/game.js` | read the frozen Music/SFX/mute preference snapshot; synthesize through core-owned SFX bus | write a second audio preference key, intercept `AudioNode.connect`, or own gameplay audio commands |
+| Adaptive music graph | `game/ui/adaptive-bgm-v132.js` | follow core `de-audio-settings` events and read state for scene selection | write storage, own M/mute state, intercept SFX, or mutate gameplay |
+| Storage epoch reset | `game/core/production-bootstrap.js` | clear obsolete gameplay `de-*` data before boot while preserving audio/onboarding preferences | mutate live run state after core starts or erase durable preferences |
+| Runtime follower loading | `game/core/runtime-bootstrap.js` | load approved presentation-only followers | load gameplay wrappers or Canvas overlays |
 | Fixed-route language navigation | `game/locale/fixed-locale-entry-v130.js` | navigate between authored routes | translate/rewrite Canvas or gameplay state |
 | Responsive layout | `game/ui/responsive-final-v154.js` | inject CSS only | capture gameplay input or Canvas |
 | Help copy | `game/ui/help-copy-v126.js` | update bounded help DOM | alter gameplay contracts |

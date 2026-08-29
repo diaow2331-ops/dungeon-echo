@@ -1,6 +1,6 @@
 # Dungeon Echo Maintenance Guide
 
-This document describes the v1.3.2 single-authority maintenance contract.
+This document describes the v1.3.3 single-authority maintenance contract.
 
 ## Core rule
 
@@ -10,13 +10,14 @@ The canonical ownership table is `docs/authority-map-v130.json`. Human-readable 
 
 ## Current production graph
 
-- `game/core/game.js` — gameplay state, turn/combat flow, economy, progression, town gameplay, Canvas rendering, keyboard/touch gameplay input and gameplay persistence.
+- `game/core/game.js` — gameplay state, turn/combat flow, economy, progression, town gameplay, Canvas rendering, keyboard/touch gameplay input, gameplay persistence, audio preferences and the SFX WebAudio graph.
 - `game/core/production-bootstrap.js` — pre-core storage epoch reset and New Adventure reset orchestration only.
-- `game/core/runtime-bootstrap.js` — approved DOM/CSS follower loader only.
+- `game/core/runtime-bootstrap.js` — approved presentation-only follower loader.
 - `game/input/desktop-controls.js` — gamepad transport only.
 - `game/locale/fixed-locale-entry-v130.js` — fixed-route language navigation only.
 - `game/ui/responsive-final-v154.js` — responsive CSS only.
 - `game/ui/help-copy-v126.js` — bounded Help DOM copy only.
+- `game/ui/adaptive-bgm-v132.js` — private adaptive-music WebAudio graph; reads core audio preference snapshots/events but owns no storage or mute input.
 
 The release allowlist is `ops/release/static-files.txt`. If a file is not in that list, it is not production.
 
@@ -45,14 +46,14 @@ Never restore an archived file by adding it back to an entry page or runtime loa
 
 ## Version and cache generation
 
-- Semantic version: `1.3.2`.
-- Public cache generation: `170`.
+- Semantic version: `1.3.3`.
+- Public cache generation: `172`.
 - `VERSION` owns the semantic version.
 - Source HTML/JS is already deployable; the release builder copies it and must not rewrite dependencies.
 
 ## Storage
 
-v1.3.0 uses storage epoch `v130`. Historical Dungeon Echo gameplay state is cleared instead of migrated.
+The storage epoch remains `v130`. New Adventure clears gameplay state but preserves `de-guide-v1` and `de-audio-v1`; audio/onboarding preferences are device preferences, not run state.
 
 Gameplay persistence belongs to core. The old save-integrity and item-ID migration shims are quarantined reference implementations. If validation or migration returns later, it must be integrated into the sole persistence owner rather than executed as an independent writer.
 
