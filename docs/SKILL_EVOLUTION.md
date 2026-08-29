@@ -1,6 +1,6 @@
 # Skill evolution milestones
 
-Dungeon Echo keeps one active-skill input per class. The `C` hotkey does not grow into a larger action bar; instead, the existing skill acquires behavior-changing choices as the run reaches floors 20 / 40 / 60 / 80.
+Dungeon Echo keeps one active-skill input per class. The canonical `K` hotkey (`C` remains a compatibility alias) does not grow into a larger action bar; instead, the existing skill acquires behavior-changing choices as the run reaches floors 20 / 40 / 60 / 80.
 
 Choices are stored as ids inside the existing `player.talents` array. Classic-run saves and Greedy Expedition meta saves already persist that array, so this system does not require a save-version bump.
 

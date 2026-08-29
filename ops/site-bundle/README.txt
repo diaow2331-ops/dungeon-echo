@@ -5,16 +5,16 @@ This package extends the existing play.91hwl.cn release tree. It preserves
 /srv/91hwl-play/current symlink atomically, and rolls back on failed checks.
 
 Server usage:
-  unzip 91hwl-play-dungeon-echo-v1.3.6.zip -d /tmp/91hwl-play-dungeon-echo-v1.3.6
-  cd /tmp/91hwl-play-dungeon-echo-v1.3.6
+  unzip 91hwl-play-dungeon-echo-v1.4.0.zip -d /tmp/91hwl-play-dungeon-echo-v1.4.0
+  cd /tmp/91hwl-play-dungeon-echo-v1.4.0
   sudo ./ops/deploy.sh
 
-v1.3.6 publishes cache generation 175 as an English fresh-locale/UI hotfix:
-the Expedition Record is now an independent cross-run profile shared by Classic and Greedy expeditions;
-existing history is migrated as a lower bound, New Adventure preserves the global record, and achievements expose
-visible progress instead of an empty panel. Canonical Canvas now renders ground equipment from the reviewed v13
-tier sheets, native white scrollbars are themed, the HUD Save control matches adjacent controls, and small route/HUD
-copy residues are corrected. The single-authority runtime topology remains unchanged.
+v1.4.0 publishes cache generation 176 as the core balance and UX recovery release:
+J is the explicit basic attack, K is the class skill (C alias), Ranger and Arcanist have blocked-line ranged basics,
+and Mana is persistent canonical state. Signature starter weapons and class proficiency protect class identity while
+preserving class-agnostic loot. Greedy New Run intent survives reload; inventory uses select/detail/explicit-equip;
+desktop gameplay fits common viewports; low-health potion access, combat-log signal and ground-loot readability are
+improved; and NPC placement is connectivity-safe. The single-authority runtime topology remains unchanged.
 
 Success markers:
   dungeon_echo_healthcheck=PASS

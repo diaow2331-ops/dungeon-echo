@@ -1,5 +1,5 @@
-/* Dungeon Echo production UX bootstrap v27.
- * v1.3.6 English fresh-locale hotfix on cache generation 175.
+/* Dungeon Echo production UX bootstrap v28.
+ * v1.4.0 core balance and UX release on cache generation 176.
  * game/core/game.js remains sole gameplay/render/input/persistence writer.
  * This bootstrap may load presentation-only followers. Adaptive BGM owns only a private
  * WebAudio music graph; forge feedback only observes canonical town results and decorates DOM.
@@ -7,12 +7,12 @@
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
-  const assetVersion = '175';
+  const assetVersion = '176';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
   const chain = Object.freeze([
-    [fresh('game/core/release-stamp-v136.js'), 'data-de-release-stamp-v136', () => !!window.__DE_RELEASE_STAMP_V136],
+    [fresh('game/core/release-stamp-v140.js'), 'data-de-release-stamp-v140', () => !!window.__DE_RELEASE_STAMP_V140],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/ui/responsive-final-v154.js'), 'data-de-responsive-final-v154', () => !!window.__DE_RESPONSIVE_FINAL_V154],
     [fresh('game/ui/help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],
@@ -36,7 +36,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v27');
+      script.setAttribute(marker, 'v28');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -55,7 +55,7 @@
   }
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
   window.__DE_PRODUCTION_UX_BOOTSTRAP = Object.freeze({
-    version:'v27', assetVersion, locale:english?'en':'zh-CN',
+    version:'v28', assetVersion, locale:english?'en':'zh-CN',
     renderOwner:'game/core/game.js', gameplayStateOwner:'game/core/game.js',
     inputOwner:'game/core/game.js', persistenceWriter:'game/core/game.js',
     dynamicLoaderOwner:'game/core/runtime-bootstrap.js', followers:'presentation-only',

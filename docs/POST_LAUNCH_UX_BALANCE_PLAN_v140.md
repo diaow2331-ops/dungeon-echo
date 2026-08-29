@@ -49,6 +49,8 @@ Equipping is class-bound:
 
 Off-class weapons can be carried, sold, stashed and forged, but cannot be equipped. Tooltip/detail must state the required class and why the current class cannot use it.
 
+Each class starts with its lowest-tier signature weapon so proficiency does not turn early progression into a loot-lottery tax. World generation remains class-agnostic after that initial loadout.
+
 Legacy saves with an off-class weapon already equipped must migrate without item loss.
 
 ### Basic attacks

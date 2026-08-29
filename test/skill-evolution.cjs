@@ -29,8 +29,8 @@ const ranged=core.slice(core.indexOf('function playerRangedAttack('),core.indexO
 assert(melee.includes('consumeSkillFollowup()')&&ranged.includes('consumeSkillFollowup()'),'melee and ranged shared core paths must consume follow-up');
 assert(!core.includes('window.DE_SKILL_EVOLUTION'),'no old global wrapper API should return');
 assert(!core.includes('Press J to attack in your facing direction. Press K to use'),'legacy English K/J skill hint must be gone');
-assert(core.includes("guideOnce('combat'") && core.includes('C uses your class skill.'),'English contextual combat guide must match current C contract');
-assert(docs.includes('`C` hotkey'),'formal skill-evolution docs must match production C input');
+assert(core.includes("guideOnce('combat'") && core.includes('K uses your class skill (C remains an alias).'),'English contextual combat guide must match the v1.4 K/C-alias contract');
+assert(docs.includes('`K` hotkey')&&docs.includes('`C` remains a compatibility alias'),'formal skill-evolution docs must match production K input with C compatibility');
 console.log('skill_evolution_core_v131=PASS');
 
 // Execute the actual core evolution functions against a minimal deterministic combat sandbox.
@@ -41,11 +41,12 @@ console.log('skill_evolution_core_v131=PASS');
   const sb={
     console, ui:(zh,en)=>en,
     state:'playing',classId:'warrior',depth:20,turns:0,
-    player:{x:5,y:5,hp:70,hpBase:100,atkBase:10,flatDr:0,skillHaste:0,skillCd:0,equip:{},talents:[]},
+    player:{x:5,y:5,hp:70,hpBase:100,atkBase:10,flatDr:0,skillHaste:0,skillCd:0,mana:100,manaMax:100,equip:{},talents:[]},
     monsters:[],npcs:[],visible:Array.from({length:12},()=>Array(12).fill(true)),
     msg(){},
   };
   sb.pAtk=()=>sb.player.atkBase;
+  sb.ensurePlayerMana=()=>sb.player; sb.skillManaCost=()=>30;
   sb.pMaxHp=()=>sb.player.hpBase;
   sb.walkable=()=>true;
   sb.monsterAt=(x,y)=>sb.monsters.find(m=>m.x===x&&m.y===y)||null;

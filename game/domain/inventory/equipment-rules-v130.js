@@ -20,6 +20,11 @@
     assassin: Object.freeze({ atk:1.18, def:0.62, hp:0.94, crit:1.34, leech:1.18, gold:0.94, thorns:0.54, regen:0.96 }),
   });
 
+  const WEAPON_CLASS_BY_ICON = Object.freeze({
+    'iron-sword':'warrior', 'broad-sword':'warrior', 'battle-axe':'warrior', 'rune-blade':'warrior',
+    'hunting-bow':'ranger', 'arcane-staff':'mage', 'dagger':'assassin',
+  });
+
   const FIT_WEIGHT = Object.freeze({
     warrior:  Object.freeze({ atk:3.00, def:1.70, hp:0.90, crit:1.00, leech:1.60, gold:0.10, thorns:2.55, regen:1.90 }),
     ranger:   Object.freeze({ atk:3.30, def:1.50, hp:0.62, crit:2.05, leech:1.45, gold:0.14, thorns:0.70, regen:1.15 }),
@@ -59,6 +64,25 @@
     let total = 0;
     for (const [key, weight] of Object.entries(weights)) total += (Number(source[key]) || 0) * weight;
     return Math.max(0, Math.round(total));
+  }
+
+  function weaponClassForItem(item) {
+    if (!item || item.slot !== 'weapon') return null;
+    const fromBase = item.base && typeof item.base === 'object' ? item.base.cls : null;
+    if (fromBase && FIT_WEIGHT[fromBase]) return fromBase;
+    return WEAPON_CLASS_BY_ICON[item.icon] || null;
+  }
+
+  function canEquipItem(item, classId='warrior') {
+    if (!item || item.slot !== 'weapon') return true;
+    const required = weaponClassForItem(item);
+    return !required || required === classId;
+  }
+
+  function itemClassFitScore(item, classId='warrior') {
+    if (!item || typeof item !== 'object') return 0;
+    if (!canEquipItem(item, classId)) return 0;
+    return classFitScore(item.stats || {}, classId);
   }
 
   function scaleAffixRange(source, multiplier, kind) {
@@ -110,6 +134,9 @@
     SLOT_BONUS,
     equipmentStatScore,
     classFitScore,
+    weaponClassForItem,
+    canEquipItem,
+    itemClassFitScore,
     scaleAffixRange,
     affinityRange,
     rarityWeight,

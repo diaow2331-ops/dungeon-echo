@@ -55,6 +55,13 @@ const AUDIO_PREF_VERSION = 1;
 const AUDIO_DEFAULTS = Object.freeze({ music:0.60, sfx:0.78, muted:false });
 const RUN_MODE_CLASSIC = 'classic';
 const RUN_MODE_GREEDY = 'greedy';
+const MANA_RULES = Object.freeze({
+  warrior:  Object.freeze({ max:60, cost:30, regen:2, attackGain:2, focusGain:3 }),
+  ranger:   Object.freeze({ max:70, cost:32, regen:2, attackGain:3, focusGain:4 }),
+  mage:     Object.freeze({ max:100, cost:42, regen:3, attackGain:1, focusGain:10 }),
+  assassin: Object.freeze({ max:65, cost:34, regen:2, attackGain:3, focusGain:4 }),
+});
+const manaRuleFor = cid => MANA_RULES[cid] || MANA_RULES.warrior;
 
 // ================= 贪婪远征（元进度） =================
 let greedyMode = false;
@@ -130,6 +137,7 @@ function defaultMeta(classId) {
     gold: 0,
     lvl: 1, xp: 0,
     hpBase: c.hpBase, atkBase: c.atkBase,
+    manaMax: manaRuleFor(c.id).max, mana: manaRuleFor(c.id).max,
     critBase: 0, leechBase: 0, skillHaste: 0, goldFind: 0, flatDr: 0, grievous: 0,
     thornsBase: 0, regenBase: 0, potionBoost: 0, critPower: 0, grivResist: 0,
     plunder: 0, fastRegen: 0,
@@ -139,7 +147,7 @@ function defaultMeta(classId) {
     totalKills: 0, wins: 0, wheelTotal: 0, gotLegend: 0, achv: {},
     wheelSpins: 0, wheelResets: 0, wheelSlots: null,
     market: null,
-    equip: { weapon: null, armor: null, ring: null },
+    equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
     bag: [], stash: [],
     bestDepth: 0, runs: 0, deaths: 0,
   };
@@ -162,6 +170,8 @@ function sanitizeMeta(raw) {
   base.xp = num(raw.xp, 0);
   base.hpBase = Math.max(1, num(raw.hpBase, base.hpBase, 1));
   base.atkBase = num(raw.atkBase, base.atkBase);
+  base.manaMax = manaRuleFor(base.classId).max;
+  base.mana = clamp(num(raw.mana, base.manaMax), 0, base.manaMax);
   base.critBase = num(raw.critBase, 0);
   base.leechBase = num(raw.leechBase, 0);
   base.skillHaste = num(raw.skillHaste, 0);
@@ -253,10 +263,10 @@ function guideFirstRunStart() {
     'Move with arrows / WASD, or click explored tiles. Read the room before committing to a fight.');
 }
 function guideCombatOnce() {
-  const ranged = classId === 'ranger';
+  const ranged = classId === 'ranger' || classId === 'mage';
   guideOnce('combat',
-    ranged ? '撞向敌人可近战；面朝无遮挡直线内的敌人移动可射击。C 释放职业技能。' : '撞向敌人就是普通攻击；C 释放职业技能。',
-    ranged ? 'Bump an enemy to melee; moving toward a clear target in your facing line can fire a ranged shot. C uses your class skill.' : 'Bump an enemy to attack. C uses your class skill.');
+    ranged ? '移动键只负责移动/贴身攻击；面向直线敌人按 J 远程普攻，K 释放职业技能（C 仍兼容）。' : '移动撞敌可近战；面向敌人按 J 主动攻击，K 释放职业技能（C 仍兼容）。',
+    ranged ? 'Movement only moves or bump-attacks. Face a line target and press J for a ranged basic attack; K uses your class skill (C remains an alias).' : 'Bump to melee or face an enemy and press J to attack. K uses your class skill (C remains an alias).');
 }
 function guideGearOnce() {
   guideOnce('gear',
@@ -312,8 +322,9 @@ const CLASSES = {
   },
   mage: {
     id: 'mage', name: '秘术师',
-    blurb: '脆弱的炮台。奥术弹远程点杀高防并击退，卷轴更多。',
+    blurb: '脆弱的远程施法者。法杖普攻可穿透部分护甲，奥术弹负责击退与爆发。',
     hpBase: 24, atkBase: 2, potions: 1, scrolls: 2,
+    rangedRange: 4,
     skill: { id: 'bolt', name: '奥术弹', cd: 5, desc: '打击视野内最近敌人，无视部分防御并击退。' },
   },
   assassin: {
@@ -1183,12 +1194,31 @@ function addTrauma(n) { if (!reducedMotion) trauma = Math.min(1, trauma + n); }
 function addHitstop(sec) { if (!reducedMotion) hitstop = Math.max(hitstop, sec); }
 
 // ================= 消息 =================
-function msg(text, cls) {
-  logLines.unshift({ text, cls });
-  if (logLines.length > 30) logLines.pop();
+function renderLog() {
   const logEl = $('log');
   if (logEl) logEl.innerHTML = logLines
     .map(l => `<div${l.cls ? ` class="${esc(l.cls)}"` : ''}>${esc(l.text)}</div>`).join('');
+}
+function msg(text, cls, meta=null) {
+  logLines.unshift({ text, cls, ...(meta || {}) });
+  if (logLines.length > 30) logLines.pop();
+  renderLog();
+}
+function incomingCombatMsg(text, damage) {
+  const head = logLines[0];
+  const dmg = Math.max(0, Math.round(Number(damage) || 0));
+  if (head && head.kind === 'incoming-combat' && head.turn === turns) {
+    head.count = (head.count || 1) + 1;
+    head.damage = (head.damage || 0) + dmg;
+    head.text = ui(
+      `本回合敌人连续命中 ${head.count} 次，共 ${head.damage} 点伤害。`,
+      `Enemies hit ${head.count} times this turn for ${head.damage} total damage.`
+    );
+    head.cls = 'combat-danger';
+    renderLog();
+    return;
+  }
+  msg(text, 'combat-danger', { kind:'incoming-combat', turn:turns, count:1, damage:dmg });
 }
 const rarityLogCls = r => r >= 4 ? 'gold' : r === 3 ? 'epic' : 'good';
 
@@ -1206,11 +1236,11 @@ function burst(x, y, color, n) {
     });
   }
 }
-function fireArrow(x0, y0, x1, y1) {
+function fireArrow(x0, y0, x1, y1, kind='arrow') {
   arrows.push({
     x0: x0 * TILE + TILE / 2, y0: y0 * TILE + TILE / 2,
     x1: x1 * TILE + TILE / 2, y1: y1 * TILE + TILE / 2,
-    t: 0, dur: 0.16,
+    t: 0, dur: 0.16, kind,
   });
 }
 
@@ -1842,12 +1872,36 @@ const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULE
 if (!INVENTORY_RULES || INVENTORY_RULES.authority !== 'equipment-stat-scoring')
   throw new Error('Dungeon Echo equipment-stat-scoring authority missing');
 const eqScoreOf = stats => INVENTORY_RULES.equipmentStatScore(stats);
+function starterWeaponForClass(targetClass) {
+  const base = WEAPON_BASES.find(b => b.cls === targetClass && Number(b.min) <= 1) || WEAPON_BASES.find(b => b.cls === targetClass);
+  if (!base) return null;
+  const stats = { atk: Math.max(1, Number(base.atk) || 1) };
+  return {
+    slot:'weapon', base:{ ...base }, rarity:0, affixes:[], stats,
+    spr:WEAPON_SPR_BY_ICON[base.icon] || 'sword', icon:base.icon,
+    name:`${RARITIES[0].name}·${base.name}`, score:eqScoreOf(stats), starter:true,
+  };
+}
+const weaponClassOf = item => typeof INVENTORY_RULES.weaponClassForItem === 'function'
+  ? INVENTORY_RULES.weaponClassForItem(item) : (item && item.base && item.base.cls) || null;
+const canEquipForClass = (item, targetClass=classId) => typeof INVENTORY_RULES.canEquipItem === 'function'
+  ? INVENTORY_RULES.canEquipItem(item, targetClass) : !(item && item.slot === 'weapon' && weaponClassOf(item) && weaponClassOf(item) !== targetClass);
 const classFitOf = (item, targetClass=classId) => {
   if (!item || typeof item !== 'object') return 0;
+  if (typeof INVENTORY_RULES.itemClassFitScore === 'function') return INVENTORY_RULES.itemClassFitScore(item, targetClass);
+  if (!canEquipForClass(item, targetClass)) return 0;
   return typeof INVENTORY_RULES.classFitScore === 'function'
     ? INVENTORY_RULES.classFitScore(item.stats || {}, targetClass)
     : eqScoreOf(item.stats || {});
 };
+function weaponRequirementText(item) {
+  const required = weaponClassOf(item);
+  if (!required) return '';
+  const className = CLASSES[required] ? CLASSES[required].name : required;
+  return canEquipForClass(item)
+    ? ui(`武器专精：${className}`, `Weapon proficiency: ${className}`)
+    : ui(`需要 ${className} 专精 · 当前职业无法装备`, `Requires ${className} proficiency · your current class cannot equip it`);
+}
 // 锻造：主属性成长表与上限
 const FORGE_MAX = 5;
 const FORGE_MAIN = {
@@ -2050,6 +2104,33 @@ function applyGrievous() {
   player.grievous = dur;
 }
 const classDef = () => CLASSES[classId] || CLASSES.warrior;
+function ensurePlayerMana(p=player, cid=classId) {
+  if (!p) return null;
+  const rule = manaRuleFor(cid);
+  p.manaMax = rule.max;
+  const current = Number(p.mana);
+  p.mana = Number.isFinite(current) ? clamp(Math.round(current), 0, p.manaMax) : p.manaMax;
+  return p;
+}
+const skillManaCost = () => manaRuleFor(classId).cost;
+function recoverMana(extra=0, announceFocus=false) {
+  if (!player) return 0;
+  ensurePlayerMana();
+  const rule = manaRuleFor(classId);
+  const before = player.mana;
+  player.mana = clamp(player.mana + rule.regen + Math.max(0, Math.round(Number(extra) || 0)), 0, player.manaMax);
+  const gain = player.mana - before;
+  if (announceFocus && gain > 0) msg(ui(`凝神恢复 ${gain} 点蓝量。`, `Focus restored ${gain} Mana.`), 'good');
+  return gain;
+}
+function spendMana(amount) {
+  if (!player) return false;
+  ensurePlayerMana();
+  const cost = Math.max(0, Math.round(Number(amount) || 0));
+  if (player.mana < cost) return false;
+  player.mana -= cost;
+  return true;
+}
 const echoModeNow = () => !!(player && player.echoMode);
 const isFinalFloor = () => CONTENT_RULES.isFinalFloor(depth, MAX_DEPTH, echoModeNow());
 const canDescendNow = () => CONTENT_RULES.canDescend(depth, MAX_DEPTH, echoModeNow());
@@ -2078,6 +2159,45 @@ function pickSpawn(minDist) {
     !(p.x === player.x && p.y === player.y));
   if (!pool.length) return null;
   return pick(pool);
+}
+
+function npcPlacementKeepsFloorConnected(x, y) {
+  const blocked = (bx, by) =>
+    (bx === x && by === y) || !!npcAt(bx, by);
+  const seen = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
+  const q = [[player.x, player.y]];
+  if (blocked(player.x, player.y) || map[player.y][player.x] === WALL) return false;
+  seen[player.y][player.x] = true;
+  for (let qi = 0; qi < q.length; qi++) {
+    const [cx, cy] = q[qi];
+    for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + ox, ny = cy + oy;
+      if (!inB(nx, ny) || seen[ny][nx] || map[ny][nx] === WALL || blocked(nx, ny)) continue;
+      seen[ny][nx] = true;
+      q.push([nx, ny]);
+    }
+  }
+  let open = 0;
+  for (let cy = 0; cy < MAP_H; cy++)
+    for (let cx = 0; cx < MAP_W; cx++)
+      if (map[cy][cx] !== WALL && !blocked(cx, cy)) open++;
+  return q.length === open;
+}
+
+function pickNpcSpawn(rooms, minDist) {
+  const all = listWalkTiles(false).filter(p => !tileTaken(p.x, p.y) &&
+    !(p.x === player.x && p.y === player.y));
+  const distant = all.filter(p =>
+    Math.abs(p.x - player.x) + Math.abs(p.y - player.y) >= minDist);
+  const inRooms = p => rooms.some(r =>
+    p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h);
+  for (const pool of [
+    distant.filter(inRooms), distant, all.filter(inRooms), all,
+  ]) {
+    const safe = pool.filter(p => npcPlacementKeepsFloorConnected(p.x, p.y));
+    if (safe.length) return pick(safe);
+  }
+  return null;
 }
 
 function floodFrom(sx, sy) {
@@ -2319,7 +2439,7 @@ function spawnItems(rooms) {
 
 function spawnShop(rooms) {
   if (!CONTENT_RULES.isShopFloor(depth, SHOP_FLOORS, MAX_DEPTH, echoModeNow())) return;
-  const p = randomFloorIn(rooms.slice(1), 5) || pickSpawn(5);
+  const p = pickNpcSpawn(rooms.slice(1), 5);
   if (!p) return;
   npcs.push({ type: 'shop', x: p.x, y: p.y, fx: p.x, fy: p.y, name: '蒙面商人' });
   shopStock = [
@@ -2340,7 +2460,7 @@ function spawnShop(rooms) {
 
 function spawnRest(rooms) {
   if (!CONTENT_RULES.isRestFloor(depth, REST_FLOORS, MAX_DEPTH, echoModeNow())) return;
-  const p = randomFloorIn(rooms.slice(1), 4) || pickSpawn(4);
+  const p = pickNpcSpawn(rooms.slice(1), 4);
   if (!p) return;
   npcs.push({ type: 'rest', x: p.x, y: p.y, fx: p.x, fy: p.y, name: '余烬营地' });
   msg(fmtText(runText('restArrive', ui('一处营地。','A camp waits here.'))), 'good');
@@ -2359,7 +2479,7 @@ function spawnChest(rooms) {
 function spawnShrine(rooms) {
   const chance = (RUN_PROFILE.floorRules && RUN_PROFILE.floorRules.shrineChance) || 0.3;
   if (rng() > chance) return;
-  const p = pickSpawn(6) || randomFloorIn(rooms.slice(1), 5);
+  const p = pickNpcSpawn(rooms.slice(1), 5);
   if (!p) return;
   npcs.push({ type: 'shrine', x: p.x, y: p.y, fx: p.x, fy: p.y, name: '无名神龛', used: false });
   msg(fmtText(runText('shrineArrive', ui('一座神龛在此。','A shrine waits here.'))), 'epic');
@@ -2568,7 +2688,7 @@ function playerAttack(m) {
       msg(ui(`【收割】斩杀返还 ${refund} 回合技能冷却。`, `[Reaper] Kill refunded ${refund} turn${refund === 1 ? '' : 's'} of skill cooldown.`), 'good');
     }
   }
-  if (m.hp > 0) msg(ui(`${crit ? '暴击！' : ''}你击中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}You hit ${visibleWorldName(m.name)} for ${dmg} damage.`));
+  if (m.hp > 0) msg(ui(`${crit ? '暴击！' : ''}你击中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}You hit ${visibleWorldName(m.name)} for ${dmg} damage.`), 'combat');
 }
 // 沿玩家面向方向（dx,dy 为单位步长，四方向）寻找视线内、射程内的敌人，
 // 中途遇墙则视线被挡，返回 null。用于游侠等具备 rangedRange 的职业。
@@ -2584,17 +2704,20 @@ function findRangedTarget(dx, dy) {
   }
   return null;
 }
-function playerRangedAttack(m) {
-  fireArrow(player.x, player.y, m.x, m.y);
+function playerRangedAttack(m, attackClass=classId) {
+  const arcane = attackClass === 'mage';
+  fireArrow(player.x, player.y, m.x, m.y, arcane ? 'arcane' : 'arrow');
   const skillPlan = consumeSkillFollowup();
   const skillBonus = skillPlan ? Math.max(1, Math.round(pAtk() * skillPlan.scale)) : 0;
-  let dmg = Math.max(1, pAtk() + skillBonus + ri(-1, 1) - m.def);
+  const rawAtk = arcane ? Math.max(1, Math.round(pAtk() * 0.90)) : pAtk();
+  const targetDef = arcane ? Math.floor((Number(m.def) || 0) * 0.45) : (Number(m.def) || 0);
+  let dmg = Math.max(1, rawAtk + skillBonus + ri(-1, 1) - targetDef);
   let mult = 1;
   if (skillPlan) msg(ui(`【${skillPlan.zh}】强化了这次方向攻击。`, `[${skillPlan.en}] empowered this directional attack.`), 'good');
   const echo = consumeTimedMechanic('echoEdgeTurn', 'echo_edge');
   if (echo) mult *= echo >= 2 ? 1.40 : 1.25;
   const skirmish = consumeTimedMechanic('skirmishTurn', 'skirmish');
-  if (skirmish) mult *= skirmish >= 2 ? 1.40 : 1.25;
+  if (skirmish && attackClass === 'ranger') mult *= skirmish >= 2 ? 1.40 : 1.25;
   dmg = Math.max(1, Math.round(dmg * mult));
   const crit = rng() * 100 < pCrit();
   if (crit) dmg = Math.round(dmg * pCritMul());
@@ -2605,10 +2728,33 @@ function playerRangedAttack(m) {
     if (reaper && player.skillCd > 0) {
       const refund = reaper >= 2 ? 2 : 1;
       player.skillCd = Math.max(0, player.skillCd - refund);
-      msg(ui(`【收割】远射斩杀返还 ${refund} 回合技能冷却。`, `[Reaper] Ranged kill refunded ${refund} turn${refund === 1 ? '' : 's'} of skill cooldown.`), 'good');
+      msg(ui(`【收割】远程斩杀返还 ${refund} 回合技能冷却。`, `[Reaper] Ranged kill refunded ${refund} turn${refund === 1 ? '' : 's'} of cooldown.`), 'good');
     }
   }
-  if (m.hp > 0) msg(ui(`${crit ? '暴击！' : ''}你射中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}You shot ${visibleWorldName(m.name)} for ${dmg} damage.`));
+  if (m.hp > 0) msg(arcane
+    ? ui(`${crit ? '暴击！' : ''}奥术冲击命中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}Arcane force hit ${visibleWorldName(m.name)} for ${dmg} damage.`)
+    : ui(`${crit ? '暴击！' : ''}你射中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}You shot ${visibleWorldName(m.name)} for ${dmg} damage.`), 'combat');
+}
+
+function directionalAttack() {
+  if (state !== 'playing' || !player) return false;
+  const facing = Array.isArray(player.facing) ? player.facing : [1, 0];
+  const dx = Math.sign(Number(facing[0]) || 0), dy = Math.sign(Number(facing[1]) || 0);
+  if (Math.abs(dx) + Math.abs(dy) !== 1) return false;
+  const ranged = classDef().rangedRange || 0;
+  const target = ranged ? findRangedTarget(dx, dy) : monsterAt(player.x + dx, player.y + dy);
+  if (!target) {
+    msg(ranged
+      ? ui('当前朝向的射程内没有敌人。', 'No enemy is in range along your current facing.')
+      : ui('当前朝向没有可以攻击的敌人。', 'No enemy is adjacent in your current facing.'));
+    return false;
+  }
+  guideCombatOnce();
+  if (ranged) playerRangedAttack(target, classId);
+  else playerAttack(target);
+  if (state !== 'playing') { updateHud(); return true; }
+  endTurn(manaRuleFor(classId).attackGain, false);
+  return true;
 }
 function monsterAttack(m, armorBreak = false, damageScale = 1) {
   lunge(m, player.x, player.y);
@@ -2625,7 +2771,7 @@ function monsterAttack(m, armorBreak = false, damageScale = 1) {
     floater(player, ui('破甲重击!','ARMOR BREAK!'), '#e0a73a');
     msg(ui(`${m.name} 的蓄力破甲命中，造成 ${dmg} 点无视护甲伤害！`, `${visibleWorldName(m.name)}'s Armor Break hit for ${dmg} armor-piercing damage!`), 'bad');
   } else {
-    msg(ui(`${m.name}击中你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you for ${dmg} damage!`), 'bad');
+    incomingCombatMsg(ui(`${m.name}击中你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you for ${dmg} damage!`), dmg);
   }
   player.hp -= dmg; player.hurtT = 1;
   armReprisal();
@@ -2836,6 +2982,7 @@ function pickupHere() {
         msg(ui(`你打开宝箱，【${loot.name}】掉在地上。`, `You opened the chest. [${visibleItemName(loot)}] fell to the ground.`), rarityLogCls(loot.rarity));
       } else {
         player.inv.push(loot);
+        selectedBagIndex = player.inv.length - 1;
         bagChanged = true;
         guideGearOnce();
         msg(ui(`你打开宝箱，获得【${loot.name}】。`, `You opened the chest and obtained [${visibleItemName(loot)}].`), rarityLogCls(loot.rarity));
@@ -2869,6 +3016,7 @@ function pickupHere() {
           msg(ui(`木桶里藏着【${loot.name}】，但它掉落在了地上。`, `The cask held [${visibleItemName(loot)}], but it fell to the ground.`), rarityLogCls(loot.rarity));
         } else {
           player.inv.push(loot);
+          selectedBagIndex = player.inv.length - 1;
           bagChanged = true;
           guideGearOnce();
           msg(ui(`木桶里藏着【${loot.name}】！`, `The cask held [${visibleItemName(loot)}]!`), rarityLogCls(loot.rarity));
@@ -2887,6 +3035,7 @@ function pickupHere() {
         msg(ui('背包已满，无法拾取装备！','Backpack full — cannot pick up gear!')); return;
       }
       player.inv.push(it.item);
+      selectedBagIndex = player.inv.length - 1;
       bagChanged = true;
       guideGearOnce();
       msg(ui(`拾取【${it.item.name}】`, `Picked up [${visibleItemName(it.item)}]`), rarityLogCls(it.item.rarity));
@@ -2945,7 +3094,13 @@ function useScroll() {
 }
 function useBaseSkill() {
   if (state !== 'playing') return;
+  ensurePlayerMana();
   if (player.skillCd > 0) { msg(ui(`技能冷却中（${player.skillCd} 回合）。`, `Skill cooldown: ${player.skillCd} turns.`)); return; }
+  const manaCost = skillManaCost();
+  if (player.mana < manaCost) {
+    msg(ui(`蓝量不足：${player.mana}/${manaCost}。等待可更快恢复。`, `Not enough Mana: ${player.mana}/${manaCost}. Waiting restores it faster.`), 'bad');
+    return;
+  }
   const sk = classDef().skill;
   const mobsBeforeSkill = monsters.length;
   let used = false;
@@ -3033,6 +3188,7 @@ function useBaseSkill() {
     used = true;
   }
   if (!used) return;
+  if (!spendMana(manaCost)) return;
   classSkillFxT = 1;
   const echo = mechanicPower('echo_edge');
   if (echo) player.echoEdgeTurn = turns + 1;
@@ -3080,7 +3236,8 @@ function useSkill() {
   if (state !== 'playing' || !player) return;
   const cid=classId;
   const hasAny=(player.talents||[]).some(id=>String(id).startsWith(`se_${cid[0]}`));
-  if (!hasAny || player.skillCd>0) return useBaseSkill();
+  ensurePlayerMana();
+  if (!hasAny || player.skillCd>0 || player.mana<skillManaCost()) return useBaseSkill();
   const p=player, beforeTurn=turns, beforeCount=monsters.length, beforeHp=Number(p.hp)||0;
   const originalAtk=Number(p.atkBase)||0, originalDr=Number(p.flatDr)||0, originalHaste=Number(p.skillHaste)||0;
   const visBefore=skillEvolutionVisibleMonsters(), targetBefore=visBefore[0]||null;
@@ -3384,6 +3541,14 @@ function clickNav(tx, ty) {
 function equipFromBag(i) {
   const it = player.inv[i];
   if (!it || state !== 'playing') return;
+  if (!canEquipForClass(it)) {
+    const required = weaponClassOf(it);
+    const requiredName = required && CLASSES[required] ? CLASSES[required].name : ui('对应职业','the matching class');
+    msg(ui(`无法装备【${it.name}】：需要 ${requiredName} 武器专精。可以带回城、出售、存仓或锻造。`, `Cannot equip [${visibleItemName(it)}]: it requires ${requiredName} weapon proficiency. You can still carry, sell, stash, or forge it.`), 'bad');
+    selectedBagIndex = i;
+    renderBag();
+    return;
+  }
   const old = player.equip[it.slot];
   player.equip[it.slot] = it;
   clearMechanicWindows();
@@ -3422,6 +3587,34 @@ function discardFromBag(i) {
   msg(ui(`你把【${it.name}】丢在了地上。`, `You dropped [${visibleItemName(it)}] on the ground.`));
   renderBag(); updateHud();
 }
+function migrateLegacyEquippedWeaponToInventory() {
+  if (!player || !player.equip || !player.equip.weapon || canEquipForClass(player.equip.weapon)) return false;
+  const legacy = player.equip.weapon;
+  player.equip.weapon = null;
+  if (player.inv.length < BAG_CAP) {
+    player.inv.push(legacy);
+    selectedBagIndex = player.inv.length - 1;
+  } else if (Array.isArray(items) && map) {
+    dropAt(player.x, player.y, { type:'equip', item:legacy, emoji:'', name:'装备' });
+  } else {
+    player.inv.push(legacy);
+  }
+  player.hp = Math.min(player.hp, pMaxHp());
+  msg(ui(`旧存档中的【${legacy.name}】不符合当前职业武器专精，已安全卸下。`, `Legacy weapon [${visibleItemName(legacy)}] does not match this class proficiency and was safely unequipped.`), 'gold');
+  return true;
+}
+function migrateGreedyMetaWeapon() {
+  if (!meta || !meta.equip || !meta.equip.weapon || canEquipForClass(meta.equip.weapon, meta.classId)) return false;
+  const legacy = meta.equip.weapon;
+  meta.equip.weapon = null;
+  if ((meta.bag || []).length < BAG_CAP) meta.bag.push(legacy);
+  else {
+    meta.stash = Array.isArray(meta.stash) ? meta.stash : [];
+    meta.stash.push(legacy);
+  }
+  return true;
+}
+
 function renderBag() {
   if (!$('bag')) return;
   let html = '';
@@ -3473,6 +3666,8 @@ function tooltipHtml(it, compareSlot) {
   }
   const mechanicText = mechanicDescription(it);
   if (mechanicText) html += `<div class="affix">${esc(mechanicText)}</div>`;
+  const requirement = weaponRequirementText(it);
+  if (requirement) html += `<div class="${canEquipForClass(it) ? 'proficiency-ok' : 'cmp-down'}">${esc(requirement)}</div>`;
   const fit = classFitOf(it);
   const value = itemValueScore(it);
   html += `<div style="color:${r.color}">${ui(`职业适配 ${fit} · 内在价值 ${value}`, `Class Fit ${fit} · Item Value ${value}`)}</div>`;
@@ -3503,7 +3698,10 @@ function renderBagDetail() {
   const it = player && player.inv[selectedBagIndex];
   if (it) {
     copy.innerHTML = tooltipHtml(it, it.slot);
-    if (equip) equip.disabled = false;
+    if (equip) {
+      equip.disabled = !canEquipForClass(it);
+      equip.title = canEquipForClass(it) ? '' : weaponRequirementText(it);
+    }
     if (drop) drop.disabled = false;
   } else {
     copy.textContent = ui('轻触物品查看属性，再选择装备或丢弃。','Select an item to inspect it, then equip or drop it.');
@@ -3525,6 +3723,7 @@ function tryMove(dx, dy) {
   if (state !== 'playing') return;
   const nx = player.x + dx, ny = player.y + dy;
   player.facing = [dx, dy];
+  let manaBonus = 0;
   const secret = (secrets || []).find(s => !s.revealed && s.x === nx && s.y === ny);
   if (secret) {
     revealSecret(secret);
@@ -3539,24 +3738,18 @@ function tryMove(dx, dy) {
   if (m) {
     guideCombatOnce();
     playerAttack(m);
+    manaBonus = manaRuleFor(classId).attackGain;
+    if (state !== 'playing') { updateHud(); return; }
+  } else if (walkable(nx, ny)) {
+    player.x = nx; player.y = ny;
+    if (mechanicPower('skirmish')) player.skirmishTurn = turns + 1;
+    triggerTrap(nx, ny);
+    pickupHere();
     if (state !== 'playing') { updateHud(); return; }
   } else {
-    const rangedM = findRangedTarget(dx, dy);
-    if (rangedM) {
-      guideCombatOnce();
-      playerRangedAttack(rangedM);
-      if (state !== 'playing') { updateHud(); return; }
-    } else if (walkable(nx, ny)) {
-      player.x = nx; player.y = ny;
-      if (mechanicPower('skirmish')) player.skirmishTurn = turns + 1;
-      triggerTrap(nx, ny);
-      pickupHere();
-      if (state !== 'playing') { updateHud(); return; }
-    } else {
-      return;
-    }
+    return;
   }
-  endTurn();
+  endTurn(manaBonus, false);
 }
 
 function waitTurn() {
@@ -3573,7 +3766,7 @@ function waitTurn() {
     msg(ui(`【凝息】额外恢复 ${refund} 回合技能冷却。`, `[Meditate] Restored ${refund} extra turn${refund === 1 ? '' : 's'} of skill cooldown.`), 'good');
   }
   msg(ui('你原地观察四周。','You wait and watch your surroundings.'));
-  endTurn();
+  endTurn(manaRuleFor(classId).focusGain, true);
 }
 let flowDist = null;
 function buildFlow() {
@@ -3592,9 +3785,10 @@ function buildFlow() {
     }
   }
 }
-function endTurn() {
+function endTurn(manaBonus=0, announceFocus=false) {
   turns++;
   if (player.skillCd > 0) player.skillCd--;
+  recoverMana(manaBonus, announceFocus);
   if (turns % (player.fastRegen ? 4 : 6) === 0 && !(player.grievous > 0) && player.hp > 0 && player.hp < pMaxHp()) player.hp++;
   if (player.grievous > 0) player.grievous--;
   if (player.poison > 0) {
@@ -3654,7 +3848,7 @@ function monsterRangedAttack(m, armorBreak = false) {
     floater(player, ui('破甲重击!','ARMOR BREAK!'), '#e0a73a');
     msg(ui(`${m.name} 的蓄力射击命中，造成 ${dmg} 点无视护甲伤害！`, `${visibleWorldName(m.name)}'s charged shot hit for ${dmg} armor-piercing damage!`), 'bad');
   } else {
-    msg(ui(`${m.name} 远程袭击你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you from range for ${dmg} damage!`), 'bad');
+    incomingCombatMsg(ui(`${m.name} 远程袭击你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you from range for ${dmg} damage!`), dmg);
   }
   player.hp -= dmg; player.hurtT = 1;
   armReprisal();
@@ -4378,13 +4572,13 @@ function draw(now) {
     if (it.type === 'equip') {
       const glow = .34 + .18 * Math.sin(now * 3.5 + it.x);
       const rarityColor = RARITIES[it.item.rarity].color;
-      const rg = ctx.createRadialGradient(px, py + 7, 1, px, py + 7, 18);
+      const rg = ctx.createRadialGradient(px, py + 7, 1, px, py + 7, 21);
       rg.addColorStop(0, rarityColor);
       rg.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.save(); ctx.globalAlpha = Math.max(.12, glow * .42); ctx.fillStyle = rg;
-      ctx.fillRect(px - 20, py - 13, 40, 40);
+      ctx.fillRect(px - 23, py - 16, 46, 46);
       ctx.globalAlpha = .38 + glow * .45; ctx.strokeStyle = rarityColor; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.ellipse(px, py + 11, 11, 3.5, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.ellipse(px, py + 12, 13, 4, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
     if (it.type === 'amulet') {
       const g2 = ctx.createRadialGradient(px, py, 2, px, py, TILE);
@@ -4396,10 +4590,23 @@ function draw(now) {
     if (it.type === 'chest') {
       if (!drawDungeonProp(DUNGEON_PROP_ART.treasureChest, px, py, 30, 28, .98) && spr)
         ctx.drawImage(spr.img, px - 12, py - 12, 24, 24);
-    } else if (it.type === 'equip' && drawGroundEquipment(it.item, px, py, 29)) {
+    } else if (it.type === 'equip' && drawGroundEquipment(it.item, px, py, 31)) {
       // canonical Canvas owns tier-specific ground equipment art
-    } else if (!drawLootIcon(iconId, px, py, 24) && spr) {
-      ctx.drawImage(spr.img, px - 11, py - 11, 22, 22);
+    } else if (!drawLootIcon(iconId, px, py, 27) && spr) {
+      ctx.drawImage(spr.img, px - 12, py - 12, 24, 24);
+    }
+    if (it.type === 'equip' && Math.max(Math.abs(it.x - player.x), Math.abs(it.y - player.y)) <= 2) {
+      const rawLabel = visibleItemName(it.item);
+      const label = rawLabel.length > 13 ? rawLabel.slice(0, 12) + '…' : rawLabel;
+      ctx.save();
+      ctx.font = '700 11px "Segoe UI","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const labelW = Math.min(108, Math.max(28, ctx.measureText(label).width + 10));
+      ctx.fillStyle = 'rgba(8,6,5,.82)'; ctx.fillRect(px - labelW / 2, py - 24, labelW, 15);
+      ctx.strokeStyle = RARITIES[it.item.rarity].color; ctx.globalAlpha = .72;
+      ctx.strokeRect(px - labelW / 2, py - 24, labelW, 15);
+      ctx.globalAlpha = 1; ctx.fillStyle = '#f4e8d1'; ctx.fillText(label, px, py - 16.5);
+      ctx.restore();
     }
   }
 
@@ -4430,7 +4637,6 @@ function draw(now) {
   drawEquippedHero(now);
   drawClassCombatFx(now);
 
-  ctx.strokeStyle = '#f2e3ad';
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   for (const a of arrows) {
@@ -4441,6 +4647,9 @@ function draw(now) {
     ctx.save();
     ctx.translate(ax, ay);
     ctx.rotate(ang);
+    ctx.strokeStyle = a.kind === 'arcane' ? '#80b4ff' : '#f2e3ad';
+    ctx.shadowColor = a.kind === 'arcane' ? '#477cff' : 'transparent';
+    ctx.shadowBlur = a.kind === 'arcane' ? 7 : 0;
     ctx.beginPath();
     ctx.moveTo(-7, 0); ctx.lineTo(7, 0);
     ctx.moveTo(2, -3); ctx.lineTo(7, 0); ctx.lineTo(2, 3);
@@ -4561,8 +4770,17 @@ function updateHud() {
   if (themeEl) themeEl.textContent = ' · ' + (THEMES[themeIdx(depth)] ? visibleWorldName(THEMES[themeIdx(depth)].name) : '');
   $('st-hptext').textContent = `${Math.max(0, player.hp)}/${pMaxHp()}`;
   $('st-hpfill').style.width = Math.max(0, player.hp / pMaxHp() * 100) + '%';
+  ensurePlayerMana();
+  if ($('st-manatext')) $('st-manatext').textContent = `${player.mana}/${player.manaMax}`;
+  if ($('st-manafill')) $('st-manafill').style.width = (player.manaMax ? player.mana / player.manaMax * 100 : 0) + '%';
   const lowHp = state === 'playing' && player.hp > 0 && player.hp / pMaxHp() <= 0.25;
   $('lowhp-vignette').classList.toggle('hidden', !lowHp);
+  if ($('st-potion-wrap')) {
+    $('st-potion-wrap').classList.toggle('urgent', lowHp && player.potions > 0);
+    $('st-potion-wrap').title = lowHp && player.potions > 0
+      ? ui(`生命危险：按 Q 或点击这里使用治疗药水（剩余 ${player.potions}）`, `Critical HP: press Q or click here to use a Healing Potion (${player.potions} left)`)
+      : ui('使用治疗药水（Q）', 'Use Healing Potion (Q)');
+  }
   $('st-lvl').textContent = player.lvl;
   $('st-xp').textContent = `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
   $('st-atk').textContent = pAtk();
@@ -4582,29 +4800,33 @@ function updateHud() {
   }
   const skEl = $('st-skill');
   if (skEl) {
+    const manaCost = skillManaCost();
     if (player.skillCd > 0) {
-      skEl.textContent = ui(`${player.skillCd}回合`, `CD ${player.skillCd}`);
+      skEl.textContent = ui(`${player.skillCd}回合 · ${manaCost}蓝`, `CD ${player.skillCd} · ${manaCost} MP`);
       skEl.className = 'cd';
+    } else if (player.mana < manaCost) {
+      skEl.textContent = ui(`蓝量 ${player.mana}/${manaCost}`, `Mana ${player.mana}/${manaCost}`);
+      skEl.className = 'mana-low';
     } else {
-      skEl.textContent = classDef().skill.name;
+      skEl.textContent = ui(`${classDef().skill.name} · ${manaCost}蓝`, `${classDef().skill.name} · ${manaCost} MP`);
       skEl.className = 'ready';
     }
   }
   const onStairs = map && map[player.y][player.x] === STAIRS;
   if (state === 'playing' && onStairs) guideOnce('stairs',
-    'Enter 正常下潜；J 是满足条件时的付费快速下潜，不是攻击键。',
-    'Enter descends normally. J is the paid Quick Dive when available; it is not an attack key.');
+    'Enter 正常下潜；Shift+Enter 是满足条件时的付费快速下潜。J 始终是主动攻击。',
+    'Enter descends normally. Shift+Enter is the paid Quick Dive when available. J always means basic attack.');
   const shopHere = npcAt(player.x + (player.facing ? player.facing[0] : 0), player.y + (player.facing ? player.facing[1] : 0));
   $('hint').classList.toggle('active', onStairs);
   $('hint').textContent = onStairs
-    ? (canDescendNow() ? ui(`> Enter 下潜 · J 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, `> Enter Descend · J Quick Dive (${quickDiveCost(depth, QUICK_DIVE_STEP)} G for ${QUICK_DIVE_STEP} floors)`) : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
+    ? (canDescendNow() ? ui(`> Enter 下潜 · Shift+Enter 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, `> Enter Descend · Shift+Enter Quick Dive (${quickDiveCost(depth, QUICK_DIVE_STEP)} G for ${QUICK_DIVE_STEP} floors)`) : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
     : shopHere && shopHere.type === 'shop'
       ? ui('> 撞向商人即可交易','> Walk into the merchant to trade')
       : shopHere && shopHere.type === 'shrine'
         ? ui('> 撞向神龛即可祈祷','> Walk into the shrine to pray')
         : shopHere && shopHere.type === 'rest'
           ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
-          : ui('> 站在楼梯上按 Enter 下潜 · 点击已探索地块移动 · C 技能','> Stand on the stairs and press Enter to descend · click explored tiles to move · C Skill · J Quick Dive');
+          : ui('> J 主动攻击 · K 技能（C 兼容）· 点击已探索地块移动','> J Basic Attack · K Skill (C alias) · click explored tiles to move');
   const fab = $('descend-fab');
   if (fab) fab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
   const qfab = $('quickdive-fab');
@@ -4703,6 +4925,7 @@ function restoreRun(raw) {
   rngFn.setState(raw.rng);
   depth = raw.depth; turns = raw.turns; state = 'playing';
   player = raw.player;
+  ensurePlayerMana(player, classId);
   map = raw.map; explored = raw.explored;
   monsters = raw.monsters || []; items = raw.items || []; npcs = raw.npcs || [];
   shopStock = raw.shopStock || [];
@@ -4711,6 +4934,7 @@ function restoreRun(raw) {
   decals.length = 0;
   (raw.decals || []).forEach(d => decals.push(d));
   logLines = raw.logLines || [];
+  migrateLegacyEquippedWeaponToInventory();
   visible = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
   buildThemeTex(depth);
   hideOverlay();
@@ -4796,7 +5020,7 @@ function showClassSelect() {
       <span class="class-card-copy">
         <h3>${esc(c.name)}</h3>
         <p>${esc(c.blurb)}</p>
-        <span class="stats">${ui(`生命 ${c.hpBase} · 攻击 ${c.atkBase} · 药水 ${c.potions} · 卷轴 ${c.scrolls}<br>技能：${esc(c.skill.name)}（冷却 ${c.skill.cd}）<br>${esc(c.skill.desc)}`, `HP ${c.hpBase} · ATK ${c.atkBase} · Potions ${c.potions} · Scrolls ${c.scrolls}<br>Skill: ${esc(c.skill.name)} (CD ${c.skill.cd})<br>${esc(c.skill.desc)}`)}</span>
+        <span class="stats">${ui(`生命 ${c.hpBase} · 攻击 ${c.atkBase} · 蓝量 ${manaRuleFor(c.id).max}<br>技能：${esc(c.skill.name)}（${manaRuleFor(c.id).cost} 蓝 · 冷却 ${c.skill.cd}）<br>${c.rangedRange ? `J 远程普攻：${c.rangedRange} 格<br>` : 'J 主动普攻<br>'}${esc(c.skill.desc)}`, `HP ${c.hpBase} · ATK ${c.atkBase} · Mana ${manaRuleFor(c.id).max}<br>Skill: ${esc(c.skill.name)} (${manaRuleFor(c.id).cost} MP · CD ${c.skill.cd})<br>${c.rangedRange ? `J Ranged Basic: ${c.rangedRange} tiles<br>` : 'J Basic Attack<br>'}${esc(c.skill.desc)}`)}</span>
       </span>
     </button>`).join('');
 }
@@ -4959,7 +5183,9 @@ function renderTownCheckpoints() {
   panel.appendChild(head);
   const grid = document.createElement('div');
   grid.className = 'checkpoint-grid';
-  for (const checkpointDepth of TOWN_CHECKPOINTS) {
+  const nextLocked = TOWN_CHECKPOINTS.find(d => !unlocked.includes(d));
+  const visibleCheckpoints = [...unlocked, ...(nextLocked ? [nextLocked] : [])];
+  for (const checkpointDepth of visibleCheckpoints) {
     const open = unlocked.includes(checkpointDepth);
     const active = open && checkpointDepth === selectedTownCheckpoint;
     const button = document.createElement('button');
@@ -4985,6 +5211,7 @@ function syncMetaFromPlayer(died) {
   if (!player) return;
   meta.lvl = player.lvl; meta.xp = player.xp;
   meta.hpBase = player.hpBase; meta.atkBase = player.atkBase;
+  meta.manaMax = manaRuleFor(classId).max; meta.mana = clamp(Number(player.mana) || 0, 0, meta.manaMax);
   meta.critBase = player.critBase || 0; meta.leechBase = player.leechBase || 0;
   meta.skillHaste = player.skillHaste || 0; meta.goldFind = player.goldFind || 0;
   meta.flatDr = player.flatDr || 0;
@@ -5768,6 +5995,7 @@ function buyTown(id) {
 function initGreedyRun(chosen) {
   classId = CLASSES[chosen] ? chosen : (meta && meta.classId) || 'warrior';
   meta = sanitizeMeta(loadMeta() || defaultMeta(classId));
+  migrateGreedyMetaWeapon();
   if (meta.classId !== classId) {
     // 换职业开新档：保留金库，其余重置
     const keepGold = meta.gold;
@@ -5790,6 +6018,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
     x: 0, y: 0, fx: 0, fy: 0,
     hpBase: meta.hpBase,
     atkBase: meta.atkBase,
+    manaMax: manaRuleFor(classId).max, mana: clamp(Number(meta.mana), 0, manaRuleFor(classId).max),
     lvl: meta.lvl, xp: meta.xp,
     gold: 0,
     potions: meta.potions, scrolls: meta.scrolls,
@@ -5808,6 +6037,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
     talents: (meta.talents || []).slice(),
     echoMode: false,
   };
+  ensurePlayerMana(player, classId);
   // 注意：pMaxHp 读取全局 player，必须在 player 赋值完成之后再计算生命
   player.hp = pMaxHp();
   meta.runs = (meta.runs || 0) + 1;
@@ -5917,8 +6147,9 @@ function newGame(chosen) {
   player = {
     x: 0, y: 0, fx: 0, fy: 0,
     hpBase: c.hpBase, hp: c.hpBase, atkBase: c.atkBase,
+    manaMax: manaRuleFor(classId).max, mana: manaRuleFor(classId).max,
     lvl: 1, xp: 0, gold: 0, potions: c.potions, scrolls: c.scrolls, keys: 0, kills: 0,
-    inv: [], equip: { weapon: null, armor: null, ring: null },
+    inv: [], equip: { weapon: starterWeaponForClass(classId), armor: null, helmet:null, boots:null, ring: null, amulet:null },
     lungeT: 0, hurtT: 0, ldx: 0, ldy: 0,
     facing: [1, 0], skillCd: 0, poison: 0,
     critBase: 0, leechBase: 0, skillHaste: 0, goldFind: 0, flatDr: 0, grievous: 0,
@@ -5987,11 +6218,13 @@ document.addEventListener('keydown', e => {
     case 'q': case 'Q': usePotion(); break;
     case 'e': case 'E': useScroll(); break;
     case 't': case 'T': useEscape(); break;
-    case 'c': case 'C': useSkill(); break;
+    case 'k': case 'K': case 'c': case 'C': useSkill(); break;
+    case 'j': case 'J': e.preventDefault(); directionalAttack(); break;
     case 'f': case 'F': e.preventDefault(); toggleFullscreen(); break;
     case '>': case 'Enter': case 'n': case 'N': case 'PageDown':
-      e.preventDefault(); descend(); break;
-    case 'j': case 'J': e.preventDefault(); quickDive(); break;
+      e.preventDefault();
+      if (e.key === 'Enter' && e.shiftKey) quickDive(); else descend();
+      break;
   }
 });
 document.querySelectorAll('#touch button[data-act]').forEach(btn => {
@@ -6006,6 +6239,7 @@ document.querySelectorAll('#touch button[data-act]').forEach(btn => {
     else if (act === 'potion') usePotion();
     else if (act === 'scroll') useScroll();
     else if (act === 'escape') useEscape();
+    else if (act === 'attack') directionalAttack();
     else if (act === 'skill') useSkill();
     else if (act === 'descend') descend();
     else if (act === 'quickdive') quickDive();
@@ -6018,6 +6252,7 @@ document.querySelectorAll('[data-open-audio]').forEach(btn => btn.addEventListen
   ensureAudio(); syncAudioControls(); showUi('audio-settings-screen');
 }));
 if ($('audio-settings-close')) $('audio-settings-close').addEventListener('click', () => hideUi('audio-settings-screen'));
+if ($('st-potion-wrap')) $('st-potion-wrap').addEventListener('click', () => { ensureAudio(); usePotion(); });
 if ($('audio-master')) $('audio-master').addEventListener('click', () => toggleAudioMuted(true));
 if ($('audio-defaults')) $('audio-defaults').addEventListener('click', resetAudioMix);
 if ($('audio-music')) $('audio-music').addEventListener('input', e => setAudioMix('music', e.target.value));
@@ -6027,10 +6262,6 @@ if ($('audio-sfx')) {
 }
 syncAudioControls();
 
-const usesPersistentBagDetail = () =>
-  window.innerWidth <= 900 ||
-  (typeof matchMedia === 'function' && matchMedia('(hover: none), (pointer: coarse)').matches);
-
 if ($('bag')) {
   $('bag').addEventListener('click', e => {
     ensureAudio();
@@ -6038,13 +6269,8 @@ if ($('bag')) {
     if (dx) { discardFromBag(+dx.dataset.drop); hideTooltip(); return; }
     const cell = e.target.closest('[data-i]');
     if (cell) {
-      const i = +cell.dataset.i;
-      if (usesPersistentBagDetail()) {
-        selectedBagIndex = i;
-        renderBag();
-      } else {
-        equipFromBag(i);
-      }
+      selectedBagIndex = +cell.dataset.i;
+      renderBag();
       hideTooltip();
     }
   });
@@ -6211,15 +6437,15 @@ if (typeof window !== 'undefined') {
     profileId: PROFILE_ID,
     get classId() { return classId; },
     validateProfile, requireProfile,
-    descend, usePotion, useScroll, useSkill, waitTurn, tryMove,
-    quickDive, quickDiveCost,
+    descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack,
+    quickDive, quickDiveCost, skillManaCost,
     pauseGame, resumeGame,
     pickTalent, chooseEchoLeave, chooseEchoStay,
     genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
     persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
-    weaponBaseForDrop, sellDungeonShopItem,
+    weaponBaseForDrop, starterWeaponForClass, weaponClassOf, canEquipForClass, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,

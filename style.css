@@ -114,9 +114,9 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
 #town-shop { text-align: left; }
 #town-scene {
   display: block;
-  width: 100%;
+  width: min(900px, 100%);
   height: auto;
-  margin: 2px 0 10px;
+  margin: 2px auto 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: #0b0916;
@@ -188,6 +188,25 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
 }
 #town-screen .title-card { width: min(1180px, 100%); padding: 28px 32px; }
 #town-screen .title-actions button { min-height: 46px; font-size: 15px; }
+#town-screen .town-primary-actions {
+  position: sticky;
+  top: -1px;
+  z-index: 4;
+  margin: 10px -10px 12px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(20,13,9,.98), rgba(20,13,9,.92));
+  border-block: 1px solid rgba(139,104,53,.5);
+  box-shadow: 0 10px 24px rgba(0,0,0,.30);
+}
+#town-screen #btn-depart { box-shadow: 0 0 0 1px rgba(242,210,123,.15), 0 0 20px rgba(215,166,64,.12); }
+.town-service-optional > summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; gap:10px; align-items:baseline; color:#bfa8d8; }
+.town-service-optional > summary::-webkit-details-marker { display:none; }
+.town-service-optional > summary::before { content:'＋'; color:#a98bd3; margin-right:7px; }
+.town-service-optional[open] > summary::before { content:'－'; }
+.town-service-optional > summary b { flex:1; font-size:12px; letter-spacing:1px; }
+.town-service-optional > summary small { color:var(--dim); font-size:10px; font-weight:400; }
+.town-service-optional:not([open]) { min-height:48px; }
+.town-service-optional[open] #town-wheel { margin-top:10px; }
 .stat small { color: var(--dim); }
 .hp { display: flex; align-items: center; gap: 6px; }
 #fullscreen-toggle, #audio-settings-toggle, #save-now-toggle {
@@ -240,6 +259,23 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
   background: linear-gradient(90deg, #8f251f, #e35a45);
   transition: width .15s;
 }
+#st-manabar {
+  width: 82px;
+  height: 10px;
+  margin-right: 5px;
+  vertical-align: 1px;
+  background: #08152b;
+  border: 1px solid #315b91;
+  overflow: hidden;
+  display: inline-block;
+}
+#st-manafill { display:block; width:100%; height:100%; background:linear-gradient(90deg,#2865cc,#65c8ff); transition:width .15s; }
+.resource-action { appearance:none; font:inherit; padding:2px 5px; color:var(--dim); background:transparent; border:1px solid transparent; cursor:pointer; }
+.resource-action b { color:#fff7e8; }
+.resource-action kbd { margin-left:3px; color:var(--accent-hi); font:700 10px/1 Consolas,monospace; }
+.resource-action:hover { border-color:var(--border-hi); background:rgba(215,166,64,.08); }
+.resource-action.urgent { color:#ffd0c8; border-color:#b14b3f; background:rgba(145,34,29,.22); box-shadow:0 0 14px rgba(207,76,63,.26); animation:potion-urgent 1.1s ease-in-out infinite; }
+@keyframes potion-urgent { 50% { box-shadow:0 0 22px rgba(207,76,63,.48); } }
 
 #equipbar { grid-area: equip; display: flex; gap: 8px; }
 .eqslot {
@@ -348,7 +384,7 @@ canvas#game {
 .eqicon .loot-icon { width: 32px; height: 32px; }
 
 #bagdetail {
-  display: none;
+  display: block;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
@@ -382,6 +418,8 @@ html { scrollbar-color:#76512d #0d0907; scrollbar-width:thin; }
 #log .bad  { color: var(--danger) !important; }
 #log .gold { color: var(--accent-hi) !important; }
 #log .epic { color: #bc8ee9 !important; }
+#log .combat { color:#8f826f !important; font-size:12px; }
+#log .combat-danger { color:#b66d64 !important; font-size:12px; }
 
 #hint { padding: 9px 11px; font-size: 12px; color: var(--dim); }
 #hint.active { color: var(--accent-hi); border-color: var(--accent); }
@@ -406,6 +444,7 @@ html { scrollbar-color:#76512d #0d0907; scrollbar-width:thin; }
 .affix { color: #77bfd2; }
 .cmp-up { color: var(--ok); }
 .cmp-down { color: var(--danger); }
+.proficiency-ok { color: #83c69a; }
 
 #touch { display: none; grid-area: touch; gap: 20px; align-items: center; justify-content: center; }
 #dpad { display: grid; grid-template-columns: repeat(3, 58px); grid-template-rows: repeat(3, 58px); gap: 5px; }
@@ -540,6 +579,7 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  .resource-action.urgent { animation: none; }
 }
 
 #stage {
@@ -588,6 +628,7 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 .class-chip[data-class="assassin"] .eqicon { color: #d95a70; }
 .skillstat b.ready { color: var(--ok); }
 .skillstat b.cd { color: var(--danger); }
+.skillstat b.mana-low { color:#72b9f2; }
 
 #title-screen, #class-screen, #pause-screen, #audio-settings-screen, #shop-screen,
 #talent-screen, #refine-screen, #shrine-screen, #echo-screen, #town-screen,
@@ -900,4 +941,22 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
   #class-grid { grid-template-columns: 1fr; }
   .title-card button.class-card { min-height: 0; }
   .class-portrait { height: 210px; flex-basis: 210px; background-position-y: center, 23%; }
+}
+
+@media (min-width: 901px) {
+  html, body { height: 100%; overflow: hidden; }
+  #wrap {
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+  #main { min-height: 0; height: 100%; align-items: stretch; }
+  #stage { min-height: 0; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #stage canvas#game { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
+  #side { min-height: 0; height: 100%; overflow-y: auto; scrollbar-gutter: stable; padding-right: 3px; }
+  #bag { min-height: 0; }
+  #logbox { min-height: 160px; }
+  #log { min-height: 110px; max-height: 240px; }
+  footer#help { margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 18px; min-height: 18px; }
 }

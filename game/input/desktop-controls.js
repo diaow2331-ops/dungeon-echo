@@ -28,8 +28,8 @@
   let returnHoldStarted = 0;
   let returnHoldFired = false;
 
-  function emitKey(key) {
-    document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  function emitKey(key, options={}) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options }));
   }
 
   function triggerReturn() {
@@ -124,9 +124,9 @@
     const shortName = (pad.id || 'Gamepad').replace(/\s*\([^)]*\)\s*/g, ' ').trim().slice(0, 42);
     badge.innerHTML = english
       ? `<strong>Gamepad connected</strong> · ${escapeHtml(shortName)}<br>` +
-        'Stick/D-pad Move or Menu · A Confirm/Descend · B Wait/Back · X Skill · Y Potion · LB Scroll · RT Quick Dive · RB Fullscreen · Start Pause · Hold View Return'
+        'Stick/D-pad Move or Menu · A Confirm/Descend · B Wait/Back · X Skill · Y Potion · LB Scroll · LT Quick Dive · RT Attack · RB Fullscreen · Start Pause · Hold View Return'
       : `<strong>手柄已接入</strong> · ${escapeHtml(shortName)}<br>` +
-        '摇杆/十字键移动或选菜单 · A确认/下楼 · B等待/返回 · X技能 · Y药水 · LB卷轴 · RT快速下潜 · RB全屏 · Start暂停 · 长按 View 回城';
+        '摇杆/十字键移动或选菜单 · A确认/下楼 · B等待/返回 · X技能 · Y药水 · LB卷轴 · LT快速下潜 · RT攻击 · RB全屏 · Start暂停 · 长按 View 回城';
     badge.classList.add('on');
   }
 
@@ -226,8 +226,9 @@
       handleDirection(pad, now);
       edgeButton(pad, 0, () => { if (!activateMenu()) emitKey('Enter'); });
       edgeButton(pad, 1, () => { if (activeMenuRoot()) { if (!backMenu()) emitKey('Escape'); } else emitKey(' '); });
-      edgeButton(pad, 2, 'c'); edgeButton(pad, 3, 'q'); edgeButton(pad, 4, 'e');
+      edgeButton(pad, 2, 'k'); edgeButton(pad, 3, 'q'); edgeButton(pad, 4, 'e');
       edgeButton(pad, 5, () => { const btn = document.getElementById('fullscreen-toggle'); if (btn) btn.click(); else emitKey('f'); });
+      edgeButton(pad, 6, () => emitKey('Enter', { shiftKey:true }));
       edgeButton(pad, 7, 'j');
       edgeButton(pad, 9, 'Escape');
       handleReturnHold(pad, now);

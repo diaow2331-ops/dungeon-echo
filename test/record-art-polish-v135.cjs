@@ -16,10 +16,10 @@ const metaBefore=JSON.parse(localStorage.getItem('de-greedy-meta-v1')); T.setGre
 const m=T.monsters[0]; const kills0=r.totalKills; T.killMonster(m); ok(T.getRecord().totalKills===kills0+1,'classic kill increments record');
 T.depth=35; T.persistRun(); ok(T.getRecord().bestDepth>=22,'record persists independently of run save');
 const achv=T.checkAchv(false); ok(Array.isArray(achv),'achievement evaluation works without Greedy mode');
-const src=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'); ok(src.includes("equipmentWeaponsV13.src = 'art/equipment-weapons-v13.png'")&&src.includes('drawGroundEquipment(it.item, px, py, 29)'),'canonical Canvas uses v13 ground equipment art');
+const src=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'); ok(src.includes("equipmentWeaponsV13.src = 'art/equipment-weapons-v13.png'")&&src.includes('drawGroundEquipment(it.item, px, py, 31)'),'canonical Canvas uses v13 ground equipment art');
 const css=fs.readFileSync(path.join(root,'style.css'),'utf8'); ok(css.includes('*::-webkit-scrollbar-thumb')&&css.includes('#save-now-toggle { min-width: 52px'),'scrollbars and Save control are themed');
 ok(src.includes("$('st-escape-wrap').style.display = greedyMode ? '' : 'none'"),'classic HUD hides Greedy-only Return resource');
-ok(src.includes('Enter Descend · J Quick Dive'),'English stairs hint keeps Quick Dive truth');
+ok(src.includes('Enter Descend · Shift+Enter Quick Dive'),'English stairs hint keeps the canonical Shift+Enter Quick Dive truth');
 const zh=fs.readFileSync(path.join(root,'index.html'),'utf8'), en=fs.readFileSync(path.join(root,'en/index.html'),'utf8');
 ok(zh.includes('地牢回响 · 远征录')&&en.includes('Dungeon Echo · Expedition Record'),'record is presented as a cross-run Dungeon Echo profile');
 ok(zh.includes('modal-corner-close')&&en.includes('modal-corner-close'),'record close control is immediately accessible');

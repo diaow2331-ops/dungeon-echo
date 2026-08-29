@@ -1,4 +1,4 @@
-/* Dungeon Echo production authority bootstrap v1.3.6.
+/* Dungeon Echo production authority bootstrap v1.4.0.
  *
  * Production policy is deliberately simple:
  * - game/core/game.js is the sole dungeon/town Canvas renderer;
@@ -18,7 +18,7 @@
   const STORAGE_EPOCH = 'v130';
   const STORAGE_EPOCH_KEY = 'de-storage-epoch';
   const LEGACY_PREFIX = 'de-';
-  const PERSISTENT_PREF_KEYS = new Set(['de-guide-v1', 'de-audio-v1', 'de-expedition-record-v1']);
+  const PERSISTENT_PREF_KEYS = new Set(['de-guide-v1', 'de-audio-v1', 'de-expedition-record-v1', 'de-greedy-on-v1']);
   const FRESH_BUTTON_ID = 'btn-fresh-adventure';
   const EQUIPMENT_STYLE_ID = 'de-equipment-art-v13-css';
 
@@ -108,7 +108,7 @@
   if (autoFresh) window.__DE_FRESH_CLASS_SELECT_PENDING = true;
 
   const AUTHORITY = Object.freeze({
-    version:'1.3.6',
+    version:'1.4.0',
     renderer:'game/core/game.js',
     gameplayState:'game/core/game.js',
     gameplayInput:'game/core/game.js',
@@ -120,7 +120,7 @@
   });
 
   window.__DE_PRODUCTION_AUTHORITY_V130 = Object.freeze({
-    version:'1.3.6',
+    version:'1.4.0',
     owner:'production-authority',
     renderOwner:'game/core/game.js',
     gameplayStateOwner:'game/core/game.js',

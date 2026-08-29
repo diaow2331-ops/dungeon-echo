@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [English route](https://play.91hwl.cn/dungeon-echo/en/)
 
-> **v1.3.4 gameplay hotfix:** Return Scroll supply, dungeon selling, class-independent weapon drops, pursuit pressure, Ranger dash symmetry and normal-monster durability are now fixed, and public cache generation is **173**.
+> **v1.4.0 core balance and UX recovery:** explicit J basic attacks, K skills with persistent Mana, ranged class identity, weapon proficiency, Greedy New Run continuity, deliberate inventory actions, desktop fit, clearer low-HP/log/loot feedback, and connectivity-safe NPC placement ship on cache generation **176**.
 
 Dungeon Echo remains a vanilla HTML/CSS/JavaScript roguelike built around one journey from floor 1 to floor 100.
 
@@ -23,7 +23,7 @@ Current production ownership:
 - keyboard/touch gameplay input → `game/core/game.js`;
 - storage epoch reset before core boot → `game/core/production-bootstrap.js`;
 - gamepad → canonical command transport only → `game/input/desktop-controls.js`;
-- dynamic loading → DOM-only followers from `game/core/runtime-bootstrap.js`;
+- dynamic loading → presentation-only followers from `game/core/runtime-bootstrap.js`;
 - fixed Chinese/English route navigation → `game/locale/fixed-locale-entry-v130.js`.
 
 No production overlay may redraw/mask core entities. No follower may monkey-patch gameplay APIs, become a second gameplay storage writer or capture competing gameplay input.
@@ -60,8 +60,9 @@ The clean baseline reports only controls currently owned by core:
 | Action | Keyboard | Gamepad | Mobile |
 | --- | --- | --- | --- |
 | Move / face | Arrow keys / WASD | Stick / D-pad | Four-way D-pad |
-| Class skill | `C` | X | Skill |
-| Quick dive | `J` | RT | — |
+| Basic attack | `J` | RT | Attack |
+| Class skill | `K` (`C` alias) | X | Skill |
+| Quick dive | `Shift+Enter` | LT | Quick dive |
 | Wait | Space / `.` | B | Wait |
 | Potion | `Q` | Y | Potion |
 | Scroll | `E` | LB | Scroll |
@@ -71,7 +72,7 @@ The clean baseline reports only controls currently owned by core:
 | Sound | `M` | — | Sound |
 | Fullscreen | `F` | RB | Fullscreen |
 
-The previous J-Attack/K-Skill module is preserved in quarantine and will be re-integrated only through the sole input/combat owner rather than restored as a competing handler.
+J Attack, K Skill and their Mana/ranged semantics are integrated directly in the sole input/combat owner; the historical competing module remains quarantined.
 
 ## Repository layout
 

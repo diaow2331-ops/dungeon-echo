@@ -11,8 +11,8 @@
 
   const CLASS_EN = Object.freeze({
     warrior:{name:'Warrior',blurb:'Durable melee fighter. Armor scales with level; Cleave controls adjacent packs.',skill:{name:'Cleave',desc:'Deal 150% ATK to adjacent enemies.'}},
-    ranger:{name:'Ranger',blurb:'Line-of-sight archer with ranged attacks and agile close-range defense.',skill:{name:'Dash',desc:'Dash 2 tiles and damage enemies crossed.'}},
-    mage:{name:'Arcanist',blurb:'Fragile ranged caster. Arcane Bolt pressures armored targets and controls space.',skill:{name:'Arcane Bolt',desc:'Strike the nearest visible enemy, partially ignore DEF and knock it back.'}},
+    ranger:{name:'Ranger',blurb:'Line-of-sight archer. J fires a bow up to 5 tiles; Dash repositions through danger.',skill:{name:'Dash',desc:'Dash 2 tiles and damage enemies crossed.'}},
+    mage:{name:'Arcanist',blurb:'Fragile ranged caster. J channels staff attacks up to 4 tiles with partial armor penetration.',skill:{name:'Arcane Bolt',desc:'Strike the nearest visible enemy, partially ignore DEF and knock it back.'}},
     assassin:{name:'Assassin',blurb:'Fragile burst melee class with innate critical chance and positional pressure.',skill:{name:'Shadowstrike',desc:'Blink beside the nearest visible enemy and land a guaranteed critical strike.'}},
   });
 

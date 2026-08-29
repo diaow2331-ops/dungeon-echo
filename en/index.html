@@ -17,7 +17,7 @@
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=175">
+<link rel="stylesheet" href="style.css?v=176">
 </head>
 <body>
 <div id="wrap">
@@ -26,12 +26,13 @@
     <div id="stats">
       <span class="stat">Floor <b id="st-depth">1</b><small id="st-theme"></small></span>
       <span class="stat hp"><span id="st-hpbar"><i id="st-hpfill"></i></span><b id="st-hptext">30/30</b></span>
+      <span class="stat mana" title="Mana"><span id="st-manabar"><i id="st-manafill"></i></span><b id="st-manatext">0/0</b></span>
       <span class="stat">Level <b id="st-lvl">1</b> <small id="st-xp"></small></span>
       <span class="stat">ATK <b id="st-atk">3</b></span>
       <span class="stat">DEF <b id="st-def">0</b></span>
       <span class="stat">Crit <b id="st-crit">5%</b></span>
       <span class="stat">Gold <b id="st-gold">0</b></span>
-      <span class="stat">Potions <b id="st-potion">1</b></span>
+      <button class="stat resource-action" id="st-potion-wrap" type="button" title="Use Healing Potion (Q)">Potions <b id="st-potion">1</b> <kbd>Q</kbd></button>
       <span class="stat">Scrolls <b id="st-scroll">0</b></span>
       <span class="stat">Keys <b id="st-key">0</b></span>
       <span class="stat" id="st-escape-wrap" title="Return Scroll: press T during Greedy Expedition to bring your loot safely back to town">Return <b id="st-escape">—</b></span>
@@ -54,7 +55,7 @@
 
   <div id="main">
     <div id="stage">
-      <canvas id="game" width="1280" height="896" aria-label="Dungeon map: move with WASD or arrow keys, press C for class skill and J for quick dive; explored tiles can also be clicked">Your browser does not support Canvas, so Dungeon Echo cannot run.</canvas>
+      <canvas id="game" width="1280" height="896" aria-label="Dungeon map: move with WASD or arrow keys, press J for basic attack, K for class skill and Shift+Enter for quick dive; explored tiles can also be clicked">Your browser does not support Canvas, so Dungeon Echo cannot run.</canvas>
       <canvas id="minimap" width="160" height="112" aria-hidden="true"></canvas>
       <button type="button" id="descend-fab" class="hidden" data-act="descend">Descend to the next floor <kbd>Enter</kbd></button>
       <div id="lowhp-vignette" class="hidden" aria-hidden="true"></div>
@@ -72,8 +73,10 @@
         <button type="button" data-act="potion">Potion <span>Q</span></button>
         <button type="button" data-act="scroll">Scroll <span>E</span></button>
         <button type="button" data-act="escape">Return <span>T</span></button>
-        <button type="button" data-act="skill">Skill <span>C</span></button>
+        <button type="button" data-act="attack">Attack <span>J</span></button>
+        <button type="button" data-act="skill">Skill <span>K</span></button>
         <button type="button" data-act="descend">Descend <span>Enter</span></button>
+        <button type="button" data-act="quickdive">Quick Dive <span>⇧Enter</span></button>
         <button type="button" data-act="pause">Pause <span>Esc</span></button>
         <button type="button" data-act="mute">Sound <span>M</span></button>
       </div>
@@ -94,7 +97,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">Move: arrows / WASD / click map · C Class Skill · J Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · top Save button · click backpack to equip · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.3.6</b></footer>
+  <footer id="help">Move: arrows / WASD / click map · J Basic Attack · K Class Skill (C alias) · Shift+Enter Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · top Save button · click backpack to equip · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.4.0</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">Restart (R)</button></div></div>
 
@@ -135,6 +138,7 @@
       <p class="kicker">Greedy Expedition · Echo Town</p><h2>Camp &amp; Market</h2>
       <p class="lede" id="town-head">Prepare, then descend again.</p>
       <p class="lede dim-note">Death loses backpack items and carried Gold; stash and vault are safe. Return Scroll (T) is the key to securing loot.</p>
+      <div class="title-actions town-primary-actions"><button type="button" id="btn-depart" class="primary">Depart for Floor 1</button><button type="button" id="btn-town-exit" class="ghost" title="Return to title without losing progress">Save &amp; Title</button><button type="button" id="btn-achv-town">Expedition Record</button></div>
       <canvas id="town-scene" width="900" height="210"></canvas>
       <div id="town-growth" class="town-growth" aria-live="polite"></div>
       <div id="town-checkpoints" class="checkpoint-panel" aria-live="polite"></div>
@@ -142,9 +146,8 @@
         <div class="town-service" data-service="bag"><p class="kicker">Backpack <span>carried · at risk</span></p><div id="town-bag"></div></div>
         <div class="town-service" data-service="stash"><p class="kicker">Stash <span>fully safe</span></p><div id="town-stash"></div></div>
         <div class="town-service" data-service="market"><p class="kicker">Market <span>limited supplies</span></p><div id="town-shop"></div></div>
-        <div class="town-service town-service-optional" data-service="wheel"><p class="kicker">Fortune Corner <span>optional · does not gate the expedition</span></p><div id="town-wheel"></div></div>
+        <details class="town-service town-service-optional" data-service="wheel"><summary><b>Fortune Corner</b><small>optional · does not gate the expedition</small></summary><div id="town-wheel"></div></details>
       </div>
-      <div class="title-actions"><button type="button" id="btn-depart" class="primary">Depart for Floor 1</button><button type="button" id="btn-town-exit" class="ghost" title="Return to title without losing progress">Save &amp; Title</button><button type="button" id="btn-achv-town">Expedition Record</button></div>
     </div>
   </div>
 
@@ -155,7 +158,7 @@
       <div class="help-cols">
         <div>
           <h3>Controls</h3>
-          <p>Move: <b>arrow keys / WASD / click explored tiles</b><br>Class Skill: <b>C</b> · Quick Dive: <b>J</b> · Wait: <b>Space</b><br>Potion: <b>Q</b> · Scroll: <b>E</b><br>Return: <b>T</b> (Greedy Expedition) · Descend: <b>Enter</b> (on stairs)<br>Pause: <b>Esc</b> · Save: <b>top Save button</b> · Master mute: <b>M</b> · Fullscreen: <b>F</b></p>
+          <p>Move: <b>arrow keys / WASD / click explored tiles</b><br>Basic Attack: <b>J</b> · Skill: <b>K</b> (<b>C</b> alias) · Quick Dive: <b>Shift+Enter</b><br>Wait: <b>Space / .</b> · Potion: <b>Q</b> · Scroll: <b>E</b><br>Return: <b>T</b> (Greedy Expedition) · Descend: <b>Enter</b> (on stairs)<br>Pause: <b>Esc</b> · Save: <b>top Save button</b> · Master mute: <b>M</b> · Fullscreen: <b>F</b></p>
           <h3>100-Floor Journey</h3>
           <p>Your first expedition starts on Floor 1. After reaching segment starts 11/21/…/91 and bringing that progress back to town, you can depart from conquered segment starts. Each tenth floor is a major guardian checkpoint; Floor 100 is the production finale.</p>
         </div>
@@ -163,24 +166,24 @@
           <h3>Greedy Expedition</h3>
           <p><b>Depart → loot → return safely → prepare → go deeper.</b><br>Death loses backpack items and carried Gold; stash and vault are safe. Deeper gear is stronger, but deciding when to keep pushing and when to retreat is the central risk.</p>
           <h3>Combat</h3>
-          <p>The four classes use different survival and damage rhythms. Gear is not only a score: ATK, DEF, HP, Crit, Leech, Thorns, Kill Heal and Gold Find have different value for different builds.</p>
+          <p>Each class has a signature weapon proficiency. Ranger bows and Arcanist staves attack at range with <b>J</b>; Warrior and Assassin use close-range basics. Skills cost <b>Mana</b> as well as cooldown, and waiting restores Mana faster.</p>
         </div>
       </div>
       <div class="title-actions"><button type="button" id="btn-help-close" class="primary">Got It</button></div>
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=175"></script>
-<script src="profiles/classic-100.profile.js?v=175"></script>
-<script src="game/locale/locale-data-v134.js?v=175"></script>
-<script src="game/domain/content/content-rules-v130.js?v=175"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=175"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=175"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=175"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=175"></script>
-<script src="game/core/game.js?v=175"></script>
-<script src="game/locale/core-locale-data-v139.js?v=175"></script>
-<script src="game/input/desktop-controls.js?v=175"></script>
-<script src="game/core/runtime-bootstrap.js?v=175"></script>
+<script src="game/core/production-bootstrap.js?v=176"></script>
+<script src="profiles/classic-100.profile.js?v=176"></script>
+<script src="game/locale/locale-data-v134.js?v=176"></script>
+<script src="game/domain/content/content-rules-v130.js?v=176"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=176"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=176"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=176"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=176"></script>
+<script src="game/core/game.js?v=176"></script>
+<script src="game/locale/core-locale-data-v139.js?v=176"></script>
+<script src="game/input/desktop-controls.js?v=176"></script>
+<script src="game/core/runtime-bootstrap.js?v=176"></script>
 </body>
 </html>
