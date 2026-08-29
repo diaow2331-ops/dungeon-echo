@@ -9,7 +9,7 @@ VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
 ORIGIN_RESOLVE=play.91hwl.cn:443:127.0.0.1
 PUBLIC_ATTEMPTS=6
 PUBLIC_DELAY=2
-ASSET_GENERATION=166
+ASSET_GENERATION=167
 
 fail(){ echo "DUNGEON_ECHO_HEALTHCHECK_ERROR: $*" >&2; exit 1; }
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
@@ -27,6 +27,7 @@ probe_game(){
   grep -Fq 'Dungeon Echo' "$body" || return 1
   grep -Fq "?v=$ASSET_GENERATION" "$body" || return 1
   ! grep -Fq '?v=153' "$body" || return 1
+  ! grep -Fq '?v=157' "$body" || return 1
   grep -Eiq '^content-type:.*text/html' "$headers" || return 1
 }
 
@@ -55,21 +56,26 @@ curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
   "https://$HOST/dungeon-echo/game/core/runtime-bootstrap.js?v=$ASSET_GENERATION" -o "$work_dir/runtime.js" || fail 'runtime bootstrap missing'
 grep -Fq "const assetVersion = '$ASSET_GENERATION'" "$work_dir/runtime.js" || fail 'runtime cache generation mismatch'
 grep -Fq 'release-stamp-v1212.js' "$work_dir/runtime.js" || fail 'v1.2.12 release stamp owner missing'
+grep -Fq 'new-run-reset-v167.js' "$work_dir/runtime.js" || fail 'New Run reset owner missing'
 grep -Fq 'responsive-final-v154.js' "$work_dir/runtime.js" || fail 'responsive owner not wired into runtime'
 
 curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
   "https://$HOST/dungeon-echo/game/core/production-bootstrap.js?v=$ASSET_GENERATION" -o "$work_dir/production.js" || fail 'production bootstrap missing'
-for marker in art-runtime-v4.js town-art-v160.js class-combat-fx-v163.js hero-directional-art-v165.js; do
+for marker in art-runtime-v4.js town-art-v160.js; do
   grep -Fq "$marker" "$work_dir/production.js" || fail "art runtime missing from production bootstrap: $marker"
 done
+! grep -Fq 'hero-directional-art-v165.js' "$work_dir/production.js" || fail 'retired pixel hero runtime remains wired'
+! grep -Fq 'class-combat-fx-v163.js' "$work_dir/production.js" || fail 'retired line FX runtime remains wired'
 
 probe_asset 'game/ui/art-runtime-v4.js' 'art-runtime-v4.js' || fail 'terrain art runtime missing'
 probe_asset 'game/ui/town-art-v160.js' 'town-art-v160.js' || fail 'town art runtime missing'
-probe_asset 'game/ui/class-combat-fx-v163.js' 'class-combat-fx-v163.js' || fail 'class combat FX runtime missing'
-probe_asset 'game/ui/hero-directional-art-v165.js' 'hero-directional-art-v165.js' || fail 'four-direction hero runtime missing'
+probe_asset 'game/ui/new-run-reset-v167.js' 'new-run-reset-v167.js' || fail 'New Run reset runtime missing'
+probe_asset 'art/runtime/hero-action-atlas-v2.svg' 'hero-action-atlas-v2.svg' || fail 'high-detail hero action atlas missing'
 probe_asset 'art/runtime/boss-guardian-atlas-v3.png' 'boss-guardian-atlas-v3.png' || fail 'guardian atlas missing'
 probe_asset 'art/runtime/final-boss-v3.png' 'final-boss-v3.png' || fail 'final boss atlas missing'
-probe_asset 'art/runtime/hero-directional-atlas-v1.png' 'hero-directional-atlas-v1.png' || fail 'hero directional atlas missing'
+
+grep -Fq "localStorage.removeItem(SAVE_KEY)" "$work_dir/new-run-reset-v167.js" || fail 'New Run does not clear active save'
+grep -Fq "clearsMeta:false" "$work_dir/new-run-reset-v167.js" || fail 'New Run must preserve Greedy meta progression'
 
 curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
   "https://$HOST/dungeon-echo/game/locale/fixed-locale-entry-v130.js?v=$ASSET_GENERATION" -o "$work_dir/locale.js" || fail 'fixed locale owner asset missing'

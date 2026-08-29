@@ -11,7 +11,7 @@ stage_root="$(mktemp -d)"
 bundle="$stage_root/91hwl-play-dungeon-echo-v$version"
 source_generation=153
 legacy_art_generation=157
-asset_generation=166
+asset_generation=167
 
 cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
@@ -30,9 +30,6 @@ while IFS= read -r file; do
   cp -a "$repo_root/$file" "$bundle/public/dungeon-echo/$file"
 done < "$manifest"
 
-# Semantic VERSION must already be correct in source. Packaging advances both the
-# stable source generation and the single legacy art-runtime tag to one public
-# generation so the immutable bytes cannot mix old and new art caches.
 grep -Fq "正式版 <b>v$version</b>" "$bundle/public/dungeon-echo/index.html"
 grep -Fq "Release <b>v$version</b>" "$bundle/public/dungeon-echo/en/index.html"
 
@@ -50,26 +47,30 @@ done
 
 grep -Fq "const assetVersion = '$asset_generation'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 grep -Fq "release-stamp-v1212.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "new-run-reset-v167.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 grep -Fq "responsive-final-v154.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 grep -Fq "installNoTranslateBoundary" "$bundle/public/dungeon-echo/game/locale/fixed-locale-entry-v130.js"
 
-# Full v1.2.12 art closeout must be present in the immutable artifact.
+# Corrected v1.2.12 art closeout: keep the established detailed hero/action atlas,
+# terrain, town, monsters, guardians and boss; explicitly exclude the experimental
+# pixel-direction hero overlay and line-drawn combat FX that regressed presentation.
 for art_file in \
   game/ui/art-runtime-v2.js \
   game/ui/art-runtime-v4.js \
   game/ui/town-art-v160.js \
-  game/ui/class-combat-fx-v163.js \
-  game/ui/hero-directional-art-v165.js \
   art/runtime/loot-atlas-v2.svg \
   art/runtime/monster-deep-atlas-v2.svg \
   art/runtime/hero-action-atlas-v2.svg \
   art/runtime/dungeon-props-atlas-v1.svg \
   art/runtime/boss-guardian-atlas-v3.png \
-  art/runtime/final-boss-v3.png \
-  art/runtime/hero-directional-atlas-v1.png; do
+  art/runtime/final-boss-v3.png; do
   test -r "$bundle/public/dungeon-echo/$art_file"
 done
 
+test -r "$bundle/public/dungeon-echo/game/ui/new-run-reset-v167.js"
+test ! -e "$bundle/public/dungeon-echo/game/ui/hero-directional-art-v165.js"
+test ! -e "$bundle/public/dungeon-echo/game/ui/class-combat-fx-v163.js"
+test ! -e "$bundle/public/dungeon-echo/art/runtime/hero-directional-atlas-v1.png"
 test ! -e "$bundle/public/dungeon-echo/game/ui/hero-gear-art-v162.js"
 
 install -m 0755 "$repo_root/ops/site-bundle/deploy.sh" "$bundle/ops/deploy.sh"
