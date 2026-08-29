@@ -25,6 +25,7 @@ const tests = [
   'current-save-contract-v132.cjs',
   'current-control-contract-v132.cjs',
   'decision-clarity-v133.cjs',
+  'postlaunch-gameplay-regressions-v134.cjs',
   'control-copy-v132.cjs',
   'adaptive-bgm-v132.cjs',
   'audio-mix-v133.cjs',

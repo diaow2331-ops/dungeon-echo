@@ -3,6 +3,7 @@
 > 基线：Dungeon Echo v1.3.2，cache generation 171，public revision `8618c213e633ed9ac79bb661062de5eb4a6da4ca`。
 > 本文从 v1.3.2 开始取代旧的 v1.2.10 后维护路线，作为下一阶段产品优化的优先级依据。
 > **v1.3.3 hot-update status:** 第一工作包（装备决策一致性 + 渐进引导）与独立 Music/SFX 混音已实施；后续继续按本文 v1.3.4 / v1.4.0 边界推进。
+> **v1.3.4 gameplay hotfix:** 回城供给、地牢商人出售、职业无关武器掉落、追击接敌压力、游侠四向疾步与普通怪耐久已纳入核心修复。
 
 ## 1. 下一阶段目标
 
@@ -191,6 +192,10 @@ X 已开始对外引流。优化判断优先使用以下证据：
 - `00-Evan/shattered-pixel-dungeon/.../windows/WndInfoItem.java`：物品信息先解释对象本身，再让玩家做装备/使用决策；据此保持 Class Fit 与 Item Value 分离。
 - `00-Evan/shattered-pixel-dungeon/.../levels/rooms/standard/entrance/EntranceRoom.java` 与 `items/journal/Guidebook.java`：教程绑定早期真实事件，并用“已看过”状态避免重复；据此采用 event-driven、once-only 首局引导。
 - `00-Evan/shattered-pixel-dungeon/.../SPDSettings.java`：Music 与 SFX 分开持久化；据此作为 v1.3.3 独立音量设置的参考边界。
+- `00-Evan/shattered-pixel-dungeon/.../items/Generator.java`：普通武器从通用层级/类别池生成，而不是按当前英雄职业裁掉世界掉落；据此 v1.3.4 解除职业锁定武器池。
+- `00-Evan/shattered-pixel-dungeon/.../actors/mobs/npcs/Shopkeeper.java`：商人明确提供 sell 入口并由交易窗口结算价值；据此恢复地牢商人双向交易。
+- `00-Evan/shattered-pixel-dungeon/.../items/spells/BeaconOfReturning.java` 与 `actors/mobs/Mob.java`：回返资源有明确状态/消耗语义，敌对 Actor 每回合自行决策；据此强化 Return Scroll 供给与追击接敌压力，但不复制其 GPL runtime。
+- `tmewett/BrogueCE` / `ondras/rot.js`：继续坚持 Actor 行动经济与可读回合边界；因此接敌只使用削弱追击伤害，而不是“移动后再追加一次完整攻击”。
 
 引用只用于设计对照，不复制 GPL runtime 代码到本项目。
 

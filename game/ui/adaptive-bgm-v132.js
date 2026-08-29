@@ -1,4 +1,4 @@
-/* Dungeon Echo adaptive BGM v1.3.3.
+/* Dungeon Echo adaptive BGM v1.3.4.
  * Presentation-only WebAudio music follower.
  *
  * Recovers the six-scene v1.2 musical language without restoring the retired audio runtime:
@@ -20,7 +20,7 @@
 
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtor) {
-    window.__DE_ADAPTIVE_BGM_V132 = Object.freeze({ version:'v1.3.3', supported:false });
+    window.__DE_ADAPTIVE_BGM_V132 = Object.freeze({ version:'v1.3.4', supported:false });
     return;
   }
 
@@ -235,7 +235,7 @@
   window.addEventListener('beforeunload', stopTicker, { once:true });
 
   window.__DE_ADAPTIVE_BGM_V132 = Object.freeze({
-    version:'v1.3.3', supported:true, owner:'adaptive-bgm-v132',
+    version:'v1.3.4', supported:true, owner:'adaptive-bgm-v132',
     scenes:SCENES, sceneForState, switchScene, unlock, startTicker, stopTicker,
     applyAudioPrefs,
     get scene(){ return scene; }, get muted(){ return muted; }, get volume(){ return volume; },

@@ -17,7 +17,7 @@
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=172">
+<link rel="stylesheet" href="style.css?v=173">
 </head>
 <body>
 <div id="wrap">
@@ -39,6 +39,7 @@
       <span class="stat skillstat">Skill <b id="st-skill">Ready</b></span>
       <button id="fullscreen-toggle" type="button" aria-pressed="false" title="Enter or leave immersive fullscreen (F)"><span aria-hidden="true">⛶</span> Fullscreen <kbd>F</kbd></button>
       <button id="audio-settings-toggle" type="button" data-open-audio title="Adjust Music and SFX volume"><span aria-hidden="true">♫</span> Audio</button>
+      <button id="save-now-toggle" type="button" title="Save the current expedition to local storage now">Save</button>
     </div>
     <div id="equipbar">
       <div class="eqslot" id="eq-weapon" data-slot="weapon"><span class="eqicon" aria-hidden="true">◇</span><span class="eqname">Weapon</span></div>
@@ -93,7 +94,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">Move: arrows / WASD / click map · C Class Skill · J Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · click backpack to equip · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.3.3</b></footer>
+  <footer id="help">Move: arrows / WASD / click map · C Class Skill · J Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · top Save button · click backpack to equip · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.3.4</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">Restart (R)</button></div></div>
 
@@ -113,13 +114,14 @@
         <button type="button" id="btn-help">How to Play</button>
         <button type="button" data-open-audio>Audio Mix</button>
         <button type="button" id="btn-achv">Expedition Record</button>
+        <a class="title-nav-link" href="https://91hwl.cn/">← 91hwl Home</a>
       </div>
       <p class="save-meta" id="save-meta"></p>
     </div>
   </div>
 
   <div id="class-screen" class="hidden"><div class="title-card wide"><p class="kicker">Choose Your Echo</p><h2>Who Are You?</h2><p class="lede class-lede">Choose your combat rhythm. Every class can reach Floor 100, but each accepts risk in a different way.</p><div id="class-grid"></div><button type="button" id="btn-class-back" class="ghost">Back</button></div></div>
-  <div id="pause-screen" class="hidden"><div class="title-card"><h2>Paused</h2><p class="lede" id="pause-copy">Progress is saved locally.</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">Resume</button><button type="button" id="btn-save-quit">Save &amp; Title</button><button type="button" data-open-audio>Audio Mix</button></div></div></div>
+  <div id="pause-screen" class="hidden"><div class="title-card"><h2>Paused</h2><p class="lede" id="pause-copy">Progress is saved locally.</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">Resume</button><button type="button" id="btn-save-now">Save Now</button><button type="button" id="btn-save-quit">Save &amp; Title</button><button type="button" data-open-audio>Audio Mix</button></div></div></div>
   <div id="audio-settings-screen" class="hidden"><div class="title-card audio-card"><p class="kicker">Audio Mix</p><h2>Sound Settings</h2><p class="lede">Music and combat SFX are mixed separately and saved on this device.</p><div class="audio-mix-row"><label for="audio-music">Music</label><input id="audio-music" type="range" min="0" max="100" step="1" value="60"><output id="audio-music-value" for="audio-music">60%</output></div><div class="audio-mix-row"><label for="audio-sfx">SFX</label><input id="audio-sfx" type="range" min="0" max="100" step="1" value="78"><output id="audio-sfx-value" for="audio-sfx">78%</output></div><p class="audio-note">Recommended mix: Music 60% / SFX 78%. M remains a fast master mute.</p><div class="title-actions"><button type="button" id="audio-master" aria-pressed="false">Master Mute: Off</button><button type="button" id="audio-defaults">Restore 60 / 78</button><button type="button" id="audio-settings-close" class="primary">Done</button></div></div></div>
   <div id="shop-screen" class="hidden"><div class="title-card wide"><p class="kicker">Masked Merchant</p><h2>Underground Market</h2><p class="lede" id="shop-gold">Gold 0</p><div id="shop-list"></div><button type="button" id="btn-shop-leave" class="primary">Leave Stall</button></div></div>
   <div id="talent-screen" class="hidden"><div class="title-card wide"><p class="kicker">Echo Awakening</p><h2>Choose a Talent</h2><p class="lede">Every three levels, the dungeon leaves a new echo inside you.</p><div id="talent-grid"></div></div></div>
@@ -153,7 +155,7 @@
       <div class="help-cols">
         <div>
           <h3>Controls</h3>
-          <p>Move: <b>arrow keys / WASD / click explored tiles</b><br>Class Skill: <b>C</b> · Quick Dive: <b>J</b> · Wait: <b>Space</b><br>Potion: <b>Q</b> · Scroll: <b>E</b><br>Return: <b>T</b> (Greedy Expedition) · Descend: <b>Enter</b> (on stairs)<br>Pause: <b>Esc</b> · Master mute: <b>M</b> · Fullscreen: <b>F</b></p>
+          <p>Move: <b>arrow keys / WASD / click explored tiles</b><br>Class Skill: <b>C</b> · Quick Dive: <b>J</b> · Wait: <b>Space</b><br>Potion: <b>Q</b> · Scroll: <b>E</b><br>Return: <b>T</b> (Greedy Expedition) · Descend: <b>Enter</b> (on stairs)<br>Pause: <b>Esc</b> · Save: <b>top Save button</b> · Master mute: <b>M</b> · Fullscreen: <b>F</b></p>
           <h3>100-Floor Journey</h3>
           <p>Your first expedition starts on Floor 1. After reaching segment starts 11/21/…/91 and bringing that progress back to town, you can depart from conquered segment starts. Each tenth floor is a major guardian checkpoint; Floor 100 is the production finale.</p>
         </div>
@@ -168,17 +170,17 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=172"></script>
-<script src="profiles/classic-100.profile.js?v=172"></script>
-<script src="game/locale/locale-data-v134.js?v=172"></script>
-<script src="game/domain/content/content-rules-v130.js?v=172"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=172"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=172"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=172"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=172"></script>
-<script src="game/core/game.js?v=172"></script>
-<script src="game/locale/core-locale-data-v139.js?v=172"></script>
-<script src="game/input/desktop-controls.js?v=172"></script>
-<script src="game/core/runtime-bootstrap.js?v=172"></script>
+<script src="game/core/production-bootstrap.js?v=173"></script>
+<script src="profiles/classic-100.profile.js?v=173"></script>
+<script src="game/locale/locale-data-v134.js?v=173"></script>
+<script src="game/domain/content/content-rules-v130.js?v=173"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=173"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=173"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=173"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=173"></script>
+<script src="game/core/game.js?v=173"></script>
+<script src="game/locale/core-locale-data-v139.js?v=173"></script>
+<script src="game/input/desktop-controls.js?v=173"></script>
+<script src="game/core/runtime-bootstrap.js?v=173"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [English route](https://play.91hwl.cn/dungeon-echo/en/)
 
-> **v1.3.3 hot update:** first-run decision clarity is live, SFX have been rebuilt as layered WebAudio, Music/SFX are independently adjustable, and public cache generation is **172**.
+> **v1.3.4 gameplay hotfix:** Return Scroll supply, dungeon selling, class-independent weapon drops, pursuit pressure, Ranger dash symmetry and normal-monster durability are now fixed, and public cache generation is **173**.
 
 Dungeon Echo remains a vanilla HTML/CSS/JavaScript roguelike built around one journey from floor 1 to floor 100.
 

@@ -784,6 +784,12 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 }
 .title-card button.ghost { background: transparent; font-weight: 500; color: var(--dim); }
 .title-card button:hover { filter: brightness(1.08); }
+.title-nav-link {
+  display: flex; align-items: center; justify-content: center; min-height: 42px; padding: 9px 16px;
+  color: var(--dim); border: 1px solid var(--border); background: rgba(20, 14, 11, .5); text-decoration: none; font-size: 13px;
+}
+.title-nav-link:hover, .title-nav-link:focus-visible { color: var(--accent-hi); border-color: var(--border-hi); }
+#title-screen .title-nav-link { grid-column: 1 / -1; }
 .save-meta { margin-top: 14px; color: var(--dim); font-size: 12px; min-height: 1.4em; }
 
 #class-grid {

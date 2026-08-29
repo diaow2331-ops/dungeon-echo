@@ -20,6 +20,8 @@ window.DE_PROFILES['classic-100'] = {
     eliteAtkMult: 1.45,
     depthScaleMax: 0.50,
     lootChances: { scroll: 0.50, equip1: 0.44, equip2: 0.26 },
+    returnScrollChance: 0.16,
+    returnScrollGuaranteeOffset: 3,
     killLoot: { gold: 0.60, potion: 0.67, equip: 0.83 },
     lootCounts: {
       potionLo: 1, potionHi: 1,

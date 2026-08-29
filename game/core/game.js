@@ -232,7 +232,7 @@ function broadcastAudioPrefs() {
   catch (e) { /* presentation follower may be absent */ }
 }
 if (typeof window !== 'undefined') {
-  window.DE_AUDIO_PREFS_V133 = Object.freeze({ version:'v1.3.3', snapshot:audioSnapshot });
+  window.DE_AUDIO_PREFS_V133 = Object.freeze({ version:'v1.3.4', snapshot:audioSnapshot });
 }
 
 const CLASSES = {
@@ -1709,9 +1709,19 @@ const WEAPON_SPR_BY_ICON = {
   'iron-sword': 'sword', 'broad-sword': 'sword', 'battle-axe': 'axe', 'rune-blade': 'sword',
   'hunting-bow': 'bow', 'arcane-staff': 'staff', 'dagger': 'dagger',
 };
-function weaponPoolForClass() {
-  const tagged = WEAPON_BASES.filter(b => b.cls === classId);
-  return tagged.length ? tagged : WEAPON_BASES;
+function weaponBaseForDrop(d) {
+  // World loot belongs to the dungeon, not to the selected hero class. Pick an available
+  // weapon family first, then a depth-appropriate base inside that family. Class Fit remains
+  // decision information only and never feeds back into generation.
+  const families = [...new Set(WEAPON_BASES.map(b => b.cls).filter(Boolean))]
+    .filter(cid => WEAPON_BASES.some(b => b.cls === cid && d >= b.min));
+  if (!families.length) {
+    const pool = WEAPON_BASES.filter(b => d >= b.min);
+    return pool.length ? pick(pool) : WEAPON_BASES[0];
+  }
+  const family = pick(families);
+  const pool = WEAPON_BASES.filter(b => b.cls === family && d >= b.min);
+  return pool[Math.max(0, pool.length - 1 - rnd(Math.min(2, pool.length)))];
 }
 // 装备评分：由唯一 equipment-stat-scoring 权威提供；core 只消费结果。
 const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null;
@@ -1799,13 +1809,13 @@ function genEquip(d, minRarity = 0) {
   // 六栏位分布：武器 .30 护甲 .25 头盔 .15 靴 .15 戒指 .10 项链 .05
   const slot = roll < .30 ? 'weapon' : roll < .55 ? 'armor' : roll < .70 ? 'helmet' :
     roll < .85 ? 'boots' : roll < .95 ? 'ring' : 'amulet';
-  const bases = slot === 'weapon' ? weaponPoolForClass() :
-    slot === 'armor' ? ARMOR_BASES :
+  const bases = slot === 'armor' ? ARMOR_BASES :
     slot === 'helmet' ? HELMET_BASES :
     slot === 'boots' ? BOOT_BASES :
     slot === 'ring' ? RING_BASES : AMULET_BASES;
-  const pool = bases.filter(b => d >= b.min);
-  const base = pool[Math.max(0, pool.length - 1 - rnd(Math.min(2, pool.length)))];
+  const pool = slot === 'weapon' ? null : bases.filter(b => d >= b.min);
+  const base = slot === 'weapon' ? weaponBaseForDrop(d) :
+    pool[Math.max(0, pool.length - 1 - rnd(Math.min(2, pool.length)))];
   const rarity = rollRarity(minRarity);
   const stats = {};
   if (base.atk) stats.atk = base.atk;
@@ -2088,11 +2098,16 @@ function makeMonster(base, p) {
     scale *= 1 + (depth - MAX_DEPTH) * 0.08;
   }
   const atkValue = Math.round(base.atk * (elite ? FR.eliteAtkMult : 1) * scale);
+  const normalPressure = base.boss || base.midBoss ? 1 : 1.70 + Math.min(0.30, Math.max(0, depth - 1) * 0.0031);
+  const hpPressure = elite ? normalPressure * 0.86 : normalPressure;
+  const defPressure = base.boss || base.midBoss ? Number(base.def) || 0 :
+    Math.max(0, Math.round((Number(base.def) || 0) * scale * (elite ? 1.22 : 1) + Math.floor(depth / 16)));
   const m = {
     ...base,
     traits,
     x: p.x, y: p.y, fx: p.x, fy: p.y,
-    maxHp: Math.round(base.hp * (elite ? FR.eliteHpMult : 1) * scale),
+    maxHp: Math.max(1, Math.round(base.hp * (elite ? FR.eliteHpMult : 1) * scale * hpPressure)),
+    def: defPressure,
     atk: atkValue,
     atkOrigin: atkValue,
     xp: Math.round(base.xp * (elite ? 2 : 1) * (player && player.echoMode ? 1.2 : 1)),
@@ -2175,7 +2190,10 @@ function spawnItems(rooms) {
       name: C.gold.name });
   if (rng() < LC.scroll)
     put({ type: 'scroll', icon: C.scroll.icon, name: C.scroll.name });
-  if (greedyMode && rng() < 0.08)
+  const returnChance = clamp(Number(RUN_PROFILE.floorRules.returnScrollChance) || 0.16, 0, 1);
+  const returnOffset = Math.max(1, Math.min(9, Math.floor(Number(RUN_PROFILE.floorRules.returnScrollGuaranteeOffset) || 3)));
+  const guaranteedReturn = greedyMode && ((depth - returnOffset) % 10 === 0);
+  if (greedyMode && (guaranteedReturn || rng() < returnChance))
     put({ type: 'escape', icon: C.scroll.icon, name: '回城卷轴' });
   if (rng() < LC.equip1)
     put({ type: 'equip', item: genEquip(depth), emoji: '', name: '装备' });
@@ -2478,7 +2496,7 @@ function playerRangedAttack(m) {
   }
   if (m.hp > 0) msg(ui(`${crit ? '暴击！' : ''}你射中${m.name}，造成 ${dmg} 点伤害。`, `${crit ? 'Critical! ' : ''}You shot ${visibleWorldName(m.name)} for ${dmg} damage.`));
 }
-function monsterAttack(m, armorBreak = false) {
+function monsterAttack(m, armorBreak = false, damageScale = 1) {
   lunge(m, player.x, player.y);
   // 游侠被动「灵巧」：一成几率闪开近战攻击（不挡远程——远程是游侠的克制面）
   if (classId === 'ranger' && player.hp > 0 && rng() < 0.10) {
@@ -2486,7 +2504,7 @@ function monsterAttack(m, armorBreak = false) {
     msg(ui(`${m.name}的攻击被你灵巧闪开。`, `You dodged ${visibleWorldName(m.name)}'s attack.`));
     return;
   }
-  const raw = m.atk + ri(-1, 1);
+  const raw = Math.max(1, Math.round((m.atk + ri(-1, 1)) * Math.max(0.1, Number(damageScale) || 1)));
   let dmg = mitigatePlayerHit(raw, 1, armorBreak);
   dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
@@ -2825,26 +2843,33 @@ function useBaseSkill() {
     msg(ui(`横扫命中 ${adj.length} 个敌人！`, `Cleave hit ${adj.length} enemies!`), 'gold');
     used = true;
   } else if (sk.id === 'dash') {
-    const [dx, dy] = player.facing || [1, 0];
-    let nx = player.x, ny = player.y, hits = 0;
-    for (let step = 0; step < 2; step++) {
-      const tx = nx + dx, ty = ny + dy;
+    const facing = Array.isArray(player.facing) ? player.facing : [1, 0];
+    const dx = Math.sign(Number(facing[0]) || 0), dy = Math.sign(Number(facing[1]) || 0);
+    if (Math.abs(dx) + Math.abs(dy) !== 1) { msg(ui('没有有效的疾步方向。','No valid dash direction.')); return; }
+    const originX = player.x, originY = player.y;
+    let landingX = originX, landingY = originY, hits = 0;
+    for (let step = 1; step <= 2; step++) {
+      const tx = originX + dx * step, ty = originY + dy * step;
       if (!walkable(tx, ty) || npcAt(tx, ty)) break;
       const m = monsterAt(tx, ty);
       if (m) {
         applyDamageToMonster(m, Math.max(1, pAtk() + 2 - m.def), false);
         hits++;
-        if (m.hp > 0) break;
+        if (state !== 'playing') return;
+        if (m.hp > 0) continue;
       }
-      nx = tx; ny = ty;
+      if (!monsterAt(tx, ty)) { landingX = tx; landingY = ty; }
     }
-    if (nx === player.x && ny === player.y && !hits) { msg(ui('这个方向无法疾步。','Dash is blocked in that direction.')); return; }
-    player.x = nx; player.y = ny;
+    if (landingX === originX && landingY === originY && !hits) {
+      msg(ui('这个方向被地形或角色挡住，无法疾步。','Terrain or a character blocks the dash in that direction.'));
+      return;
+    }
+    player.x = landingX; player.y = landingY;
     sfx.skill();
-    triggerTrap(nx, ny);
+    triggerTrap(landingX, landingY);
     pickupHere();
     msg(hits
-      ? ui(`疾步穿过 ${hits} 个敌人。`, `Dash crossed ${hits} enemies.`)
+      ? ui(`疾步掠过 ${hits} 个敌人，落在前方安全位置。`, `Dash cut through ${hits} enemies and landed on the furthest safe tile.`)
       : ui('你向前疾步。','You dash forward.'), 'good');
     used = true;
   } else if (sk.id === 'bolt') {
@@ -3480,7 +3505,15 @@ function stepToward(m) {
     if (fd < 0) continue;
     if (fd < best || (fd === best && rng() < 0.5)) { best = fd; bx = ox; by = oy; }
   }
-  if (bx || by) { m.x += bx; m.y += by; }
+  if (bx || by) { m.x += bx; m.y += by; return true; }
+  return false;
+}
+function engagementStrike(m) {
+  if (!m || m.hp <= 0 || state !== 'playing') return false;
+  if (Math.abs(m.x - player.x) + Math.abs(m.y - player.y) !== 1) return false;
+  floater(m, ui('追击!','PRESS!'), '#e0a73a');
+  monsterAttack(m, false, 0.60);
+  return true;
 }
 function randomStep(m) {
   const [ox, oy] = pick([[1, 0], [-1, 0], [0, 1], [0, -1]]);
@@ -3788,10 +3821,10 @@ function monstersTurn() {
     if (canSeePlayer(m)) {
       m.alert = AI_MEM;
       if (m.erratic && rng() < 0.5) randomStep(m);
-      else stepToward(m);
+      else if (stepToward(m) && engagementStrike(m) && state !== 'playing') return;
     } else if (m.alert > 0) {
       m.alert--;
-      stepToward(m);
+      if (stepToward(m) && engagementStrike(m) && state !== 'playing') return;
     } else if (rng() < 0.25) {
       randomStep(m);
     }
@@ -4486,7 +4519,8 @@ function showOverlay(kind, bodyHtml) {
 function hideOverlay() { $('overlay').classList.add('hidden'); }
 
 function persistRun() {
-  if (!player || (state !== 'playing' && state !== 'town')) return;
+  if (!player || (state !== 'playing' && state !== 'town' && state !== 'paused')) return false;
+  const savedState = state === 'paused' ? 'playing' : state;
   const blob = {
     version: SAVE_VERSION,
     mode: greedyMode ? RUN_MODE_GREEDY : RUN_MODE_CLASSIC,
@@ -4494,7 +4528,7 @@ function persistRun() {
     seed: RUN_SEED,
     rng: rngFn.getState(),
     classId,
-    depth, turns, state,
+    depth, turns, state: savedState,
     player: JSON.parse(JSON.stringify(player)),
     map, explored,
     monsters: monsters.map(m => ({ ...m })),
@@ -4502,7 +4536,19 @@ function persistRun() {
     decals: [...decals],
     logLines: logLines.slice(0, 12),
   };
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(blob)); } catch (e) { /* 忽略 */ }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(blob)); return true; }
+  catch (e) { return false; }
+}
+function manualSaveNow() {
+  if (!persistRun()) return false;
+  if (state === 'paused') {
+    const copy = $('pause-copy');
+    if (copy) copy.textContent = ui(`第 ${depth} 层 · ${classDef().name} · 已手动保存。`, `Floor ${depth} · ${classDef().name} · Saved manually.`);
+  } else if (state === 'playing') {
+    msg(ui('当前远征已手动保存。','Current expedition saved manually.'), 'good');
+    updateHud();
+  }
+  return true;
 }
 function peekRun() {
   try {
@@ -4646,12 +4692,33 @@ function renderShop() {
   if (goldEl) goldEl.textContent = ui(`金币 ${player.gold}`, `Gold ${player.gold}`);
   const list = $('shop-list');
   if (!list) return;
-  list.innerHTML = shopStock.map((row, i) => `
+  const buyRows = shopStock.map((row, i) => `
     <div class="shop-row">
       <span>${esc(visibleShopRowName(row))}</span>
       <b>${row.price} G</b>
       <button type="button" data-buy="${i}">${ui('购买','Buy')}</button>
     </div>`).join('');
+  const sellRows = (player.inv || []).map((it, i) => `
+    <div class="shop-row shop-sell-row">
+      <span>${esc(visibleItemName(it))}<small>${ui(`职业适配 ${classFitOf(it)}`, `Class Fit ${classFitOf(it)}`)}</small></span>
+      <b>+${sellPrice(it)} G</b>
+      <button type="button" data-shop-sell="${i}">${ui('出售','Sell')}</button>
+    </div>`).join('');
+  list.innerHTML = `<h3>${ui('购买','Buy')}</h3>${buyRows}<h3>${ui('出售背包装备','Sell Backpack Gear')}</h3>` +
+    (sellRows || `<p class="lede">${ui('背包里没有可出售的装备。','No backpack gear to sell.')}</p>`);
+}
+function sellDungeonShopItem(i) {
+  if (state !== 'shop' || !player || !Array.isArray(player.inv)) return false;
+  const it = player.inv[i];
+  if (!it) return false;
+  const gold = sellPrice(it);
+  player.inv.splice(i, 1);
+  player.gold += gold;
+  selectedBagIndex = -1;
+  sfx.shop();
+  msg(ui(`你把【${it.name}】卖给了蒙面商人，获得 ${gold} G。`, `You sold [${visibleItemName(it)}] to the masked merchant for ${gold} G.`), 'gold');
+  renderBag(); renderShop(); updateHud(); persistRun();
+  return true;
 }
 function buyShop(i) {
   const row = shopStock[i];
@@ -5625,7 +5692,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
 function useEscape() {
   if (!greedyMode || state !== 'playing') return;
   if ((player.escapes || 0) <= 0) {
-    msg(ui('没有回城卷轴了——镇上商店有售，中层守卫也会掉落。','No Return Scrolls left — buy one in town or defeat a deep guardian.'), 'bad');
+    msg(ui('没有回城卷轴了——地牢每个十层区段都有保底来源，商人和中层守卫也能补充。','No Return Scrolls left — every ten-floor band has a guaranteed source, and merchants/guardians provide more.'), 'bad');
     return;
   }
   player.escapes--;
@@ -5934,15 +6001,19 @@ if ($('class-grid')) $('class-grid').addEventListener('click', e => {
   newGame(btn.dataset.class);
 });
 if ($('btn-resume')) $('btn-resume').addEventListener('click', () => { ensureAudio(); resumeGame(); });
+if ($('save-now-toggle')) $('save-now-toggle').addEventListener('click', () => { ensureAudio(); manualSaveNow(); });
+if ($('btn-save-now')) $('btn-save-now').addEventListener('click', () => { ensureAudio(); manualSaveNow(); });
 if ($('btn-save-quit')) $('btn-save-quit').addEventListener('click', () => {
   ensureAudio(); persistRun(); hideUi('pause-screen'); showTitle();
 });
 if ($('btn-shop-leave')) $('btn-shop-leave').addEventListener('click', () => { ensureAudio(); closeShop(); });
 if ($('shop-list')) $('shop-list').addEventListener('click', e => {
-  const btn = e.target.closest('[data-buy]');
-  if (!btn) return;
+  const buy = e.target.closest('[data-buy]');
+  const sell = e.target.closest('[data-shop-sell]');
+  if (!buy && !sell) return;
   ensureAudio();
-  buyShop(+btn.dataset.buy);
+  if (buy) buyShop(+buy.dataset.buy);
+  else sellDungeonShopItem(+sell.dataset.shopSell);
 });
 if ($('talent-grid')) $('talent-grid').addEventListener('click', e => {
   const btn = e.target.closest('[data-talent]');
@@ -6003,9 +6074,10 @@ if (typeof window !== 'undefined') {
     pauseGame, resumeGame,
     pickTalent, chooseEchoLeave, chooseEchoStay,
     genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
-    persistRun, peekRun, restoreRun, CLASSES, TALENTS,
+    persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
+    weaponBaseForDrop, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
