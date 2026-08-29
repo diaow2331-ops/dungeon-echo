@@ -1,70 +1,99 @@
 # Dungeon Echo Maintenance Guide
 
-This document describes the v1.3.4 single-authority maintenance contract.
+Dungeon Echo is maintained as a **single-authority, main-only production repository**.
+
+## Start here
+
+Before changing product code, read these files in order:
+
+1. `docs/authority-map-v130.json` — machine-readable production ownership.
+2. `docs/ARCHITECTURE_SINGLE_AUTHORITY.md` — why the ownership boundary exists.
+3. `docs/MAINTENANCE.md` — this operational contract.
+4. `test/README.md` — current gates versus historical evidence.
+5. the newest `docs/releases/RELEASE_NOTES_v*.md` — current shipped product boundary.
+
+`VERSION`, `docs/authority-map-v130.json`, the authored entry pages, runtime bootstrap,
+release/deploy contracts and release stamp must agree at every release boundary.
+Do not copy semantic-version/cache literals into governance prose merely to make a check pass.
 
 ## Core rule
 
 **One responsibility has exactly one production authority.**
 
-The canonical ownership table is `docs/authority-map-v130.json`. Human-readable rationale and restoration rules are in `docs/ARCHITECTURE_SINGLE_AUTHORITY.md`.
+The canonical gameplay owner is `game/core/game.js`. It owns live gameplay state, turn flow,
+combat execution, town gameplay, Canvas rendering, keyboard/touch gameplay input, gameplay
+persistence, expedition records, audio preferences and the SFX graph.
 
-## Current production graph
+Narrow supporting authorities are allowed only for responsibilities explicitly listed in
+`docs/authority-map-v130.json`. Pure domain libraries may calculate rules, but must not acquire
+live gameplay state, input, Canvas, timers, or storage ownership.
 
-- `game/core/game.js` — gameplay state, turn/combat flow, economy, progression, town gameplay, Canvas rendering, keyboard/touch gameplay input, gameplay persistence, audio preferences and the SFX WebAudio graph.
-- `game/core/production-bootstrap.js` — pre-core storage epoch reset and New Adventure reset orchestration only.
-- `game/core/runtime-bootstrap.js` — approved presentation-only follower loader.
-- `game/input/desktop-controls.js` — gamepad transport only.
-- `game/locale/fixed-locale-entry-v130.js` — fixed-route language navigation only.
-- `game/ui/responsive-final-v154.js` — responsive CSS only.
-- `game/ui/help-copy-v126.js` — bounded Help DOM copy only.
-- `game/ui/adaptive-bgm-v132.js` — private adaptive-music WebAudio graph; reads core audio preference snapshots/events but owns no storage or mute input.
+## Production graph
 
-The release allowlist is `ops/release/static-files.txt`. If a file is not in that list, it is not production.
+The synchronous entry graph is defined by the authored Chinese/English entry pages and locked by
+`test/current-production-entry-v132.cjs`. Late runtime followers are loaded only by
+`game/core/runtime-bootstrap.js` and must remain presentation-only.
 
-## Quarantine policy
+The release allowlist is `ops/release/static-files.txt`. A file outside that allowlist is not part
+of the immutable game artifact.
 
-The authority reset does not discard completed work. Historical systems and art are stored under `archive/quarantine-v130/`.
+## Quarantine and recovery
 
-Never restore an archived file by adding it back to an entry page or runtime loader. Instead:
+Historical implementations live under `archive/`, especially `archive/quarantine-v130/`.
+They are evidence, not dormant production modules.
 
-1. classify the feature responsibility;
-2. identify its sole owner;
-3. port useful logic/data/art into that owner or a read-only helper it explicitly owns;
-4. remove duplicated state/event/render ownership from the old design;
-5. update the authority contract;
-6. only then admit the new active file to the release allowlist.
+Never restore a historical feature by reconnecting its old runtime. Recover product value by:
 
-## Forbidden maintenance patterns
+1. identifying the responsibility and its current owner;
+2. extracting the useful rule/data/art;
+3. integrating it into that owner or a pure helper owned by it;
+4. removing duplicate state/input/render/storage ownership in the same PR;
+5. updating authority and focused regression contracts.
 
-- follower code assigning/replacing gameplay API methods;
-- multiple modules writing the same gameplay localStorage keys;
-- a second module obtaining a 2D context for the dungeon/town Canvas;
-- masking the canonical renderer in order to redraw a character/monster/loot layer;
-- competing gameplay `keydown`/touch handlers;
-- release-time `sed` or other build mutations that change the dependency graph;
-- production references to `archive/`.
+## Repository workflow
 
-## Version and cache generation
+`main` is the only long-lived production branch and is protected. Product changes must use:
 
-- Semantic version: `1.3.4`.
-- Public cache generation: `173`.
-- `VERSION` owns the semantic version.
-- Source HTML/JS is already deployable; the release builder copies it and must not rewrite dependencies.
+`player evidence → focused branch → focused local gates → pull request → squash/rebase merge → branch deletion`
+
+No required GitHub Actions status check is configured while hosted Actions quota is unavailable.
+That does **not** permit skipping local gates. Do not dispatch hosted workflows as a substitute.
+
+Prefer one focused PR per product responsibility. Do not mix unrelated gameplay, art, repository
+cleanup and deployment changes merely to reduce PR count.
+
+## Test policy
+
+`node test/current-suite.cjs` is the explicit full current repository/release gate.
+`bash ops/check-authority-local.sh` is the explicit authority gate.
+
+Historical tests remain useful recovery evidence but are not release claims. See `test/README.md`.
+Never claim the whole suite passed unless it was actually executed on the exact source tree.
 
 ## Storage
 
-The storage epoch remains `v130`. New Adventure clears gameplay state but preserves `de-guide-v1` and `de-audio-v1`; audio/onboarding preferences are device preferences, not run state.
+The current storage epoch remains `v130`. New Adventure clears run state while preserving the
+bounded cross-run/device preferences explicitly owned by `game/core/production-bootstrap.js`:
+first-run guide, audio mix, expedition record and Greedy-mode intent.
 
-Gameplay persistence belongs to core. The old save-integrity and item-ID migration shims are quarantined reference implementations. If validation or migration returns later, it must be integrated into the sole persistence owner rather than executed as an independent writer.
+Gameplay persistence itself belongs to core. Do not reintroduce a sidecar save writer or migration
+runtime.
 
-## Release procedure
+## Release and deployment
 
-1. Run `node test/single-authority-v130.cjs`.
-2. Build with `bash ops/release/build-site-bundle.sh <output.zip>`.
-3. Deploy only the immutable artifact through `ops/site-bundle/deploy.sh`.
-4. Require `dungeon_echo_healthcheck=PASS` and `dungeon_echo_site_deploy=PASS`.
-5. After deployment, inspect the public site. CI success does not replace online acceptance.
+1. Start from an exact, clean GitHub `main` tree.
+2. Run the focused gates for the changed responsibility.
+3. Run `bash ops/check-authority-local.sh`.
+4. Run `node test/current-suite.cjs` for a release/freeze.
+5. Build the immutable bundle with `ops/release/build-site-bundle.sh`.
+6. Deploy that exact artifact through `ops/site-bundle/deploy.sh`.
+7. Require the deploy/health checks to pass and verify the public route in a real browser.
+
+The server deployment checkout must not be treated as a development worktree. If `/opt/dungeon-echo`
+is not writable by the normal development account, fix ownership through the authorized root
+maintenance path rather than bypassing Git safety or editing the deployed tree in place.
 
 ## Regression triage
 
-When a regression appears, first ask **which owner produced it**. If the answer is ambiguous, treat that ambiguity as an architecture bug before applying a visual or behavioral patch.
+When a regression appears, first ask **which owner produced it**. If the answer is ambiguous,
+treat the ambiguity as an architecture bug before applying a visual or behavioral patch.
