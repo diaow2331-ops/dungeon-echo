@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
+const generation = String(JSON.parse(fs.readFileSync(path.join(root, 'docs/authority-map-v130.json'), 'utf8')).cacheGeneration);
 const rel = 'game/domain/progression/progression-rules-v130.js';
 const source = fs.readFileSync(path.join(root, rel), 'utf8');
 const executableSource = source
@@ -21,8 +22,8 @@ const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt')
 assert(manifest.includes(rel), 'production progression arithmetic must ship');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(html.includes(`${rel}?v=169`), `${entry}: progression authority must be loaded`);
-  assert(html.indexOf(`${rel}?v=169`) < html.indexOf('game/core/game.js?v=169'), `${entry}: progression authority must load before core`);
+  assert(html.includes(`${rel}?v=${generation}`), `${entry}: progression authority must be loaded`);
+  assert(html.indexOf(`${rel}?v=${generation}`) < html.indexOf(`game/core/game.js?v=${generation}`), `${entry}: progression authority must load before core`);
 }
 
 assert.equal(rules.xpThreshold(1), 15);

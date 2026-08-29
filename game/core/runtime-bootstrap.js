@@ -1,6 +1,6 @@
 /* Dungeon Echo production UX bootstrap v19.
  *
- * v1.3.0 authority-baseline generation 169 rule:
+ * v1.3.1 recovery release generation 170 rule:
  * - game/core/game.js is the sole gameplay/render/input/persistence writer;
  * - this bootstrap may load DOM-only followers only;
  * - followers must not touch Canvas contexts, mutate DE_TEST gameplay APIs,
@@ -10,13 +10,13 @@
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '169';
+  const assetVersion = '170';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
 
   const chain = Object.freeze([
-    [fresh('game/core/release-stamp-v130.js'), 'data-de-release-stamp-v130', () => !!window.__DE_RELEASE_STAMP_V130],
+    [fresh('game/core/release-stamp-v131.js'), 'data-de-release-stamp-v131', () => !!window.__DE_RELEASE_STAMP_V131],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/ui/responsive-final-v154.js'), 'data-de-responsive-final-v154', () => !!window.__DE_RESPONSIVE_FINAL_V154],
     [fresh('game/ui/help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],

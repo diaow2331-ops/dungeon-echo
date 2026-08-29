@@ -4,21 +4,25 @@ const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
+const version = read('VERSION').trim();
+const generation = String(JSON.parse(read('docs/authority-map-v130.json')).cacheGeneration);
+const stamped = rel => `${rel}?v=${generation}`;
+const releaseStampPath = `game/core/release-stamp-v${version.replace(/\./g, '')}.js`;
 
 const expectedScripts = [
-  'game/core/production-bootstrap.js?v=169',
-  'profiles/classic-100.profile.js?v=169',
-  'game/locale/locale-data-v134.js?v=169',
-  'game/domain/content/content-rules-v130.js?v=169',
-  'game/domain/inventory/equipment-rules-v130.js?v=169',
-  'game/domain/economy/economy-rules-v130.js?v=169',
-  'game/domain/progression/progression-rules-v130.js?v=169',
-  'game/domain/combat/combat-rules-v130.js?v=169',
-  'game/core/game.js?v=169',
-  'game/locale/core-locale-data-v139.js?v=169',
-  'game/input/desktop-controls.js?v=169',
-  'game/core/runtime-bootstrap.js?v=169',
-];
+  'game/core/production-bootstrap.js',
+  'profiles/classic-100.profile.js',
+  'game/locale/locale-data-v134.js',
+  'game/domain/content/content-rules-v130.js',
+  'game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/economy/economy-rules-v130.js',
+  'game/domain/progression/progression-rules-v130.js',
+  'game/domain/combat/combat-rules-v130.js',
+  'game/core/game.js',
+  'game/locale/core-locale-data-v139.js',
+  'game/input/desktop-controls.js',
+  'game/core/runtime-bootstrap.js',
+].map(stamped);
 
 for (const rel of ['index.html','en/index.html']) {
   const html = read(rel);
@@ -53,7 +57,7 @@ assert(bootstrap.indexOf('claimFreshAdventureButton();') < bootstrap.indexOf('wi
 
 const runtime = read('game/core/runtime-bootstrap.js');
 for (const token of [
-  'game/core/release-stamp-v130.js',
+  releaseStampPath,
   'game/locale/fixed-locale-entry-v130.js',
   'game/ui/responsive-final-v154.js',
   'game/ui/help-copy-v126.js',

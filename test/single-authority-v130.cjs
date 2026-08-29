@@ -10,10 +10,13 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const exists = rel => fs.existsSync(path.join(root, rel));
 const run = (cmd,args) => spawnSync(cmd,args,{cwd:root,encoding:'utf8'});
 
-assert.equal(read('VERSION').trim(), '1.3.0');
+const version = read('VERSION').trim();
+assert.match(version, /^1\.3\.\d+$/);
 const authority = JSON.parse(read('docs/authority-map-v130.json'));
+assert.equal(authority.version, version);
 assert.equal(authority.policy, 'one-responsibility-one-production-authority');
-assert.equal(authority.cacheGeneration, 169);
+assert(Number.isInteger(authority.cacheGeneration) && authority.cacheGeneration > 0);
+const cacheGeneration = String(authority.cacheGeneration);
 assert.equal(authority.authorities.gameplayState, 'game/core/game.js');
 assert.equal(authority.authorities.contentClassification, 'game/domain/content/content-rules-v130.js');
 assert.equal(authority.authorities.equipmentStatScoring, 'game/domain/inventory/equipment-rules-v130.js');
@@ -93,9 +96,9 @@ for (const oldShelf of [
 const zh = read('index.html');
 const en = read('en/index.html');
 for (const html of [zh,en]) {
-  assert(html.includes('v1.3.0'));
-  assert(html.includes('?v=169'));
-  assert(!/\?v=(153|157|166|167|168)/.test(html), 'historical cache generation remains');
+  assert(html.includes(`v${version}`));
+  const generations = [...html.matchAll(/\?v=(\d+)/g)].map(match => match[1]);
+  assert(generations.length > 0 && generations.every(row => row === cacheGeneration), 'entry cache generation drifted');
   assert(!/archive\/|game\/systems\/|combat-controls|art-runtime|town-art|hero-directional|class-combat-fx/.test(html), 'entry references non-authoritative runtime');
 }
 
@@ -108,7 +111,7 @@ assert(production.includes("gameplayStateOwner:'game/core/game.js'"));
 assert(production.includes("gameplayInputOwner:'game/core/game.js'"));
 assert(production.includes("gameplayPersistenceOwner:'game/core/game.js'"));
 assert(production.includes('historicalSaveMigration:false'));
-assert(runtime.includes("const assetVersion = '169'"));
+assert(runtime.includes(`const assetVersion = '${cacheGeneration}'`));
 assert(runtime.includes("followers:'dom-only'"));
 assert(runtime.includes("gameplayStateOwner:'game/core/game.js'"));
 assert(!/game\/systems\/|combat-controls|art-runtime|town-art|hero-directional|class-combat-fx/.test(runtime));
@@ -184,11 +187,11 @@ for (const rel of [
 }
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(),'de-v130-authority-'));
-const archive = path.join(tmp,'dungeon-v1.3.0.zip');
+const archive = path.join(tmp,`dungeon-v${version}.zip`);
 let r = run('bash',['ops/release/build-site-bundle.sh',archive]);
 assert.equal(r.status,0,`${r.stdout}\n${r.stderr}`);
 assert.match(r.stdout,/dungeon_echo_bundle_build=PASS/);
-assert.match(r.stdout,/asset_generation=169/);
+assert(r.stdout.includes(`asset_generation=${cacheGeneration}`));
 r = run('unzip',['-Z1',archive]);
 assert.equal(r.status,0,r.stderr);
 const files = r.stdout.trim().split(/\r?\n/);

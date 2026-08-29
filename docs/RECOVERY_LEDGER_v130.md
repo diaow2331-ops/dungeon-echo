@@ -2,6 +2,17 @@
 
 This ledger records what may be recovered from pre-v1.3 work and what must stay retired. It complements `MODULE_REINTEGRATION_PLAN_v130.md`: the plan defines how authority moves; this ledger defines what is worth bringing forward.
 
+## v1.3.1 closure
+
+The reviewed recovery sequence is complete in production authority:
+
+- four-class combat FX, detailed town NPCs, dungeon props, loot and deep-monster art are rendered by core;
+- conquered-depth town departures, finite tier-scaled market stock and 20/40/60/80 skill evolutions are owned by core;
+- the Floor 10→100 guardian learning curve is owned, scheduled, saved and rendered by core;
+- the historical wrapper/overlay/storage patterns listed below remain retired.
+
+Future changes require reproducible player evidence from the open human-validation issues rather than another broad recovery pass.
+
 ## Recovery rule
 
 Preserve product value, not historical topology.

@@ -1,9 +1,9 @@
-/* Dungeon Echo production authority bootstrap v1.3.0.
+/* Dungeon Echo production authority bootstrap v1.3.1.
  *
  * Production policy is deliberately simple:
  * - game/core/game.js is the sole dungeon/town Canvas renderer;
  * - no presentation overlay may redraw heroes, monsters, loot, terrain or town art;
- * - the v1.3.0 storage epoch starts clean and does not migrate any historical save;
+ * - the v130 storage epoch stays stable and does not migrate any historical save;
  * - New Adventure has exactly one production DOM owner: this bootstrap.
  *
  * The historical game.js listener still targets #btn-new. This bootstrap runs first
@@ -99,7 +99,7 @@
   }
 
   const AUTHORITY = Object.freeze({
-    version:'1.3.0',
+    version:'1.3.1',
     renderer:'game/core/game.js',
     gameplayState:'game/core/game.js',
     gameplayInput:'game/core/game.js',
@@ -110,7 +110,7 @@
   });
 
   window.__DE_PRODUCTION_AUTHORITY_V130 = Object.freeze({
-    version:'1.3.0',
+    version:'1.3.1',
     owner:'production-authority',
     renderOwner:'game/core/game.js',
     gameplayStateOwner:'game/core/game.js',

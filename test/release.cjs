@@ -1,165 +1,107 @@
 'use strict';
 
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+
 const root = path.resolve(__dirname, '..');
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
+const run = (command, args, options={}) => spawnSync(command, args, {
+  cwd: options.cwd || root,
+  encoding: 'utf8',
+  env: { ...process.env, ...(options.env || {}) },
+});
+
 const version = read('VERSION').trim();
-const zh = read('index.html');
-const en = read('en/index.html');
-const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
+const authority = JSON.parse(read('docs/authority-map-v130.json'));
+const generation = String(authority.cacheGeneration);
+const stampPath = `game/core/release-stamp-v${version.replace(/\./g, '')}.js`;
+const manifest = read('ops/release/static-files.txt').trim().split(/\r?\n/).filter(Boolean);
+const runtime = read('game/core/runtime-bootstrap.js');
+const production = read('game/core/production-bootstrap.js');
 const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
-const deployReadme = read('ops/site-bundle/README.txt');
-const productionBootstrapPath = 'game/core/production-bootstrap.js';
-const runtimePath = 'game/core/runtime-bootstrap.js';
-const responsivePath = 'game/ui/responsive-final-v154.js';
-const saveIntegrityPath = 'game/core/save-integrity-system.js';
-const desktopControlsPath = 'game/input/desktop-controls.js';
-const fixedLocalePath = 'game/locale/fixed-locale-entry-v130.js';
-const stableIdsPath = 'game/locale/stable-item-id-migration-v150.js';
-const screenOwnerPath = 'game/locale/core-screen-owner-v153.js';
-const canvasOwnerPath = 'game/locale/town-canvas-locale-v153.js';
-const npcPath = 'game/systems/npc-stability-system.js';
-const progressionGuardPath = 'game/systems/progression-guard-system.js';
-const riskRewardPath = 'game/systems/risk-reward-system.js';
-const productionBootstrap = read(productionBootstrapPath);
-const runtime = read(runtimePath);
-const responsive = read(responsivePath);
-const fixedLocale = read(fixedLocalePath);
-const screenOwner = read(screenOwnerPath);
-const canvasOwner = read(canvasOwnerPath);
-const saveIntegrity = read(saveIntegrityPath);
-const desktopControls = read(desktopControlsPath);
-const releaseStampPath = `game/core/release-stamp-v${version.replace(/\./g, '')}.js`;
-const releaseStamp = fs.existsSync(path.join(root, releaseStampPath)) ? read(releaseStampPath) : '';
-const assetVersion = (runtime.match(/const assetVersion = '(\d+)'/) || [,''])[1];
-const sourceGeneration = (zh.match(/\?v=(\d+)/) || [,''])[1];
-const cleanRef = ref => ref.split(/[?#]/, 1)[0];
+const health = read('ops/site-bundle/healthcheck.sh');
 
-let pass = 0, fail = 0;
-function ok(cond, name) {
-  if (cond) { pass++; console.log('  PASS ' + name); }
-  else { fail++; console.log('  FAIL ' + name); }
+assert.equal(version, '1.3.1', 'release test must lock the v1.3.1 boundary');
+assert.equal(authority.version, version, 'authority map version drifted');
+assert.equal(generation, '170', 'release test must lock cache generation 170');
+assert.equal(new Set(manifest).size, manifest.length, 'release manifest contains duplicates');
+assert(manifest.includes('VERSION') && manifest.includes(stampPath), 'semantic version and release stamp must ship');
+assert(manifest.every(rel => fs.existsSync(path.join(root, rel))), 'every allowlisted file must exist');
+assert(!manifest.some(rel => rel.startsWith('archive/') || rel.startsWith('test/') || rel === 'dev.html'), 'dev/quarantine content must not ship');
+assert(!manifest.some(rel => rel.startsWith('game/systems/')), 'retired gameplay wrappers must not ship');
+
+const expectedScripts = [
+  'game/core/production-bootstrap.js',
+  'profiles/classic-100.profile.js',
+  'game/locale/locale-data-v134.js',
+  'game/domain/content/content-rules-v130.js',
+  'game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/economy/economy-rules-v130.js',
+  'game/domain/progression/progression-rules-v130.js',
+  'game/domain/combat/combat-rules-v130.js',
+  'game/core/game.js',
+  'game/locale/core-locale-data-v139.js',
+  'game/input/desktop-controls.js',
+  'game/core/runtime-bootstrap.js',
+].map(rel => `${rel}?v=${generation}`);
+
+for (const [label, rel] of [['zh','index.html'], ['en','en/index.html']]) {
+  const html = read(rel);
+  const scripts = [...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)].map(match => match[1]);
+  const generations = [...html.matchAll(/\?v=(\d+)/g)].map(match => match[1]);
+  assert.deepEqual(scripts, expectedScripts, `${label} production script graph drifted`);
+  assert(generations.length > 0 && generations.every(row => row === generation), `${label} cache generation drifted`);
+  assert(html.includes(`v${version}`), `${label} visible version drifted`);
+  assert(!/archive\/|game\/systems\//.test(html), `${label} references retired runtime`);
 }
+assert(!/[\u3400-\u9fff]/.test(read('en/index.html')), 'English authored route contains CJK presentation text');
 
-console.log('[release] static package');
-ok(/^\d+\.\d+\.\d+$/.test(version), 'VERSION uses SemVer');
-ok(/^\d+$/.test(assetVersion), 'runtime declares an explicit numeric asset generation');
-ok(/^\d+$/.test(sourceGeneration), 'source entries declare a numeric cache generation');
-ok(manifest.includes(releaseStampPath) && runtime.includes(releaseStampPath) && releaseStamp.includes(`const version = '${version}'`),
-  'runtime release stamp matches semantic VERSION');
-ok(manifest.every(file => fs.existsSync(path.join(root, file))), 'every release-manifest resource exists');
-ok(!manifest.some(file => /^(?:dev\.html|test\/|profiles\/classic-(?:10|20|30|40|50|60)\.profile\.js$)/.test(file)),
-  'release manifest excludes development entry/tests/short profiles');
-ok(manifest.includes('index.html') && manifest.includes('en/index.html') && manifest.includes(fixedLocalePath),
-  'release package ships fixed Chinese/English entries and route owner');
-ok(manifest.includes(screenOwnerPath) && manifest.includes(canvasOwnerPath) && manifest.includes(stableIdsPath),
-  'release package ships exact fixed-route sinks and stable item IDs');
-ok(manifest.includes(responsivePath), 'release package ships final PC/mobile responsive owner');
-ok(manifest.includes('art/title-backdrop.webp') && manifest.includes('art/class-roster.webp') && manifest.includes('art/loot-atlas.png'),
-  'production art assets are packaged');
+assert(runtime.includes(`const assetVersion = '${generation}'`), 'runtime cache generation drifted');
+assert(runtime.includes(`fresh('${stampPath}')`), 'runtime release stamp drifted');
+assert(runtime.includes("followers:'dom-only'"), 'runtime follower boundary drifted');
+assert(runtime.includes("gameplayStateOwner:'game/core/game.js'"), 'runtime state owner drifted');
+assert(production.includes(`version:'${version}'`), 'production authority version drifted');
+assert(production.includes("const STORAGE_EPOCH = 'v130'"), 'v130 storage compatibility must remain stable');
 
-function refs(html) {
-  return [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
-    .map(m => m[1])
-    .filter(ref => !/^(?:data:|https?:|#|\.\.\/$)/.test(ref));
-}
-for (const [label, html] of [['zh', zh], ['en', en]]) {
-  const local = refs(html), files = local.map(cleanRef);
-  ok(files.every(ref => fs.existsSync(path.join(root, ref))), `${label} entry local assets resolve from shared root`);
-  ok(files.every(ref => manifest.includes(ref)), `${label} entry local assets are release-manifested`);
-  const critical = local.filter(ref => /(?:\.css|\.js)(?:\?|$)/.test(ref));
-  ok(critical.length > 0 && critical.every(ref => ref.endsWith(`?v=${sourceGeneration}`)), `${label} source CSS/JS use stable source generation ${sourceGeneration}`);
-}
-ok(/<base href="\.\.\/">/.test(en), 'English entry shares the root asset graph through base href');
-ok(!/[\u3400-\u9fff]/.test(en), 'English static entry contains no CJK presentation text');
+assert(builder.includes(`test "$version" = '${version}'`), 'builder semantic version gate drifted');
+assert(builder.includes(`asset_generation=${generation}`), 'builder generation gate drifted');
+assert(!/sed\s+-i|perl\s+-i|git\s+(?:fetch|pull|checkout|merge)/.test(builder), 'builder/deployer topology must not be rewritten at release time');
+assert(deploy.includes(`EXPECTED_VERSION=${version}`), 'deployer semantic version gate drifted');
+assert(deploy.includes(`EXPECTED_GENERATION=${generation}`), 'deployer generation gate drifted');
+assert(deploy.includes(stampPath), 'deployer release stamp gate drifted');
+assert(/sha256sum --check/.test(deploy) && /ROLLED_BACK/.test(deploy) && /mv -Tf/.test(deploy), 'deployer checksum/atomic rollback contract drifted');
+assert(health.includes(`ASSET_GENERATION=${generation}`) && health.includes('/dungeon-echo/en/'), 'healthcheck route/generation contract drifted');
 
-console.log('\n[release] ownership');
-ok(runtime.includes(`const assetVersion = '${assetVersion}'`) && runtime.includes(`fresh('${releaseStampPath}')`),
-  'late followers share the public cache generation');
-const pFixed=runtime.indexOf(`fresh('${fixedLocalePath}')`);
-const pIds=runtime.indexOf(`fresh('${stableIdsPath}')`);
-const pScreen=runtime.indexOf(`fresh('${screenOwnerPath}')`);
-const pCanvas=runtime.indexOf(`fresh('${canvasOwnerPath}')`);
-const pMobile=runtime.indexOf("fresh('game/ui/mobile-ux.js')");
-const pResponsive=runtime.indexOf(`fresh('${responsivePath}')`);
-ok(pFixed>0 && pIds>pFixed && pScreen>pIds && pCanvas>pScreen,
-  'fixed route identity, stable item IDs and exact presentation sinks boot in deterministic order');
-ok(pMobile>0 && pResponsive>pMobile,
-  'final responsive owner boots after the established mobile UX owner');
-ok(responsive.includes('@media (min-width:901px) and (max-width:1180px)') &&
-    responsive.includes('grid-template-areas:"game" "side"') &&
-    responsive.includes('grid-template-columns:repeat(6,minmax(0,1fr))'),
-  'mid-width PC layout stops squeezing the dungeon beside the sidebar');
-ok(responsive.includes('@media (max-width:900px) and (orientation:portrait)') &&
-    responsive.includes('min-height:44px!important') && responsive.includes('min-height:52px!important'),
-  'portrait mobile actions keep reliable thumb targets');
-for(const retired of ['locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
-  ok(!runtime.includes(retired) && !manifest.some(file=>file===retired||file.endsWith('/'+retired)), `${retired} is retired from production and release`);
-}
-ok(manifest.includes(npcPath) && manifest.includes(progressionGuardPath) && manifest.includes(riskRewardPath),
-  'explicit gameplay owners are release-manifested');
-ok(fixedLocale.includes("const storageKey = 'de-language-v1'") && !/de-run-v6|de-greedy-meta-v1|de-town-wheel-state-v1/.test(fixedLocale),
-  'fixed locale routing cannot fork gameplay save namespaces');
-ok(screenOwner.includes("owner:'core-screen-owner-v153'") && !/MutationObserver|translateTree|setInterval|requestAnimationFrame/.test(screenOwner),
-  'final core screen ownership is exact and follower-free');
-ok(canvasOwner.includes("owner:'town-canvas-locale-v153'") && !/MutationObserver|setInterval|requestAnimationFrame/.test(canvasOwner),
-  'town canvas localization is exact and adds no follower');
+const revision = run('git', ['rev-parse', 'HEAD']).stdout.trim();
+assert.match(revision, /^[0-9a-f]{40}$/);
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-v131-release-'));
+const archive = path.join(tmp, `91hwl-play-dungeon-echo-v${version}.zip`);
+const build = run('bash', ['ops/release/build-site-bundle.sh', archive], { env:{ SOURCE_REVISION:revision } });
+assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
+assert.match(build.stdout, /dungeon_echo_bundle_build=PASS/);
+assert(build.stdout.includes(`asset_generation=${generation}`));
 
-console.log('\n[release] save/input invariants');
-ok(saveIntegrity.includes("const RUN_KEY = 'de-run-v6'") && saveIntegrity.includes("const META_KEY = 'de-greedy-meta-v1'") &&
-    saveIntegrity.includes('validGrid(raw.map, false)') && saveIntegrity.includes('validGrid(raw.explored, true)'),
-  'save-integrity owner validates canonical run/meta and map structures');
-ok(!/setInterval\s*\(/.test(saveIntegrity), 'save-integrity owner has no polling loop');
-ok(productionBootstrap.includes('const ONE_SHOT_REPEAT_KEYS = new Set([') &&
-    productionBootstrap.includes("'j', 'J', 'k', 'K'") &&
-    productionBootstrap.includes("'q', 'Q', 'e', 'E', 't', 'T'") &&
-    productionBootstrap.includes("'Escape', ' ', 'Spacebar', '.'") &&
-    productionBootstrap.includes('event.repeat') &&
-    productionBootstrap.includes('event.stopImmediatePropagation()'),
-  'production bootstrap blocks repeat for tactical one-shot keyboard actions');
-ok(!/ONE_SHOT_REPEAT_KEYS[\s\S]{0,260}'ArrowUp'/.test(productionBootstrap) &&
-    !/ONE_SHOT_REPEAT_KEYS[\s\S]{0,260}'ArrowDown'/.test(productionBootstrap) &&
-    !/ONE_SHOT_REPEAT_KEYS[\s\S]{0,260}'w'/.test(productionBootstrap),
-  'movement keys retain normal keyboard repeat');
-ok(productionBootstrap.includes("owner:'production-bootstrap'") && productionBootstrap.includes("window.addEventListener('keydown', repeatGuard, true)"),
-  'repeat guard installs before synchronous core/combat input owners');
-ok(desktopControls.includes("edgeButton(pad, 7, 'j')") && desktopControls.includes('RT Attack'),
-  'gamepad attack remains parity-mapped to J');
-ok(/function\s+triggerReturn\s*\(\)/.test(desktopControls) && /commerce\.extractionReady\(\)/.test(desktopControls),
-  'gamepad Return delegates to the production extraction owner');
+const extracted = path.join(tmp, 'extracted');
+fs.mkdirSync(extracted);
+const unpack = run('unzip', ['-q', archive, '-d', extracted]);
+assert.equal(unpack.status, 0, unpack.stderr);
+const checksum = run('sha256sum', ['--check', '--status', 'SHA256SUMS'], { cwd:extracted });
+assert.equal(checksum.status, 0, checksum.stderr);
+assert.equal(fs.readFileSync(path.join(extracted, 'VERSION'), 'utf8').trim(), version);
+assert.equal(fs.readFileSync(path.join(extracted, 'REVISION'), 'utf8').trim(), revision);
 
-console.log('\n[release] bundle/deploy');
-ok(/public\/dungeon-echo/.test(builder) && /static-files\.txt/.test(builder) && /mkdir -p "\$bundle\/public\/dungeon-echo\/\$\(dirname "\$file"\)"/.test(builder),
-  'site bundle supports nested fixed-locale routes from the manifest');
-ok(/SHA256SUMS/.test(builder) && /git -C "\$repo_root" cat-file -e/.test(builder),
-  'bundle validates tracked HEAD files and generates hashes');
-ok(builder.includes(`source_generation=${sourceGeneration}`) && builder.includes(`asset_generation=${assetVersion}`) &&
-    builder.includes('sed -i') && builder.includes('en/index.html'),
-  'bundle deterministically advances both public entries to the release cache generation');
-ok(deployReadme.includes(`91hwl-play-dungeon-echo-v${version}.zip`) && deployReadme.includes(`/tmp/91hwl-play-dungeon-echo-v${version}`),
-  'deployment instructions use current semantic VERSION');
-ok(/SITE_ROOT=\/srv\/91hwl-play/.test(deploy) && /previous_release\/moyu\/index\.html/.test(deploy),
-  'deployment reuses the site release tree and protects the Moyu game');
-ok(/mv -Tf "\$next_link" "\$CURRENT_LINK"/.test(deploy) && /ROLLED_BACK/.test(deploy),
-  'deployment switches current atomically and retains rollback');
+const packagedFiles = run('unzip', ['-Z1', archive]).stdout.trim().split(/\r?\n/);
+assert(packagedFiles.includes('public/dungeon-echo/game/core/game.js'));
+assert(packagedFiles.includes(`public/dungeon-echo/${stampPath}`));
+assert(!packagedFiles.some(rel => /(?:^|\/)(?:archive|test)(?:\/|$)|dev\.html$/.test(rel)), 'final artifact contains dev/quarantine files');
+const deploySyntax = run('bash', ['-n', path.join(extracted, 'ops/deploy.sh')]);
+const healthSyntax = run('bash', ['-n', path.join(extracted, 'ops/healthcheck.sh')]);
+assert.equal(deploySyntax.status, 0, deploySyntax.stderr);
+assert.equal(healthSyntax.status, 0, healthSyntax.stderr);
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-release-'));
-const archive = path.join(tmp, `dungeon-${version}.zip`);
-let r = spawnSync('bash', [path.join(root,'ops/release/build-site-bundle.sh'), archive], { cwd:root, encoding:'utf8' });
-ok(r.status === 0 && /dungeon_echo_bundle_build=PASS/.test(r.stdout || ''), 'Dungeon release bundle builds successfully');
-if (r.status === 0) {
-  for (const entry of ['public/dungeon-echo/index.html','public/dungeon-echo/en/index.html']) {
-    const out = spawnSync('unzip', ['-p', archive, entry], { encoding:'utf8' });
-    ok(out.status === 0 && out.stdout.includes(`?v=${assetVersion}`) && !out.stdout.includes(`?v=${sourceGeneration}`), `${entry} ships cache generation ${assetVersion}`);
-  }
-  const files = spawnSync('unzip', ['-Z1', archive], { encoding:'utf8' });
-  ok(files.status === 0 && files.stdout.includes(`public/dungeon-echo/${responsivePath}`), 'bundle contains final responsive owner');
-}
 fs.rmSync(tmp, { recursive:true, force:true });
-
-console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
-process.exit(fail ? 1 : 0);
+console.log('release_v1_3_1=PASS');
