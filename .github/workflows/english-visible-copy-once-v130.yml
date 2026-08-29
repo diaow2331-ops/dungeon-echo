@@ -1,0 +1,45 @@
+name: english-visible-copy-once-v130
+
+on:
+  push:
+    branches:
+      - fix/english-visible-copy-v130
+    paths:
+      - .github/workflows/english-visible-copy-once-v130.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/english-visible-copy-v130
+          fetch-depth: 0
+
+      - name: Apply exact fixed-route visible-copy cleanup
+        run: |
+          python -B .github/english-visible-copy-once.py
+          node --check game/core/game.js
+          node --check game/locale/core-locale-data-v139.js
+
+      - name: Verify localization and governance
+        run: |
+          node test/core-locale-data-v139.cjs
+          node test/game-core-locale-v140.cjs
+          node test/fixed-locale-routes-v131.cjs
+          bash ops/check-authority-local.sh
+
+      - name: Commit fix and remove one-shot executor
+        run: |
+          rm -f .github/english-visible-copy-once.py .github/workflows/english-visible-copy-once-v130.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix: complete fixed English visible copy'
+          git push origin HEAD:fix/english-visible-copy-v130
