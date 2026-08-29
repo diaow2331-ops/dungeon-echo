@@ -22,10 +22,14 @@ Each shelf preserves completed work but owns **zero production authority**.
 
 ## Staged extraction
 
-The first re-housed implementation is `game/domain/inventory/equipment-rules-v130.js`.
-It contains only pure class-fit, affix-scaling, deep-slot and rarity-curve data/functions extracted from the old equipment wrapper. It is intentionally **not** in `ops/release/static-files.txt`, is not loaded by either production entry, and owns no runtime authority yet. CI verifies that it remains disconnected until the atomic inventory authority-transfer PR.
+Two pure libraries have now been re-housed without entering production:
 
-The original quarantined `gameplay/equipment/equipment-system.js` remains intact as provenance/reference until the later transfer is complete; staging the pure subset is not permission to delete the source shelf.
+- `game/domain/inventory/equipment-rules-v130.js` — class-fit, affix scaling, deep-slot and rarity rules.
+- `game/domain/economy/economy-rules-v130.js` — town supply pricing/stock, heal pricing, forge/sell costs, quick-dive and wheel costs.
+
+Both are intentionally absent from `ops/release/static-files.txt`, are not loaded by either production entry, and own no runtime authority. Their quarantined source implementations remain intact as provenance/reference until later atomic transfers are complete.
+
+The economy boundary deliberately accepts an item value score as input rather than redefining equipment scoring. Inventory/equipment and economy therefore remain separate responsibilities instead of creating a new cross-module owner conflict.
 
 ## Atomic authority-transfer rule
 

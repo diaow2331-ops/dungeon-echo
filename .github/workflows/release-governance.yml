@@ -21,6 +21,8 @@ jobs:
         run: node test/entry-authority-v130.cjs
       - name: Verify staged inventory rules
         run: node test/inventory-rules-v130.cjs
+      - name: Verify staged economy rules
+        run: node test/economy-rules-v130.cjs
       - name: Build immutable Dungeon Echo v1.3.0 baseline ZIP
         env:
           SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
