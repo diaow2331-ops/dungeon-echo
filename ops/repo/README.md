@@ -14,6 +14,18 @@ A short-lived branch may exist while a focused PR is open. Once that PR is merge
 
 Do not keep completed `fix/`, `refactor/`, `perf/`, `release/`, `chore/`, `hotfix/` or similar branches as pseudo-archives. Git commits, merged PRs, release notes and `archive/` already preserve the relevant history.
 
+
+## Main protection
+
+`main` is protected at the GitHub repository level. Direct pushes, force pushes and branch deletion
+are blocked; changes must arrive through a pull request. Zero approving reviews are required because
+this is currently a solo-maintained repository, and no Actions status check is required while hosted
+Actions quota is unavailable. Required status checks may be enabled again only when they can actually
+run.
+
+Repository merge policy keeps squash/rebase available, disables merge commits, enables branch updates,
+and deletes merged head branches automatically.
+
 ## Prune merged remote branches
 
 The repository includes a squash-aware pruning helper:
