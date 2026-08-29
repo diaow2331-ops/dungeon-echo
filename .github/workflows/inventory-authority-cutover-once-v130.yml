@@ -1,0 +1,75 @@
+name: inventory-authority-cutover-once-v130
+
+on:
+  push:
+    branches:
+      - refactor/inventory-derived-authority-v130
+
+permissions:
+  contents: write
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Repair literal template markers and syntax-check cutover tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('ops/inventory-authority-cutover-v130.cjs')
+          s = p.read_text()
+          replacements = {
+              '${entry}: staged inventory rules must not be loaded in production': r'\${entry}: staged inventory rules must not be loaded in production',
+              '${rel}?v=169': r'\${rel}?v=169',
+              '${entry}: production inventory rules must be loaded': r'\${entry}: production inventory rules must be loaded',
+              '${entry}: inventory authority must load before core': r'\${entry}: inventory authority must load before core',
+          }
+          for before, after in replacements.items():
+              if before not in s:
+                  raise SystemExit(f'missing expected template marker: {before}')
+              s = s.replace(before, after)
+          p.write_text(s)
+          PY
+          node --check ops/inventory-authority-cutover-v130.cjs
+          node --check test/inventory-authority-cutover-tool-v130.cjs
+      - name: Preflight atomic inventory authority transfer
+        run: node ops/inventory-authority-cutover-v130.cjs --check
+      - name: Apply atomic inventory authority transfer
+        run: node ops/inventory-authority-cutover-v130.cjs --apply
+      - name: Verify score formula parity
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const assert = require('assert');
+          const rules = require('./game/domain/inventory/equipment-rules-v130.js');
+          const old = s => Math.round((s.atk || 0) * 3 + (s.def || 0) * 3 + (s.hp || 0) * .6 +
+            (s.crit || 0) * 1.5 + (s.leech || 0) * 1.2 + (s.gold || 0) * .15 +
+            (s.thorns || 0) * 2 + (s.regen || 0) * 1);
+          for (let i = 0; i < 250; i++) {
+            const s = { atk:i%31, def:i%19, hp:(i*7)%113, crit:i%17, leech:i%13, gold:i%29, thorns:i%11, regen:i%9 };
+            assert.equal(rules.itemStatScore(s), old(s));
+          }
+          console.log('inventory_score_parity=PASS samples=250');
+          NODE
+      - name: Verify repository authority gate
+        shell: bash
+        run: |
+          node --check game/core/game.js
+          bash ops/check-authority-local.sh
+      - name: Commit cutover and remove one-shot executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/inventory-authority-cutover-once-v130.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --quiet && { echo "No inventory cutover changes produced" >&2; exit 1; }
+          git commit -m "refactor: transfer inventory derived-rule authority"
+          git push origin HEAD:refactor/inventory-derived-authority-v130
