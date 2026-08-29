@@ -8,7 +8,7 @@ CURRENT_LINK="$SITE_ROOT/current"
 GAME_SOURCE="$BUNDLE_ROOT/public/dungeon-echo"
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 EXPECTED_VERSION=1.2.12
-EXPECTED_GENERATION=166
+EXPECTED_GENERATION=167
 
 fail(){ echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
@@ -25,15 +25,20 @@ for f in \
   "$GAME_SOURCE/game/ui/responsive-final-v154.js" \
   "$GAME_SOURCE/game/ui/art-runtime-v4.js" \
   "$GAME_SOURCE/game/ui/town-art-v160.js" \
-  "$GAME_SOURCE/game/ui/class-combat-fx-v163.js" \
-  "$GAME_SOURCE/game/ui/hero-directional-art-v165.js" \
+  "$GAME_SOURCE/game/ui/new-run-reset-v167.js" \
+  "$GAME_SOURCE/art/runtime/hero-action-atlas-v2.svg" \
   "$GAME_SOURCE/art/runtime/boss-guardian-atlas-v3.png" \
   "$GAME_SOURCE/art/runtime/final-boss-v3.png" \
-  "$GAME_SOURCE/art/runtime/hero-directional-atlas-v1.png" \
   "$BUNDLE_ROOT/VERSION" \
   "$BUNDLE_ROOT/REVISION" \
   "$BUNDLE_ROOT/SHA256SUMS"; do
   test -r "$f" || fail "missing $f"
+done
+for retired in \
+  "$GAME_SOURCE/game/ui/hero-directional-art-v165.js" \
+  "$GAME_SOURCE/game/ui/class-combat-fx-v163.js" \
+  "$GAME_SOURCE/art/runtime/hero-directional-atlas-v1.png"; do
+  test ! -e "$retired" || fail "retired experimental art still ships: $retired"
 done
 test -x "$HEALTHCHECK" || fail 'bundle healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
@@ -47,14 +52,16 @@ test "$(tr -d '\r\n[:space:]' < "$GAME_SOURCE/VERSION")" = "$version" || fail 'g
 for entry in "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html"; do
   grep -Fq "?v=$EXPECTED_GENERATION" "$entry" || fail "entry cache generation $EXPECTED_GENERATION missing: $entry"
   ! grep -Fq '?v=153' "$entry" || fail "stale generation 153 remains: $entry"
+  ! grep -Fq '?v=157' "$entry" || fail "stale generation 157 remains: $entry"
 done
 grep -Fq "const assetVersion = '$EXPECTED_GENERATION'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime cache generation mismatch'
 grep -Fq 'release-stamp-v1212.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'v1.2.12 release stamp not wired'
+grep -Fq 'new-run-reset-v167.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'New Run reset owner not wired'
 grep -Fq 'installNoTranslateBoundary' "$GAME_SOURCE/game/locale/fixed-locale-entry-v130.js" || fail 'fixed-locale no-translate boundary missing'
 grep -Fq 'responsive-final-v154.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'responsive owner not wired'
 grep -Fq 'ONE_SHOT_REPEAT_KEYS' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'one-shot keyboard repeat guard missing'
-grep -Fq 'hero-directional-art-v165.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'four-direction hero runtime missing from production bootstrap'
-grep -Fq 'class-combat-fx-v163.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'class combat FX runtime missing from production bootstrap'
+! grep -Fq 'hero-directional-art-v165.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'retired pixel hero runtime is still wired'
+! grep -Fq 'class-combat-fx-v163.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'retired line FX runtime is still wired'
 grep -Fq 'town-art-v160.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'town art runtime missing from production bootstrap'
 grep -Fq 'art-runtime-v4.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'terrain/entity art coordinator missing from production bootstrap'
 
