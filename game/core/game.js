@@ -3445,7 +3445,7 @@ function updateHud() {
   const lowHp = state === 'playing' && player.hp > 0 && player.hp / pMaxHp() <= 0.25;
   $('lowhp-vignette').classList.toggle('hidden', !lowHp);
   $('st-lvl').textContent = player.lvl;
-  $('st-xp').textContent = `(${player.xp}/${player.lvl * 15})`;
+  $('st-xp').textContent = `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
   $('st-atk').textContent = pAtk();
   $('st-def').textContent = pDef();
   $('st-crit').textContent = pCrit() + '%';

@@ -125,6 +125,7 @@ assert(game.includes('const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueS
 assert(game.includes('const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);'), 'core must delegate sell pricing');
 for (const dormant of ['townTier','townPriceScale','townSupplyPrice','townSupplyStock','dungeonTier','dungeonHealPrice','quickDiveCost','wheelSpinCost','wheelResetCost']) assert(!game.includes(`ECONOMY_RULES.${dormant}(`), `core unexpectedly adopted dormant economy helper ${dormant}`);
 assert(!game.includes('while (player.xp >= player.lvl * 15)'), 'core still duplicates XP threshold');
+assert(!game.includes('player.lvl * 15'), 'core still duplicates XP threshold arithmetic outside the progression authority');
 assert(!game.includes('player.lvl++; player.hpBase += 6; player.atkBase += 1;'), 'core still duplicates level-up deltas');
 assert(!game.includes('if (player.lvl % 3 === 0) pendingTalent = true;'), 'core still duplicates talent-due classification');
 assert(game.includes('PROGRESSION_RULES.xpThreshold(player.lvl)'), 'core must delegate XP threshold');
