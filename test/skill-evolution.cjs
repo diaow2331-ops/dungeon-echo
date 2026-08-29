@@ -1,9 +1,15 @@
 'use strict';
-const fs=require('fs'),path=require('path'),assert=require('assert');
+const fs=require('fs'),path=require('path'),assert=require('assert'),vm=require('vm');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const core=read('game/core/game.js'),docs=read('docs/SKILL_EVOLUTION.md');
 assert(!fs.existsSync(path.join(root,'progression-system.js')),'retired root progression wrapper must remain absent');
 assert(core.includes('const SKILL_EVOLUTION_ROWS = {'),'evolution data must live in canonical core');
+assert(core.includes('id, ui(zhName, enName), ui(zhDesc, enDesc)'),'evolution data must use canonical core locale helper');
+const evoStart=core.indexOf('const EVO ='),evoEnd=core.indexOf('function hashSeed',evoStart);
+assert(evoStart>=0&&evoEnd>evoStart,'evolution initialization block must be bounded');
+const sandbox={ui:(zh,en)=>en,player:null,depth:100,classId:'warrior'}; vm.createContext(sandbox);
+vm.runInContext(core.slice(evoStart,evoEnd)+'\n;globalThis.__evoCount=Object.keys(SKILL_EVOLUTION_TALENTS).length;',sandbox,{filename:'skill-evolution-init.js'});
+assert.equal(sandbox.__evoCount,32,'evolution initialization must execute and materialize 32 choices');
 assert(core.includes('function pendingSkillEvolution()'),'core must own milestone delivery');
 assert(core.includes('for (const milestone of SKILL_EVOLUTION_MILESTONES)'),'earliest-missing milestone scan required');
 assert(core.includes('const evolutionPicks = pendingSkillEvolution();'),'talent screen must prioritize a pending evolution pair');

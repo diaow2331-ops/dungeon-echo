@@ -191,7 +191,7 @@ const TALENTS = [
 ];
 
 const EVO = (id, zhName, enName, zhDesc, enDesc) => [
-  id, copy(zhName, enName), copy(zhDesc, enDesc),
+  id, ui(zhName, enName), ui(zhDesc, enDesc),
 ];
 const SKILL_EVOLUTION_ROWS = {
   warrior: {
