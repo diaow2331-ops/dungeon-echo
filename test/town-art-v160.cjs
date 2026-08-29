@@ -9,8 +9,11 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 
 const runtime = read('game/ui/town-art-v160.js');
 const bootstrap = read('game/core/production-bootstrap.js');
+const releaseRuntime = read('game/core/runtime-bootstrap.js');
+const releaseGen = (releaseRuntime.match(/const assetVersion = '(\d+)'/) || [,''])[1];
 const releaseFiles = new Set(read('ops/release/static-files.txt').trim().split(/\r?\n/));
 
+assert(/^\d+$/.test(releaseGen), 'release cache generation missing');
 assert(releaseFiles.has('game/ui/town-art-v160.js'), 'town art v160 missing from release boundary');
 assert(!releaseFiles.has('game/ui/town-art-v157.js'), 'retired town art v157 must leave release boundary');
 for (const dep of ['art/runtime/dungeon-props-atlas-v1.svg', 'art/runtime/hero-action-atlas-v2.svg', 'art/town-backdrop-v11.webp'])
@@ -37,7 +40,7 @@ assert(runtime.includes("npcAtlas:'hero-action-atlas-v2.svg'"), 'town runtime me
 assert(runtime.includes('wrap.appendChild(scene)'), 'authoritative town canvas must remain mounted');
 assert(runtime.includes('wrap.appendChild(overlay)'), 'town overlay must layer above core scene');
 
-assert(bootstrap.includes("../ui/town-art-v160.js?v=161"), 'production bootstrap must load town art v1.6.0');
+assert(bootstrap.includes(`../ui/town-art-v160.js?v=${releaseGen}`), 'production bootstrap must load town art at current release generation');
 assert(bootstrap.includes("'__DE_TOWN_ART_V160'"), 'production bootstrap must guard duplicate town v160 loading');
 assert(!bootstrap.includes('town-art-v157.js'), 'production bootstrap must stop loading retired v157 town art');
 
