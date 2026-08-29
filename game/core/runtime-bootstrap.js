@@ -1,16 +1,16 @@
-/* Dungeon Echo production UX bootstrap v15.
+/* Dungeon Echo production UX bootstrap v16.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  * Fixed-route locale identity and language-neutral item migration are established before presentation owners boot.
  *
- * v15 freezes the v1.2.12 art-closeout release on public cache generation 166 while preserving
- * the v1.2.11 expedition-pressure follower, extraction rules and save semantics.
+ * v16 advances the v1.2.12 hotfix to public cache generation 167, restores the established
+ * high-detail hero presentation and makes New Run discard only the active expedition save.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '166';
+  const assetVersion = '167';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
@@ -20,6 +20,7 @@
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
+    [fresh('game/ui/new-run-reset-v167.js'), 'data-de-new-run-reset-v167', () => !!window.__DE_NEW_RUN_RESET_V167],
     [fresh('game/ui/town-workspace-v156.js'), 'data-de-town-workspace-v156', () => !!window.__DE_TOWN_WORKSPACE_V156],
     [fresh('game/ui/town-workspace-events-v156.js'), 'data-de-town-workspace-events-v156', () => !!window.__DE_TOWN_WORKSPACE_EVENTS_V156],
     [fresh('game/locale/town-canvas-locale-v153.js'), 'data-de-town-canvas-locale-v153', () => !!window.__DE_TOWN_CANVAS_LOCALE_V153],
@@ -54,7 +55,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v15');
+      script.setAttribute(marker, 'v16');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -72,5 +73,5 @@
     return true;
   }
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v15',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v16',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
 })();
