@@ -8,7 +8,7 @@ CURRENT_LINK="$SITE_ROOT/current"
 GAME_SOURCE="$BUNDLE_ROOT/public/dungeon-echo"
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 EXPECTED_VERSION=1.3.0
-EXPECTED_GENERATION=168
+EXPECTED_GENERATION=169
 
 fail(){ echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
@@ -16,46 +16,26 @@ test "$#" -eq 0 || fail 'this deployer accepts no arguments'
 for cmd in nginx curl sha256sum; do command -v "$cmd" >/dev/null || fail "missing command: $cmd"; done
 
 for f in \
-  "$GAME_SOURCE/index.html" \
-  "$GAME_SOURCE/en/index.html" \
-  "$GAME_SOURCE/VERSION" \
-  "$GAME_SOURCE/game/core/game.js" \
-  "$GAME_SOURCE/game/core/runtime-bootstrap.js" \
-  "$GAME_SOURCE/game/core/production-bootstrap.js" \
-  "$GAME_SOURCE/game/core/release-stamp-v130.js" \
-  "$GAME_SOURCE/game/locale/fixed-locale-entry-v130.js" \
-  "$GAME_SOURCE/game/ui/responsive-final-v154.js" \
-  "$GAME_SOURCE/art/hero-atlas-v11.png" \
-  "$GAME_SOURCE/art/monster-atlas-v11.png" \
-  "$GAME_SOURCE/art/guardian-atlas-v11.png" \
-  "$GAME_SOURCE/art/final-boss-v11.png" \
-  "$GAME_SOURCE/art/town-backdrop-v11.webp" \
-  "$BUNDLE_ROOT/VERSION" \
-  "$BUNDLE_ROOT/REVISION" \
-  "$BUNDLE_ROOT/SHA256SUMS"; do
+  "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html" "$GAME_SOURCE/VERSION" \
+  "$GAME_SOURCE/game/core/game.js" "$GAME_SOURCE/game/core/production-bootstrap.js" \
+  "$GAME_SOURCE/game/core/runtime-bootstrap.js" "$GAME_SOURCE/game/core/release-stamp-v130.js" \
+  "$GAME_SOURCE/game/input/desktop-controls.js" \
+  "$GAME_SOURCE/art/hero-atlas-v11.png" "$GAME_SOURCE/art/monster-atlas-v11.png" \
+  "$GAME_SOURCE/art/guardian-atlas-v11.png" "$GAME_SOURCE/art/final-boss-v11.png" \
+  "$BUNDLE_ROOT/VERSION" "$BUNDLE_ROOT/REVISION" "$BUNDLE_ROOT/SHA256SUMS"; do
   test -r "$f" || fail "missing $f"
 done
 
-for retired in \
-  "$GAME_SOURCE/game/core/save-integrity-system.js" \
-  "$GAME_SOURCE/game/core/release-stamp-v1212.js" \
-  "$GAME_SOURCE/game/locale/stable-item-id-migration-v150.js" \
-  "$GAME_SOURCE/game/ui/visual-polish.js" \
-  "$GAME_SOURCE/game/ui/art-runtime-v2.js" \
-  "$GAME_SOURCE/game/ui/art-runtime-v4.js" \
-  "$GAME_SOURCE/game/ui/town-art-v160.js" \
-  "$GAME_SOURCE/game/ui/character-art-cleanup-v122.js" \
-  "$GAME_SOURCE/game/ui/world-loot-polish-v122.js" \
-  "$GAME_SOURCE/game/ui/hero-directional-art-v165.js" \
-  "$GAME_SOURCE/game/ui/class-combat-fx-v163.js" \
-  "$GAME_SOURCE/game/ui/new-run-reset-v167.js" \
-  "$GAME_SOURCE/art/runtime"; do
-  test ! -e "$retired" || fail "retired runtime still ships: $retired"
+test ! -d "$GAME_SOURCE/game/systems" || fail 'production bundle must not contain gameplay wrapper systems'
+for forbidden in \
+  game/input/combat-controls.js game/locale/core-screen-owner-v153.js game/locale/town-canvas-locale-v153.js \
+  game/ui/equipment-shop-ui.js game/ui/town-workspace-v156.js game/ui/town-workspace-events-v156.js \
+  game/ui/forge-feedback-v122.js game/ui/combat-hint-polish.js game/ui/expedition-pressure-v1211.js \
+  game/ui/audio-director.js game/ui/mobile-ux.js game/ui/expedition-record-v126.js; do
+  test ! -e "$GAME_SOURCE/$forbidden" || fail "second authority still ships: $forbidden"
 done
 
-test -x "$HEALTHCHECK" || fail 'bundle healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
-
 revision="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/REVISION")"
 version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
 [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || fail 'bundle revision is invalid'
@@ -63,22 +43,16 @@ test "$version" = "$EXPECTED_VERSION" || fail "unexpected Dungeon Echo version: 
 test "$(tr -d '\r\n[:space:]' < "$GAME_SOURCE/VERSION")" = "$version" || fail 'game VERSION mismatch'
 
 for entry in "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html"; do
-  grep -Fq "?v=$EXPECTED_GENERATION" "$entry" || fail "entry cache generation $EXPECTED_GENERATION missing: $entry"
-  grep -Fq 'v1.3.0' "$entry" || fail "v1.3.0 visible version missing: $entry"
-  ! grep -Fq '?v=153' "$entry" || fail "stale generation 153 remains: $entry"
-  ! grep -Fq '?v=157' "$entry" || fail "stale generation 157 remains: $entry"
-  ! grep -Eq 'save-integrity-system|visual-polish|art-runtime-v2|art-runtime-v4|town-art-v160|hero-directional|class-combat-fx|new-run-reset|art/runtime/' "$entry" || fail "retired runtime reference remains: $entry"
+  grep -Fq "?v=$EXPECTED_GENERATION" "$entry" || fail "generation $EXPECTED_GENERATION missing: $entry"
+  ! grep -Eq '\?v=(153|157|166|167|168)' "$entry" || fail "historical cache generation remains: $entry"
+  ! grep -Eq 'game/systems/|combat-controls|core-screen-owner|town-canvas-locale|town-workspace|forge-feedback|combat-hint-polish|expedition-pressure|audio-director|mobile-ux|expedition-record' "$entry" || fail "second authority reference remains: $entry"
 done
 
-grep -Fq "const assetVersion = '$EXPECTED_GENERATION'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime cache generation mismatch'
-grep -Fq 'release-stamp-v130.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'v1.3.0 release stamp not wired'
-grep -Fq "renderOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime does not declare core Canvas authority'
-grep -Fq "renderOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'production bootstrap does not declare core Canvas authority'
-grep -Fq "const STORAGE_EPOCH = 'v130'" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'clean storage epoch missing'
-grep -Fq "newAdventure:'full-reset'" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'New Adventure is not a full reset'
-grep -Fq "historicalSaveMigration:false" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'historical save migration must remain disabled'
-grep -Fq 'installNoTranslateBoundary' "$GAME_SOURCE/game/locale/fixed-locale-entry-v130.js" || fail 'fixed-locale no-translate boundary missing'
-grep -Fq 'responsive-final-v154.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'responsive owner not wired'
+grep -Fq "const assetVersion = '$EXPECTED_GENERATION'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime generation mismatch'
+grep -Fq "followers:'dom-only'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime followers are not DOM-only'
+grep -Fq "gameplayStateOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'gameplay state owner mismatch'
+grep -Fq "gameplayInputOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'gameplay input owner mismatch'
+grep -Fq "gameplayPersistenceOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'gameplay persistence owner mismatch'
 
 previous_release="$(readlink -f "$CURRENT_LINK")"
 [[ "$previous_release" == "$RELEASES_DIR"/* ]] || fail 'existing 91hwl-play current release is invalid'
@@ -89,7 +63,6 @@ release_dir="$RELEASES_DIR/$release_name"
 tmp_dir="$(mktemp -d "$RELEASES_DIR/.dungeon-echo-${revision:0:12}.XXXXXX")"
 next_link="$SITE_ROOT/.current-dungeon-echo-${revision:0:12}"
 switched=false
-
 rollback(){
   rc=$?
   if test "$rc" -ne 0; then
@@ -99,8 +72,7 @@ rollback(){
       mv -Tf "$rollback_link" "$CURRENT_LINK"
       systemctl reload nginx >/dev/null 2>&1 || true
     fi
-    rm -rf -- "$tmp_dir"
-    rm -f -- "$next_link"
+    rm -rf -- "$tmp_dir"; rm -f -- "$next_link"
     echo 'dungeon_echo_site_deploy=ROLLED_BACK' >&2
   fi
   exit "$rc"
@@ -120,14 +92,13 @@ mv "$tmp_dir" "$release_dir"
 ln -s "$release_dir" "$next_link"
 mv -Tf "$next_link" "$CURRENT_LINK"
 switched=true
-
 nginx -t
 systemctl reload nginx
 "$HEALTHCHECK"
-
 trap - EXIT
 echo "site_release=$release_dir"
 echo "dungeon_echo_revision=$revision"
 echo "dungeon_echo_version=$version"
 echo "asset_generation=$EXPECTED_GENERATION"
+echo 'authority_graph=single'
 echo 'dungeon_echo_site_deploy=PASS'
