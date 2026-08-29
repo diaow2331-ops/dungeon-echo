@@ -23,8 +23,7 @@ game/systems/risk-reward-system.js
 game/ui/visual-polish.js
 game/ui/art-runtime-v2.js
 game/ui/art-runtime-v4.js
-game/ui/hero-directional-art-v165.js
-game/ui/class-combat-fx-v163.js
+game/ui/new-run-reset-v167.js
 game/ui/equipment-shop-ui.js
 game/core/release-stamp-v1212.js
 game/locale/fixed-locale-entry-v130.js
@@ -62,7 +61,6 @@ art/town-backdrop-v11.webp
 art/runtime/loot-atlas-v2.svg
 art/runtime/monster-deep-atlas-v2.svg
 art/runtime/hero-action-atlas-v2.svg
-art/runtime/hero-directional-atlas-v1.png
 art/runtime/dungeon-props-atlas-v1.svg
 art/runtime/boss-guardian-atlas-v3.png
 art/runtime/final-boss-v3.png
