@@ -3352,14 +3352,14 @@ function draw(now) {
     const px = it.x * TILE + TILE / 2, py = it.y * TILE + TILE / 2 + bob;
     drawShadow(px, it.y * TILE + TILE - 4, 7, 2.6);
     if (it.type === 'cask') {
-    const by = it.y * TILE + TILE / 2 + bob * 0.6;
-    if (!drawDungeonProp(DUNGEON_PROP_ART.woodBarrel, px, by, 28, 28, .96)) {
-      ctx.fillStyle = '#6b4a2e'; ctx.fillRect(px - 9, by - 8, 18, 14);
-      ctx.fillStyle = '#4a301c'; ctx.fillRect(px - 9, by - 5, 18, 3); ctx.fillRect(px - 9, by + 3, 18, 3);
-      ctx.fillStyle = '#8a6a44'; ctx.beginPath(); ctx.ellipse(px, by - 8, 9, 3, 0, Math.PI, 0); ctx.fill();
-    }
-    continue;
+  const by = it.y * TILE + TILE / 2 + bob * 0.6;
+  if (!drawDungeonProp(DUNGEON_PROP_ART.woodBarrel, px, by, 28, 28, .96)) {
+    ctx.fillStyle = '#6b4a2e'; ctx.fillRect(px - 9, by - 8, 18, 14);
+    ctx.fillStyle = '#4a301c'; ctx.fillRect(px - 9, by - 5, 18, 3); ctx.fillRect(px - 9, by + 3, 18, 3);
+    ctx.fillStyle = '#8a6a44'; ctx.beginPath(); ctx.ellipse(px, by - 8, 9, 3, 0, Math.PI, 0); ctx.fill();
   }
+  continue;
+}
     if (it.type === 'equip') {
       const glow = .45 + .3 * Math.sin(now * 4 + it.x);
       ctx.strokeStyle = RARITIES[it.item.rarity].color;
@@ -3376,11 +3376,11 @@ function draw(now) {
       ctx.fillRect(px - TILE, py - TILE, TILE * 2, TILE * 2);
     }
     if (it.type === 'chest') {
-    if (!drawDungeonProp(DUNGEON_PROP_ART.treasureChest, px, py, 30, 28, .98) && spr)
-      ctx.drawImage(spr.img, px - 12, py - 12, 24, 24);
-  } else if (!drawLootIcon(iconId, px, py, 24) && spr) {
-    ctx.drawImage(spr.img, px - 11, py - 11, 22, 22);
-  }
+  if (!drawDungeonProp(DUNGEON_PROP_ART.treasureChest, px, py, 30, 28, .98) && spr)
+    ctx.drawImage(spr.img, px - 12, py - 12, 24, 24);
+} else if (!drawLootIcon(iconId, px, py, 24) && spr) {
+  ctx.drawImage(spr.img, px - 11, py - 11, 22, 22);
+}
   }
 
   for (const m of monsters) {
