@@ -7,8 +7,8 @@ RELEASES_DIR="$SITE_ROOT/releases"
 CURRENT_LINK="$SITE_ROOT/current"
 GAME_SOURCE="$BUNDLE_ROOT/public/dungeon-echo"
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
-EXPECTED_VERSION=1.2.11
-EXPECTED_GENERATION=156
+EXPECTED_VERSION=1.2.12
+EXPECTED_GENERATION=166
 
 fail(){ echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
@@ -20,9 +20,16 @@ for f in \
   "$GAME_SOURCE/VERSION" \
   "$GAME_SOURCE/game/core/runtime-bootstrap.js" \
   "$GAME_SOURCE/game/core/production-bootstrap.js" \
-  "$GAME_SOURCE/game/core/release-stamp-v1211.js" \
+  "$GAME_SOURCE/game/core/release-stamp-v1212.js" \
   "$GAME_SOURCE/game/locale/fixed-locale-entry-v130.js" \
   "$GAME_SOURCE/game/ui/responsive-final-v154.js" \
+  "$GAME_SOURCE/game/ui/art-runtime-v4.js" \
+  "$GAME_SOURCE/game/ui/town-art-v160.js" \
+  "$GAME_SOURCE/game/ui/class-combat-fx-v163.js" \
+  "$GAME_SOURCE/game/ui/hero-directional-art-v165.js" \
+  "$GAME_SOURCE/art/runtime/boss-guardian-atlas-v3.png" \
+  "$GAME_SOURCE/art/runtime/final-boss-v3.png" \
+  "$GAME_SOURCE/art/runtime/hero-directional-atlas-v1.png" \
   "$BUNDLE_ROOT/VERSION" \
   "$BUNDLE_ROOT/REVISION" \
   "$BUNDLE_ROOT/SHA256SUMS"; do
@@ -42,10 +49,14 @@ for entry in "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html"; do
   ! grep -Fq '?v=153' "$entry" || fail "stale generation 153 remains: $entry"
 done
 grep -Fq "const assetVersion = '$EXPECTED_GENERATION'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime cache generation mismatch'
-grep -Fq 'release-stamp-v1211.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'v1.2.11 release stamp not wired'
+grep -Fq 'release-stamp-v1212.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'v1.2.12 release stamp not wired'
 grep -Fq 'installNoTranslateBoundary' "$GAME_SOURCE/game/locale/fixed-locale-entry-v130.js" || fail 'fixed-locale no-translate boundary missing'
 grep -Fq 'responsive-final-v154.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'responsive owner not wired'
 grep -Fq 'ONE_SHOT_REPEAT_KEYS' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'one-shot keyboard repeat guard missing'
+grep -Fq 'hero-directional-art-v165.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'four-direction hero runtime missing from production bootstrap'
+grep -Fq 'class-combat-fx-v163.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'class combat FX runtime missing from production bootstrap'
+grep -Fq 'town-art-v160.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'town art runtime missing from production bootstrap'
+grep -Fq 'art-runtime-v4.js' "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'terrain/entity art coordinator missing from production bootstrap'
 
 previous_release="$(readlink -f "$CURRENT_LINK")"
 [[ "$previous_release" == "$RELEASES_DIR"/* ]] || fail 'existing 91hwl-play current release is invalid'
