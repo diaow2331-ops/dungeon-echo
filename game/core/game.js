@@ -1773,6 +1773,7 @@ function makeMonster(base, p) {
     hurtT: 0, lungeT: 0, ldx: 0, ldy: 0,
   };
   m.hp = m.maxHp;
+  normalizeGuardianIdentity(m);
   if (elite) m.name = '精英·' + m.name;
   return m;
 }
@@ -3170,8 +3171,229 @@ function monsterRangedAttack(m, armorBreak = false) {
   }
   if (player.hp <= 0) die();
 }
+const GUARDIAN_SPECS = Object.freeze({
+  20: { id:'frost-ring', interval:4, color:'#7ec8e3', radius:2,
+    title:ui('霜环蓄积','Frost Ring'), warn:ui('寒气将在下一回合覆盖守卫周围 2 格。离开霜环范围。','Frost will cover the 2-tile area around the guardian next turn. Leave the ring.') },
+  30: { id:'ember-mark', interval:4, color:'#ff8a45',
+    title:ui('爆裂标记','Ember Mark'), warn:ui('脚下地块已被点燃。下一回合前离开这个格子。','Your tile is marked to ignite. Move off it before the next turn.') },
+  40: { id:'hunter-line', interval:3, color:'#e7d7a4', range:6,
+    title:ui('猎杀线','Hunter Line'), warn:ui('守卫锁定了一条射击线。侧移、离开射程或借墙断线。','The guardian locks a firing line. Sidestep, leave range, or break line of sight.') },
+  50: { id:'mending-channel', interval:5, color:'#86d4a6',
+    title:ui('愈合咏唱','Mending Channel'), warn:ui('守卫将在下一回合恢复生命。警告期间造成伤害即可打断。','The guardian will heal next turn. Damage it during the warning to interrupt.') },
+  60: { id:'blood-tether', interval:4, color:'#e05a65',
+    title:ui('血契牵引','Blood Tether'), warn:ui('血链将在下一回合抽取近距离目标。拉开到 4 格以上。','The tether drains nearby targets next turn. Get at least 4 tiles away.') },
+  70: { id:'rupture-cross', interval:4, color:'#d7a640', radius:3,
+    title:ui('地脉震裂','Rupture Cross'), warn:ui('守卫将在自身横纵 3 格内震裂地面。离开十字危险线。','The guardian ruptures three tiles along its row and column. Leave the cross.') },
+  80: { id:'arcane-strip', interval:4, color:'#a895ff', range:2,
+    title:ui('星蚀弹幕','Eclipse Barrage'), warn:ui('弹幕锁定短直线。沿垂直方向侧移一格。','The barrage locks a short line. Sidestep one tile perpendicular to it.') },
+});
+const GUARDIAN_ECHO_SEQUENCE = Object.freeze([
+  { id:'echo-mark', interval:3, color:'#ff8a45', title:ui('回响试炼 I · 踏焰','Echo Trial I · Step from Flame'), warn:ui('离开被锁定地块。','Leave the marked tile.') },
+  { id:'echo-line', interval:3, color:'#e7d7a4', range:7, title:ui('回响试炼 II · 断线','Echo Trial II · Break the Line'), warn:ui('侧移、离开射程或借墙断线。','Sidestep, leave range, or break the line.') },
+  { id:'echo-ring', interval:3, color:'#7ec8e3', radius:2, title:ui('回响试炼 III · 离环','Echo Trial III · Leave the Ring'), warn:ui('离开守卫周围 2 格。','Leave the 2-tile area around the guardian.') },
+]);
+const GUARDIAN_FINAL_PHASES = Object.freeze({
+  crown:{ id:'throne-mark', interval:3, color:'#d7a640', title:ui('终局第一相 · 王座烙印','Final Phase I · Throne Brand'), warn:ui('下一回合前离开脚下烙印。','Move off the branded tile before next turn.') },
+  void:{ id:'void-line', interval:3, color:'#b49cff', range:8, title:ui('终局第二相 · 虚空裁线','Final Phase II · Void Line'), warn:ui('侧移或借墙切断射线。','Sidestep or break the line with terrain.') },
+  heart:{ id:'heart-nova', interval:2, color:'#ff6f6f', radius:2, title:ui('终局第三相 · 深渊心爆','Final Phase III · Abyss Heart Nova'), warn:ui('停止贪刀，离开守卫周围 2 格。','Stop attacking and leave the 2-tile blast area.') },
+});
+function guardianDepth(m) {
+  if (!m) return depth;
+  if (m.boss) return depth;
+  return Math.max(1, Math.floor(Number(m.depth) || depth));
+}
+function normalizeGuardianIdentity(m) {
+  if (!m || (!m.midBoss && !m.boss)) return m;
+  const d=guardianDepth(m);
+  if (d===10) m.armorBreak=true;
+  else if (d===20) { m.regen=true; m.slow=false; }
+  else if (d===30) { m.boom=true; m.enrage=false; m.enraged=false; }
+  else if (d===40) m.ranged=4;
+  else if (d===50) { m.ranged=2; m.regen=false; }
+  else if (d===60) { m.leech=.20; m.enrage=false; m.enraged=false; }
+  else if (d===70) { m.regen=true; m.boom=true; m.slow=false; }
+  else if (d===80) { m.ranged=3; m.regen=false; m.enrage=false; m.enraged=false; }
+  else if (d===90) { m.ranged=3; m.regen=false; m.enrage=false; m.enraged=false; m.leech=.10; }
+  else if (d===100 && m.boss) { m.ranged=3; m.regen=false; m.enrage=false; m.enraged=false; m.leech=.08; }
+  return m;
+}
+function guardianFinalPhaseKey(m) {
+  const ratio=m && m.maxHp ? m.hp/m.maxHp : 1;
+  return ratio>.66 ? 'crown' : ratio>.33 ? 'void' : 'heart';
+}
+function guardianSpecById(id) {
+  for (const spec of Object.values(GUARDIAN_SPECS)) if (spec.id===id) return spec;
+  for (const spec of GUARDIAN_ECHO_SEQUENCE) if (spec.id===id) return spec;
+  for (const spec of Object.values(GUARDIAN_FINAL_PHASES)) if (spec.id===id) return spec;
+  return null;
+}
+function guardianState(m) {
+  if (!m || (!m.midBoss && !m.boss)) return null;
+  const d=guardianDepth(m);
+  if (d<20 || d>100 || (d===100 && !m.boss)) return null;
+  if (!m.guardianEncounter || m.guardianEncounter.version!==1) {
+    m.guardianEncounter={
+      version:1, nextSpecialTurn:turns+2, sequenceIndex:0, active:null,
+      finalPhase:d===100 ? guardianFinalPhaseKey(m) : null,
+    };
+  }
+  return m.guardianEncounter;
+}
+function guardianSpecFor(m,s) {
+  const d=guardianDepth(m);
+  if (GUARDIAN_SPECS[d]) return GUARDIAN_SPECS[d];
+  if (d===90) return GUARDIAN_ECHO_SEQUENCE[(s.sequenceIndex||0)%GUARDIAN_ECHO_SEQUENCE.length];
+  if (d===100 && m.boss) return GUARDIAN_FINAL_PHASES[guardianFinalPhaseKey(m)];
+  return null;
+}
+const guardianLineLike=id => id==='hunter-line' || id==='echo-line' || id==='void-line';
+function guardianStartSpecial(m,s,spec) {
+  const dx=Math.abs(player.x-m.x), dy=Math.abs(player.y-m.y);
+  const axis=(guardianLineLike(spec.id) || spec.id==='arcane-strip') ? (dx>=dy?'row':'col') : null;
+  s.active={
+    id:spec.id, resolveTurn:turns+1,
+    targetX:player.x, targetY:player.y, startHp:m.hp,
+    axis, line:axis==='row'?player.y:axis==='col'?player.x:null,
+  };
+  floater(m, spec.title, spec.color);
+  msg(`${spec.title}: ${spec.warn}`, 'bad');
+}
+function guardianLineClear(m,axis) {
+  if (axis==='row') {
+    if (m.y!==player.y) return false;
+    for (let x=Math.min(m.x,player.x)+1;x<Math.max(m.x,player.x);x++) if (map[m.y] && map[m.y][x]===WALL) return false;
+    return true;
+  }
+  if (axis==='col') {
+    if (m.x!==player.x) return false;
+    for (let y=Math.min(m.y,player.y)+1;y<Math.max(m.y,player.y);y++) if (map[y] && map[y][m.x]===WALL) return false;
+    return true;
+  }
+  return false;
+}
+function guardianResolveSpecial(m,s) {
+  const a=s.active;
+  if (!a) return false;
+  const spec=guardianSpecById(a.id);
+  s.active=null;
+  if (!spec) return true;
+  s.nextSpecialTurn=turns+spec.interval;
+  let hit=false;
+  if (a.id==='frost-ring' || a.id==='echo-ring' || a.id==='heart-nova') {
+    const r=spec.radius||2;
+    hit=Math.max(Math.abs(player.x-m.x),Math.abs(player.y-m.y))<=r;
+    if (hit) monsterAttack(m);
+  } else if (a.id==='ember-mark' || a.id==='echo-mark' || a.id==='throne-mark') {
+    hit=player.x===a.targetX && player.y===a.targetY;
+    if (hit) monsterAttack(m);
+  } else if (guardianLineLike(a.id)) {
+    const aligned=a.axis==='row' ? player.y===a.line : player.x===a.line;
+    const dist=Math.max(Math.abs(player.x-m.x),Math.abs(player.y-m.y));
+    hit=aligned && dist<=(spec.range||6) && guardianLineClear(m,a.axis);
+    if (hit) monsterRangedAttack(m);
+  } else if (a.id==='arcane-strip') {
+    const r=spec.range||2;
+    hit=a.axis==='row'
+      ? player.y===a.targetY && Math.abs(player.x-a.targetX)<=r
+      : player.x===a.targetX && Math.abs(player.y-a.targetY)<=r;
+    if (hit) monsterRangedAttack(m);
+  } else if (a.id==='mending-channel') {
+    if (m.hp<a.startHp) msg(ui('愈合咏唱被打断。','Mending Channel interrupted.'),'good');
+    else {
+      const heal=Math.max(1,Math.round(m.maxHp*.15));
+      m.hp=Math.min(m.maxHp,m.hp+heal);
+      msg(ui(`愈合完成：守卫恢复 ${heal} 点生命。`,`Mending completed: guardian restored ${heal} HP.`),'bad');
+    }
+  } else if (a.id==='blood-tether') {
+    hit=Math.max(Math.abs(player.x-m.x),Math.abs(player.y-m.y))<=3;
+    if (hit) monsterAttack(m);
+  } else if (a.id==='rupture-cross') {
+    const r=spec.radius||3, dx=Math.abs(player.x-m.x), dy=Math.abs(player.y-m.y);
+    hit=(player.x===m.x && dy<=r) || (player.y===m.y && dx<=r);
+    if (hit) monsterAttack(m);
+  }
+  if (guardianDepth(m)===90) s.sequenceIndex=((s.sequenceIndex||0)+1)%GUARDIAN_ECHO_SEQUENCE.length;
+  if (a.id!=='mending-channel') msg(hit
+    ? ui(`${spec.title}命中。下一次按预警反制。`,`${spec.title} hit. Counter the next warning.`)
+    : ui(`${spec.title}落空：反制成功。`,`${spec.title} missed: counterplay succeeded.`), hit?'bad':'good');
+  return true;
+}
+function guardianAction(m) {
+  if (!m || state!=='playing' || (!m.midBoss && !m.boss)) return false;
+  normalizeGuardianIdentity(m);
+  const s=guardianState(m);
+  if (!s) return false;
+  if (s.active && turns>=Number(s.active.resolveTurn||0)) return guardianResolveSpecial(m,s);
+  if (guardianDepth(m)===100 && m.boss && !s.active) {
+    const phase=guardianFinalPhaseKey(m);
+    if (s.finalPhase!==phase) {
+      s.finalPhase=phase;
+      s.nextSpecialTurn=Math.min(Number(s.nextSpecialTurn)||Infinity,turns+1);
+      msg(phase==='void'
+        ? ui('终焉渊主进入第二阶段：虚空裁线开始。','The End-Abyss Sovereign enters Phase II: Void Line begins.')
+        : ui('终焉渊主进入第三阶段：深渊心爆加速。','The End-Abyss Sovereign enters Phase III: Heart Nova accelerates.'),'bad');
+    }
+  }
+  if (s.active || turns<Number(s.nextSpecialTurn||Infinity)) return false;
+  const spec=guardianSpecFor(m,s);
+  if (!spec) return false;
+  if (spec.id==='mending-channel' && m.hp>=m.maxHp*.85) {
+    s.nextSpecialTurn=turns+2;
+    return false;
+  }
+  guardianStartSpecial(m,s,spec);
+  return true;
+}
+function drawGuardianTelegraph(m,now) {
+  const a=m && m.guardianEncounter && m.guardianEncounter.active;
+  if (!a) return;
+  const spec=guardianSpecById(a.id);
+  if (!spec) return;
+  const pulse=.12+.08*Math.sin(now*8);
+  const fillCell=(x,y,alpha=.22) => {
+    if (!inB(x,y)) return;
+    ctx.globalAlpha=alpha+pulse;
+    ctx.fillStyle=spec.color;
+    ctx.fillRect(x*TILE+2,y*TILE+2,TILE-4,TILE-4);
+    ctx.globalAlpha=.88;
+    ctx.strokeStyle=spec.color;
+    ctx.lineWidth=2;
+    ctx.strokeRect(x*TILE+3,y*TILE+3,TILE-6,TILE-6);
+  };
+  ctx.save();
+  if (a.id==='frost-ring' || a.id==='echo-ring' || a.id==='heart-nova') {
+    const r=spec.radius||2;
+    for (let y=m.y-r;y<=m.y+r;y++) for (let x=m.x-r;x<=m.x+r;x++) fillCell(x,y,.13);
+  } else if (a.id==='ember-mark' || a.id==='echo-mark' || a.id==='throne-mark') {
+    fillCell(a.targetX,a.targetY,.3);
+  } else if (guardianLineLike(a.id)) {
+    const r=spec.range||6;
+    if (a.axis==='row') for (let x=Math.max(0,m.x-r);x<=Math.min(MAP_W-1,m.x+r);x++) fillCell(x,a.line,.12);
+    else for (let y=Math.max(0,m.y-r);y<=Math.min(MAP_H-1,m.y+r);y++) fillCell(a.line,y,.12);
+  } else if (a.id==='arcane-strip') {
+    const r=spec.range||2;
+    if (a.axis==='row') for (let x=a.targetX-r;x<=a.targetX+r;x++) fillCell(x,a.targetY,.14);
+    else for (let y=a.targetY-r;y<=a.targetY+r;y++) fillCell(a.targetX,y,.14);
+  } else if (a.id==='rupture-cross') {
+    const r=spec.radius||3;
+    for (let d=-r;d<=r;d++) { fillCell(m.x+d,m.y,.14); fillCell(m.x,m.y+d,.14); }
+  } else if (a.id==='blood-tether') {
+    ctx.globalAlpha=.82; ctx.strokeStyle=spec.color; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(m.x*TILE+TILE/2,m.y*TILE+TILE/2);
+    ctx.lineTo(player.x*TILE+TILE/2,player.y*TILE+TILE/2); ctx.stroke();
+  } else if (a.id==='mending-channel') {
+    ctx.globalAlpha=.45+pulse; ctx.strokeStyle=spec.color; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(m.x*TILE+TILE/2,m.y*TILE+TILE/2,TILE*.72,0,Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function monstersTurn() {
   for (const m of [...monsters]) {
+    if (guardianAction(m)) {
+      if (state !== 'playing') return;
+      continue;
+    }
     if (m.slow) {
       m.skip = 1 - (m.skip || 0);
       if (m.skip) continue;
@@ -3683,6 +3905,7 @@ function draw(now) {
       ctx.ellipse(m.fx * TILE + TILE / 2, m.fy * TILE + TILE - 4, baseSize * .34, baseSize * .12, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
+    drawGuardianTelegraph(m, now);
     const drawn = drawMonsterV11(m, now);
     const [px, py] = drawn.pos, size = drawn.size;
     if (m.elite && !m.boss && !m.midBoss) drawCrown(px, py - size / 2 - 3, size * .42);
