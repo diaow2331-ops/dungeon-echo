@@ -5003,19 +5003,19 @@ function renderTown() {
       `<span class="row-actions"><button type="button" data-withdraw="${i}"${meta.bag.length >= BAG_CAP ? ' disabled' : ''}>${ui('取出','Withdraw')}</button>${tradeBtns('stash', i, it)}</span></div>`).join('')
     : `<p class="dim-note">${ui('仓库是空的。把装备「存入」这里，死亡也夺不走。','The stash is empty. Store gear here to keep it safe from death.')}</p>`;
   const shopEl = $('town-shop');
-if (shopEl) {
-  const market = ensureTownMarket();
-  shopEl.innerHTML = market ? TOWN_MARKET_IDS.map(id => {
-    const def = TOWN_MARKET_SUPPLIES[id];
-    const price = townMarketPrice(id, market.tier);
-    const left = market.stock[id] || 0;
-    const held = def.held(meta);
-    const label = ui(def.zh, def.en);
-    return `<div class="shop-row" data-town-supply="${id}"><span>${esc(label)} ×1 <small>${ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`)}</small></span>` +
-      `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
-  }).join('') + `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>` : '';
-}
-const wheelEl = $('town-wheel');
+  if (shopEl) {
+    const market = ensureTownMarket();
+    shopEl.innerHTML = market ? TOWN_MARKET_IDS.map(id => {
+      const def = TOWN_MARKET_SUPPLIES[id];
+      const price = townMarketPrice(id, market.tier);
+      const left = market.stock[id] || 0;
+      const held = def.held(meta);
+      const label = ui(def.zh, def.en);
+      return `<div class="shop-row" data-town-supply="${id}"><span>${esc(label)} ×1 <small>${ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`)}</small></span>` +
+        `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
+    }).join('') + `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>` : '';
+  }
+  const wheelEl = $('town-wheel');
   if (wheelEl) {
     ensureWheel();
     const sc = spinCost(), rc = resetWheelCost();
