@@ -1,0 +1,52 @@
+name: equipment-transaction-cutover-once-v130
+
+on:
+  push:
+    branches:
+      - refactor/equipment-transaction-pricing-v130
+
+permissions:
+  contents: write
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply exact equipment transaction pricing transfer
+        run: python3 .github/equipment-transaction-cutover-once.py
+      - name: Verify formula parity and governance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check game/core/game.js
+          node - <<'NODE'
+          const assert = require('assert');
+          const rules = require('./game/domain/economy/economy-rules-v130.js');
+          const oldForge = (v,l) => 30 + Math.round(v * 1.2) * (l + 1);
+          const oldSell = (v,l) => Math.max(4, Math.round(v * .45) + l * 15);
+          assert.equal(rules.authority, 'equipment-transaction-pricing');
+          for (let i = 0; i < 240; i++) {
+            const value = (i * 17) % 1000;
+            const level = i % 6;
+            assert.equal(rules.forgeCost(value, level), oldForge(value, level));
+            assert.equal(rules.sellPrice(value, level), oldSell(value, level));
+          }
+          console.log('equipment_transaction_pricing_parity=PASS samples=240');
+          NODE
+          bash ops/check-authority-local.sh
+      - name: Commit cutover and remove one-shot executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/equipment-transaction-cutover-once-v130.yml
+          rm -f .github/equipment-transaction-cutover-once.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --quiet && { echo "No cutover changes produced" >&2; exit 1; }
+          git commit -m "refactor: transfer equipment transaction pricing authority"
+          git push origin HEAD:refactor/equipment-transaction-pricing-v130
