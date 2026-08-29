@@ -2,9 +2,19 @@ name: release-governance
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/release-governance.yml
 
 permissions:
-  contents: read
+  contents: write
+
+env:
+  RELEASE_REVISION: a3136ade46f8ff9c63d6dc94a97ed9e54a69c512
+  RELEASE_TAG: v1.3.1
+  ARCHIVE_NAME: 91hwl-play-dungeon-echo-v1.3.1.zip
 
 jobs:
   authority-contract:
@@ -13,16 +23,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ env.RELEASE_REVISION }}
       - name: Verify canonical local authority gate
         run: bash ops/check-authority-local.sh
       - name: Build immutable Dungeon Echo v1.3.1 recovery ZIP
         env:
-          SOURCE_REVISION: ${{ github.sha }}
-        run: bash ops/release/build-site-bundle.sh "$RUNNER_TEMP/91hwl-play-dungeon-echo-v1.3.1.zip"
+          SOURCE_REVISION: ${{ env.RELEASE_REVISION }}
+        run: bash ops/release/build-site-bundle.sh "$RUNNER_TEMP/$ARCHIVE_NAME"
+      - name: Generate release checksum
+        run: cd "$RUNNER_TEMP" && sha256sum "$ARCHIVE_NAME" > "$ARCHIVE_NAME.sha256"
       - name: Upload recovery-release artifact
         uses: actions/upload-artifact@v4
         with:
           name: dungeon-echo-v1.3.1-recovery-170
-          path: ${{ runner.temp }}/91hwl-play-dungeon-echo-v1.3.1.zip
+          path: |
+            ${{ runner.temp }}/${{ env.ARCHIVE_NAME }}
+            ${{ runner.temp }}/${{ env.ARCHIVE_NAME }}.sha256
           if-no-files-found: error
           retention-days: 7
+      - name: Publish immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/$ARCHIVE_NAME"
+          checksum="$archive.sha256"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$archive" "$checksum" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$archive" "$checksum" \
+              --target "$RELEASE_REVISION" \
+              --title "Dungeon Echo v1.3.1 — Recovery Closeout" \
+              --notes-file docs/releases/RELEASE_NOTES_v1.3.1.md
+          fi
