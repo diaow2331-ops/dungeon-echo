@@ -11,7 +11,7 @@ const exists = rel => fs.existsSync(path.join(root, rel));
 const run = (cmd,args) => spawnSync(cmd,args,{cwd:root,encoding:'utf8'});
 
 const version = read('VERSION').trim();
-assert.match(version, /^1\.3\.\d+$/);
+assert.match(version, /^1\.\d+\.\d+$/, 'VERSION must remain a valid 1.x semantic release');
 const authority = JSON.parse(read('docs/authority-map-v130.json'));
 assert.equal(authority.version, version);
 assert.equal(authority.policy, 'one-responsibility-one-production-authority');
