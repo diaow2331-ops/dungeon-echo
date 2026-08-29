@@ -1,40 +1,44 @@
 # Dungeon Echo v1.3.0
 
-Dungeon Echo v1.3.0 is a runtime-authority reset on public cache generation **168**. It removes the layered presentation and save-compatibility structure that accumulated across the v1.2 line and returns production to one explicit source of truth.
+Dungeon Echo v1.3.0 is an authority reset. Public cache generation for the clean baseline is **169**.
 
-## Single production authority
+## What changed
 
-- `game/core/game.js` is the only dungeon/town Canvas renderer.
-- Historical entity/terrain/town overlays are removed from the active tree and immutable artifact.
-- Canvas interception and cleanup shims are removed rather than patched again.
-- The pixel-direction hero overlay and programmatic line combat FX remain retired.
-- Production entries no longer preload or execute `art/runtime/*` presentation assets.
-- Canonical v11 hero, monster, guardian, final-boss and town assets are rendered directly by core.
+The v1.2 line accumulated useful systems and art through independent wrappers, overlays and migrations. Several of those modules could mutate the same gameplay functions, write the same browser state, capture the same commands or redraw the same Canvas surfaces.
 
-## Clean storage epoch
+v1.3.0 stops that pattern before more content is added.
 
-v1.3.0 intentionally starts a new local storage epoch: `v130`.
+- `game/core/game.js` is the sole gameplay state, combat/economy/progression/town, gameplay-persistence and dungeon/town Canvas authority.
+- keyboard/touch gameplay input is owned by core;
+- gamepad is transport-only;
+- runtime loading is restricted to approved DOM/CSS followers;
+- historical Canvas overlays, API wrappers and storage migrations are not active production code;
+- production cache generation is 169 and source equals artifact.
 
-On the first v1.3.0 visit, prior Dungeon Echo `de-*` storage is removed. Historical save-integrity and item-migration shims are not executed or shipped. **New Adventure** performs a full Dungeon Echo reset, including Greedy Expedition meta, then starts a fresh run. This is intentionally not backward-compatible with v1.2 browser progress.
+## Previously completed work is preserved
 
-## Why this reset exists
+This cleanup does **not** throw away the work done in v1.2.
 
-The v1.2 art closeout exposed a structural problem: several independent presentation owners could draw or intercept the same Canvas surface. A black radial mask could remain visible even after the most obvious hero overlay was retired because another entity runtime still owned a masking pass. v1.3.0 fixes the ownership model rather than adding another compensating layer.
+Previously completed gameplay systems, town/economy modules, UI, combat controls, localization shims, persistence helpers and overlay art runtimes are preserved in `archive/quarantine-v130/`, grouped by responsibility and provenance.
 
-## Release boundary
+The quarantine is intentionally not shipped. Features return by being ported into their sole current owner, not by re-enabling the old wrapper.
 
-The immutable artifact explicitly rejects the retired runtime graph. It must not contain the old save-integrity/migration files, visual polish Canvas, entity/terrain/town overlay runtimes, character cleanup interceptor, ground-loot overlay, directional hero runtime, class line FX or transitional New Run patch.
+## Canonical production art
 
-The focused CI contract builds the final ZIP and verifies:
+The clean baseline currently renders the canonical v11 hero, monster, guardian, final-boss and town art directly from core. Detailed overlay-era assets are preserved in quarantine and may be promoted into canonical `art/` later when the core renderer owns them directly.
 
-- semantic version `1.3.0`;
-- cache generation `168`;
-- one declared Canvas render owner: `game/core/game.js`;
-- storage epoch `v130` with historical migration disabled;
-- canonical core art assets present;
-- retired runtime files and `art/runtime/` absent from the artifact;
-- retained expedition-pressure and combat-control contracts still pass.
+## Storage epoch
 
-## Compatibility
+v1.3.0 uses storage epoch `v130`. Historical Dungeon Echo gameplay storage is cleared rather than migrated. The old save-integrity/item-migration/New Run shims are preserved in quarantine only.
 
-This release deliberately resets previous Dungeon Echo browser progress. It does not attempt to import or preserve v1.2 run, Greedy meta, item-migration or compatibility state. Gameplay balance is otherwise not intentionally retuned by this authority cleanup.
+## Governance
+
+The repository now contains:
+
+- `docs/ARCHITECTURE_SINGLE_AUTHORITY.md`;
+- `docs/authority-map-v130.json`;
+- `archive/quarantine-v130/RESPONSIBILITY_INDEX.md`;
+- a behavior-level `test/single-authority-v130.cjs` contract;
+- release/deploy health checks that reject wrapper systems and quarantined paths.
+
+The invariant is simple: **one responsibility, one production authority**.
