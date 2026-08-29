@@ -1,10 +1,10 @@
-/* Dungeon Echo staged progression rules v1.3.0.
+/* Dungeon Echo production level-up-arithmetic authority v1.3.0.
  *
- * Pure progression calculations extracted from the canonical core and quarantined
- * progression work. This library owns NO production authority yet and is not shipped.
+ * Sole production authority for canonical XP thresholds, per-level HP/ATK/heal deltas and
+ * talent-due classification. Caps, growth clamps, next-talent metadata and skill-evolution
+ * milestones remain dormant pure exports until separately transferred.
  *
- * Boundary rule: progression may calculate thresholds, caps and milestone metadata;
- * it must not mutate player/meta state, listen to input, write storage or touch the DOM.
+ * Boundary rule: no XP/player/meta mutation, talent-screen control, input, DOM or storage.
  */
 (() => {
   'use strict';
@@ -101,13 +101,9 @@
   }
 
   const api = Object.freeze({
-    version: 'v1.3.0-staged',
-    authority: 'none',
-    sources: Object.freeze([
-      'game/core/game.js',
-      'archive/quarantine-v130/gameplay/progression/progression-guard-system.js',
-      'archive/quarantine-v130/gameplay/progression/progression-system.js',
-    ]),
+    version: 'v1.3.0-production',
+    authority: 'level-up-arithmetic',
+    sources: Object.freeze(['game/core/game.js']),
     XP_PER_LEVEL,
     LEVEL_HP_GAIN,
     LEVEL_ATK_GAIN,

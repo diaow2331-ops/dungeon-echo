@@ -1991,6 +1991,9 @@ function dropAt(x, y, it) {
     }
   }
 }
+const PROGRESSION_RULES = typeof window !== 'undefined' ? window.DE_PROGRESSION_RULES_V130 : null;
+if (!PROGRESSION_RULES || PROGRESSION_RULES.authority !== 'level-up-arithmetic')
+  throw new Error('Dungeon Echo level-up-arithmetic authority missing');
 function killMonster(m) {
   const boomHit = m.boom && player.hp > 0 &&
     Math.abs(m.x - player.x) + Math.abs(m.y - player.y) <= 1;
@@ -2050,15 +2053,16 @@ function killMonster(m) {
     player.hp += h;
     floater(player, `+${h}`, '#7dd87d');
   }
-  while (player.xp >= player.lvl * 15) {
-    player.xp -= player.lvl * 15;
-    player.lvl++; player.hpBase += 6; player.atkBase += 1;
-    player.hp = Math.min(pMaxHp(), player.hp + 8);
+  while (player.xp >= PROGRESSION_RULES.xpThreshold(player.lvl)) {
+    player.xp -= PROGRESSION_RULES.xpThreshold(player.lvl);
+    const delta = PROGRESSION_RULES.levelUpDelta();
+    player.lvl++; player.hpBase += delta.hpBase; player.atkBase += delta.atkBase;
+    player.hp = Math.min(pMaxHp(), player.hp + delta.immediateHeal);
     floater(player, 'LEVEL UP!', '#eda23a');
     burst(player.fx, player.fy, '#eda23a', 16);
     sfx.levelup();
     msg(ui(`你升到了 ${player.lvl} 级！攻击+1，生命上限+6。`, `Level ${player.lvl}! ATK +1, Max HP +6.`), 'gold');
-    if (player.lvl % 3 === 0) pendingTalent = true;
+    if (PROGRESSION_RULES.talentDue(player.lvl)) pendingTalent = true;
   }
   if (!floorCleared && monsters.length === 0) {
     floorCleared = true;
