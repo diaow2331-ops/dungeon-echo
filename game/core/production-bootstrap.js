@@ -4,11 +4,11 @@
  *
  * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
  * equipment atlas without changing any equipment IDs, save keys or save schemas.
- * v4 art coordinator + directional hero + class combat FX + town art: suppress stale
- * direct entity-art tags, then load one fresh unified entity runtime plus terrain,
- * four-direction hero, directional combat and town presentation layers. They may
- * replace visible art, but core canvas/gameplay remains the fail-safe fallback.
- * v1.2.12 publishes the complete art-closeout graph under cache generation 166.
+ * v4 art coordinator + town art: suppress stale direct entity-art tags, then load one
+ * fresh unified entity runtime plus terrain and town presentation layers. The unified
+ * entity runtime keeps the established high-detail hero/action atlas. The experimental
+ * four-direction pixel overlay and programmatic line FX are retired from production.
+ * v1.2.12 hotfix publishes this corrected graph under cache generation 167.
  *
  * Production input integrity: movement keys may use normal OS key repeat, while
  * tactical one-shot actions are edge-triggered across keyboard, touch and gamepad.
@@ -76,10 +76,6 @@
     // the original atlas remains a safe fallback and gameplay still boots.
   }
 
-  // index.html still contains the legacy direct v2 tag with an old cache generation.
-  // Reserve its guard before the parser reaches that tag; art-runtime-v4 then clears
-  // this sentinel and performs one fresh entity-runtime load. This prevents stale
-  // cached entity art and also removes the former v2+v3 double-draw path.
   if (!window.__DE_ART_RUNTIME_V4 && !window.__DE_ART_RUNTIME_V2) {
     window.__DE_ART_RUNTIME_V2 = Object.freeze({
       version:'superseded-by-v4', owner:'production-bootstrap', sentinel:true,
@@ -99,11 +95,19 @@
       // Art overlays are optional presentation. Core art/gameplay remains authoritative.
     }
   };
+
+  const retireExperimentalHeroLayers = () => {
+    if (typeof document === 'undefined') return;
+    for (const id of ['de-hero-directional-art-v165','de-class-combat-fx-v163']) {
+      const node = document.getElementById(id);
+      if (node && node.parentNode) node.parentNode.removeChild(node);
+    }
+  };
+
   const loadArtRuntimes = () => {
-    appendArtRuntime('de-art-runtime-v4-loader', '../ui/art-runtime-v4.js?v=166', '__DE_ART_RUNTIME_V4');
-    appendArtRuntime('de-hero-directional-art-v165-loader', '../ui/hero-directional-art-v165.js?v=166', '__DE_HERO_DIRECTIONAL_ART_V165');
-    appendArtRuntime('de-class-combat-fx-v163-loader', '../ui/class-combat-fx-v163.js?v=166', '__DE_CLASS_COMBAT_FX_V163');
-    appendArtRuntime('de-town-art-v160-loader', '../ui/town-art-v160.js?v=166', '__DE_TOWN_ART_V160');
+    retireExperimentalHeroLayers();
+    appendArtRuntime('de-art-runtime-v4-loader', '../ui/art-runtime-v4.js?v=167', '__DE_ART_RUNTIME_V4');
+    appendArtRuntime('de-town-art-v160-loader', '../ui/town-art-v160.js?v=167', '__DE_TOWN_ART_V160');
   };
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
