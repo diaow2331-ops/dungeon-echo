@@ -11,7 +11,7 @@ const executableSource = source
   .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
-assert.equal(rules.authority, 'inventory-derived-rules');
+assert.equal(rules.authority, 'equipment-stat-scoring');
 assert.equal(rules.version, 'v1.3.0-production');
 assert.deepEqual([...rules.sources], ['game/core/game.js']);
 assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|fetch\s*\(|Math\.random/.test(executableSource), 'production inventory rules must stay pure and deterministic');
@@ -26,8 +26,8 @@ for (const entry of ['index.html', 'en/index.html']) {
 }
 
 const sample = { atk:10, def:5, hp:20, crit:4, leech:3, gold:10, thorns:2, regen:1 };
-assert.equal(rules.itemStatScore(sample), 73);
-assert.equal(rules.itemStatScore({ atk:2, def:3, hp:11, crit:1, leech:2, gold:7, thorns:4, regen:5 }), 40);
+assert.equal(rules.equipmentStatScore(sample), 73);
+assert.equal(rules.equipmentStatScore({ atk:2, def:3, hp:11, crit:1, leech:2, gold:7, thorns:4, regen:5 }), 40);
 assert.equal(rules.classFitScore(sample, 'warrior'), 73);
 assert.equal(rules.classFitScore(sample, 'ranger'), 69);
 assert.equal(rules.classFitScore(sample, 'mage'), 71);

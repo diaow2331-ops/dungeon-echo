@@ -20,7 +20,7 @@
     "responsiveLayout": "game/ui/responsive-final-v154.js",
     "helpCopy": "game/ui/help-copy-v126.js",
     "contentClassification": "game/domain/content/content-rules-v130.js",
-    "inventoryDerivedRules": "game/domain/inventory/equipment-rules-v130.js"
+    "equipmentStatScoring": "game/domain/inventory/equipment-rules-v130.js"
   },
   "plannedExtraction": {
     "combat": "game/domain/combat/",

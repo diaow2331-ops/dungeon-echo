@@ -1,8 +1,11 @@
-/* Dungeon Echo production inventory-derived-rules authority v1.3.0.
+/* Dungeon Echo production equipment-stat-scoring authority v1.3.0.
  *
- * Pure deterministic item/equipment calculations. The module owns derived inventory rules only;
- * live bag/equipment state, RNG, equip commands, rendering, persistence and economy transactions
- * remain with their current production owners.
+ * Pure deterministic equipment stat scoring. This module owns only the canonical score consumed
+ * by core. Affinity, rarity, depth-bonus and class-fit helpers remain dormant pure exports and
+ * are not production decisions without a separate atomic authority transfer.
+ *
+ * Boundary rule: no live inventory/equipment mutation, RNG, loot generation, DOM/rendering,
+ * persistence or economy transaction ownership.
  */
 (() => {
   'use strict';
@@ -41,7 +44,7 @@
     ]),
   });
 
-  function itemStatScore(stats) {
+  function equipmentStatScore(stats) {
     const source = stats || {};
     return Math.round((Number(source.atk) || 0) * 3 + (Number(source.def) || 0) * 3 +
       (Number(source.hp) || 0) * .6 + (Number(source.crit) || 0) * 1.5 +
@@ -96,7 +99,7 @@
 
   const api = Object.freeze({
     version:'v1.3.0-production',
-    authority:'inventory-derived-rules',
+    authority:'equipment-stat-scoring',
     sources:Object.freeze(['game/core/game.js']),
     AFFINITY,
     FIT_WEIGHT,
@@ -104,7 +107,7 @@
     RARITY_TARGETS,
     DEEP_THRESHOLDS,
     SLOT_BONUS,
-    itemStatScore,
+    equipmentStatScore,
     classFitScore,
     scaleAffixRange,
     affinityRange,
