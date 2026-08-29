@@ -22,7 +22,7 @@ game/systems/challenge-pressure.js
 game/systems/risk-reward-system.js
 game/ui/visual-polish.js
 game/ui/art-runtime-v2.js
-game/ui/art-runtime-v3.js
+game/ui/art-runtime-v4.js
 game/ui/equipment-shop-ui.js
 game/core/release-stamp-v1211.js
 game/locale/fixed-locale-entry-v130.js
