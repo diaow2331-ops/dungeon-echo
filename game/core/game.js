@@ -1261,8 +1261,11 @@ function itemValueScore(it) {
   const statScore = Math.max(0, eqScoreOf(it.stats || {}));
   return statScore + mechanicValueBonus(it, statScore);
 }
-const forgeCost = it => 30 + Math.round(itemValueScore(it) * 1.2) * ((it.forge || 0) + 1);
-const sellPrice = it => Math.max(4, Math.round(itemValueScore(it) * .45) + (it.forge || 0) * 15);
+const ECONOMY_RULES = typeof window !== 'undefined' ? window.DE_ECONOMY_RULES_V130 : null;
+if (!ECONOMY_RULES || ECONOMY_RULES.authority !== 'equipment-transaction-pricing')
+  throw new Error('Dungeon Echo equipment-transaction-pricing authority missing');
+const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueScore(it), it.forge || 0);
+const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);
 function genEquip(d, minRarity = 0) {
   const roll = rng();
   // 六栏位分布：武器 .30 护甲 .25 头盔 .15 靴 .15 戒指 .10 项链 .05

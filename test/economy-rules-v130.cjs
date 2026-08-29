@@ -11,16 +11,18 @@ const executableSource = source
   .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
-assert.equal(rules.authority, 'none');
-assert.equal(rules.version, 'v1.3.0-staged');
-assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b/.test(executableSource), 'staged economy rules must stay pure and disconnected');
+assert.equal(rules.authority, 'equipment-transaction-pricing');
+assert.equal(rules.version, 'v1.3.0-production');
+assert.deepEqual([...rules.sources], ['game/core/game.js']);
+assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|Math\.random/.test(executableSource), 'production economy pricing rules must stay pure and deterministic');
 
 const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8')
   .split(/\r?\n/).filter(Boolean);
-assert(!manifest.includes(rel), 'staged economy rules must not enter release before atomic authority transfer');
+assert(manifest.includes(rel), 'production economy pricing rules must ship');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(!html.includes(rel), `${entry}: staged economy rules must not be loaded in production`);
+  assert(html.includes(`${rel}?v=169`), `${entry}: economy pricing authority must be loaded`);
+  assert(html.indexOf(`${rel}?v=169`) < html.indexOf('game/core/game.js?v=169'), `${entry}: economy pricing authority must load before core`);
 }
 
 assert.equal(rules.townTier(1), 1);
