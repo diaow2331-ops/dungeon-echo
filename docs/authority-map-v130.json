@@ -21,6 +21,7 @@
     "helpCopy": "game/ui/help-copy-v126.js",
     "contentClassification": "game/domain/content/content-rules-v130.js",
     "equipmentStatScoring": "game/domain/inventory/equipment-rules-v130.js",
+    "equipmentClassFitScoring": "game/domain/inventory/equipment-rules-v130.js",
     "equipmentTransactionPricing": "game/domain/economy/economy-rules-v130.js",
     "levelUpArithmetic": "game/domain/progression/progression-rules-v130.js",
     "criticalDamageMultiplier": "game/domain/combat/combat-rules-v130.js"

@@ -1,8 +1,9 @@
 /* Dungeon Echo production equipment-stat-scoring authority v1.3.0.
  *
- * Pure deterministic equipment stat scoring. This module owns only the canonical score consumed
- * by core. Affinity, rarity, depth-bonus and class-fit helpers remain dormant pure exports and
- * are not production decisions without a separate atomic authority transfer.
+ * Pure deterministic equipment scoring. This module owns the canonical base stat score and the
+ * class-relative fit score consumed by core for player-facing equipment comparison. Affinity,
+ * rarity and depth-bonus helpers remain dormant pure exports. Class fit is presentation/decision
+ * information only: it must not price, generate, equip or mutate items.
  *
  * Boundary rule: no live inventory/equipment mutation, RNG, loot generation, DOM/rendering,
  * persistence or economy transaction ownership.

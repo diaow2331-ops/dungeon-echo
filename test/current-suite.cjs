@@ -24,6 +24,7 @@ const tests = [
   'descent100.cjs',
   'current-save-contract-v132.cjs',
   'current-control-contract-v132.cjs',
+  'decision-clarity-v133.cjs',
   'control-copy-v132.cjs',
   'adaptive-bgm-v132.cjs',
   'forge-feedback-v132.cjs',

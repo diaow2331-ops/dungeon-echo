@@ -12,7 +12,7 @@ A feature may be split into data, rendering helpers, tests and archived prototyp
 | --- | --- | --- | --- |
 | Gameplay state / turn flow | `game/core/game.js` | read exported test/debug state | assign state, wrap turn/combat functions |
 | Content classification | `game/domain/content/content-rules-v130.js` | supply deterministic eligibility decisions to core | spawn entities, consume RNG, mutate map/player/combat state |
-| Equipment stat scoring | `game/domain/inventory/equipment-rules-v130.js` | return the canonical deterministic equipment stat score to core | mutate bag/equipment/player state, consume RNG, generate loot, alter class-fit/rarity/depth rules, or price economy transactions |
+| Equipment decision scoring | `game/domain/inventory/equipment-rules-v130.js` | return canonical base-stat and class-fit scores to core for item comparison | mutate bag/equipment/player state, consume RNG, generate loot, alter affinity/rarity/depth rules, auto-equip items, or price economy transactions |
 | Equipment transaction pricing | `game/domain/economy/economy-rules-v130.js` | quote canonical forge/sell prices from supplied item value + forge level | value items, mutate gold/stock/items, commit transactions, or own town/heal/quick-dive/wheel pricing |
 | Level-up arithmetic | `game/domain/progression/progression-rules-v130.js` | calculate XP threshold, level deltas and talent-due classification | mutate XP/player state, open talent UI, enforce caps/clamps or activate skill-evolution milestones |
 | Critical-damage multiplier | `game/domain/combat/combat-rules-v130.js` | calculate the canonical critical damage multiplier from caller-supplied crit power | roll critical hits, mutate actors, sequence attacks, or own other combat/defense/healing arithmetic |
@@ -45,7 +45,7 @@ The currently staged pure libraries are registered in `docs/authority-map-v130.j
 
 Cross-responsibility boundaries are strict:
 
-- inventory/equipment currently owns only canonical equipment stat scoring; affinity, rarity, depth-bonus and class-fit helpers remain dormant until separately transferred;
+- inventory/equipment owns canonical base-stat scoring plus class-fit scoring for player-facing comparison; class fit is read-only decision information and never enters pricing/loot/auto-equip logic; affinity, rarity and depth-bonus helpers remain dormant;
 - economy currently owns only canonical forge/sell pricing; town/heal/quick-dive/wheel helpers remain dormant until separately transferred;
 - progression currently owns only XP thresholds, level deltas and talent-due classification; caps/clamps/next-talent/skill-evolution helpers remain dormant until separately transferred;
 - content classifies floor eligibility without spawning or consuming RNG;

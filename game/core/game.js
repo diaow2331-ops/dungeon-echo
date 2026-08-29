@@ -45,6 +45,9 @@ const SAVE_KEY = 'de-run-v6';
 const SAVE_VERSION = 2;
 const META_KEY = 'de-greedy-meta-v1';
 const GREEDY_KEY = 'de-greedy-on-v1';
+const GUIDE_KEY = 'de-guide-v1';
+const GUIDE_VERSION = 1;
+const GUIDE_IDS = Object.freeze(['move', 'combat', 'gear', 'stairs', 'return']);
 const RUN_MODE_CLASSIC = 'classic';
 const RUN_MODE_GREEDY = 'greedy';
 
@@ -149,6 +152,52 @@ function saveMeta() {
 function setGreedy(on) {
   greedyMode = !!on;
   try { localStorage.setItem(GREEDY_KEY, greedyMode ? '1' : '0'); } catch (e) { /* 忽略 */ }
+}
+
+function loadGuideSeen() {
+  const seen = new Set();
+  try {
+    const raw = JSON.parse(localStorage.getItem(GUIDE_KEY));
+    if (raw && raw.v === GUIDE_VERSION && Array.isArray(raw.seen)) {
+      raw.seen.forEach(id => { if (GUIDE_IDS.includes(id)) seen.add(id); });
+      return seen;
+    }
+    // Existing players should not be forced through a newly-added first-run guide.
+    const best = JSON.parse(localStorage.getItem('de-best'));
+    const oldMeta = JSON.parse(localStorage.getItem(META_KEY));
+    const experienced = !!(best && (best.bestDepth > 0 || best.bestKills > 0 || best.bestLvl > 1)) ||
+      !!(oldMeta && (oldMeta.runs > 0 || oldMeta.bestDepth > 0 || oldMeta.totalKills > 0));
+    if (experienced) GUIDE_IDS.forEach(id => seen.add(id));
+  } catch (e) { /* no/invalid localStorage: keep an in-memory guide state */ }
+  return seen;
+}
+const guideSeen = loadGuideSeen();
+function saveGuideSeen() {
+  try { localStorage.setItem(GUIDE_KEY, JSON.stringify({ v: GUIDE_VERSION, seen: [...guideSeen] })); }
+  catch (e) { /* guide preference is non-critical */ }
+}
+function guideOnce(id, zh, en, cls='good') {
+  if (!GUIDE_IDS.includes(id) || guideSeen.has(id)) return false;
+  guideSeen.add(id);
+  saveGuideSeen();
+  msg(ui(`【入门】${zh}`, `[Guide] ${en}`), cls);
+  return true;
+}
+function guideFirstRunStart() {
+  guideOnce('move',
+    '先用方向键 / WASD，或点击已探索地块移动。先看清房间，再决定要不要接敌。',
+    'Move with arrows / WASD, or click explored tiles. Read the room before committing to a fight.');
+}
+function guideCombatOnce() {
+  const ranged = classId === 'ranger';
+  guideOnce('combat',
+    ranged ? '撞向敌人可近战；面朝无遮挡直线内的敌人移动可射击。C 释放职业技能。' : '撞向敌人就是普通攻击；C 释放职业技能。',
+    ranged ? 'Bump an enemy to melee; moving toward a clear target in your facing line can fire a ranged shot. C uses your class skill.' : 'Bump an enemy to attack. C uses your class skill.');
+}
+function guideGearOnce() {
+  guideOnce('gear',
+    '点击背包装备查看“职业适配”和“内在价值”，再决定装备或丢弃；高售价不等于更适合当前职业。',
+    'Select backpack gear to compare Class Fit and Item Value before equipping or dropping it; a higher sale value does not always mean a better fit.');
 }
 
 const CLASSES = {
@@ -1491,6 +1540,12 @@ const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULE
 if (!INVENTORY_RULES || INVENTORY_RULES.authority !== 'equipment-stat-scoring')
   throw new Error('Dungeon Echo equipment-stat-scoring authority missing');
 const eqScoreOf = stats => INVENTORY_RULES.equipmentStatScore(stats);
+const classFitOf = (item, targetClass=classId) => {
+  if (!item || typeof item !== 'object') return 0;
+  return typeof INVENTORY_RULES.classFitScore === 'function'
+    ? INVENTORY_RULES.classFitScore(item.stats || {}, targetClass)
+    : eqScoreOf(item.stats || {});
+};
 // 锻造：主属性成长表与上限
 const FORGE_MAX = 5;
 const FORGE_MAIN = {
@@ -1542,8 +1597,8 @@ function applyForgeMasterwork(item) {
   item.masterworkVersion = 1;
   return path;
 }
-// 经济价值与战斗适配评分分离：score/fitScore 继续回答“这件装备适不适合当前职业”，
-// itemValueScore 回答“这件物品本身值多少”。机制词缀进入后者，但不会吞掉属性维度。
+// 决策评分与经济价值严格分离：item.score 是通用属性分；classFitOf() 回答“是否适合当前职业”；
+// itemValueScore() 回答“物品本身值多少”。class fit 不得进入售价、掉落或自动装备逻辑。
 function mechanicValueBonus(it, statScore = eqScoreOf((it && it.stats) || {})) {
   if (!it || !it.mechanic || !MECHANIC_TRAITS[it.mechanic]) return 0;
   const power = Math.max(1, Math.min(2, Number(it.mechanicPower) || 1));
@@ -2443,7 +2498,10 @@ function pickupHere() {
       player.scrolls++; msg(ui('你捡起了一张传送卷轴。','Picked up a Teleport Scroll.'), 'good'); break;
     case 'escape':
       player.escapes = (player.escapes || 0) + 1;
-      msg(ui('你捡起了一张回城卷轴——按 T 即可带着战利品平安回镇！','Picked up a Return Scroll — press T to bring your loot safely back to town!'), 'gold');
+      msg(ui('你捡起了一张回城卷轴。','Picked up a Return Scroll.'), 'gold');
+      if (greedyMode) guideOnce('return',
+        '按 T 回城会把背包与随身金币安全带回小镇；死在远征里会失去未保全的背包与金币。',
+        'Press T to return safely with your backpack and carried Gold; dying on an expedition loses unsecured backpack loot and Gold.', 'gold');
       break;
     case 'key':
       player.keys++; msg(ui('你捡起了一把锈蚀钥匙。','Picked up a Rusty Key.'), 'gold'); break;
@@ -2466,6 +2524,7 @@ function pickupHere() {
       } else {
         player.inv.push(loot);
         bagChanged = true;
+        guideGearOnce();
         msg(ui(`你打开宝箱，获得【${loot.name}】。`, `You opened the chest and obtained [${visibleItemName(loot)}].`), rarityLogCls(loot.rarity));
       }
       if (rng() < 0.5) {
@@ -2498,6 +2557,7 @@ function pickupHere() {
         } else {
           player.inv.push(loot);
           bagChanged = true;
+          guideGearOnce();
           msg(ui(`木桶里藏着【${loot.name}】！`, `The cask held [${visibleItemName(loot)}]!`), rarityLogCls(loot.rarity));
         }
       } else if (roll < 0.85) {
@@ -2515,6 +2575,7 @@ function pickupHere() {
       }
       player.inv.push(it.item);
       bagChanged = true;
+      guideGearOnce();
       msg(ui(`拾取【${it.item.name}】`, `Picked up [${visibleItemName(it.item)}]`), rarityLogCls(it.item.rarity));
       break;
     case 'amulet':
@@ -3086,13 +3147,13 @@ function tooltipHtml(it, compareSlot) {
   }
   const mechanicText = mechanicDescription(it);
   if (mechanicText) html += `<div class="affix">${esc(mechanicText)}</div>`;
-  const fit = Number(it.score) || 0;
+  const fit = classFitOf(it);
   const value = itemValueScore(it);
-  html += `<div style="color:${r.color}">${ui(`适配评分 ${fit} · 内在价值 ${value}`, `Build Fit ${fit} · Item Value ${value}`)}</div>`;
+  html += `<div style="color:${r.color}">${ui(`职业适配 ${fit} · 内在价值 ${value}`, `Class Fit ${fit} · Item Value ${value}`)}</div>`;
   if (compareSlot) {
     const cur = player.equip[compareSlot];
     if (cur) {
-      const fitDelta = fit - (Number(cur.score) || 0);
+      const fitDelta = fit - classFitOf(cur);
       const valueDelta = value - itemValueScore(cur);
       html += fitDelta > 0
         ? `<div class="cmp-up">${ui(`▲ 适配 +${fitDelta}`, `▲ Fit +${fitDelta}`)}</div>`
@@ -3150,11 +3211,13 @@ function tryMove(dx, dy) {
   if (shop && shop.type === 'rest') { useRest(shop); return; }
   const m = monsterAt(nx, ny);
   if (m) {
+    guideCombatOnce();
     playerAttack(m);
     if (state !== 'playing') { updateHud(); return; }
   } else {
     const rangedM = findRangedTarget(dx, dy);
     if (rangedM) {
+      guideCombatOnce();
       playerRangedAttack(rangedM);
       if (state !== 'playing') { updateHud(); return; }
     } else if (walkable(nx, ny)) {
@@ -4188,6 +4251,9 @@ function updateHud() {
     }
   }
   const onStairs = map && map[player.y][player.x] === STAIRS;
+  if (state === 'playing' && onStairs) guideOnce('stairs',
+    'Enter 正常下潜；J 是满足条件时的付费快速下潜，不是攻击键。',
+    'Enter descends normally. J is the paid Quick Dive when available; it is not an attack key.');
   const shopHere = npcAt(player.x + (player.facing ? player.facing[0] : 0), player.y + (player.facing ? player.facing[1] : 0));
   $('hint').classList.toggle('active', onStairs);
   $('hint').textContent = onStairs
@@ -4198,7 +4264,7 @@ function updateHud() {
         ? ui('> 撞向神龛即可祈祷','> Walk into the shrine to pray')
         : shopHere && shopHere.type === 'rest'
           ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
-          : ui('> 站在楼梯上按 Enter 下潜 · 点击已探索地块移动 · C 技能','> Stand on the stairs and press Enter to descend · click explored tiles to move · J Attack · K Skill');
+          : ui('> 站在楼梯上按 Enter 下潜 · 点击已探索地块移动 · C 技能','> Stand on the stairs and press Enter to descend · click explored tiles to move · C Skill · J Quick Dive');
   const fab = $('descend-fab');
   if (fab) fab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
   const qfab = $('quickdive-fab');
@@ -5146,10 +5212,9 @@ function renderTown() {
   const itemTag = it => {
     const f = it.forge || 0;
     const forgeTag = f ? ` +${f}` : '';
-    const fit = typeof INVENTORY_RULES.classFitScore === 'function' ? INVENTORY_RULES.classFitScore(it.stats || {}, meta.classId) : Number(it.score) || 0;
+    const fit = classFitOf(it, meta.classId);
     const equipped = meta.equip && meta.equip[it.slot];
-    const equippedFit = equipped && typeof INVENTORY_RULES.classFitScore === 'function'
-      ? INVENTORY_RULES.classFitScore(equipped.stats || {}, meta.classId) : null;
+    const equippedFit = equipped ? classFitOf(equipped, meta.classId) : null;
     const delta = equippedFit === null ? null : fit - equippedFit;
     const fitText = delta === null
       ? ui(`职业适配 ${fit}`, `Class fit ${fit}`)
@@ -5373,6 +5438,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   applyViewport();
   computeFov();
   msg(fmtText(runText('intro')));
+  guideFirstRunStart();
   msg(ui(`第 ${meta.runs} 次下潜：从第 ${startDepth} 层出发。搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, `Descent ${meta.runs}: departing from Floor ${startDepth}. Loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!`), 'gold');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
@@ -5481,11 +5547,8 @@ function newGame(chosen) {
   applyViewport();
   computeFov();
   msg(fmtText(runText('intro')));
-  msg(ui(`你选择了${c.name}。技能「${c.skill.name}」按 C 释放。撞向敌人即攻击。` +
-    (c.rangedRange ? `面朝敌人所在直线（射程 ${c.rangedRange} 格内、无遮挡）移动即可射箭。` : ''),
-    `You chose ${c.name}. Press C to use ${c.skill.name}. Move into an enemy to attack.` +
-    (c.rangedRange ? ` Ranged attacks reach ${c.rangedRange} unobstructed tiles along your facing line.` : '')));
-  msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。站上楼梯按 Enter 下潜。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots. Stand on the stairs and press Enter to descend.`), 'good');
+  guideFirstRunStart();
+  msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
 }
@@ -5754,7 +5817,7 @@ if (typeof window !== 'undefined') {
     persistRun, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
-    pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
+    pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
     canDescendNow, isFinalFloor,
     get greedy() { return greedyMode; },
