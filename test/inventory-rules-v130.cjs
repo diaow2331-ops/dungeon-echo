@@ -13,6 +13,14 @@ assert.equal(rules.version, 'v1.3.0-staged');
 assert.equal(rules.source, 'archive/quarantine-v130/gameplay/equipment/equipment-system.js');
 assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|fetch\s*\(/.test(source), 'staged inventory rules must stay pure and disconnected');
 
+const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8')
+  .split(/\r?\n/).filter(Boolean);
+assert(!manifest.includes(rel), 'staged inventory rules must not enter the release allowlist before atomic authority transfer');
+for (const entry of ['index.html', 'en/index.html']) {
+  const html = fs.readFileSync(path.join(root, entry), 'utf8');
+  assert(!html.includes(rel), `${entry}: staged inventory rules must not be loaded in production`);
+}
+
 const sample = { atk:10, def:5, hp:20, crit:4, leech:3, gold:10, thorns:2, regen:1 };
 assert.equal(rules.classFitScore(sample, 'warrior'), 73);
 assert.equal(rules.classFitScore(sample, 'ranger'), 69);
