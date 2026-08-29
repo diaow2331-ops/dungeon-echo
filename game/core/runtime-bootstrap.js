@@ -1,8 +1,8 @@
-/* Dungeon Echo production UX bootstrap v21.
- * v1.3.1 recovery patch on cache generation 170.
+/* Dungeon Echo production UX bootstrap v22.
+ * v1.3.2 recovery patch on cache generation 170.
  * game/core/game.js remains sole gameplay/render/input/persistence writer.
  * This bootstrap may load presentation-only followers. Adaptive BGM owns only a private
- * WebAudio music graph and lifecycle ticker; it may not own Canvas/gameplay/storage/input.
+ * WebAudio music graph; forge feedback only observes canonical town results and decorates DOM.
  */
 (() => {
   'use strict';
@@ -18,6 +18,7 @@
     [fresh('game/ui/help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],
     [fresh('game/ui/theme-atmosphere-v131.js'), 'data-de-theme-atmosphere-v131', () => !!window.__DE_THEME_ATMOSPHERE_V131],
     [fresh('game/ui/adaptive-bgm-v132.js'), 'data-de-adaptive-bgm-v132', () => !!window.__DE_ADAPTIVE_BGM_V132],
+    [fresh('game/ui/forge-feedback-v132.js'), 'data-de-forge-feedback-v132', () => !!window.__DE_FORGE_FEEDBACK_V132],
   ]);
   let started = false;
   function loadScript(src, marker, ready) {
@@ -35,7 +36,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v21');
+      script.setAttribute(marker, 'v22');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -54,10 +55,11 @@
   }
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
   window.__DE_PRODUCTION_UX_BOOTSTRAP = Object.freeze({
-    version:'v21', assetVersion, locale:english?'en':'zh-CN',
+    version:'v22', assetVersion, locale:english?'en':'zh-CN',
     renderOwner:'game/core/game.js', gameplayStateOwner:'game/core/game.js',
     inputOwner:'game/core/game.js', persistenceWriter:'game/core/game.js',
     dynamicLoaderOwner:'game/core/runtime-bootstrap.js', followers:'presentation-only',
-    audioFollower:'game/ui/adaptive-bgm-v132.js', start, loadScript, chain,
+    audioFollower:'game/ui/adaptive-bgm-v132.js', forgeFeedback:'game/ui/forge-feedback-v132.js',
+    start, loadScript, chain,
   });
 })();
