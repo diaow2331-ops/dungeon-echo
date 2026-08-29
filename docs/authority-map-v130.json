@@ -18,7 +18,8 @@
     "runtimeFollowerLoading": "game/core/runtime-bootstrap.js",
     "fixedRouteLocaleNavigation": "game/locale/fixed-locale-entry-v130.js",
     "responsiveLayout": "game/ui/responsive-final-v154.js",
-    "helpCopy": "game/ui/help-copy-v126.js"
+    "helpCopy": "game/ui/help-copy-v126.js",
+    "contentClassification": "game/domain/content/content-rules-v130.js"
   },
   "plannedExtraction": {
     "combat": "game/domain/combat/",
@@ -34,7 +35,6 @@
     "inventoryRules": "game/domain/inventory/equipment-rules-v130.js",
     "economyRules": "game/domain/economy/economy-rules-v130.js",
     "progressionRules": "game/domain/progression/progression-rules-v130.js",
-    "contentRules": "game/domain/content/content-rules-v130.js",
     "townRules": "game/domain/town/town-rules-v130.js",
     "combatRules": "game/domain/combat/combat-rules-v130.js"
   },

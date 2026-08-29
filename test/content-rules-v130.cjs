@@ -11,16 +11,17 @@ const executableSource = source
   .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
-assert.equal(rules.authority, 'none');
-assert.equal(rules.version, 'v1.3.0-staged');
-assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|fetch\s*\(|Math\.random/.test(executableSource), 'staged content rules must stay pure, deterministic and disconnected');
+assert.equal(rules.authority, 'content-classification');
+assert.equal(rules.version, 'v1.3.0-production');
+assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|fetch\s*\(|Math\.random/.test(executableSource), 'production content rules must stay pure and deterministic');
 
 const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8')
   .split(/\r?\n/).filter(Boolean);
-assert(!manifest.includes(rel), 'staged content rules must not enter release before atomic authority transfer');
+assert(manifest.includes(rel), 'production content rules must ship after atomic authority transfer');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(!html.includes(rel), `${entry}: staged content rules must not be loaded in production`);
+  assert(html.includes(`${rel}?v=169`), `${entry}: production content rules must be loaded`);
+  assert(html.indexOf(`${rel}?v=169`) < html.indexOf('game/core/game.js?v=169'), `${entry}: content authority must load before core`);
 }
 
 assert.equal(rules.themeIndex(1, 10, 10), 0);
