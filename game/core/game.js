@@ -252,6 +252,12 @@ townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg';
 const TOWN_NPC_ART = Object.freeze({
   quartermaster:0, smith:1, provisioner:4, alchemist:9, oracle:10, portalWarden:12,
 });
+const dungeonPropsAtlasV1 = new Image();
+dungeonPropsAtlasV1.src = 'art/dungeon-props-atlas-v1.svg';
+const DUNGEON_PROP_ART = Object.freeze({
+  woodBarrel:4, webNest:6, iceCrystal:7, lavaVent:9, voidRift:10,
+  campfire:15, treasureChest:17, marketStall:21, angelShrine:22,
+});
 const imageReady = image => !!image && image.complete && image.naturalWidth > 4;
 const MONSTER_ART_INDEX = Object.fromEntries([
   'rat', 'bat', 'goblin', 'spider',
@@ -3193,6 +3199,20 @@ function drawLootIcon(id, px, py, size) {
     px - size / 2, py - size / 2, size, size);
   return true;
 }
+function drawDungeonProp(index, px, py, width, height, alpha = 1) {
+  if (!imageReady(dungeonPropsAtlasV1) || !Number.isInteger(index) || index < 0) return false;
+  const cols = 6, rows = 4;
+  const sw = dungeonPropsAtlasV1.naturalWidth / cols, sh = dungeonPropsAtlasV1.naturalHeight / rows;
+  const sx = (index % cols) * sw, sy = Math.floor(index / cols) * sh;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true;
+  ctx.shadowColor = 'rgba(0,0,0,.72)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+  ctx.drawImage(dungeonPropsAtlasV1, sx, sy, sw, sh, px - width / 2, py - height / 2, width, height);
+  ctx.restore(); return true;
+}
+const trapPropForDepth = d => d >= 75 ? DUNGEON_PROP_ART.voidRift
+  : d >= 50 ? DUNGEON_PROP_ART.lavaVent : d >= 25 ? DUNGEON_PROP_ART.iceCrystal : DUNGEON_PROP_ART.webNest;
+const dungeonNpcProp = type => type === 'shrine' ? DUNGEON_PROP_ART.angelShrine
+  : type === 'rest' ? DUNGEON_PROP_ART.campfire : type === 'shop' ? DUNGEON_PROP_ART.marketStall : -1;
 function drawMinimap() {
   if (!mctx || !map || !player) return;
   const cw = mini.width, ch = mini.height;
@@ -3288,13 +3308,13 @@ function draw(now) {
     const near = Math.abs(t.x - player.x) + Math.abs(t.y - player.y) <= 1;
     if (!near && !floorCleared) continue;
     const px = t.x * TILE, py = t.y * TILE;
-    ctx.strokeStyle = 'rgba(224,167,63,.55)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(px + 8, py + 8, TILE - 16, TILE - 16);
-    ctx.beginPath();
-    ctx.moveTo(px + 10, py + 10); ctx.lineTo(px + TILE - 10, py + TILE - 10);
-    ctx.moveTo(px + TILE - 10, py + 10); ctx.lineTo(px + 10, py + TILE - 10);
-    ctx.stroke();
+    const cx = px + TILE / 2, cy = py + TILE / 2;
+    if (!drawDungeonProp(trapPropForDepth(depth), cx, cy, 28, 28, .92)) {
+      ctx.strokeStyle = 'rgba(224,167,63,.55)'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(px + 8, py + 8, TILE - 16, TILE - 16); ctx.beginPath();
+      ctx.moveTo(px + 10, py + 10); ctx.lineTo(px + TILE - 10, py + TILE - 10);
+      ctx.moveTo(px + TILE - 10, py + 10); ctx.lineTo(px + 10, py + TILE - 10); ctx.stroke();
+    }
   }
   for (const s of secrets || []) {
     if (s.revealed || !explored[s.y] || !explored[s.y][s.x]) continue;
@@ -3310,10 +3330,12 @@ function draw(now) {
 
   for (const n of npcs) {
     if (!visible[n.y][n.x]) continue;
-    const spr = n.type === 'shrine' ? SPRITES.shrine
-      : n.type === 'rest' ? SPRITES.camp
-      : SPRITES.merchant;
-    drawEntity(n, spr || SPRITES.merchant, 30, now);
+    const spr = n.type === 'shrine' ? SPRITES.shrine : n.type === 'rest' ? SPRITES.camp : SPRITES.merchant;
+    const prop = dungeonNpcProp(n.type);
+    const px = n.fx * TILE + TILE / 2, py = n.fy * TILE + TILE / 2;
+    const dims = n.type === 'shop' ? [34, 32] : n.type === 'shrine' ? [31, 36] : [30, 30];
+    if (prop < 0 || !drawDungeonProp(prop, px, py, dims[0], dims[1], .98))
+      drawEntity(n, spr || SPRITES.merchant, 30, now);
   }
 
   for (const it of items) {
@@ -3330,18 +3352,14 @@ function draw(now) {
     const px = it.x * TILE + TILE / 2, py = it.y * TILE + TILE / 2 + bob;
     drawShadow(px, it.y * TILE + TILE - 4, 7, 2.6);
     if (it.type === 'cask') {
-      const by = it.y * TILE + TILE / 2 + bob * 0.6;
-      ctx.fillStyle = '#6b4a2e';
-      ctx.fillRect(px - 9, by - 8, 18, 14);
-      ctx.fillStyle = '#4a301c';
-      ctx.fillRect(px - 9, by - 5, 18, 3);
-      ctx.fillRect(px - 9, by + 3, 18, 3);
-      ctx.fillStyle = '#8a6a44';
-      ctx.beginPath();
-      ctx.ellipse(px, by - 8, 9, 3, 0, Math.PI, 0);
-      ctx.fill();
-      continue;
+    const by = it.y * TILE + TILE / 2 + bob * 0.6;
+    if (!drawDungeonProp(DUNGEON_PROP_ART.woodBarrel, px, by, 28, 28, .96)) {
+      ctx.fillStyle = '#6b4a2e'; ctx.fillRect(px - 9, by - 8, 18, 14);
+      ctx.fillStyle = '#4a301c'; ctx.fillRect(px - 9, by - 5, 18, 3); ctx.fillRect(px - 9, by + 3, 18, 3);
+      ctx.fillStyle = '#8a6a44'; ctx.beginPath(); ctx.ellipse(px, by - 8, 9, 3, 0, Math.PI, 0); ctx.fill();
     }
+    continue;
+  }
     if (it.type === 'equip') {
       const glow = .45 + .3 * Math.sin(now * 4 + it.x);
       ctx.strokeStyle = RARITIES[it.item.rarity].color;
@@ -3357,11 +3375,12 @@ function draw(now) {
       ctx.fillStyle = g2;
       ctx.fillRect(px - TILE, py - TILE, TILE * 2, TILE * 2);
     }
-    if (it.type === 'chest' && spr) {
+    if (it.type === 'chest') {
+    if (!drawDungeonProp(DUNGEON_PROP_ART.treasureChest, px, py, 30, 28, .98) && spr)
       ctx.drawImage(spr.img, px - 12, py - 12, 24, 24);
-    } else if (!drawLootIcon(iconId, px, py, 24) && spr) {
-      ctx.drawImage(spr.img, px - 11, py - 11, 22, 22);
-    }
+  } else if (!drawLootIcon(iconId, px, py, 24) && spr) {
+    ctx.drawImage(spr.img, px - 11, py - 11, 22, 22);
+  }
   }
 
   for (const m of monsters) {

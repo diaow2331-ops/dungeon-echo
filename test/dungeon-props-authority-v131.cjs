@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs'),path=require('path'); const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
+const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'); const runtime=fs.readFileSync(path.join(root,'game/core/runtime-bootstrap.js'),'utf8'); const allow=fs.readFileSync(path.join(root,'ops/release/static-files.txt'),'utf8');
+let pass=0,fail=0; const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
+ok(fs.existsSync(path.join(root,'art/dungeon-props-atlas-v1.svg')),'promoted prop atlas exists outside quarantine');
+ok(core.includes("dungeonPropsAtlasV1.src = 'art/dungeon-props-atlas-v1.svg'")&&core.includes('function drawDungeonProp('),'core owns prop asset and drawing');
+ok(core.includes('trapPropForDepth')&&core.includes('webNest:6')&&core.includes('iceCrystal:7')&&core.includes('lavaVent:9')&&core.includes('voidRift:10'),'depth-themed trap art is preserved');
+ok(core.includes("type === 'shop' ? DUNGEON_PROP_ART.marketStall")&&core.includes("type === 'rest' ? DUNGEON_PROP_ART.campfire")&&core.includes("type === 'shrine' ? DUNGEON_PROP_ART.angelShrine"),'service props are core-rendered');
+ok(core.includes('DUNGEON_PROP_ART.woodBarrel')&&core.includes('DUNGEON_PROP_ART.treasureChest'),'cask and chest art are core-rendered');
+ok(core.includes("heroAtlasV11.src = 'art/hero-atlas-v11.png'")&&core.includes("monsterAtlasV11.src = 'art/monster-atlas-v11.png'")&&core.includes("guardianAtlasV11.src = 'art/guardian-atlas-v11.png'")&&core.includes("finalBossV11.src = 'art/final-boss-v11.png'"),'v11 character/boss baselines remain authoritative');
+ok(allow.includes('art/dungeon-props-atlas-v1.svg'),'prop atlas is release-allowed');
+ok(!runtime.includes('art-runtime-v2.js')&&!runtime.includes('dungeon-props-atlas-v1.svg'),'retired overlay runtime remains absent');
+ok(!core.includes('drawAmbientProps('),'ambient decoration layer remains retired');
+console.log(`\nRESULT  ${pass} passed / ${fail} failed`); process.exit(fail?1:0);
