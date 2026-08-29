@@ -124,9 +124,9 @@
     const shortName = (pad.id || 'Gamepad').replace(/\s*\([^)]*\)\s*/g, ' ').trim().slice(0, 42);
     badge.innerHTML = english
       ? `<strong>Gamepad connected</strong> · ${escapeHtml(shortName)}<br>` +
-        'Stick/D-pad Move or Menu · A Confirm/Descend · B Wait/Back · X Skill · Y Potion · LB Scroll · RT Attack · RB Fullscreen · Start Pause · Hold View Return'
+        'Stick/D-pad Move or Menu · A Confirm/Descend · B Wait/Back · X Skill · Y Potion · LB Scroll · RT Quick Dive · RB Fullscreen · Start Pause · Hold View Return'
       : `<strong>手柄已接入</strong> · ${escapeHtml(shortName)}<br>` +
-        '摇杆/十字键移动或选菜单 · A确认/下楼 · B等待/返回 · X技能 · Y药水 · LB卷轴 · RT攻击 · RB全屏 · Start暂停 · 长按 View 回城';
+        '摇杆/十字键移动或选菜单 · A确认/下楼 · B等待/返回 · X技能 · Y药水 · LB卷轴 · RT快速下潜 · RB全屏 · Start暂停 · 长按 View 回城';
     badge.classList.add('on');
   }
 
