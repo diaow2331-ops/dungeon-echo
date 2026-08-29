@@ -1,5 +1,7 @@
 name: release-governance
 
+# Hosted Actions quota guard: keep this workflow manual-only. Do not add push,
+# pull_request or scheduled triggers, and do not dispatch it without the owner.
 on:
   workflow_dispatch:
 
