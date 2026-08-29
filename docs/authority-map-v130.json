@@ -32,7 +32,8 @@
   },
   "stagedPureLibraries": {
     "inventoryRules": "game/domain/inventory/equipment-rules-v130.js",
-    "economyRules": "game/domain/economy/economy-rules-v130.js"
+    "economyRules": "game/domain/economy/economy-rules-v130.js",
+    "progressionRules": "game/domain/progression/progression-rules-v130.js"
   },
   "plannedDestinationsAreAuthorities": false,
   "stagedPureLibrariesAreAuthorities": false,
