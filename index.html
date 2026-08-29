@@ -129,6 +129,7 @@
       <p class="lede dim-note">死亡会失去背包与随身金币；仓库与金库绝对安全。回城卷轴（T）是保住战利品的关键。</p>
       <canvas id="town-scene" width="900" height="210"></canvas>
       <div id="town-growth" class="town-growth" aria-live="polite"></div>
+      <div id="town-checkpoints" class="checkpoint-panel" aria-live="polite"></div>
       <div class="town-cols">
         <div class="town-service" data-service="bag"><p class="kicker">背包 <span>随身·有风险</span></p><div id="town-bag"></div></div>
         <div class="town-service" data-service="stash"><p class="kicker">仓库 <span>绝对安全</span></p><div id="town-stash"></div></div>
@@ -149,7 +150,7 @@
           <h3>操作</h3>
           <p>移动：<b>方向键 / WASD / 点击已探索地块</b><br>技能：<b>C</b> · 快速下潜：<b>J</b> · 等待：<b>空格</b><br>药水：<b>Q</b> · 卷轴：<b>E</b><br>回城：<b>T</b>（贪婪远征）· 下潜：<b>Enter</b>（楼梯上）<br>暂停：<b>Esc</b> · 声音：<b>M</b> · 全屏：<b>F</b></p>
           <h3>百层旅程</h3>
-          <p>所有角色都从第 1 层出发。每 10 层是一个关键守卫节点，第 100 层是正式终局；短档位只存在于内部测试，不属于游客玩法。</p>
+          <p>首次远征从第 1 层出发。到达 11/21/…/91 段首并把进度带回小镇后，可从已征服段首再次出发。每 10 层是一个关键守卫节点，第 100 层是正式终局。</p>
         </div>
         <div>
           <h3>贪婪远征</h3>

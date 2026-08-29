@@ -143,6 +143,15 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
 .town-growth .town-readiness.ready b { color: #86d4a6; }
 .town-growth .town-readiness.warn { border-left-color: #c87346; }
 .town-growth .town-readiness.warn b { color: #efa26d; }
+.checkpoint-panel { margin: 0 0 12px; padding: 10px 11px; text-align: left; background: rgba(13,9,8,.74); border: 1px solid rgba(139,104,53,.42); }
+.checkpoint-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.checkpoint-head b { color: #ead8bb; font-size: 12px; }
+.checkpoint-head small { color: var(--dim); font-size: 11px; }
+.checkpoint-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+.checkpoint-grid button { min-width: 72px; padding: 5px 9px; font-size: 12px; }
+.checkpoint-grid button.active { border-color: var(--accent-hi); color: var(--accent-hi); box-shadow: inset 0 0 0 1px rgba(242,210,123,.18); }
+.checkpoint-grid button.locked { opacity: .38; cursor: not-allowed; }
+@media (max-width: 700px) { .checkpoint-head { align-items: flex-start; flex-direction: column; gap: 3px; } .checkpoint-grid button { min-width: calc(50% - 4px); } }
 #wheel-canvas { display: block; width: min(230px, 90%); height: auto; margin: 2px auto 4px; }
 .wheel-hint { text-align: center; padding: 0 0 6px; }
 #town-wheel .row-actions { display: flex; justify-content: center; gap: 8px; }
