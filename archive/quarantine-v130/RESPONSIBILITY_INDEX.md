@@ -1,13 +1,35 @@
 # Quarantined responsibility index
 
-Previously completed work is preserved here by category. Future restoration must go through the current sole owner for that responsibility.
+Each shelf preserves completed work but owns **zero production authority**.
 
-- `gameplay-systems/`: commerce, equipment, forging, progression, town, combat/content pressure, defense, risk/reward. Future owner: `game/core/game.js` until a formally extracted single owner replaces that responsibility.
-- `ui-legacy/`: shop/town workspace, forge feedback, expedition pressure/record, audio/mobile polish. Future role: DOM-only UI or a narrow hook owned by core; no gameplay mutation.
-- `input-legacy/`: old combat and desktop/gamepad handlers. Keyboard/touch owner: `game/core/game.js`; gamepad transport owner: `game/input/desktop-controls.js`.
-- `locale-legacy/`: old Canvas text interceptors, screen translators and item migrations. Future owner: fixed-route locale data/source; no Canvas interception.
-- `persistence/`: save validation, item migration and New Adventure reset shims. Gameplay persistence owner: `game/core/game.js`; `production-bootstrap.js` may only perform pre-boot epoch reset.
-- `art-runtime-code/`: entity overlays, terrain coordinator, town overlay, directional hero, line FX and visual/loot overlays. Useful art may return only through the canonical renderer.
-- `art-runtime/`: detailed Boss, monster, prop, hero and loot runtime assets. Assets may be promoted into canonical `art/` only when `game.js` directly renders them.
+| Shelf | Preserved work | Current production owner | Planned extraction destination |
+| --- | --- | --- | --- |
+| `gameplay/combat/` | combat pressure, defense | `game/core/game.js` | `game/domain/combat/` |
+| `gameplay/equipment/` | equipment/inventory rules | `game/core/game.js` | `game/domain/inventory/` |
+| `gameplay/economy/` | commerce, forge | `game/core/game.js` | `game/domain/economy/` |
+| `gameplay/progression/` | progression, guards | `game/core/game.js` | `game/domain/progression/` |
+| `gameplay/town/` | town gameplay, NPC stability | `game/core/game.js` | `game/domain/town/` |
+| `gameplay/content-risk/` | content, risk/reward, challenge/tuning | `game/core/game.js` | `game/domain/content/` |
+| `ui/combat/` | combat/expedition presentation | DOM only; gameplay stays core | `game/ui/combat/` |
+| `ui/town/` | shop/forge/town/record presentation | DOM only; gameplay stays core | `game/ui/town/` |
+| `ui/platform/` | audio/mobile UX | no active equivalent yet | `game/ui/platform/` after bounded contracts exist |
+| `input/` | old J/K combat controls, old pad adapter | keyboard/touch: core; gamepad: `desktop-controls.js` | `game/input/` only after atomic ownership transfer |
+| `locale/*` | data, route owner, old interceptors | current `game/locale/*` + core renderer | `game/locale/`; interceptors are reference-only |
+| `persistence/` | validation/migration/reset shims | gameplay: core; epoch reset: production bootstrap | `game/persistence/` only after one-writer extraction |
+| `art/code/` | overlay/coordinator runtime code | core renderer | do not restore as overlay; extract only reusable algorithms/data |
+| `art/assets/runtime/` | detailed runtime-era art | core renderer | canonical `art/` after direct core/render-owner integration |
+| `art/assets/equipment/` | equipment art | core renderer/UI | canonical `art/` only when a single consumer owns display |
 
-A quarantine item is not re-enabled in place. Useful behavior, data, copy or art is ported into its owner while the old wrapper remains archived.
+## Atomic authority-transfer rule
+
+A planned destination is **not** an authority simply because its directory exists.
+
+When a responsibility is extracted from `game/core/game.js`, the same PR must:
+
+1. move the complete write responsibility into the new owner;
+2. remove the corresponding writer/state-machine ownership from the old owner;
+3. define the narrow interface between owner and followers;
+4. update `docs/authority-map-v130.json`;
+5. update tests so two simultaneous owners cannot pass CI.
+
+Never run old and new owners side by side during a migration.

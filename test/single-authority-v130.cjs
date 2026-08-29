@@ -55,12 +55,35 @@ for (const rel of retiredActive) {
   assert(!exists(rel), `second authority still active: ${rel}`);
   assert(!manifest.has(rel), `second authority still ships: ${rel}`);
 }
-assert(exists('archive/quarantine-v130/README.md'));
-assert(exists('archive/quarantine-v130/RESPONSIBILITY_INDEX.md'));
-assert(exists('archive/quarantine-v130/gameplay-systems/commerce-system.js'));
-assert(exists('archive/quarantine-v130/input-legacy/combat-controls.js'));
-assert(exists('archive/quarantine-v130/art-runtime-code/art-runtime-v2.js'));
-assert(exists('archive/quarantine-v130/art-runtime/boss-guardian-atlas-v3.png'));
+
+// Completed work must be preserved in responsibility shelves rather than discarded.
+for (const rel of [
+  'archive/quarantine-v130/README.md',
+  'archive/quarantine-v130/RESPONSIBILITY_INDEX.md',
+  'archive/quarantine-v130/gameplay/combat/combat-pressure.js',
+  'archive/quarantine-v130/gameplay/equipment/equipment-system.js',
+  'archive/quarantine-v130/gameplay/economy/commerce-system.js',
+  'archive/quarantine-v130/gameplay/economy/forge-system.js',
+  'archive/quarantine-v130/gameplay/progression/progression-system.js',
+  'archive/quarantine-v130/gameplay/town/town-system.js',
+  'archive/quarantine-v130/gameplay/content-risk/content-system.js',
+  'archive/quarantine-v130/input/combat-controls.js',
+  'archive/quarantine-v130/locale/interceptors/town-canvas-locale-v153.js',
+  'archive/quarantine-v130/persistence/save-integrity-system.js',
+  'archive/quarantine-v130/art/code/art-runtime-v2.js',
+  'archive/quarantine-v130/art/assets/runtime/boss-guardian-atlas-v3.png',
+  'archive/quarantine-v130/art/assets/equipment/equipment-weapons-v13.png',
+]) assert(exists(rel), `quarantined responsibility shelf missing: ${rel}`);
+
+for (const oldShelf of [
+  'archive/quarantine-v130/gameplay-systems',
+  'archive/quarantine-v130/ui-legacy',
+  'archive/quarantine-v130/input-legacy',
+  'archive/quarantine-v130/locale-legacy',
+  'archive/quarantine-v130/art-runtime-code',
+  'archive/quarantine-v130/art-runtime',
+  'archive/quarantine-v130/art-equipment',
+]) assert(!exists(oldShelf), `unsorted quarantine box still exists: ${oldShelf}`);
 
 const zh = read('index.html');
 const en = read('en/index.html');
@@ -98,7 +121,6 @@ for (const token of [
   "document.addEventListener('keydown'",
 ]) assert(game.includes(token), `canonical core contract missing: ${token}`);
 
-// Behavior-level scan of every shipped JavaScript file.
 const js = manifestRows.filter(x => x.endsWith('.js'));
 for (const rel of js) {
   const src = read(rel);

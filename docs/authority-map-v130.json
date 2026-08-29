@@ -20,6 +20,18 @@
     "responsiveLayout": "game/ui/responsive-final-v154.js",
     "helpCopy": "game/ui/help-copy-v126.js"
   },
+  "plannedExtraction": {
+    "combat": "game/domain/combat/",
+    "inventoryEquipment": "game/domain/inventory/",
+    "economyForge": "game/domain/economy/",
+    "progression": "game/domain/progression/",
+    "townGameplay": "game/domain/town/",
+    "contentRisk": "game/domain/content/",
+    "renderHelpers": "game/render/",
+    "persistence": "game/persistence/"
+  },
+  "plannedDestinationsAreAuthorities": false,
+  "authorityTransferRule": "new owner takes the complete responsibility and old owner relinquishes it in the same PR",
   "quarantineRoot": "archive/quarantine-v130",
   "releaseAllowlist": "ops/release/static-files.txt",
   "forbiddenPatterns": [
