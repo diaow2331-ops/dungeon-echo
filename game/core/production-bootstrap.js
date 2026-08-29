@@ -32,40 +32,16 @@
     }
   } catch (_err) {}
 
-  // Retire every historical Canvas/presentation owner before the parser reaches them.
-  // The files may still exist in repository history, but production must never execute them.
-  const retired = Object.freeze({ version:'retired-by-v130', owner:'production-authority', retired:true });
-  for (const guard of [
-    '__DE_VISUAL_POLISH',
-    '__DE_ART_RUNTIME_V2',
-    '__DE_ART_RUNTIME_V4',
-    '__DE_TOWN_ART_V160',
-    '__DE_CHARACTER_ART_CLEANUP_V122',
-    '__DE_WORLD_LOOT_V122',
-    '__DE_HERO_DIRECTIONAL_ART_V165',
-    '__DE_CLASS_COMBAT_FX_V163',
-    '__DE_NEW_RUN_RESET_V167',
-  ]) {
-    if (!window[guard]) window[guard] = retired;
-  }
-
-  // Edge-trigger tactical actions. Movement may repeat normally.
-  const ONE_SHOT_REPEAT_KEYS = new Set([
-    'Escape', ' ', 'Spacebar', '.',
-    'q', 'Q', 'e', 'E', 't', 'T', 'c', 'C', 'j', 'J', 'k', 'K',
-    'm', 'M', 'f', 'F', 'r', 'R', 'n', 'N', 'Enter', 'PageDown', '>',
-  ]);
-  if (!window.__DE_ONE_SHOT_REPEAT_GUARD && typeof window.addEventListener === 'function') {
-    const repeatGuard = event => {
-      if (!event || !event.repeat || !ONE_SHOT_REPEAT_KEYS.has(String(event.key || ''))) return;
-      if (typeof event.preventDefault === 'function') event.preventDefault();
-      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
-    };
-    window.addEventListener('keydown', repeatGuard, true);
-    window.__DE_ONE_SHOT_REPEAT_GUARD = {
-      version:'v1', owner:'production-authority', keys:ONE_SHOT_REPEAT_KEYS, repeatGuard,
-    };
-  }
+  const AUTHORITY = Object.freeze({
+    version:'1.3.0',
+    renderer:'game/core/game.js',
+    gameplayState:'game/core/game.js',
+    gameplayInput:'game/core/game.js',
+    gameplayPersistence:'game/core/game.js',
+    newAdventureReset:'game/core/production-bootstrap.js',
+    gamepadTransport:'game/input/desktop-controls.js',
+    dynamicFollowerLoader:'game/core/runtime-bootstrap.js',
+  });
 
   let autoFresh = false;
   if (typeof location !== 'undefined') {
@@ -132,6 +108,10 @@
     version:'1.3.0',
     owner:'production-authority',
     renderOwner:'game/core/game.js',
+    gameplayStateOwner:'game/core/game.js',
+    gameplayInputOwner:'game/core/game.js',
+    gameplayPersistenceOwner:'game/core/game.js',
+    authority:AUTHORITY,
     storageEpoch:STORAGE_EPOCH,
     clearDungeonStorage,
     newAdventure:'full-reset',

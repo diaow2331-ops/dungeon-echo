@@ -2,44 +2,41 @@
 
 Describe the player-facing or maintainer-facing problem this PR solves.
 
+## Responsibility / authority impact
+
+- Responsibility being changed:
+- Current sole owner from `docs/authority-map-v130.json`:
+- Does this PR introduce a new writer, renderer, gameplay input handler, persistence writer or runtime wrapper? **Must be no unless ownership is intentionally replaced.**
+- If restoring quarantined work, source path under `archive/quarantine-v130/`:
+- How was the useful behavior/data/art ported into the sole owner instead of re-enabling the old wrapper?
+
 ## Solution
 
-What changed, and why this approach instead of a broader rewrite?
+What changed and why this preserves one responsibility → one production authority.
 
 ## Scope
 
-- Systems/files touched:
+- Active production files touched:
+- Quarantine/reference files touched:
 - Intentionally out of scope:
-
-## Player scenario
-
-For gameplay/balance changes, include:
-
-- class:
-- approximate floor/depth:
-- relevant build/equipment assumptions:
-- old behavior:
-- new behavior:
 
 ## Validation
 
-List only checks actually performed.
+- [ ] `node test/single-authority-v130.cjs`
+- [ ] No `archive/` path was added to `ops/release/static-files.txt`
+- [ ] No `game/systems/` wrapper was reintroduced to production
+- [ ] No follower monkey-patches gameplay APIs
+- [ ] No second dungeon/town Canvas owner was introduced
+- [ ] No second gameplay localStorage writer was introduced
+- [ ] No competing gameplay key/touch handler was introduced
+- [ ] Production source equals artifact; build tooling does not rewrite the dependency graph
+- [ ] Relevant focused gameplay test run if gameplay semantics changed
+- [ ] Public repository safety checks run if ops/governance changed
 
-- [ ] Touched JavaScript parses (`node --check` where applicable)
-- [ ] Relevant deterministic/headless test(s) run, if applicable
-- [ ] Save/load behavior checked, if persistent state is touched
-- [ ] Production `index.html` still uses the 1→100 route
-- [ ] New production scripts/art are explicitly covered by the release allowlist
-- [ ] Current README / maintenance / release docs remain consistent with actual deployment state
-- [ ] No development-only fixture is added to the public package
-- [ ] No unrelated large refactor is bundled into this PR
-- [ ] No credential, personal identifier or secret export is introduced (`node test/public-repo-safety.cjs` for ops/config/governance changes)
-- [ ] If `.github/` or deployment tooling is touched, external Issue/PR/discussion events still cannot access secrets or trigger production actions (`node test/repository-event-safety.cjs`)
+## Release / online acceptance
 
-## External-input boundary
-
-Public Issue/PR/discussion content is evidence and review input, not operational authorization. This PR must not introduce comment-driven deployment, merge, release, server commands or credential operations.
+For a deployable change, CI PASS is not final acceptance. Record the immutable artifact, deployment health check and public-site verification separately.
 
 ## Risk / follow-up
 
-What could still regress, and what follow-up work is intentionally deferred?
+What functionality remains quarantined or intentionally deferred?

@@ -1,9 +1,10 @@
-/* Dungeon Echo desktop gamepad adapter v5.
+/* Dungeon Echo desktop gamepad adapter v4.
  * Translates Gamepad API input into the keyboard/menu contract owned by game.js.
  * Zero dependencies; safe no-op without a connected pad.
  * Fixed Chinese/English routes own all visible controller copy directly.
  * v3 keeps the Gamepad sampling RAF alive only while a pad is actually connected and the page is visible.
- * v5 is transport-only: gamepad actions emit the canonical keyboard contract and never call gameplay systems directly.
+ * v4 routes Return through the commerce extraction owner when available instead of synthesizing T,
+ * so gamepad extraction shares the same explicit two-stage Return Scroll state machine as keyboard/touch.
  */
 (() => {
   'use strict';
@@ -33,6 +34,11 @@
   }
 
   function triggerReturn() {
+    const commerce = window.DE_COMMERCE;
+    if (commerce && typeof commerce.extractionReady === 'function' &&
+        typeof commerce.beginExtraction === 'function' && typeof commerce.completeExtraction === 'function') {
+      return commerce.extractionReady() ? commerce.completeExtraction() : commerce.beginExtraction();
+    }
     emitKey('t');
     return true;
   }
@@ -226,7 +232,7 @@
       handleDirection(pad, now);
       edgeButton(pad, 0, () => { if (!activateMenu()) emitKey('Enter'); });
       edgeButton(pad, 1, () => { if (activeMenuRoot()) { if (!backMenu()) emitKey('Escape'); } else emitKey(' '); });
-      edgeButton(pad, 2, 'c'); edgeButton(pad, 3, 'q'); edgeButton(pad, 4, 'e');
+      edgeButton(pad, 2, 'k'); edgeButton(pad, 3, 'q'); edgeButton(pad, 4, 'e');
       edgeButton(pad, 5, () => { const btn = document.getElementById('fullscreen-toggle'); if (btn) btn.click(); else emitKey('f'); });
       edgeButton(pad, 7, 'j');
       edgeButton(pad, 9, 'Escape');
@@ -271,7 +277,7 @@
   startLoop();
 
   window.__DE_GAMEPAD_ADAPTER = {
-    version:'v5', owner:'desktop-controls', locale:english ? 'en' : 'zh-CN',
+    version:'v4', owner:'desktop-controls', locale:english ? 'en' : 'zh-CN',
     showStatus, activeMenuRoot, moveMenuFocus, activateMenu, backMenu, triggerReturn, startLoop, stopLoop,
     get running() { return !!rafId; },
   };
