@@ -22,13 +22,14 @@ Each shelf preserves completed work but owns **zero production authority**.
 
 ## Staged extraction
 
-Five pure libraries have now been re-housed without entering production:
+Six pure libraries have now been re-housed without entering production:
 
 - `game/domain/inventory/equipment-rules-v130.js` — class-fit, affix scaling, deep-slot and rarity rules.
 - `game/domain/economy/economy-rules-v130.js` — town supply pricing/stock, heal pricing, forge/sell costs, quick-dive and wheel costs.
 - `game/domain/progression/progression-rules-v130.js` — XP thresholds, level-up deltas, talent cadence, progression caps and skill-evolution milestones.
 - `game/domain/content/content-rules-v130.js` — floor theme bands, monster eligibility/fallback, encounter counts and special-floor classification.
 - `game/domain/town/town-rules-v130.js` — conquered checkpoint unlock/selection policy and expedition-readiness checks.
+- `game/domain/combat/combat-rules-v130.js` — deterministic defense, damage, critical, grievous-healing, thorns and kill-heal math.
 
 All staged libraries are intentionally absent from `ops/release/static-files.txt`, are not loaded by either production entry, and own no runtime authority. Their quarantined source implementations remain intact as provenance/reference until later atomic transfers are complete.
 
@@ -38,7 +39,8 @@ The boundaries are deliberately narrow:
 - economy converts value/depth inputs into prices and costs;
 - progression calculates thresholds/caps/milestones but never mutates player/meta state;
 - content answers what is eligible on a floor, but never spawns entities, consumes RNG or applies combat effects;
-- town owns checkpoint/readiness policy only; it does not own economy, inventory movement, rendering or persistence.
+- town owns checkpoint/readiness policy only; it does not own economy, inventory movement, rendering or persistence;
+- combat calculates from caller-supplied values only; it never consumes RNG, mutates actors or advances turns.
 
 That separation prevents a staged library from becoming a second hidden owner while still preserving already-designed mechanics in the correct future shelf.
 
