@@ -21,11 +21,12 @@ jobs:
           from pathlib import Path
           p=Path('game/core/game.js')
           s=p.read_text()
-          old="""function lunge(ent, tx, ty) {
+
+          lunge_anchor="""function lunge(ent, tx, ty) {
             ent.lungeT = 1; ent.ldx = Math.sign(tx - ent.x); ent.ldy = Math.sign(ty - ent.y);
           }
           """
-          new=old+"""let classSkillFxT = 0;
+          styles="""let classSkillFxT = 0;
           const CLASS_COMBAT_FX_STYLE = Object.freeze({
             warrior:{ main:'#eca548', soft:'#ffd585' },
             ranger:{ main:'#68d284', soft:'#b5f2b6' },
@@ -33,13 +34,14 @@ jobs:
             assassin:{ main:'#bb70eb', soft:'#f49bdb' },
           });
           """
-          if s.count(old)!=1: raise SystemExit('lunge anchor mismatch')
-          s=s.replace(old,new,1)
+          if s.count(lunge_anchor)!=1: raise SystemExit('lunge anchor mismatch')
+          s=s.replace(lunge_anchor,lunge_anchor+styles,1)
+
           skill_anchor="  const echo = mechanicPower('echo_edge');\n"
           if s.count(skill_anchor)!=1: raise SystemExit('skill anchor mismatch')
           s=s.replace(skill_anchor,"  classSkillFxT = 1;\n"+skill_anchor,1)
-          old3="""function drawShadow(px, py, rx, ry) {
-          """
+
+          shadow_anchor="function drawShadow(px, py, rx, ry) {\n"
           fx=r"""function drawClassCombatFx(now) {
             if (!player) return;
             const attack = clamp(Number(player.lungeT) || 0, 0, 1);
@@ -99,24 +101,19 @@ jobs:
           }
 
           """
-          if s.count(old3)!=1: raise SystemExit('drawShadow anchor mismatch')
-          s=s.replace(old3,fx+old3,1)
-          old4="""  drawEquippedHero(now);
+          if s.count(shadow_anchor)!=1: raise SystemExit('drawShadow anchor mismatch')
+          s=s.replace(shadow_anchor,fx+shadow_anchor,1)
 
-          ctx.strokeStyle = '#f2e3ad';
-          """
-          new4="""  drawEquippedHero(now);
-          drawClassCombatFx(now);
+          hero_anchor="  drawEquippedHero(now);\n"
+          if s.count(hero_anchor)!=1: raise SystemExit('hero draw anchor mismatch')
+          s=s.replace(hero_anchor,hero_anchor+"  drawClassCombatFx(now);\n",1)
 
-          ctx.strokeStyle = '#f2e3ad';
-          """
-          if s.count(old4)!=1: raise SystemExit('hero draw anchor mismatch')
-          s=s.replace(old4,new4,1)
-          decay_anchor="    if (e.hurtT > 0) e.hurtT = Math.max(0, e.hurtT - dt * 4);\n  };\n"
-          if s.count(decay_anchor)!=1: raise SystemExit('visual decay anchor mismatch')
-          s=s.replace(decay_anchor,decay_anchor+"  if (classSkillFxT > 0) classSkillFxT = Math.max(0, classSkillFxT - dt * (reducedMotion ? 4 : 2.2));\n",1)
+          lerp_call="  if (player) lerp(player);\n"
+          if s.count(lerp_call)!=1: raise SystemExit('visual decay anchor mismatch')
+          s=s.replace(lerp_call,"  if (classSkillFxT > 0) classSkillFxT = Math.max(0, classSkillFxT - dt * (reducedMotion ? 4 : 2.2));\n"+lerp_call,1)
           p.write_text(s)
           PY
+
           cat > test/class-combat-fx-authority-v131.cjs <<'EOF'
           'use strict';
           const fs=require('fs'),path=require('path');
@@ -125,16 +122,18 @@ jobs:
           const runtime=fs.readFileSync(path.join(root,'game/core/runtime-bootstrap.js'),'utf8');
           let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
           ok(core.includes('function drawClassCombatFx(now)'),'canonical core renderer owns recovered class FX');
-          ok(core.includes('classSkillFxT = 1;'),'skill resolution emits presentation timer inside core');
+          ok(core.includes('classSkillFxT = 1;'),'successful skill use emits presentation timer inside core');
           ok(core.includes('drawEquippedHero(now);\n  drawClassCombatFx(now);'),'class FX renders in the existing Canvas pass');
           ok(core.includes("warrior:{ main:'#eca548'")&&core.includes("ranger:{ main:'#68d284'")&&core.includes("mage:{ main:'#6fa4ff'")&&core.includes("assassin:{ main:'#bb70eb'"),'all four class visual languages are present');
           ok(!core.includes('de-class-combat-fx-v163')&&!core.includes("stage.appendChild(overlay)"),'old overlay Canvas implementation remains retired');
           ok(!runtime.includes('class-combat-fx-v163.js'),'runtime does not load quarantined combat FX follower');
+          ok(!runtime.includes('hero-directional-art-v165.js')&&!runtime.includes('art-runtime-v4.js'),'retired presentation runtimes remain absent');
           console.log(`\nRESULT  ${pass} passed / ${fail} failed`); process.exit(fail?1:0);
           EOF
           node test/class-combat-fx-authority-v131.cjs
           node --check game/core/game.js
           bash ops/check-authority-local.sh
+
       - name: Remove one-shot workflow and commit recovery
         shell: bash
         run: |
