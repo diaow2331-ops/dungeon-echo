@@ -9,11 +9,10 @@ on:
       - .github/workflows/release-governance.yml
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   RELEASE_REVISION: a3136ade46f8ff9c63d6dc94a97ed9e54a69c512
-  RELEASE_TAG: v1.3.1
   ARCHIVE_NAME: 91hwl-play-dungeon-echo-v1.3.1.zip
 
 jobs:
@@ -40,19 +39,4 @@ jobs:
             ${{ runner.temp }}/${{ env.ARCHIVE_NAME }}
             ${{ runner.temp }}/${{ env.ARCHIVE_NAME }}.sha256
           if-no-files-found: error
-          retention-days: 7
-      - name: Publish immutable GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          archive="$RUNNER_TEMP/$ARCHIVE_NAME"
-          checksum="$archive.sha256"
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "$archive" "$checksum" --clobber
-          else
-            gh release create "$RELEASE_TAG" "$archive" "$checksum" \
-              --target "$RELEASE_REVISION" \
-              --title "Dungeon Echo v1.3.1 — Recovery Closeout" \
-              --notes-file docs/releases/RELEASE_NOTES_v1.3.1.md
-          fi
+          retention-days: 90
