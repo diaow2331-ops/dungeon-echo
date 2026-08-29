@@ -1,0 +1,43 @@
+name: recover-guardian-core-v131-retry-once
+on:
+  push:
+    branches: [feature/recover-guardian-core-v131]
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/recover-guardian-core-v131
+          fetch-depth: 0
+      - name: Reuse reviewed recovery patch and run gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B <<'PY'
+          from pathlib import Path
+          import textwrap
+          wf=Path('.github/workflows/recover-guardian-core-v131-once.yml').read_text()
+          opener="          python -B <<'PY'\n"
+          start=wf.index(opener)+len(opener)
+          end=wf.index("\n          PY",start)
+          script=textwrap.dedent(wf[start:end])
+          exec(compile(script,'guardian-recovery-patch.py','exec'),{})
+          t=Path('test/guardian-content.cjs')
+          content=t.read_text()
+          assert content.startswith("\\'use strict\\';"), 'expected first-attempt escaped test header'
+          t.write_text("'use strict';"+content[len("\\'use strict\\';"):])
+          PY
+          git rm .github/workflows/recover-guardian-core-v131-once.yml .github/workflows/recover-guardian-core-v131-retry-once.yml
+          git add game/core/game.js test/guardian-content.cjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: restore guardian 10-100 state machine in core'
+          node test/guardian-content.cjs
+          node test/skill-evolution.cjs
+          node --check game/core/game.js
+          bash ops/check-authority-local.sh
+          test "$(git diff --name-only origin/main...HEAD | sort | tr '\n' ' ')" = "game/core/game.js test/guardian-content.cjs "
+          git push origin HEAD:feature/recover-guardian-core-v131
