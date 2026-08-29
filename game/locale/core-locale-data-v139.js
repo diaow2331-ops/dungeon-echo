@@ -16,6 +16,25 @@
     assassin:{name:'Assassin',blurb:'Fragile burst melee class with innate critical chance and positional pressure.',skill:{name:'Shadowstrike',desc:'Blink beside the nearest visible enemy and land a guaranteed critical strike.'}},
   });
 
+  const TALENT_EN = Object.freeze({
+    iron:['Ironbone','Max HP +12 and immediately restore 12 HP.'],
+    edge:['Keen Edge','Base ATK +2.'],
+    luck:['Fortune','Crit +8%.'],
+    blood:['Blood Pact','Leech +5%.'],
+    haste:['Haste','Permanent skill cooldown -1, to a minimum of 2 turns.'],
+    pack:['Field Pack','Immediately gain 1 Healing Potion and 1 Teleport Scroll.'],
+    gold:['Midas Touch','Gold Find +20%.'],
+    ward:['Ward','Damage taken -1.'],
+    bramble:['Brambleheart','Thorns +4.'],
+    scavenge:['Scavenger','Kill Heal +3.'],
+    elixir:['Potent Elixir','Potion healing +40%.'],
+    frenzy:['Deadly Rhythm','Critical damage +25% (1.8x to about 2.05x).'],
+    tenacity:['Tenacity','Grievous Wounds duration -1 turn, to a minimum of 1.'],
+    plunder:['Plunderer','Gold dropped by kills +25%.'],
+    stone:['Stoneskin','Damage taken -2.'],
+    echoborn:['Echoborn','Natural regeneration accelerates to +1 HP every 4 turns.'],
+  });
+
   const ACHV_EN = Object.freeze({
     first_run:['First Expedition','Start one Greedy Expedition'],
     depth_10:['Into the Depths','Reach Floor 10'],
@@ -44,6 +63,17 @@
     return changed;
   }
 
+  function localizeTalents() {
+    if (!english || !Array.isArray(api.TALENTS)) return 0;
+    let changed=0;
+    for (const row of api.TALENTS) {
+      const copy=row && TALENT_EN[row.id];
+      if (!copy) continue;
+      row.name=copy[0]; row.desc=copy[1]; changed++;
+    }
+    return changed;
+  }
+
   function localizeAchievements() {
     if (!english || !Array.isArray(api.ACHV)) return 0;
     let changed=0;
@@ -56,9 +86,10 @@
   }
 
   const classes=localizeClasses();
+  const talents=localizeTalents();
   const achievements=localizeAchievements();
   window.__DE_CORE_LOCALE_DATA_V139={
-    version:'v139',owner:'core-locale-data-v139',locale:english?'en':'zh-CN',classes,achievements,
-    localizeClasses,localizeAchievements,
+    version:'v139',owner:'core-locale-data-v139',locale:english?'en':'zh-CN',classes,talents,achievements,
+    localizeClasses,localizeTalents,localizeAchievements,
   };
 })();
