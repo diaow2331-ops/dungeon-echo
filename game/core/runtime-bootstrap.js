@@ -1,4 +1,4 @@
-/* Dungeon Echo production UX bootstrap v17.
+/* Dungeon Echo production UX bootstrap v18.
  *
  * v1.3.0 ownership rule:
  * - game/core/game.js owns every dungeon/town Canvas pixel;
@@ -15,7 +15,7 @@
   const fresh = src => `${src}?v=${assetVersion}`;
 
   const baseChain = [
-    [fresh('game/core/release-stamp-v1212.js'), 'data-de-release-stamp', () => !!window.__DE_RELEASE_STAMP_V1212],
+    [fresh('game/core/release-stamp-v130.js'), 'data-de-release-stamp-v130', () => !!window.__DE_RELEASE_STAMP_V130],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
     [fresh('game/ui/town-workspace-v156.js'), 'data-de-town-workspace-v156', () => !!window.__DE_TOWN_WORKSPACE_V156],
@@ -51,7 +51,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v17');
+      script.setAttribute(marker, 'v18');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -72,7 +72,7 @@
 
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
   window.__DE_PRODUCTION_UX_BOOTSTRAP = {
-    version:'v17', assetVersion, locale:english?'en':'zh-CN', english,
+    version:'v18', assetVersion, locale:english?'en':'zh-CN', english,
     renderOwner:'game/core/game.js', saveMigration:false,
     start, loadScript, chain, baseChain:Object.freeze(baseChain), followerChain:Object.freeze(followerChain),
   };
