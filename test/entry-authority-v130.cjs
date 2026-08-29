@@ -48,7 +48,7 @@ const core = read('game/core/game.js');
 assert(bootstrap.includes("const FRESH_BUTTON_ID = 'btn-fresh-adventure'"), 'fresh adventure owner id missing');
 assert(bootstrap.includes("button.id = FRESH_BUTTON_ID"), 'bootstrap must synchronously remove the historical btn-new identity before core loads');
 assert(bootstrap.includes("button.addEventListener('click', beginFreshAdventure)"), 'bootstrap must be the fresh-adventure click owner');
-assert(bootstrap.includes("window.__DE_FRESH_CLASS_SELECT_PENDING = true") && core.includes('window.__DE_FRESH_CLASS_SELECT_PENDING = false') && core.includes('showClassSelect();'), 'fresh reload must use a deterministic core-ready class-select handoff');
+assert(bootstrap.includes("window.__DE_FRESH_CLASS_SELECT_PENDING = true") && core.includes("window.addEventListener('de:core-locale-ready'") && core.includes('showClassSelect();'), 'fresh reload must wait for canonical locale readiness before rendering class select');
 assert(!bootstrap.includes('setTimeout(enterFreshClassSelect, 0)'), 'fresh class-select handoff must not depend on a zero-delay timer race');
 assert(!bootstrap.includes("new KeyboardEvent('keydown'"), 'fresh reload must not synthesize keyboard input before core is ready');
 assert(!/stopImmediatePropagation|DE_TEST|button\.click\s*\(/.test(bootstrap), 'new adventure owner must not use listener priority, test hooks, or synthetic button recursion');
