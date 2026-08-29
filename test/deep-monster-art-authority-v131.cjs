@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..'); const text=p=>fs.readFileSync(path.join(root,p),'utf8');
+const core=text('game/core/game.js'),profile=text('profiles/classic-100.profile.js'),allow=text('ops/release/static-files.txt'),runtime=text('game/core/runtime-bootstrap.js');
+const deep=['abomination','seraph','voidspawn','voidlord'];
+for(const id of deep) assert(profile.includes(`sprite: '${id}'`),`classic-100 must actively use ${id}`);
+const originalBlock=(core.match(/const MONSTER_ART_INDEX = Object\.fromEntries\(\[([\s\S]*?)\]\.map/)||[])[1]; assert(originalBlock);
+const original=[...originalBlock.matchAll(/'([^']+)'/g)].map(m=>m[1]); assert.equal(original.length,16);
+for(const id of deep) assert(!original.includes(id),`${id} must stay additive`);
+assert(core.includes("deepMonsterAtlasV1.src = 'art/monster-deep-atlas-v1.svg'"));
+assert(core.includes('abomination:0, seraph:1, voidspawn:2, voidlord:3'));
+const start=core.indexOf('function drawMonsterV11(m, now) {'),end=core.indexOf('function drawLootIcon(',start),body=core.slice(start,end);
+const order=[body.indexOf('m.boss && imageReady(finalBossV11)'),body.indexOf('guardianArtIndex(m)'),body.indexOf('MONSTER_ART_INDEX[m.sprite]'),body.indexOf('DEEP_MONSTER_ART_INDEX[m.sprite]'),body.indexOf('SPRITES[m.sprite] || SPRITES.demon')];
+assert(order.every(x=>x>=0)&&order.every((x,i)=>i===0||x>order[i-1]),'precedence: final > guardian > v11 > deep > vector');
+assert(allow.includes('art/monster-atlas-v11.png')&&allow.includes('art/monster-deep-atlas-v1.svg'));
+assert(!runtime.includes('art-runtime-v2.js')&&!runtime.includes('monster-deep-atlas-v2.svg'));
+console.log('deep_monster_art_authority_v131=PASS');

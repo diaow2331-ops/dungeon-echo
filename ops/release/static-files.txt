@@ -23,6 +23,7 @@ art/title-backdrop.webp
 art/class-roster.webp
 art/hero-atlas-v11.png
 art/monster-atlas-v11.png
+art/monster-deep-atlas-v1.svg
 art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
