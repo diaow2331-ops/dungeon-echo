@@ -23,7 +23,7 @@ ok(/<base\s+href="\.\.\/">/.test(en),'English entry resolves shared assets from 
 ok(!/[\u3400-\u9fff]/.test(en),'English static entry contains no CJK presentation text');
 ok(JSON.stringify(scripts(zh))===JSON.stringify(expectedScripts),'Chinese route boots canonical v170 synchronous graph');
 ok(JSON.stringify(scripts(en))===JSON.stringify(expectedScripts),'English route boots the identical canonical v170 synchronous graph');
-for(const file of ['index.html','en/index.html','game/locale/locale-data-v134.js','game/locale/core-locale-data-v139.js','game/locale/fixed-locale-entry-v130.js','game/core/runtime-bootstrap.js','game/ui/responsive-final-v154.js','game/ui/help-copy-v126.js'])
+for(const file of ['index.html','en/index.html','game/locale/locale-data-v134.js','game/locale/core-locale-data-v139.js','game/locale/fixed-locale-entry-v130.js','game/core/runtime-bootstrap.js','game/ui/responsive-final-v154.js','game/ui/help-copy-v126.js','game/ui/theme-atmosphere-v131.js','game/ui/adaptive-bgm-v132.js'])
   ok(manifest.includes(file),`${file} ships in release allowlist`);
 for(const retired of ['stable-item-id-migration-v150.js','core-screen-owner-v153.js','town-canvas-locale-v153.js','locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
   ok(!runtime.includes(retired),`${retired} is absent from production bootstrap`);
@@ -34,11 +34,13 @@ const expectedFollowers=[
   "fresh('game/locale/fixed-locale-entry-v130.js')",
   "fresh('game/ui/responsive-final-v154.js')",
   "fresh('game/ui/help-copy-v126.js')",
+  "fresh('game/ui/theme-atmosphere-v131.js')",
+  "fresh('game/ui/adaptive-bgm-v132.js')",
 ];
 for(const token of expectedFollowers) ok(runtime.includes(token),`runtime follower present: ${token}`);
 ok(/const english = routeLang === 'en'/.test(runtime),'runtime locale identity is fixed-route derived');
-ok(/const assetVersion = '170'/.test(runtime)&&/version:'v19'/.test(runtime),'runtime bootstrap aligns with generation 170 / v19');
-ok(/const chain = Object\.freeze\(\[/.test(runtime)&&/followers:'dom-only'/.test(runtime),'runtime owns one DOM-only follower chain');
+ok(/const assetVersion = '170'/.test(runtime)&&/version:'v21'/.test(runtime),'runtime bootstrap aligns with generation 170 / v21');
+ok(/const chain = Object\.freeze\(\[/.test(runtime)&&/followers:'presentation-only'/.test(runtime),'runtime owns one bounded presentation follower chain');
 ok(!/MutationObserver|translateTree|setInterval/.test(localeData),'locale data remains source-level and observer-free');
 ok(!/MutationObserver|setInterval|requestAnimationFrame/.test(coreLocale),'core locale data remains one-shot and observer-free');
 ok(/const storageKey = 'de-language-v1'/.test(owner),'fixed route owner writes only legacy language preference');
