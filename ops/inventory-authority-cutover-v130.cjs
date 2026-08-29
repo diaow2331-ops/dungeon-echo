@@ -26,6 +26,30 @@ function stage(rel, fn) {
   return { rel, before, after, changed: after !== before };
 }
 
+function completedInventoryCutover() {
+  const map = JSON.parse(read('docs/authority-map-v130.json'));
+  if (!map.authorities || map.authorities.equipmentStatScoring !== 'game/domain/inventory/equipment-rules-v130.js') return false;
+  if (map.stagedPureLibraries && map.stagedPureLibraries.inventoryRules) return false;
+  const moduleSource = read('game/domain/inventory/equipment-rules-v130.js');
+  if (!moduleSource.includes("authority:'equipment-stat-scoring'")) return false;
+  const game = read('game/core/game.js');
+  if (!game.includes("const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null")) return false;
+  if (!game.includes('const eqScoreOf = stats => INVENTORY_RULES.equipmentStatScore(stats);')) return false;
+  const inventoryScript = 'game/domain/inventory/equipment-rules-v130.js?v=169';
+  const coreScript = 'game/core/game.js?v=169';
+  for (const rel of ['index.html', 'en/index.html']) {
+    const html = read(rel);
+    if (!html.includes(inventoryScript) || !html.includes(coreScript) || html.indexOf(inventoryScript) >= html.indexOf(coreScript)) return false;
+  }
+  const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
+  return manifest.includes('game/domain/inventory/equipment-rules-v130.js');
+}
+
+if (completedInventoryCutover()) {
+  console.log(APPLY ? 'inventory_authority_cutover=PASS changed=0' : 'inventory_authority_cutover_preflight=PASS files=10 would_change=0');
+  process.exit(0);
+}
+
 const results = [];
 
 results.push(stage('game/domain/inventory/equipment-rules-v130.js', src => {
@@ -44,7 +68,7 @@ results.push(stage('game/domain/inventory/equipment-rules-v130.js', src => {
  * Atomic authority transfer will happen in a later PR only after game/core/game.js
  * relinquishes the corresponding calculation responsibility in the same change.
  */`,
-`/* Dungeon Echo production inventory-derived-rules authority v1.3.0.
+`/* Dungeon Echo production equipment-stat-scoring authority v1.3.0.
  *
  * Pure deterministic item/equipment calculations. The module owns derived inventory rules only;
  * live bag/equipment state, RNG, equip commands, rendering, persistence and economy transactions
@@ -53,7 +77,7 @@ results.push(stage('game/domain/inventory/equipment-rules-v130.js', src => {
     'inventory rules header');
   out = replaceLiteral(out,
 `  function classFitScore(stats, classId='warrior') {`,
-`  function itemStatScore(stats) {
+`  function equipmentStatScore(stats) {
     const source = stats || {};
     return Math.round((Number(source.atk) || 0) * 3 + (Number(source.def) || 0) * 3 +
       (Number(source.hp) || 0) * .6 + (Number(source.crit) || 0) * 1.5 +
@@ -68,14 +92,14 @@ results.push(stage('game/domain/inventory/equipment-rules-v130.js', src => {
     authority:'none',
     source:'archive/quarantine-v130/gameplay/equipment/equipment-system.js',`,
 `    version:'v1.3.0-production',
-    authority:'inventory-derived-rules',
+    authority:'equipment-stat-scoring',
     sources:Object.freeze(['game/core/game.js']),`,
     'inventory production authority');
   out = replaceLiteral(out,
 `    SLOT_BONUS,
     classFitScore,`,
 `    SLOT_BONUS,
-    itemStatScore,
+    equipmentStatScore,
     classFitScore,`,
     'inventory api stat score export');
   return out;
@@ -89,9 +113,9 @@ const eqScoreOf = stats =>
              (stats.thorns || 0) * 2 + (stats.regen || 0) * 1);`,
 `// 装备评分：由唯一 inventory-derived-rules 权威提供；core 只消费结果。
 const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null;
-if (!INVENTORY_RULES || INVENTORY_RULES.authority !== 'inventory-derived-rules')
-  throw new Error('Dungeon Echo inventory-derived-rules authority missing');
-const eqScoreOf = stats => INVENTORY_RULES.itemStatScore(stats);`,
+if (!INVENTORY_RULES || INVENTORY_RULES.authority !== 'equipment-stat-scoring')
+  throw new Error('Dungeon Echo equipment-stat-scoring authority missing');
+const eqScoreOf = stats => INVENTORY_RULES.equipmentStatScore(stats);`,
   'core inventory stat-score delegation')));
 
 for (const rel of ['index.html', 'en/index.html']) {
@@ -114,12 +138,12 @@ game/core/game.js`,
 
 results.push(stage('docs/authority-map-v130.json', src => {
   const map = JSON.parse(src);
-  const owner = map.authorities && map.authorities.inventoryDerivedRules;
+  const owner = map.authorities && map.authorities.equipmentStatScoring;
   const staged = map.stagedPureLibraries && map.stagedPureLibraries.inventoryRules;
   if (owner && staged) throw new Error('authority map: mixed inventory staged/production state');
   if (owner && owner !== 'game/domain/inventory/equipment-rules-v130.js') throw new Error(`authority map: unexpected inventory owner ${owner}`);
   if (!owner && staged !== 'game/domain/inventory/equipment-rules-v130.js') throw new Error('authority map: expected staged inventory library');
-  map.authorities.inventoryDerivedRules = 'game/domain/inventory/equipment-rules-v130.js';
+  map.authorities.equipmentStatScoring = 'game/domain/inventory/equipment-rules-v130.js';
   if (map.stagedPureLibraries) delete map.stagedPureLibraries.inventoryRules;
   return JSON.stringify(map, null, 2) + '\n';
 }));
@@ -129,11 +153,11 @@ results.push(stage('docs/ARCHITECTURE_SINGLE_AUTHORITY.md', src => {
   out = replaceLiteral(out,
 `| Content classification | \`game/domain/content/content-rules-v130.js\` | supply deterministic eligibility decisions to core | spawn entities, consume RNG, mutate map/player/combat state |`,
 `| Content classification | \`game/domain/content/content-rules-v130.js\` | supply deterministic eligibility decisions to core | spawn entities, consume RNG, mutate map/player/combat state |
-| Inventory derived rules | \`game/domain/inventory/equipment-rules-v130.js\` | supply deterministic item/equipment calculations to core | mutate bag/equipment/player state, consume RNG, price or commit economy transactions |`,
+| Equipment stat scoring | \`game/domain/inventory/equipment-rules-v130.js\` | supply deterministic item/equipment calculations to core | mutate bag/equipment/player state, consume RNG, price or commit economy transactions |`,
     'architecture inventory authority row');
   out = replaceLiteral(out,
 `The currently staged pure libraries are registered in \`docs/authority-map-v130.json\` and include inventory, economy, progression, town and combat rules. Content classification has completed its atomic authority transfer and is now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.`,
-`The currently staged pure libraries are registered in \`docs/authority-map-v130.json\` and include economy, progression, town and combat rules. Content classification and inventory derived rules have completed their atomic authority transfers and are now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.`,
+`The currently staged pure libraries are registered in \`docs/authority-map-v130.json\` and include economy, progression, town and combat rules. Content classification and equipment stat scoring have completed their atomic authority transfers and are now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.`,
     'architecture staged shelf status');
   return out;
 }));
@@ -166,8 +190,8 @@ for (const entry of ['index.html', 'en/index.html']) {
   out = replaceLiteral(out,
 `const sample = { atk:10, def:5, hp:20, crit:4, leech:3, gold:10, thorns:2, regen:1 };`,
 `const sample = { atk:10, def:5, hp:20, crit:4, leech:3, gold:10, thorns:2, regen:1 };
-assert.equal(rules.itemStatScore(sample), 73);
-assert.equal(rules.itemStatScore({ atk:2, def:3, hp:11, crit:1, leech:2, gold:7, thorns:4, regen:5 }), 40);`,
+assert.equal(rules.equipmentStatScore(sample), 73);
+assert.equal(rules.equipmentStatScore({ atk:2, def:3, hp:11, crit:1, leech:2, gold:7, thorns:4, regen:5 }), 40);`,
     'inventory stat score behavior tests');
   return out;
 }));
@@ -186,7 +210,7 @@ results.push(stage('test/single-authority-v130.cjs', src => {
 `assert.equal(authority.authorities.contentClassification, 'game/domain/content/content-rules-v130.js');
 assert.equal(authority.authorities.canvasRendering, 'game/core/game.js');`,
 `assert.equal(authority.authorities.contentClassification, 'game/domain/content/content-rules-v130.js');
-assert.equal(authority.authorities.inventoryDerivedRules, 'game/domain/inventory/equipment-rules-v130.js');
+assert.equal(authority.authorities.equipmentStatScoring, 'game/domain/inventory/equipment-rules-v130.js');
 assert.equal(authority.authorities.canvasRendering, 'game/core/game.js');`,
     'single authority inventory owner assertion');
   out = replaceLiteral(out,

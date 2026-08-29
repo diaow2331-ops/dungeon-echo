@@ -16,7 +16,7 @@ assert.equal(authority.policy, 'one-responsibility-one-production-authority');
 assert.equal(authority.cacheGeneration, 169);
 assert.equal(authority.authorities.gameplayState, 'game/core/game.js');
 assert.equal(authority.authorities.contentClassification, 'game/domain/content/content-rules-v130.js');
-assert.equal(authority.authorities.inventoryDerivedRules, 'game/domain/inventory/equipment-rules-v130.js');
+assert.equal(authority.authorities.equipmentStatScoring, 'game/domain/inventory/equipment-rules-v130.js');
 assert.equal(authority.authorities.canvasRendering, 'game/core/game.js');
 assert.equal(authority.authorities.keyboardTouchInput, 'game/core/game.js');
 assert.equal(authority.authorities.gameplayPersistence, 'game/core/game.js');

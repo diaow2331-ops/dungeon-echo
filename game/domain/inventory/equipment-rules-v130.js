@@ -1,4 +1,4 @@
-/* Dungeon Echo production inventory-derived-rules authority v1.3.0.
+/* Dungeon Echo production equipment-stat-scoring authority v1.3.0.
  *
  * Pure deterministic item/equipment calculations. The module owns derived inventory rules only;
  * live bag/equipment state, RNG, equip commands, rendering, persistence and economy transactions
@@ -41,7 +41,7 @@
     ]),
   });
 
-  function itemStatScore(stats) {
+  function equipmentStatScore(stats) {
     const source = stats || {};
     return Math.round((Number(source.atk) || 0) * 3 + (Number(source.def) || 0) * 3 +
       (Number(source.hp) || 0) * .6 + (Number(source.crit) || 0) * 1.5 +
@@ -96,7 +96,7 @@
 
   const api = Object.freeze({
     version:'v1.3.0-production',
-    authority:'inventory-derived-rules',
+    authority:'equipment-stat-scoring',
     sources:Object.freeze(['game/core/game.js']),
     AFFINITY,
     FIT_WEIGHT,
@@ -104,7 +104,7 @@
     RARITY_TARGETS,
     DEEP_THRESHOLDS,
     SLOT_BONUS,
-    itemStatScore,
+    equipmentStatScore,
     classFitScore,
     scaleAffixRange,
     affinityRange,
