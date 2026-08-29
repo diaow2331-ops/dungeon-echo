@@ -11,20 +11,23 @@ const executableSource = source
   .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
-assert.equal(rules.authority, 'none');
-assert.equal(rules.version, 'v1.3.0-staged');
-assert.equal(rules.source, 'archive/quarantine-v130/gameplay/equipment/equipment-system.js');
-assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|fetch\s*\(/.test(executableSource), 'staged inventory rules must stay pure and disconnected');
+assert.equal(rules.authority, 'inventory-derived-rules');
+assert.equal(rules.version, 'v1.3.0-production');
+assert.deepEqual([...rules.sources], ['game/core/game.js']);
+assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|fetch\s*\(|Math\.random/.test(executableSource), 'production inventory rules must stay pure and deterministic');
 
 const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8')
   .split(/\r?\n/).filter(Boolean);
-assert(!manifest.includes(rel), 'staged inventory rules must not enter the release allowlist before atomic authority transfer');
+assert(manifest.includes(rel), 'production inventory rules must ship after atomic authority transfer');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(!html.includes(rel), `${entry}: staged inventory rules must not be loaded in production`);
+  assert(html.includes(`${rel}?v=169`), `${entry}: production inventory rules must be loaded`);
+  assert(html.indexOf(`${rel}?v=169`) < html.indexOf('game/core/game.js?v=169'), `${entry}: inventory authority must load before core`);
 }
 
 const sample = { atk:10, def:5, hp:20, crit:4, leech:3, gold:10, thorns:2, regen:1 };
+assert.equal(rules.itemStatScore(sample), 73);
+assert.equal(rules.itemStatScore({ atk:2, def:3, hp:11, crit:1, leech:2, gold:7, thorns:4, regen:5 }), 40);
 assert.equal(rules.classFitScore(sample, 'warrior'), 73);
 assert.equal(rules.classFitScore(sample, 'ranger'), 69);
 assert.equal(rules.classFitScore(sample, 'mage'), 71);

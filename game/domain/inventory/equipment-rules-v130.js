@@ -1,15 +1,8 @@
-/* Dungeon Echo staged inventory rules v1.3.0.
+/* Dungeon Echo production inventory-derived-rules authority v1.3.0.
  *
- * Extracted from the quarantined production equipment system as pure data/functions.
- * This file intentionally owns NO production state yet:
- * - no DE_TEST access;
- * - no DOM/event listeners;
- * - no storage writes;
- * - no profile mutation;
- * - not admitted by ops/release/static-files.txt.
- *
- * Atomic authority transfer will happen in a later PR only after game/core/game.js
- * relinquishes the corresponding calculation responsibility in the same change.
+ * Pure deterministic item/equipment calculations. The module owns derived inventory rules only;
+ * live bag/equipment state, RNG, equip commands, rendering, persistence and economy transactions
+ * remain with their current production owners.
  */
 (() => {
   'use strict';
@@ -47,6 +40,14 @@
       Object.freeze({ hp:30, crit:5 }), Object.freeze({ hp:42, crit:7 }), Object.freeze({ hp:56, crit:9 }), Object.freeze({ hp:72, crit:10 }),
     ]),
   });
+
+  function itemStatScore(stats) {
+    const source = stats || {};
+    return Math.round((Number(source.atk) || 0) * 3 + (Number(source.def) || 0) * 3 +
+      (Number(source.hp) || 0) * .6 + (Number(source.crit) || 0) * 1.5 +
+      (Number(source.leech) || 0) * 1.2 + (Number(source.gold) || 0) * .15 +
+      (Number(source.thorns) || 0) * 2 + (Number(source.regen) || 0));
+  }
 
   function classFitScore(stats, classId='warrior') {
     const weights = FIT_WEIGHT[classId] || FIT_WEIGHT.warrior;
@@ -94,15 +95,16 @@
   }
 
   const api = Object.freeze({
-    version:'v1.3.0-staged',
-    authority:'none',
-    source:'archive/quarantine-v130/gameplay/equipment/equipment-system.js',
+    version:'v1.3.0-production',
+    authority:'inventory-derived-rules',
+    sources:Object.freeze(['game/core/game.js']),
     AFFINITY,
     FIT_WEIGHT,
     MIN_GROW_DIV,
     RARITY_TARGETS,
     DEEP_THRESHOLDS,
     SLOT_BONUS,
+    itemStatScore,
     classFitScore,
     scaleAffixRange,
     affinityRange,

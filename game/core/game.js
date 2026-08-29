@@ -1236,11 +1236,11 @@ function weaponPoolForClass() {
   const tagged = WEAPON_BASES.filter(b => b.cls === classId);
   return tagged.length ? tagged : WEAPON_BASES;
 }
-// 装备评分：全游戏唯一口径（生成、锻造重算共用）
-const eqScoreOf = stats =>
-  Math.round((stats.atk || 0) * 3 + (stats.def || 0) * 3 + (stats.hp || 0) * .6 +
-             (stats.crit || 0) * 1.5 + (stats.leech || 0) * 1.2 + (stats.gold || 0) * .15 +
-             (stats.thorns || 0) * 2 + (stats.regen || 0) * 1);
+// 装备评分：由唯一 inventory-derived-rules 权威提供；core 只消费结果。
+const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null;
+if (!INVENTORY_RULES || INVENTORY_RULES.authority !== 'inventory-derived-rules')
+  throw new Error('Dungeon Echo inventory-derived-rules authority missing');
+const eqScoreOf = stats => INVENTORY_RULES.itemStatScore(stats);
 // 锻造：主属性成长表与上限
 const FORGE_MAX = 5;
 const FORGE_MAIN = {
