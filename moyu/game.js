@@ -5,7 +5,7 @@ const canvas=$('game'), ctx=canvas.getContext('2d',{alpha:false}), frame=$('game
 const overlay=$('overlay'), startBtn=$('startBtn'), overlayTitle=$('overlayTitle'), overlayText=$('overlayText');
 const scoreEl=$('score'), speedEl=$('speed'), comboEl=$('combo'), bestEl=$('best'), bestBelow=$('bestBelow'), bestComboEl=$('bestCombo'), runsEl=$('runs'), onTimeEndsEl=$('onTimeEnds'), overtimeEndsEl=$('overtimeEnds');
 const clockEl=$('clock'), stageEl=$('stage'), sceneHud=$('sceneHud'), sceneToast=$('sceneToast'), tickerEl=$('ticker'), dayProgress=$('dayProgress'), fullscreenBtn=$('fullscreenBtn'), fullscreenLabel=$('fullscreenLabel'), bgmChip=$('bgmChip'), bgmHud=$('bgmHud'), eventChip=$('eventChip'), eventHud=$('eventHud'), tutorialToast=$('tutorialToast'), discoveryCountEl=$('discoveryCount'), discoveryListEl=$('discoveryList');
-const messageBtn=$('messageBtn'),messageComposer=$('messageComposer'),messageName=$('messageName'),messageText=$('messageText'),messageCount=$('messageCount'),messageSubmit=$('messageSubmit'),messageStatus=$('messageStatus');
+const messageBtn=$('messageBtn'),messageComposer=$('messageComposer'),messageName=$('messageName'),messageText=$('messageText'),messageCount=$('messageCount'),messageSubmit=$('messageSubmit'),messageStatus=$('messageStatus'),lastRunSummaryEl=$('lastRunSummary'),topRunHistoryEl=$('topRunHistory');
 const settingsBtn=$('settingsBtn'), settingsPop=$('settingsPop'), masterSoundBtn=$('masterSoundBtn'), musicVolEl=$('musicVol'), sfxVolEl=$('sfxVol'), musicVolOut=$('musicVolOut'), sfxVolOut=$('sfxVolOut'), mixPresetBtn=$('mixPresetBtn'), langBtn=$('langBtn'), routeStrip=$('routeStrip');
 
 const storageGet=key=>{try{return window.localStorage.getItem(key)}catch{return null}};
@@ -20,7 +20,8 @@ Object.assign(UI_I18N,{
   missionStatus:{zh:'本地运行 · 就绪',en:'Local · ready'},missionControlLabel:{zh:'核心操作',en:'Core move'},missionControl:{zh:'二段跳',en:'Double jump'},
   missionAudioLabel:{zh:'声音',en:'Audio'},missionAudio:{zh:'原创 8-bit',en:'Original 8-bit'},shiftKicker:{zh:'今日工时 14:00 → 18:00',en:'SHIFT 14:00 → 18:00'},
   factScenes:{zh:'办公室场景',en:'office scenes'},factJump:{zh:'跳跃层级',en:'jump depth'},factEnds:{zh:'不同结局',en:'endings'},
-  localOnly:{zh:'仅保存在本机',en:'Local only'},footerPrivacy:{zh:'本地存档 · 无需账号 · 无需安装',en:'Local save · no account · no install'}
+  localOnly:{zh:'仅保存在本机',en:'Local only'},footerPrivacy:{zh:'本地存档 · 无需账号 · 无需安装',en:'Local save · no account · no install'},
+  runLedger:{zh:'跑局记录',en:'Run ledger'},runLedgerLocal:{zh:'Top 5 · 仅本机',en:'Top 5 · local only'},lastRunSummary:{zh:'上局总结',en:'Last run'},topRuns:{zh:'最佳 5 局',en:'Top 5 runs'},noFinishedRuns:{zh:'尚无完整跑局。',en:'No completed runs yet.'}
 });
 Object.assign(TRANSLATIONS,{
   '下班！':'CLOCK OUT!','连摸断了':'Combo dropped','临时需求空投！':'LAST-MINUTE DROP!','提示：第一次会议缝已加宽，普通单跳即可稳定通过。':'TIP: the first meeting gap is wider. One clean jump is enough.','第一次会议：单跳即可':'FIRST MEETING: ONE JUMP','下 班 出 口':'CLOCK OUT','空格 / 点击！':'SPACE / CLICK!','18:00 · 下班成功':'18:00 · CLOCKED OUT','大家先别走。':'Hold on, everyone.','出口 → 还有10分钟':'EXIT → 10 MIN','出口 → 18:00':'EXIT → 18:00','会议':'MEETING','茶水间':'PANTRY','更衣':'LOCKERS',
@@ -58,7 +59,7 @@ function applyLanguage(persist=true){
   messageName.placeholder=currentLang==='en'?'e.g. Definitely leaving on time':'例如：今晚不加班的人';
   messageText.placeholder=currentLang==='en'?'Up to 80 characters. Moderated before appearing publicly.':'最多 80 字。留言提交后进入审核，通过后才可能出现在下班留言墙。';
   messageSubmit.textContent=currentLang==='en'?'Submit for review':'提交审核';
-  syncAudioControls();updateMusicHud();renderDiscoveries();updateRouteStrip();
+  syncAudioControls();updateMusicHud();renderDiscoveries();renderRunLedger();updateRouteStrip();
   if(state==='menu'){overlayTitle.textContent=ui('heroTitle');overlayText.textContent=ui('heroText');startBtn.textContent=ui('start')}
   else if(state==='paused'){overlayTitle.textContent=currentLang==='en'?'Boss nearby. Look busy.':'老板路过，先装忙。';overlayText.textContent=currentLang==='en'?'Paused. Your escape progress is safe for now.':'游戏已暂停。你的摸鱼进度暂时安全。';startBtn.textContent=currentLang==='en'?'Resume':'继续摸鱼'}
   updateStage(true);updateScene(true);draw();
@@ -108,6 +109,9 @@ let rareMoment='none',rareMomentTimer=0,rareSceneRolled=[false,false,false,false
 let secretMoment='none',secretMomentTimer=0,secretVisualPulse=0,secretSceneRolled=[false,false,false,false],secretSceneThresholds=[.5,.5,.5,.5];
 let deathCounts={};try{deathCounts=JSON.parse(storageGet('91hwl_moyu_death_counts')||'{}')||{}}catch{deathCounts={}}
 let discoveries=new Set();try{discoveries=new Set(JSON.parse(storageGet('91hwl_moyu_discoveries')||'[]'))}catch{discoveries=new Set()}
+let topRuns=[];try{const raw=JSON.parse(storageGet('91hwl_moyu_top_runs')||'[]');topRuns=Array.isArray(raw)?raw.map(cleanRunRecord).filter(Boolean).slice(0,5):[]}catch{topRuns=[]}
+let lastRunRecord=null;try{lastRunRecord=cleanRunRecord(JSON.parse(storageGet('91hwl_moyu_last_run')||'null'))}catch{lastRunRecord=null}
+let runPeakCombo=0,runDiscoveryStart=discoveries.size,runRecordSaved=false,runStartedAt=0;
 const player={x:150,y:GROUND-66,w:44,h:66,vy:0,jumps:0,squash:0};
 
 const scenes=[
@@ -222,6 +226,26 @@ function renderDiscoveries(){
 function unlockDiscovery(id,silent=false){
   if(discoveries.has(id)||!discoveryDefs.some(d=>d.id===id))return false;discoveries.add(id);storageSet('91hwl_moyu_discoveries',JSON.stringify([...discoveries]));renderDiscoveries();
   if(!silent&&state==='playing'&&endingPhase==='none'){const d=discoveryDefs.find(x=>x.id===id);tickerEl.textContent=currentLang==='en'?`Discovery +1: ${tr(d.name)}`:`发现档案 +1：${d.name}`;tickerTimer=Math.max(tickerTimer,4);addFloater(player.x+90,160,currentLang==='en'?`Found: ${tr(d.name)}`:`发现：${d.name}`,'#506b2c');beep(1046,.055,'square',.025)}return true
+}
+function cleanRunRecord(value){
+  if(!value||typeof value!=='object')return null;const outcome=['caught','ontime','overtime'].includes(value.outcome)?value.outcome:'caught';
+  return {distance:Math.max(0,Math.floor(Number(value.distance)||0)),combo:Math.max(0,Math.floor(Number(value.combo)||0)),near:Math.max(0,Math.floor(Number(value.near)||0)),perfect:Math.max(0,Math.floor(Number(value.perfect)||0)),discoveries:Math.max(0,Math.floor(Number(value.discoveries)||0)),outcome,cause:String(value.cause||'').slice(0,20),scene:Math.max(0,Math.min(4,Math.floor(Number(value.scene)||0))),clock:String(value.clock||'14:00').slice(0,12),ts:Math.max(0,Math.floor(Number(value.ts)||0))}
+}
+function runOutcomeLabel(r){if(r.outcome==='ontime')return currentLang==='en'?'On-time exit':'准点下班';if(r.outcome==='overtime')return currentLang==='en'?'“Voluntary” OT':'“自愿”加班';return currentLang==='en'?`Caught · ${tr(r.cause||'工作')}`:`被「${r.cause||'工作'}」截胡`}
+function runSceneLabel(r){if(r.scene>=4)return currentLang==='en'?'Exit':'下班门';const sc=scenes[r.scene];return sc?tr(sc.name):(currentLang==='en'?'Office':'办公室')}
+function runMetricLine(){return currentLang==='en'?`Peak combo ${runPeakCombo} · Near misses ${runNearMisses} (Perfect ${runPerfectNearMisses})`:`峰值连摸 ${runPeakCombo} · 擦边 ${runNearMisses}（极限 ${runPerfectNearMisses}）`}
+function renderRunLedger(){
+  if(!lastRunSummaryEl||!topRunHistoryEl)return;
+  if(!lastRunRecord)lastRunSummaryEl.textContent=ui('noFinishedRuns');
+  else{const r=lastRunRecord;lastRunSummaryEl.textContent=currentLang==='en'?`${runOutcomeLabel(r)} · ${r.clock} · ${runSceneLabel(r)} · ${r.distance}m · Peak combo ${r.combo} · Near ${r.near} (Perfect ${r.perfect}) · New finds ${r.discoveries}`:`${runOutcomeLabel(r)} · ${r.clock} · ${runSceneLabel(r)} · ${r.distance}m · 峰值连摸 ${r.combo} · 擦边 ${r.near}（极限 ${r.perfect}） · 新发现 ${r.discoveries}`}
+  topRunHistoryEl.replaceChildren();
+  if(!topRuns.length){const e=document.createElement('div');e.className='run-empty';e.textContent=ui('noFinishedRuns');topRunHistoryEl.append(e);return}
+  topRuns.forEach((r,i)=>{const row=document.createElement('div'),rank=document.createElement('span'),main=document.createElement('span'),score=document.createElement('span');row.className='run-history-row';rank.className='run-rank';main.className='run-history-main';score.className='run-history-score';rank.textContent=`#${i+1}`;main.textContent=`${runOutcomeLabel(r)} · ${r.clock} · ${runSceneLabel(r)} · N${r.near}/P${r.perfect}`;score.textContent=`${r.distance}m · C${r.combo}`;if(r.ts)row.title=new Date(r.ts).toLocaleString(currentLang==='en'?'en-US':'zh-CN');row.append(rank,main,score);topRunHistoryEl.append(row)})
+}
+function recordFinishedRun(outcome,cause=''){
+  if(runRecordSaved)return lastRunRecord;runRecordSaved=true;
+  const rec=cleanRunRecord({distance,combo:runPeakCombo,near:runNearMisses,perfect:runPerfectNearMisses,discoveries:Math.max(0,discoveries.size-runDiscoveryStart),outcome,cause,scene:outcome==='caught'?Math.max(0,sceneIndex):4,clock:clockEl.textContent||'14:00',ts:Date.now()});
+  if(!rec)return null;lastRunRecord=rec;topRuns=[...topRuns,rec].sort((a,b)=>b.distance-a.distance||b.combo-a.combo||b.perfect-a.perfect||b.near-a.near||b.ts-a.ts).slice(0,5);storageSet('91hwl_moyu_last_run',JSON.stringify(rec));storageSet('91hwl_moyu_top_runs',JSON.stringify(topRuns));renderRunLedger();return rec
 }
 function setTutorial(step){
   tutorialStep=step;tutorialToast.classList.remove('hidden','good');
@@ -447,7 +471,7 @@ async function submitMessage(){
 }
 function reset(){
   resetMessageComposer();
-  distance=0;runDistance=0;speed=350;sceneIndex=-1;previousSceneIndex=0;sceneToastTimer=0;sceneBlend=0;sceneHalf=0;sceneHalfAnnounced=[false,false,false,false];rareMoment='none';rareMomentTimer=0;rareSceneRolled=[false,false,false,false];meetingSuppressTimer=0;gymRushTimer=0;rareVisualPulse=0;secretMoment='none';secretMomentTimer=0;secretVisualPulse=0;secretSceneRolled=[false,false,false,false];secretSceneThresholds=Array.from({length:4},()=>.24+Math.random()*.52);spawnTimer=.72+Math.random()*.72;pickupTimer=2.8;worldTime=0;tickerTimer=7;combo=0;comboAge=0;stageIndex=-1;screenShake=0;milestone18=false;meetingSpawnCount=0;overtimeFlash=0;musicStep=0;lastMusicStage=-1;directorQueue=[];directorCooldown=0;lastObstacleLabel='';sameObstacleStreak=0;lastSpawnGapPx=0;tightGapStreak=0;spacingHistory=[];endingPhase='none';endingTimer=0;exitDoorX=W+80;endingResolved=false;endingCinematicTimer=0;endingCinematicType='none';endingPlayerOffset=0;endingBossX=W+100;jumpBufferTimer=0;lastGrounded=true;leaveSlipHits=0;leaveSlipTimer=0;riskBoostTimer=0;runNearMisses=0;runPerfectNearMisses=0;officeEvent='none';officeEventTimer=0;officeEventCooldown=12;eventRollTimer=8+Math.random()*5;coffeeRushRemaining=0;bossAwayTimer=0;bugPatchTimer=0;salaryFlash=0;pendingClimaxPattern='';climax17Done=false;climax1750Done=false;setEventHud('正常');tutorialActive=false;tutorialStep=0;tutorialTimer=0;tutorialToast.classList.add('hidden');
+  distance=0;runDistance=0;speed=350;runPeakCombo=0;runRecordSaved=false;sceneIndex=-1;previousSceneIndex=0;sceneToastTimer=0;sceneBlend=0;sceneHalf=0;sceneHalfAnnounced=[false,false,false,false];rareMoment='none';rareMomentTimer=0;rareSceneRolled=[false,false,false,false];meetingSuppressTimer=0;gymRushTimer=0;rareVisualPulse=0;secretMoment='none';secretMomentTimer=0;secretVisualPulse=0;secretSceneRolled=[false,false,false,false];secretSceneThresholds=Array.from({length:4},()=>.24+Math.random()*.52);spawnTimer=.72+Math.random()*.72;pickupTimer=2.8;worldTime=0;tickerTimer=7;combo=0;comboAge=0;stageIndex=-1;screenShake=0;milestone18=false;meetingSpawnCount=0;overtimeFlash=0;musicStep=0;lastMusicStage=-1;directorQueue=[];directorCooldown=0;lastObstacleLabel='';sameObstacleStreak=0;lastSpawnGapPx=0;tightGapStreak=0;spacingHistory=[];endingPhase='none';endingTimer=0;exitDoorX=W+80;endingResolved=false;endingCinematicTimer=0;endingCinematicType='none';endingPlayerOffset=0;endingBossX=W+100;jumpBufferTimer=0;lastGrounded=true;leaveSlipHits=0;leaveSlipTimer=0;riskBoostTimer=0;runNearMisses=0;runPerfectNearMisses=0;officeEvent='none';officeEventTimer=0;officeEventCooldown=12;eventRollTimer=8+Math.random()*5;coffeeRushRemaining=0;bossAwayTimer=0;bugPatchTimer=0;salaryFlash=0;pendingClimaxPattern='';climax17Done=false;climax1750Done=false;setEventHud('正常');tutorialActive=false;tutorialStep=0;tutorialTimer=0;tutorialToast.classList.add('hidden');
   obstacles=[];pickups=[];particles=[];floaters=[];speedLines=[];
   player.y=GROUND-player.h;player.vy=0;player.jumps=0;player.squash=0;
   scoreEl.textContent='0';speedEl.textContent='1.0';comboEl.textContent='0';clockEl.textContent='14:00';stageEl.textContent=tr('工位摸鱼');sceneHud.textContent=tr('工位区');dayProgress.style.width='0%';updateRouteStrip();
@@ -455,7 +479,7 @@ function reset(){
 }
 function start(){
   const now=performance.now();if(now-startLock<220)return;startLock=now;
-  reset();runs++;storageSet('91hwl_moyu_runs',String(runs));syncStats();state='playing';overlay.classList.add('hidden');beginTutorial();last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);beep(520,.06);startMusic(true);
+  reset();runDiscoveryStart=discoveries.size;runStartedAt=Date.now();runs++;storageSet('91hwl_moyu_runs',String(runs));syncStats();state='playing';overlay.classList.add('hidden');beginTutorial();last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);beep(520,.06);startMusic(true);
 }
 function gameOver(cause='工作'){ 
   state='gameover';duckMusic(.45,.10);stopMusic(.18);screenShake=12;const rounded=Math.floor(distance);
@@ -463,10 +487,10 @@ function gameOver(cause='工作'){
   if(combo>bestCombo){bestCombo=combo;storageSet('91hwl_moyu_best_combo',String(bestCombo))}
   deathCounts[cause]=(deathCounts[cause]||0)+1;storageSet('91hwl_moyu_death_counts',JSON.stringify(deathCounts));
   if(['会议','老板','BUG','临时需求','邮件'].every(k=>(deathCounts[k]||0)>0))unlockDiscovery('allDeaths',true);
-  syncStats();renderDiscoveries();if(navigator.vibrate)navigator.vibrate(45);beep(130,.16,'sawtooth',.05);
+  recordFinishedRun('caught',cause);syncStats();renderDiscoveries();if(navigator.vibrate)navigator.vibrate(45);beep(130,.16,'sawtooth',.05);
   overlayTitle.textContent=currentLang==='en'?`${tr(cause)} got you.`:`被「${cause}」截胡。`;
   const funny=tr(causeTips[cause]||deathTips[(Math.random()*deathTips.length)|0]),coach=currentLang==='en'?(TRANSLATIONS[coachTips[cause]]||'Tip: read the next hazard before spending your second jump.'):(coachTips[cause]||'操作建议：先看清下一组障碍，再决定是否保留二段跳。'),count=deathCounts[cause]||1;
-  overlayText.textContent=currentLang==='en'?`Run: ${rounded}m.\n${funny}\n\n${coach}\nBest combo: ${combo} · Caught by ${tr(cause)} ${count} time${count===1?'':'s'}.`:`本局：${rounded} 米。\n${funny}\n\n${coach}\n最高连摸 ${combo} 次 · 已被「${cause}」截胡 ${count} 次。`;
+  overlayText.textContent=currentLang==='en'?`Run: ${rounded}m.\n${funny}\n\n${coach}\n${runMetricLine()} · Caught by ${tr(cause)} ${count} time${count===1?'':'s'}.`:`本局：${rounded} 米。\n${funny}\n\n${coach}\n${runMetricLine()} · 已被「${cause}」截胡 ${count} 次。`;
   startBtn.textContent=currentLang==='en'?'Try again':'再摸一次';setTimeout(()=>overlay.classList.remove('hidden'),150);
 }
 function togglePause(){
@@ -646,7 +670,7 @@ function nearMissTier(o){
   return gap<=8?2:1;
 }
 function passObstacle(o){
-  o.passed=true;combo++;comboAge=0;comboEl.textContent=combo;
+  o.passed=true;combo++;runPeakCombo=Math.max(runPeakCombo,combo);comboAge=0;comboEl.textContent=combo;
   const baseBonus=Math.min(45,8+combo*2),nearTier=nearMissTier(o),boosted=riskBoostTimer>0;
   const nearBonus=nearTier?(nearTier===2?26:14)*(boosted?2:1):0;
   const mechanicBonus=o.label==='会议'?10:(o.label==='临时需求'?8:(o.label==='BUG'&&o.mutationState==='done'?10:0));
@@ -764,7 +788,7 @@ function resolveEnding(type){
     overtimeEndings++;storageSet('91hwl_moyu_overtime_endings',String(overtimeEndings));unlockDiscovery('overtime',true);endingJingle('overtime');overtimeFlash=3.5;
     overlayTitle.textContent=currentLang==='en'?'Ending 2: “Voluntary” overtime.':'结局二：“自愿”加班。';overlayText.textContent=currentLang==='en'?`18:00:04. The boss asks, “No objections, right?” You stay silent for four seconds. The system records consent. Escape distance: ${rounded}m. Overtime willingness: 100% (system decision).`:`18:00:04，老板问“大家没意见吧？”。你沉默了四秒，系统自动识别为同意。今日摸鱼 ${rounded} 米，加班意愿：100%（系统判定）。`;
   }
-  syncStats();renderDiscoveries();last=performance.now()
+  overlayText.textContent+=`\n\n${runMetricLine()}`;recordFinishedRun(type);syncStats();renderDiscoveries();last=performance.now()
 }
 function updateEndingCinematic(dt){
   endingCinematicTimer=Math.max(0,endingCinematicTimer-dt);worldTime+=dt;screenShake=Math.max(0,screenShake-dt*20);
@@ -1401,16 +1425,16 @@ const handleViewportResize=()=>{invalidateCanvasLayout();resizeCanvas();syncPres
 window.addEventListener('resize',handleViewportResize);window.visualViewport?.addEventListener('resize',handleViewportResize);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing')togglePause()});
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
-syncAudioControls();updateMusicHud();resetMessageComposer();reset();applyLanguage(false);resizeCanvas();draw();
+syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
   initialized:true,canvas:Boolean(ctx),version:'1.11.0',dayEndDistance:DAY_END_DISTANCE,
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,leaveSlipHits,leaveSlipTimer,riskBoostTimer,player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
-  debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),
+  debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugSpawn:(label)=>spawnObstacle(label),debugStep:(dt=.016)=>{if(state!=='playing'&&state!=='ending')state='playing';update(dt);return window.__GAME_TEST__.getState()},
   debugPassNear:(tier=1,boost=false)=>{riskBoostTimer=boost?7:0;const gap=tier===2?6:18,o={label:'BUG',x:player.x-70,y:player.y+player.h+gap,w:56,h:38,air:false,passed:false,mutationState:'idle'};const before=distance;passObstacle(o);return {delta:distance-before,tier,boost,runNearMisses,runPerfectNearMisses,riskBoostTimer}},
   debugUseLeaveSlip:(label='BUG')=>{leaveSlipHits=1;leaveSlipTimer=8;const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};const saved=absorbWithLeaveSlip(o);return {saved,leaveSlipHits,leaveSlipTimer,combo,passed:o.passed,x:o.x}},
   debugClear:()=>{obstacles=[];pickups=[];return true},debugSetRunDistance:(v)=>{runDistance=Number(v)||0;updateStage(true);return runDistance},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,layers:p.layers})),debugMusicState:()=>({soundOn,musicVolume,sfxVolume,stageIndex,profile:profile().name,bpm:profile().bpm,layers:profile().layers,musicStep}),debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();return {runDistance,stageIndex,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.12.1';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.12.2';
 })();
