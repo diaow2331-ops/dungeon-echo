@@ -247,6 +247,11 @@ const finalBossV11 = new Image();
 finalBossV11.src = 'art/final-boss-v11.png';
 const townBackdropV11 = new Image();
 townBackdropV11.src = 'art/town-backdrop-v11.webp';
+const townNpcAtlasV1 = new Image();
+townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg';
+const TOWN_NPC_ART = Object.freeze({
+  quartermaster:0, smith:1, provisioner:4, alchemist:9, oracle:10, portalWarden:12,
+});
 const imageReady = image => !!image && image.complete && image.naturalWidth > 4;
 const MONSTER_ART_INDEX = Object.fromEntries([
   'rat', 'bat', 'goblin', 'spider',
@@ -4082,6 +4087,39 @@ function townTierForArt() {
   const best = Math.max(1, Number(meta && meta.bestDepth) || 1);
   return clamp(Math.ceil(best / 10), 1, 10);
 }
+function drawTownNpcFigure(ctx, index, x, baseY, now, facing = 1, scale = 1) {
+  const bob = reducedMotion ? 0 : Math.sin(now * .0026 + x * .013) * 1.15;
+  const y = baseY + bob;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.38)';
+  ctx.beginPath(); ctx.ellipse(x, y + 1, 12 * scale, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+  if (imageReady(townNpcAtlasV1)) {
+    const cols = 4, rows = 4;
+    const sw = townNpcAtlasV1.naturalWidth / cols, sh = townNpcAtlasV1.naturalHeight / rows;
+    const sx = (index % cols) * sw, sy = Math.floor(index / cols) * sh;
+    ctx.imageSmoothingEnabled = true;
+    ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+    ctx.translate(x, y - 23 * scale); ctx.scale(facing, 1);
+    ctx.drawImage(townNpcAtlasV1, sx, sy, sw, sh, -18 * scale, -27 * scale, 36 * scale, 50 * scale);
+  } else {
+    ctx.fillStyle = 'rgba(24,18,20,.9)';
+    ctx.beginPath(); ctx.arc(x, y - 16, 4.2 * scale, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(x - 5 * scale, y - 12, 10 * scale, 16);
+  }
+  ctx.restore();
+}
+function drawTownNpcPopulation(ctx, now, W, G, tier) {
+  const roles = [
+    { min:1, cell:TOWN_NPC_ART.quartermaster, x:.12, face:1, scale:.92 },
+    { min:1, cell:TOWN_NPC_ART.provisioner, x:.50, face:-1, scale:.90 },
+    { min:2, cell:TOWN_NPC_ART.smith, x:.29, face:1, scale:.96 },
+    { min:3, cell:TOWN_NPC_ART.alchemist, x:.40, face:-1, scale:.90 },
+    { min:4, cell:TOWN_NPC_ART.oracle, x:.68, face:1, scale:.92 },
+    { min:7, cell:TOWN_NPC_ART.portalWarden, x:.86, face:-1, scale:.94 },
+  ];
+  for (const role of roles) if (tier >= role.min)
+    drawTownNpcFigure(ctx, role.cell, W * role.x, G + 13, now, role.face, role.scale);
+}
 function drawTownGrowthVisual(ctx, now, W, H, G) {
   const tier = townTierForArt();
   const glow = .72 + .22 * Math.sin(now / 260);
@@ -4093,14 +4131,7 @@ function drawTownGrowthVisual(ctx, now, W, H, G) {
     ctx.fillStyle = `rgba(255,181,74,${glow.toFixed(2)})`;
     ctx.fillRect(x - 3, 24 + (i % 2) * 4, 6, 8);
   }
-  const people = Math.max(1, Math.floor(tier / 2));
-  for (let i = 0; i < people; i++) {
-    const x = W * .25 + i * Math.min(86, W * .1);
-    const y = G + 8 + (i % 2) * 5;
-    ctx.fillStyle = 'rgba(13,10,12,.82)';
-    ctx.beginPath(); ctx.arc(x, y - 9, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillRect(x - 3, y - 6, 6, 12);
-  }
+  drawTownNpcPopulation(ctx, now, W, G, tier);
   if (tier >= 4) {
     ctx.fillStyle = 'rgba(133,49,42,.9)';
     ctx.beginPath(); ctx.moveTo(W * .49, 18); ctx.lineTo(W * .56, 25); ctx.lineTo(W * .49, 45); ctx.closePath(); ctx.fill();

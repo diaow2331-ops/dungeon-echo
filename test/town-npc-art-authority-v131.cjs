@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('fs'),path=require('path');
+const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
+const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
+const runtime=fs.readFileSync(path.join(root,'game/core/runtime-bootstrap.js'),'utf8');
+const allow=fs.readFileSync(path.join(root,'ops/release/static-files.txt'),'utf8');
+let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
+ok(fs.existsSync(path.join(root,'art/town-npc-atlas-v1.svg')),'promoted town NPC atlas exists outside quarantine');
+ok(core.includes("townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg'"),'core owns town NPC asset load');
+ok(core.includes('function drawTownNpcPopulation(')&&core.includes('drawTownNpcPopulation(ctx, now, W, G, tier);'),'sole town renderer draws tier-aware NPC population');
+ok(core.includes('quartermaster:0')&&core.includes('smith:1')&&core.includes('provisioner:4')&&core.includes('alchemist:9')&&core.includes('oracle:10')&&core.includes('portalWarden:12'),'historical role-specific cells are preserved');
+ok(!core.includes('const people = Math.max(1, Math.floor(tier / 2));'),'generic silhouette population loop is retired');
+ok(allow.includes('art/town-backdrop-v11.webp')&&allow.includes('art/town-npc-atlas-v1.svg'),'baseline backdrop and promoted NPC atlas are release-allowed');
+ok(!runtime.includes('town-art-v160.js')&&!runtime.includes('de-town-art-v160'),'old town overlay runtime remains absent');
+console.log(`\nRESULT  ${pass} passed / ${fail} failed`); process.exit(fail?1:0);

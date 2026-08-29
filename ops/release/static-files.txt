@@ -26,3 +26,4 @@ art/monster-atlas-v11.png
 art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
+art/town-npc-atlas-v1.svg
