@@ -13,7 +13,7 @@ game/domain/combat/combat-rules-v130.js
 game/core/game.js
 game/locale/core-locale-data-v139.js
 game/core/runtime-bootstrap.js
-game/core/release-stamp-v131.js
+game/core/release-stamp-v132.js
 game/locale/fixed-locale-entry-v130.js
 game/ui/responsive-final-v154.js
 game/ui/help-copy-v126.js

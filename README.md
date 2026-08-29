@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [English route](https://play.91hwl.cn/dungeon-echo/en/)
 
-> **v1.3.1 recovery release:** the single-authority rebuild is complete, recovered art and mechanics are back in their canonical owners, and public cache generation is **170**.
+> **v1.3.2 recovery release:** the single-authority rebuild is complete, recovered art and mechanics are back in their canonical owners, and public cache generation is **170**.
 
 Dungeon Echo remains a vanilla HTML/CSS/JavaScript roguelike built around one journey from floor 1 to floor 100.
 

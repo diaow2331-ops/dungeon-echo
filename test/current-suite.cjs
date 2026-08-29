@@ -11,12 +11,12 @@ const { spawnSync } = require('child_process');
 const root = path.resolve(__dirname, '..');
 const compat = path.join(__dirname, 'layout-compat.cjs');
 const tests = [
-  'public-repo-safety.cjs',
   'repository-event-safety.cjs',
   'current-production-entry-v132.cjs',
   'equipment-art-recovery-v131.cjs',
   'static-art-polish-v131.cjs',
   'hero-action-ui-recovery-v131.cjs',
+  'final-core-polish-v133.cjs',
   'theme-atmosphere-v131.cjs',
   'town-npc-distinct-v132.cjs',
   'resource-pressure-v132.cjs',
@@ -34,7 +34,7 @@ const tests = [
   'fixed-locale-routes-v131.cjs',
   'cache-bust-v140.cjs',
   'release.cjs',
-  'repository-governance-v122.cjs',
+  'current-repository-governance-v133.cjs',
 ];
 
 let failed = 0;

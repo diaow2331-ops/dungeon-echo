@@ -58,6 +58,13 @@ const PROFILE_IDS = ['classic-10', 'classic-20', 'classic-30', 'classic-40', 'cl
 for (const p of PROFILE_IDS) {
   vm.runInThisContext(fs.readFileSync(path.join(root, 'profiles', `${p}.profile.js`), 'utf8'), { filename: `${p}.profile.js` });
 }
+for (const rel of [
+  'game/domain/content/content-rules-v130.js',
+  'game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/economy/economy-rules-v130.js',
+  'game/domain/progression/progression-rules-v130.js',
+  'game/domain/combat/combat-rules-v130.js',
+]) vm.runInThisContext(fs.readFileSync(path.join(root, rel), 'utf8'), { filename: rel });
 vm.runInThisContext(fs.readFileSync(path.join(root, 'game.js'), 'utf8'), { filename: 'game.js' });
 
 const T = window.DE_TEST;

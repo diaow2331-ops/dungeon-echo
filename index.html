@@ -11,11 +11,12 @@
 <link rel="preload" href="art/title-backdrop.webp" as="image" fetchpriority="high">
 <link rel="preload" href="art/class-roster.webp" as="image">
 <link rel="preload" href="art/hero-atlas-v11.png" as="image">
+<link rel="preload" href="art/hero-action-atlas-v2.svg" as="image">
 <link rel="preload" href="art/monster-atlas-v11.png" as="image">
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=170">
+<link rel="stylesheet" href="style.css?v=171">
 </head>
 <body>
 <div id="wrap">
@@ -90,7 +91,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">移动：方向键 / WASD / 点击地图 · C 职业技能 · J 快速下潜 · 空格等待 · Q 药水 · E 卷轴 · T 回城 · Enter 下楼 · Esc 暂停 · 点击背包装备 · M 声音开关 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现） · 正式版 <b>v1.3.1</b></footer>
+  <footer id="help">移动：方向键 / WASD / 点击地图 · C 职业技能 · J 快速下潜 · 空格等待 · Q 药水 · E 卷轴 · T 回城 · Enter 下楼 · Esc 暂停 · 点击背包装备 · M 声音开关 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现） · 正式版 <b>v1.3.2</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">重新开始 (R)</button></div></div>
 
@@ -118,6 +119,7 @@
   <div id="pause-screen" class="hidden"><div class="title-card"><h2>暂停</h2><p class="lede" id="pause-copy">进度已自动写入本地。</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">继续</button><button type="button" id="btn-save-quit">保存并回标题</button></div></div></div>
   <div id="shop-screen" class="hidden"><div class="title-card wide"><p class="kicker">蒙面商人</p><h2>地下市集</h2><p class="lede" id="shop-gold">金币 0</p><div id="shop-list"></div><button type="button" id="btn-shop-leave" class="primary">离开摊位</button></div></div>
   <div id="talent-screen" class="hidden"><div class="title-card wide"><p class="kicker">回响觉醒</p><h2>选择一项天赋</h2><p class="lede">每三级，地牢会在你体内留下一道新的回响。</p><div id="talent-grid"></div></div></div>
+  <div id="refine-screen" class="hidden"><div class="title-card wide"><p class="kicker">Forge Refinement</p><h2 id="refine-title">+3 精炼</h2><p class="lede" id="refine-copy">选择一条确定的装备成长路线。</p><div id="refine-grid"></div></div></div>
   <div id="shrine-screen" class="hidden"><div class="title-card"><p class="kicker">无名神龛</p><h2 id="shrine-title">神龛</h2><p class="lede" id="shrine-copy">触碰神龛，接受回响的赌注。</p><div class="title-actions"><button type="button" id="btn-shrine-ok" class="primary">祈祷</button><button type="button" id="btn-shrine-leave" class="ghost">离开</button></div></div></div>
 
   <div id="echo-screen" class="hidden"><div class="title-card"><p class="kicker">终局抉择</p><h2>地牢之心在掌心跳动</h2><p class="lede">带走它，第 100 层远征完成。也可以把它按回祭坛，让回响无限叠深。</p><div class="title-actions"><button type="button" id="btn-echo-leave" class="primary">带着心离开</button><button type="button" id="btn-echo-stay">踏入无尽回响</button></div></div></div>
@@ -163,17 +165,17 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=170"></script>
-<script src="profiles/classic-100.profile.js?v=170"></script>
-<script src="game/locale/locale-data-v134.js?v=170"></script>
-<script src="game/domain/content/content-rules-v130.js?v=170"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=170"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=170"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=170"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=170"></script>
-<script src="game/core/game.js?v=170"></script>
-<script src="game/locale/core-locale-data-v139.js?v=170"></script>
-<script src="game/input/desktop-controls.js?v=170"></script>
-<script src="game/core/runtime-bootstrap.js?v=170"></script>
+<script src="game/core/production-bootstrap.js?v=171"></script>
+<script src="profiles/classic-100.profile.js?v=171"></script>
+<script src="game/locale/locale-data-v134.js?v=171"></script>
+<script src="game/domain/content/content-rules-v130.js?v=171"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=171"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=171"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=171"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=171"></script>
+<script src="game/core/game.js?v=171"></script>
+<script src="game/locale/core-locale-data-v139.js?v=171"></script>
+<script src="game/input/desktop-controls.js?v=171"></script>
+<script src="game/core/runtime-bootstrap.js?v=171"></script>
 </body>
 </html>

@@ -12,11 +12,12 @@
 <link rel="preload" href="art/title-backdrop.webp" as="image" fetchpriority="high">
 <link rel="preload" href="art/class-roster.webp" as="image">
 <link rel="preload" href="art/hero-atlas-v11.png" as="image">
+<link rel="preload" href="art/hero-action-atlas-v2.svg" as="image">
 <link rel="preload" href="art/monster-atlas-v11.png" as="image">
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=170">
+<link rel="stylesheet" href="style.css?v=171">
 </head>
 <body>
 <div id="wrap">
@@ -91,7 +92,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">Move: arrows / WASD / click map · C Class Skill · J Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · click backpack to equip · M Sound · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.3.1</b></footer>
+  <footer id="help">Move: arrows / WASD / click map · C Class Skill · J Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · click backpack to equip · M Sound · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.3.2</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">Restart (R)</button></div></div>
 
@@ -119,6 +120,7 @@
   <div id="pause-screen" class="hidden"><div class="title-card"><h2>Paused</h2><p class="lede" id="pause-copy">Progress is saved locally.</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">Resume</button><button type="button" id="btn-save-quit">Save &amp; Title</button></div></div></div>
   <div id="shop-screen" class="hidden"><div class="title-card wide"><p class="kicker">Masked Merchant</p><h2>Underground Market</h2><p class="lede" id="shop-gold">Gold 0</p><div id="shop-list"></div><button type="button" id="btn-shop-leave" class="primary">Leave Stall</button></div></div>
   <div id="talent-screen" class="hidden"><div class="title-card wide"><p class="kicker">Echo Awakening</p><h2>Choose a Talent</h2><p class="lede">Every three levels, the dungeon leaves a new echo inside you.</p><div id="talent-grid"></div></div></div>
+  <div id="refine-screen" class="hidden"><div class="title-card wide"><p class="kicker">Forge Refinement</p><h2 id="refine-title">+3 Refinement</h2><p class="lede" id="refine-copy">Choose a deterministic growth path for this item.</p><div id="refine-grid"></div></div></div>
   <div id="shrine-screen" class="hidden"><div class="title-card"><p class="kicker">Nameless Shrine</p><h2 id="shrine-title">Shrine</h2><p class="lede" id="shrine-copy">Touch the shrine and accept the echo's wager.</p><div class="title-actions"><button type="button" id="btn-shrine-ok" class="primary">Pray</button><button type="button" id="btn-shrine-leave" class="ghost">Leave</button></div></div></div>
 
   <div id="echo-screen" class="hidden"><div class="title-card"><p class="kicker">Final Choice</p><h2>The Dungeon Heart Beats in Your Hand</h2><p class="lede">Take it and complete the Floor 100 expedition, or return it to the altar and let the echo descend forever.</p><div class="title-actions"><button type="button" id="btn-echo-leave" class="primary">Leave with the Heart</button><button type="button" id="btn-echo-stay">Enter Endless Echo</button></div></div></div>
@@ -163,17 +165,17 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=170"></script>
-<script src="profiles/classic-100.profile.js?v=170"></script>
-<script src="game/locale/locale-data-v134.js?v=170"></script>
-<script src="game/domain/content/content-rules-v130.js?v=170"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=170"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=170"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=170"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=170"></script>
-<script src="game/core/game.js?v=170"></script>
-<script src="game/locale/core-locale-data-v139.js?v=170"></script>
-<script src="game/input/desktop-controls.js?v=170"></script>
-<script src="game/core/runtime-bootstrap.js?v=170"></script>
+<script src="game/core/production-bootstrap.js?v=171"></script>
+<script src="profiles/classic-100.profile.js?v=171"></script>
+<script src="game/locale/locale-data-v134.js?v=171"></script>
+<script src="game/domain/content/content-rules-v130.js?v=171"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=171"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=171"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=171"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=171"></script>
+<script src="game/core/game.js?v=171"></script>
+<script src="game/locale/core-locale-data-v139.js?v=171"></script>
+<script src="game/input/desktop-controls.js?v=171"></script>
+<script src="game/core/runtime-bootstrap.js?v=171"></script>
 </body>
 </html>
