@@ -48,6 +48,9 @@ const GREEDY_KEY = 'de-greedy-on-v1';
 const GUIDE_KEY = 'de-guide-v1';
 const GUIDE_VERSION = 1;
 const GUIDE_IDS = Object.freeze(['move', 'combat', 'gear', 'stairs', 'return']);
+const AUDIO_PREF_KEY = 'de-audio-v1';
+const AUDIO_PREF_VERSION = 1;
+const AUDIO_DEFAULTS = Object.freeze({ music:0.60, sfx:0.78, muted:false });
 const RUN_MODE_CLASSIC = 'classic';
 const RUN_MODE_GREEDY = 'greedy';
 
@@ -198,6 +201,38 @@ function guideGearOnce() {
   guideOnce('gear',
     '点击背包装备查看“职业适配”和“内在价值”，再决定装备或丢弃；高售价不等于更适合当前职业。',
     'Select backpack gear to compare Class Fit and Item Value before equipping or dropping it; a higher sale value does not always mean a better fit.');
+}
+
+const clampAudio01 = value => Math.max(0, Math.min(1, Number(value) || 0));
+function loadAudioPrefs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(AUDIO_PREF_KEY));
+    if (raw && raw.v === AUDIO_PREF_VERSION) {
+      return {
+        v:AUDIO_PREF_VERSION,
+        music: Number.isFinite(Number(raw.music)) ? clampAudio01(raw.music) : AUDIO_DEFAULTS.music,
+        sfx: Number.isFinite(Number(raw.sfx)) ? clampAudio01(raw.sfx) : AUDIO_DEFAULTS.sfx,
+        muted: !!raw.muted,
+      };
+    }
+  } catch (e) { /* invalid/missing preference falls back to recommended mix */ }
+  return { v:AUDIO_PREF_VERSION, ...AUDIO_DEFAULTS };
+}
+let audioPrefs = loadAudioPrefs();
+function audioSnapshot() {
+  return Object.freeze({ music:audioPrefs.music, sfx:audioPrefs.sfx, muted:audioPrefs.muted });
+}
+function saveAudioPrefs() {
+  try { localStorage.setItem(AUDIO_PREF_KEY, JSON.stringify(audioPrefs)); }
+  catch (e) { /* audio preference is non-critical */ }
+}
+function broadcastAudioPrefs() {
+  if (typeof document === 'undefined' || typeof CustomEvent !== 'function') return;
+  try { document.dispatchEvent(new CustomEvent('de-audio-settings', { detail:audioSnapshot() })); }
+  catch (e) { /* presentation follower may be absent */ }
+}
+if (typeof window !== 'undefined') {
+  window.DE_AUDIO_PREFS_V133 = Object.freeze({ version:'v1.3.3', snapshot:audioSnapshot });
 }
 
 const CLASSES = {
@@ -828,43 +863,186 @@ function mechanicDescription(it) {
 }
 
 // ================= 音效（WebAudio 合成） =================
-let audioCtx = null, muted = false;
+// SFX design: short envelopes + filtered transient/noise + tonal body, mixed through a private
+// compressor/master bus. The recipes stay synthetic and original; no third-party audio assets.
+let audioCtx = null, sfxMaster = null, sfxCompressor = null, sfxNoiseBuffer = null;
+function applySfxMix() {
+  if (!audioCtx || !sfxMaster) return;
+  const target = audioPrefs.muted ? 0 : audioPrefs.sfx;
+  const now = audioCtx.currentTime;
+  try {
+    sfxMaster.gain.cancelScheduledValues(now);
+    sfxMaster.gain.setTargetAtTime(target, now, .025);
+  } catch (e) { sfxMaster.gain.value = target; }
+}
+function buildSfxNoise() {
+  if (!audioCtx || sfxNoiseBuffer) return;
+  const frames = Math.max(1, Math.floor(audioCtx.sampleRate * .42));
+  const buffer = audioCtx.createBuffer(1, frames, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  let seed = 0x51f15e ^ frames;
+  for (let i = 0; i < data.length; i++) {
+    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+    data[i] = ((seed >>> 0) / 4294967295) * 2 - 1;
+  }
+  sfxNoiseBuffer = buffer;
+}
 function ensureAudio() {
   if (!audioCtx) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-    catch (e) { /* 无音频环境 */ }
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      sfxMaster = audioCtx.createGain();
+      sfxCompressor = audioCtx.createDynamicsCompressor();
+      sfxCompressor.threshold.value = -18;
+      sfxCompressor.knee.value = 18;
+      sfxCompressor.ratio.value = 4;
+      sfxCompressor.attack.value = .004;
+      sfxCompressor.release.value = .14;
+      sfxMaster.connect(sfxCompressor);
+      sfxCompressor.connect(audioCtx.destination);
+      buildSfxNoise();
+      applySfxMix();
+    } catch (e) { audioCtx = null; sfxMaster = null; sfxCompressor = null; }
   }
   if (audioCtx && audioCtx.state === 'suspended') {
-    try { audioCtx.resume(); } catch (e) { /* 忽略 */ }
+    try { audioCtx.resume(); } catch (e) { /* ignore */ }
   }
 }
-function beep(freq, dur, type = 'square', vol = 0.07, slide = 0) {
-  if (muted || !audioCtx) return;
+function toneLayer(freq, dur, opts={}) {
+  if (audioPrefs.muted || audioPrefs.sfx <= 0 || !audioCtx || !sfxMaster) return;
   try {
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = type; o.frequency.value = freq * (0.96 + vfx() * 0.08);
-    if (slide) o.frequency.linearRampToValueAtTime(Math.max(30, freq + slide), audioCtx.currentTime + dur);
-    g.gain.value = vol;
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + dur);
-  } catch (e) { /* 忽略 */ }
+    const at = audioCtx.currentTime + Math.max(0, Number(opts.delay) || 0);
+    const attack = Math.max(.002, Number(opts.attack) || .004);
+    const peak = Math.max(.0002, Number(opts.gain) || .035);
+    const end = at + Math.max(.02, dur);
+    const osc = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const amp = audioCtx.createGain();
+    osc.type = opts.type || 'triangle';
+    osc.frequency.setValueAtTime(Math.max(28, freq), at);
+    if (opts.endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(28, opts.endFreq), end);
+    filter.type = opts.filterType || 'lowpass';
+    filter.frequency.setValueAtTime(Math.max(90, Number(opts.cutoff) || 1800), at);
+    filter.Q.value = Math.max(.1, Number(opts.q) || .7);
+    amp.gain.setValueAtTime(.0001, at);
+    amp.gain.exponentialRampToValueAtTime(peak, at + attack);
+    amp.gain.exponentialRampToValueAtTime(.0001, end);
+    osc.connect(filter); filter.connect(amp); amp.connect(sfxMaster);
+    osc.start(at); osc.stop(end + .025);
+  } catch (e) { /* ignore individual voice failure */ }
 }
+function noiseLayer(dur, opts={}) {
+  if (audioPrefs.muted || audioPrefs.sfx <= 0 || !audioCtx || !sfxMaster) return;
+  try {
+    buildSfxNoise();
+    const at = audioCtx.currentTime + Math.max(0, Number(opts.delay) || 0);
+    const end = at + Math.max(.02, dur);
+    const src = audioCtx.createBufferSource();
+    const filter = audioCtx.createBiquadFilter();
+    const amp = audioCtx.createGain();
+    src.buffer = sfxNoiseBuffer;
+    filter.type = opts.filterType || 'bandpass';
+    filter.frequency.setValueAtTime(Math.max(90, Number(opts.freq) || 900), at);
+    filter.Q.value = Math.max(.15, Number(opts.q) || .8);
+    amp.gain.setValueAtTime(.0001, at);
+    amp.gain.exponentialRampToValueAtTime(Math.max(.0002, Number(opts.gain) || .025), at + .003);
+    amp.gain.exponentialRampToValueAtTime(.0001, end);
+    src.connect(filter); filter.connect(amp); amp.connect(sfxMaster);
+    src.start(at); src.stop(end + .02);
+  } catch (e) { /* ignore individual transient failure */ }
+}
+function delayedSfx(ms, fn) { setTimeout(() => { if (!audioPrefs.muted) fn(); }, ms); }
 const sfx = {
-  hit()    { beep(180, .07, 'square', .05, -60); },
-  crit()   { beep(340, .12, 'sawtooth', .07, -160); },
-  hurt()   { beep(110, .14, 'sawtooth', .08, -40); },
-  pickup() { beep(660, .06, 'sine', .05); setTimeout(() => beep(880, .08, 'sine', .05), 55); },
-  potion() { beep(500, .14, 'sine', .06, 140); },
-  levelup(){ [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .12, 'triangle', .06), i * 90)); },
-  stairs() { beep(320, .22, 'triangle', .06, -140); },
-  die()    { beep(220, .5, 'sawtooth', .09, -170); },
-  win()    { [523, 659, 784, 1046, 1318].forEach((f, i) => setTimeout(() => beep(f, .18, 'triangle', .07), i * 120)); },
-  equip()  { beep(440, .08, 'triangle', .06, 80); },
-  skill()  { beep(520, .1, 'sawtooth', .06, 180); beep(280, .16, 'triangle', .05, -40); },
-  shop()   { beep(390, .1, 'sine', .05); setTimeout(() => beep(520, .12, 'sine', .05), 70); },
-  chest()  { beep(240, .12, 'square', .06, 80); setTimeout(() => beep(480, .1, 'triangle', .05), 90); },
+  hit() {
+    toneLayer(138, .085, { endFreq:82, type:'triangle', gain:.045, cutoff:900 });
+    noiseLayer(.050, { freq:1050, q:.72, gain:.028 });
+  },
+  crit() {
+    toneLayer(118, .12, { endFreq:64, type:'triangle', gain:.060, cutoff:800 });
+    noiseLayer(.075, { freq:1500, q:.9, gain:.042 });
+    toneLayer(720, .085, { endFreq:330, type:'sine', gain:.024, cutoff:2400, delay:.012 });
+  },
+  hurt() {
+    toneLayer(92, .16, { endFreq:54, type:'sine', gain:.052, cutoff:650 });
+    noiseLayer(.105, { freq:360, q:.65, gain:.030 });
+  },
+  pickup() {
+    toneLayer(740, .10, { endFreq:900, type:'sine', gain:.024, cutoff:2600 });
+    delayedSfx(62, () => toneLayer(1046, .12, { type:'sine', gain:.020, cutoff:3000 }));
+  },
+  potion() {
+    noiseLayer(.14, { freq:1250, q:.55, gain:.018 });
+    toneLayer(410, .18, { endFreq:680, type:'sine', gain:.026, cutoff:2200, delay:.02 });
+  },
+  levelup() {
+    [523,659,784,1046].forEach((f,i) => delayedSfx(i*82, () => toneLayer(f,.15,{type:'sine',gain:.026,cutoff:3000})));
+  },
+  stairs() {
+    noiseLayer(.18, { freq:680, q:.55, gain:.020 });
+    toneLayer(380, .24, { endFreq:155, type:'triangle', gain:.032, cutoff:1200 });
+  },
+  die() {
+    noiseLayer(.30, { freq:240, q:.5, gain:.032 });
+    toneLayer(190, .48, { endFreq:48, type:'triangle', gain:.060, cutoff:700 });
+  },
+  win() {
+    [523,659,784,1046,1318].forEach((f,i) => delayedSfx(i*105, () => toneLayer(f,.20,{type:'sine',gain:.025,cutoff:3300})));
+  },
+  equip() {
+    noiseLayer(.045, { freq:2100, q:1.1, gain:.018 });
+    toneLayer(510, .09, { endFreq:620, type:'triangle', gain:.022, cutoff:2500 });
+  },
+  skill() {
+    noiseLayer(.18, { freq:1450, q:.55, gain:.024 });
+    toneLayer(260, .22, { endFreq:620, type:'sine', gain:.030, cutoff:2000 });
+    toneLayer(760, .14, { endFreq:520, type:'triangle', gain:.018, cutoff:2800, delay:.025 });
+  },
+  shop() {
+    toneLayer(660, .10, { type:'sine', gain:.023, cutoff:2800 });
+    delayedSfx(74, () => toneLayer(990,.12,{type:'sine',gain:.018,cutoff:3200}));
+  },
+  chest() {
+    toneLayer(116, .11, { endFreq:72, type:'triangle', gain:.040, cutoff:700 });
+    noiseLayer(.055, { freq:1850, q:.85, gain:.022, delay:.035 });
+    delayedSfx(92, () => toneLayer(440,.10,{endFreq:560,type:'sine',gain:.018,cutoff:2400}));
+  },
 };
+function syncAudioControls() {
+  const music = $('audio-music'), sfxInput = $('audio-sfx');
+  const musicOut = $('audio-music-value'), sfxOut = $('audio-sfx-value');
+  if (music) music.value = String(Math.round(audioPrefs.music * 100));
+  if (sfxInput) sfxInput.value = String(Math.round(audioPrefs.sfx * 100));
+  if (musicOut) musicOut.textContent = `${Math.round(audioPrefs.music * 100)}%`;
+  if (sfxOut) sfxOut.textContent = `${Math.round(audioPrefs.sfx * 100)}%`;
+  const master = $('audio-master');
+  if (master) {
+    master.textContent = audioPrefs.muted ? ui('总静音：开','Master Mute: On') : ui('总静音：关','Master Mute: Off');
+    master.setAttribute('aria-pressed', String(audioPrefs.muted));
+  }
+}
+function setAudioMix(kind, percent) {
+  if (kind !== 'music' && kind !== 'sfx') return;
+  audioPrefs = { ...audioPrefs, [kind]:clampAudio01(Number(percent) / 100) };
+  saveAudioPrefs();
+  if (kind === 'sfx') applySfxMix();
+  syncAudioControls();
+  broadcastAudioPrefs();
+}
+function setAudioMuted(value, announce=true) {
+  audioPrefs = { ...audioPrefs, muted:!!value };
+  saveAudioPrefs();
+  applySfxMix();
+  syncAudioControls();
+  broadcastAudioPrefs();
+  if (announce) msg(audioPrefs.muted ? ui('声音已静音。','Audio muted.') : ui('声音已恢复。','Audio restored.'));
+}
+function toggleAudioMuted(announce=true) { setAudioMuted(!audioPrefs.muted, announce); }
+function resetAudioMix() {
+  audioPrefs = { v:AUDIO_PREF_VERSION, ...AUDIO_DEFAULTS };
+  saveAudioPrefs(); applySfxMix(); syncAudioControls(); broadcastAudioPrefs();
+  sfx.pickup();
+  msg(ui('声音已恢复推荐混音：音乐 60% / 音效 78%。','Recommended mix restored: Music 60% / SFX 78%.'), 'good');
+}
 
 // ================= 状态 =================
 let map, explored, visible;
@@ -4391,7 +4569,7 @@ function restoreRun(raw) {
 }
 
 // 弹窗打开期间锁定页面滚动，防止背景画布跟着滚动条上下摆动
-const UI_SCREENS = ['title-screen', 'class-screen', 'pause-screen', 'shop-screen',
+const UI_SCREENS = ['title-screen', 'class-screen', 'pause-screen', 'audio-settings-screen', 'shop-screen',
   'talent-screen', 'refine-screen', 'shrine-screen', 'echo-screen', 'town-screen', 'achv-screen', 'help-screen',
   'overlay'];
 function syncUiLock() {
@@ -5575,6 +5753,7 @@ const KEYMAP = {
 document.addEventListener('keydown', e => {
   ensureAudio();
   if (e.key === 'Escape') {
+    if ($('audio-settings-screen') && !$('audio-settings-screen').classList.contains('hidden')) { hideUi('audio-settings-screen'); return; }
     if (state === 'shop') { closeShop(); return; }
     if (state === 'shrine') { closeShrine(); return; }
     if (state === 'paused') { resumeGame(); return; }
@@ -5587,10 +5766,10 @@ document.addEventListener('keydown', e => {
     showTitle(); return;
   }
   if (e.key === 'm' || e.key === 'M') {
-    muted = !muted;
-    msg(muted ? ui('音效已关闭。','Sound muted.') : ui('音效已开启。','Sound enabled.'));
+    toggleAudioMuted(true);
     return;
   }
+  if ($('audio-settings-screen') && !$('audio-settings-screen').classList.contains('hidden')) return;
   if (state !== 'playing') return;
   if (KEYMAP[e.key]) { e.preventDefault(); tryMove(...KEYMAP[e.key]); return; }
   switch (e.key) {
@@ -5622,12 +5801,22 @@ document.querySelectorAll('#touch button[data-act]').forEach(btn => {
     else if (act === 'descend') descend();
     else if (act === 'quickdive') quickDive();
     else if (act === 'pause') { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); }
-    else if (act === 'mute') {
-      muted = !muted;
-      msg(muted ? ui('音效已关闭。','Sound muted.') : ui('音效已开启。','Sound enabled.'));
-    }
+    else if (act === 'mute') toggleAudioMuted(true);
   });
 });
+
+document.querySelectorAll('[data-open-audio]').forEach(btn => btn.addEventListener('click', () => {
+  ensureAudio(); syncAudioControls(); showUi('audio-settings-screen');
+}));
+if ($('audio-settings-close')) $('audio-settings-close').addEventListener('click', () => hideUi('audio-settings-screen'));
+if ($('audio-master')) $('audio-master').addEventListener('click', () => toggleAudioMuted(true));
+if ($('audio-defaults')) $('audio-defaults').addEventListener('click', resetAudioMix);
+if ($('audio-music')) $('audio-music').addEventListener('input', e => setAudioMix('music', e.target.value));
+if ($('audio-sfx')) {
+  $('audio-sfx').addEventListener('input', e => setAudioMix('sfx', e.target.value));
+  $('audio-sfx').addEventListener('change', () => { ensureAudio(); sfx.equip(); });
+}
+syncAudioControls();
 
 const usesPersistentBagDetail = () =>
   window.innerWidth <= 900 ||
@@ -5818,6 +6007,7 @@ if (typeof window !== 'undefined') {
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
+    audioSnapshot,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
     canDescendNow, isFinalFloor,
     get greedy() { return greedyMode; },

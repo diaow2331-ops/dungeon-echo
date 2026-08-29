@@ -2,6 +2,7 @@
 
 > 基线：Dungeon Echo v1.3.2，cache generation 171，public revision `8618c213e633ed9ac79bb661062de5eb4a6da4ca`。
 > 本文从 v1.3.2 开始取代旧的 v1.2.10 后维护路线，作为下一阶段产品优化的优先级依据。
+> **v1.3.3 hot-update status:** 第一工作包（装备决策一致性 + 渐进引导）与独立 Music/SFX 混音已实施；后续继续按本文 v1.3.4 / v1.4.0 边界推进。
 
 ## 1. 下一阶段目标
 

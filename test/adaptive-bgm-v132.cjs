@@ -14,7 +14,7 @@ const ok = (cond, name) => {
 
 for (const scene of ['title','town','dungeon','deep','guardian','boss'])
   ok(new RegExp(`${scene}:\\s*Object\\.freeze\\(\\{`).test(bgm), `scene exists: ${scene}`);
-ok(/const DEFAULT_VOLUME = 0\.30/.test(bgm), 'music defaults to the historical 30% mix target');
+ok(/const DEFAULT_VOLUME = 0\.60/.test(bgm), 'music fallback defaults to the v1.3.3 60% mix target');
 ok(/const LOOKAHEAD = 0\.20/.test(bgm) && /const TICK_MS = 80/.test(bgm), 'short WebAudio look-ahead ticker is explicit');
 ok(/setTimeout\(tick, TICK_MS\)/.test(bgm) && /clearTimeout\(timer\)/.test(bgm), 'ticker has explicit start/stop lifecycle');
 ok(/document\.hidden/.test(bgm) && /pagehide/.test(bgm) && /beforeunload/.test(bgm), 'ticker follows page lifecycle');
@@ -22,7 +22,9 @@ ok(/music\.connect\(master\);\s*master\.connect\(ctx\.destination\)/.test(bgm), 
 ok(!/AudioNode\.prototype|prototype\.connect|MIXER_MARK|__DE_AUDIO_MIXER/.test(bgm), 'retired SFX interception does not return');
 ok(!/getContext\(|requestAnimationFrame|setInterval\(/.test(bgm), 'BGM owns no Canvas, RAF or polling interval');
 ok(!/localStorage/.test(bgm), 'BGM writes no gameplay or presentation storage');
-ok(!/preventDefault|stopPropagation|stopImmediatePropagation/.test(bgm), 'BGM observes existing mute/unlock input without capturing it');
+ok(!/preventDefault|stopPropagation|stopImmediatePropagation/.test(bgm), 'BGM unlock observers never capture gameplay input');
+ok(/DE_AUDIO_PREFS_V133/.test(bgm) && /de-audio-settings/.test(bgm), 'BGM follows canonical core audio preferences');
+ok(!/toLowerCase\(\) === 'm'/.test(bgm), 'BGM no longer owns M mute state');
 ok(!/api\.[A-Za-z_$][\w$]*\s*=/.test(bgm), 'BGM never assigns into DE_TEST gameplay APIs');
 ok(/m\.boss/.test(bgm) && /m\.midBoss/.test(bgm) && /api\.depth/.test(bgm), 'scene selection reads canonical encounter/depth state');
 ok(runtime.includes('game/ui/adaptive-bgm-v132.js'), 'runtime bootstrap loads adaptive BGM');

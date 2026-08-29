@@ -7,7 +7,7 @@ GAME_URL=https://play.91hwl.cn/dungeon-echo/
 EN_URL=https://play.91hwl.cn/dungeon-echo/en/
 VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
 ORIGIN_RESOLVE=play.91hwl.cn:443:127.0.0.1
-ASSET_GENERATION=171
+ASSET_GENERATION=172
 PUBLIC_ATTEMPTS=6
 PUBLIC_DELAY=2
 
@@ -22,7 +22,7 @@ probe_game(){
   body="$work_dir/$label.body"; headers="$work_dir/$label.headers"
   curl --fail --silent --show-error --location --noproxy '*' --dump-header "$headers" --output "$body" "$@" || return 1
   grep -Fq 'Dungeon Echo' "$body" || return 1
-  grep -Fq 'v1.3.2' "$body" || return 1
+  grep -Fq 'v1.3.3' "$body" || return 1
   grep -Fq "?v=$ASSET_GENERATION" "$body" || return 1
   ! grep -Eq '\?v=(153|157|166|167|168|169)' "$body" || return 1
   ! grep -Eq 'game/systems/|combat-controls|core-screen-owner|town-canvas-locale|town-workspace|forge-feedback|combat-hint-polish|expedition-pressure|audio-director|mobile-ux|expedition-record' "$body" || return 1

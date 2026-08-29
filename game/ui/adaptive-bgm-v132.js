@@ -1,4 +1,4 @@
-/* Dungeon Echo adaptive BGM v1.3.2.
+/* Dungeon Echo adaptive BGM v1.3.3.
  * Presentation-only WebAudio music follower.
  *
  * Recovers the six-scene v1.2 musical language without restoring the retired audio runtime:
@@ -8,8 +8,8 @@
  * - one lifecycle-scoped setTimeout ticker schedules against AudioContext.currentTime.
  *
  * game/core/game.js remains the sole gameplay/input/persistence authority. This module only
- * reads DE_TEST state to select a music scene and mirrors the existing M / mute-button action
- * without preventing or stopping those events.
+ * reads DE_TEST state only to select a music scene. Music volume/mute follow the canonical
+ * core audio-preference event; input listeners only unlock WebAudio and never own mute state.
  */
 (() => {
   'use strict';
@@ -20,13 +20,13 @@
 
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtor) {
-    window.__DE_ADAPTIVE_BGM_V132 = Object.freeze({ version:'v1.3.2', supported:false });
+    window.__DE_ADAPTIVE_BGM_V132 = Object.freeze({ version:'v1.3.3', supported:false });
     return;
   }
 
   const LOOKAHEAD = 0.20;
   const TICK_MS = 80;
-  const DEFAULT_VOLUME = 0.30;
+  const DEFAULT_VOLUME = 0.60;
   const SCENES = Object.freeze({
     title:    Object.freeze({ bpm:58,  root:38, mode:[0,3,7,10], pattern:[0,null,2,null,1,null,3,null], gain:.48, pulse:false }),
     town:     Object.freeze({ bpm:76,  root:43, mode:[0,4,7,9],  pattern:[0,2,1,2,0,3,1,2],       gain:.50, pulse:false }),
@@ -44,11 +44,13 @@
   let nextBeat = 0;
   let timer = 0;
   let unlocked = false;
-  let muted = false;
-  let volume = DEFAULT_VOLUME;
-
   const midi = note => 440 * Math.pow(2, (note - 69) / 12);
   const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
+  const initialPrefs = window.DE_AUDIO_PREFS_V133 && typeof window.DE_AUDIO_PREFS_V133.snapshot === 'function'
+    ? window.DE_AUDIO_PREFS_V133.snapshot() : null;
+  let muted = !!(initialPrefs && initialPrefs.muted);
+  let volume = initialPrefs ? clamp(Number(initialPrefs.music) || 0, 0, 1) : DEFAULT_VOLUME;
+
 
   function sceneForState() {
     const state = String(api.state || '');
@@ -208,33 +210,18 @@
     return true;
   }
 
-  function setMuted(value) {
-    muted = !!value;
+  function applyAudioPrefs(next) {
+    if (!next || typeof next !== 'object') return;
+    muted = !!next.muted;
+    volume = clamp(Number(next.music) || 0, 0, 1);
     applyGain();
-    if (!muted) startTicker();
-    return muted;
+    if (!muted && volume > 0) startTicker();
   }
 
-  function toggleMuted() { return setMuted(!muted); }
+  function onKeydown() { unlock(); }
+  function onClick() { unlock(); }
 
-  function setVolume(value) {
-    volume = clamp(Number(value) || 0, 0, 1);
-    applyGain();
-    if (volume > 0) startTicker();
-    return volume;
-  }
-
-  function onKeydown(event) {
-    if (String(event && event.key || '').toLowerCase() === 'm') toggleMuted();
-    unlock();
-  }
-
-  function onClick(event) {
-    const target = event && event.target;
-    if (target && typeof target.closest === 'function' && target.closest('[data-act="mute"]')) toggleMuted();
-    unlock();
-  }
-
+  document.addEventListener('de-audio-settings', event => applyAudioPrefs(event && event.detail), false);
   document.addEventListener('keydown', onKeydown, false);
   document.addEventListener('pointerdown', unlock, { passive:true });
   document.addEventListener('touchstart', unlock, { passive:true });
@@ -248,9 +235,9 @@
   window.addEventListener('beforeunload', stopTicker, { once:true });
 
   window.__DE_ADAPTIVE_BGM_V132 = Object.freeze({
-    version:'v1.3.2', supported:true, owner:'adaptive-bgm-v132',
+    version:'v1.3.3', supported:true, owner:'adaptive-bgm-v132',
     scenes:SCENES, sceneForState, switchScene, unlock, startTicker, stopTicker,
-    setMuted, toggleMuted, setVolume,
+    applyAudioPrefs,
     get scene(){ return scene; }, get muted(){ return muted; }, get volume(){ return volume; },
     get running(){ return !!timer; }, get context(){ return ctx; },
   });

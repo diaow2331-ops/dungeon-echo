@@ -5,16 +5,16 @@ This package extends the existing play.91hwl.cn release tree. It preserves
 /srv/91hwl-play/current symlink atomically, and rolls back on failed checks.
 
 Server usage:
-  unzip 91hwl-play-dungeon-echo-v1.3.2.zip -d /tmp/91hwl-play-dungeon-echo-v1.3.2
-  cd /tmp/91hwl-play-dungeon-echo-v1.3.2
+  unzip 91hwl-play-dungeon-echo-v1.3.3.zip -d /tmp/91hwl-play-dungeon-echo-v1.3.3
+  cd /tmp/91hwl-play-dungeon-echo-v1.3.3
   sudo ./ops/deploy.sh
 
-v1.3.2 publishes cache generation 171 and completes the reviewed v1.3 recovery pass:
-four-class combat FX, detailed town NPCs, dungeon props, deep monsters, conquered-depth
-departures, finite tier-scaled market stock, 20/40/60/80 skill evolution and the 10→100
-guardian encounter chain now live inside the canonical owners. Historical overlays,
-wrappers and storage sidecars remain retired. The v130 storage epoch stays stable, so
-v1.3.0 runs remain compatible.
+v1.3.3 publishes cache generation 172 as a post-launch UX/audio hot update:
+Class Fit is consistent across dungeon/backpack/town decisions, first-run guidance is event-driven
+and once-only, the old harsh oscillator beeps are replaced by layered filtered WebAudio SFX,
+and Music / SFX now have independent persistent 0–100% controls (recommended 60 / 78).
+M remains the canonical master mute. New Adventure resets gameplay while preserving audio/onboarding
+preferences. The retired audio-director and destination interception topology remain quarantined.
 
 Success markers:
   dungeon_echo_healthcheck=PASS

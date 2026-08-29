@@ -1,6 +1,6 @@
 {
-  "version": "1.3.2",
-  "cacheGeneration": 171,
+  "version": "1.3.3",
+  "cacheGeneration": 172,
   "policy": "one-responsibility-one-production-authority",
   "authorities": {
     "gameplayState": "game/core/game.js",
@@ -12,6 +12,9 @@
     "canvasRendering": "game/core/game.js",
     "keyboardTouchInput": "game/core/game.js",
     "gameplayPersistence": "game/core/game.js",
+    "audioPreferences": "game/core/game.js",
+    "sfxAudioGraph": "game/core/game.js",
+    "musicAudioGraph": "game/ui/adaptive-bgm-v132.js",
     "storageEpochReset": "game/core/production-bootstrap.js",
     "newAdventureResetOrchestration": "game/core/production-bootstrap.js",
     "gamepadTransport": "game/input/desktop-controls.js",

@@ -13,7 +13,7 @@ const ok = (cond, name) => {
 };
 
 const productionFollowers = [
-  'game/core/release-stamp-v132.js',
+  'game/core/release-stamp-v133.js',
   'game/locale/fixed-locale-entry-v130.js',
   'game/ui/responsive-final-v154.js',
   'game/ui/help-copy-v126.js',
@@ -48,7 +48,7 @@ for (const file of retired) {
   ok(!manifest.includes(file), `retired runtime stays out of release: ${file}`);
 }
 
-ok(/assetVersion = '171'/.test(runtime) && /version:'v23'/.test(runtime), 'runtime stays on cache generation 171 with bootstrap v23');
+ok(/assetVersion = '172'/.test(runtime) && /version:'v24'/.test(runtime), 'runtime stays on cache generation 172 with bootstrap v24');
 ok(/renderOwner:'game\/core\/game\.js'/.test(runtime) && /inputOwner:'game\/core\/game\.js'/.test(runtime), 'core remains render/input authority');
 ok(/persistenceWriter:'game\/core\/game\.js'/.test(runtime), 'core remains persistence authority');
 ok(/followers:'presentation-only'/.test(runtime), 'runtime follower boundary remains presentation-only');
