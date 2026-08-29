@@ -28,7 +28,7 @@ assert.equal(rules.townTier(10), 1);
 assert.equal(rules.townTier(11), 2);
 assert.equal(rules.townTier(100), 10);
 assert.equal(rules.townPriceScale(1), 1);
-assert.equal(rules.townPriceScale(2), 1.485);
+assert(Math.abs(rules.townPriceScale(2) - 1.485) < 1e-12);
 assert.equal(rules.townSupplyPrice(16, 2), 25);
 assert.equal(rules.townSupplyPrice(16, 10), 160);
 assert.equal(rules.townSupplyStock('potion', 1), 4);
