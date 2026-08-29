@@ -1,0 +1,136 @@
+name: recover-dungeon-props-v131-retry
+on:
+  push:
+    branches: ["feature/recover-dungeon-props-v131"]
+    paths: [".github/workflows/recover-dungeon-props-v131-retry.yml"]
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/recover-dungeon-props-v131
+          fetch-depth: 0
+      - name: Recover props with structural anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp archive/quarantine-v130/art/assets/runtime/dungeon-props-atlas-v1.svg art/dungeon-props-atlas-v1.svg
+          python -B <<'PY'
+          from pathlib import Path
+          p=Path('game/core/game.js'); s=p.read_text()
+          anchor="""const TOWN_NPC_ART = Object.freeze({
+            quartermaster:0, smith:1, provisioner:4, alchemist:9, oracle:10, portalWarden:12,
+          });
+          """
+          add="""const dungeonPropsAtlasV1 = new Image();
+          dungeonPropsAtlasV1.src = 'art/dungeon-props-atlas-v1.svg';
+          const DUNGEON_PROP_ART = Object.freeze({
+            woodBarrel:4, webNest:6, iceCrystal:7, lavaVent:9, voidRift:10,
+            campfire:15, treasureChest:17, marketStall:21, angelShrine:22,
+          });
+          """
+          if s.count(anchor)!=1: raise SystemExit('asset anchor mismatch')
+          s=s.replace(anchor,anchor+add,1)
+          helper="""function drawDungeonProp(index, px, py, width, height, alpha = 1) {
+            if (!imageReady(dungeonPropsAtlasV1) || !Number.isInteger(index) || index < 0) return false;
+            const cols = 6, rows = 4;
+            const sw = dungeonPropsAtlasV1.naturalWidth / cols, sh = dungeonPropsAtlasV1.naturalHeight / rows;
+            const sx = (index % cols) * sw, sy = Math.floor(index / cols) * sh;
+            ctx.save(); ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true;
+            ctx.shadowColor = 'rgba(0,0,0,.72)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+            ctx.drawImage(dungeonPropsAtlasV1, sx, sy, sw, sh, px - width / 2, py - height / 2, width, height);
+            ctx.restore(); return true;
+          }
+          const trapPropForDepth = d => d >= 75 ? DUNGEON_PROP_ART.voidRift
+            : d >= 50 ? DUNGEON_PROP_ART.lavaVent : d >= 25 ? DUNGEON_PROP_ART.iceCrystal : DUNGEON_PROP_ART.webNest;
+          const dungeonNpcProp = type => type === 'shrine' ? DUNGEON_PROP_ART.angelShrine
+            : type === 'rest' ? DUNGEON_PROP_ART.campfire : type === 'shop' ? DUNGEON_PROP_ART.marketStall : -1;
+          """
+          marker='function drawMinimap() {\n'
+          if s.count(marker)!=1: raise SystemExit('helper marker mismatch')
+          s=s.replace(marker,helper+marker,1)
+
+          trap_start=s.index('    const px = t.x * TILE, py = t.y * TILE;', s.index('  for (const t of traps || []) {'))
+          trap_end=s.index('\n  }\n  for (const s of secrets || []) {', trap_start)
+          trap_new="""    const px = t.x * TILE, py = t.y * TILE;
+              const cx = px + TILE / 2, cy = py + TILE / 2;
+              if (!drawDungeonProp(trapPropForDepth(depth), cx, cy, 28, 28, .92)) {
+                ctx.strokeStyle = 'rgba(224,167,63,.55)'; ctx.lineWidth = 1.5;
+                ctx.strokeRect(px + 8, py + 8, TILE - 16, TILE - 16); ctx.beginPath();
+                ctx.moveTo(px + 10, py + 10); ctx.lineTo(px + TILE - 10, py + TILE - 10);
+                ctx.moveTo(px + TILE - 10, py + 10); ctx.lineTo(px + 10, py + TILE - 10); ctx.stroke();
+              }"""
+          s=s[:trap_start]+trap_new+s[trap_end:]
+
+          draw_start=s.index('function draw(now) {')
+          npc_start=s.index('  for (const n of npcs) {', draw_start)
+          npc_end=s.index('\n\n  for (const it of items) {', npc_start)
+          npc_new="""  for (const n of npcs) {
+              if (!visible[n.y][n.x]) continue;
+              const spr = n.type === 'shrine' ? SPRITES.shrine : n.type === 'rest' ? SPRITES.camp : SPRITES.merchant;
+              const prop = dungeonNpcProp(n.type);
+              const px = n.fx * TILE + TILE / 2, py = n.fy * TILE + TILE / 2;
+              const dims = n.type === 'shop' ? [34, 32] : n.type === 'shrine' ? [31, 36] : [30, 30];
+              if (prop < 0 || !drawDungeonProp(prop, px, py, dims[0], dims[1], .98))
+                drawEntity(n, spr || SPRITES.merchant, 30, now);
+            }"""
+          s=s[:npc_start]+npc_new+s[npc_end:]
+
+          cask_start=s.index("    if (it.type === 'cask') {", s.index('  for (const it of items) {', draw_start))
+          cask_end=s.index("    if (it.type === 'equip') {", cask_start)
+          cask_new="""    if (it.type === 'cask') {
+              const by = it.y * TILE + TILE / 2 + bob * 0.6;
+              if (!drawDungeonProp(DUNGEON_PROP_ART.woodBarrel, px, by, 28, 28, .96)) {
+                ctx.fillStyle = '#6b4a2e'; ctx.fillRect(px - 9, by - 8, 18, 14);
+                ctx.fillStyle = '#4a301c'; ctx.fillRect(px - 9, by - 5, 18, 3); ctx.fillRect(px - 9, by + 3, 18, 3);
+                ctx.fillStyle = '#8a6a44'; ctx.beginPath(); ctx.ellipse(px, by - 8, 9, 3, 0, Math.PI, 0); ctx.fill();
+              }
+              continue;
+            }
+          """
+          s=s[:cask_start]+cask_new+s[cask_end:]
+
+          chest_start=s.index("    if (it.type === 'chest' && spr) {", cask_end)
+          chest_end=s.index('\n  }\n\n  for (const m of monsters) {', chest_start)
+          chest_new="""    if (it.type === 'chest') {
+              if (!drawDungeonProp(DUNGEON_PROP_ART.treasureChest, px, py, 30, 28, .98) && spr)
+                ctx.drawImage(spr.img, px - 12, py - 12, 24, 24);
+            } else if (!drawLootIcon(iconId, px, py, 24) && spr) {
+              ctx.drawImage(spr.img, px - 11, py - 11, 22, 22);
+            }"""
+          s=s[:chest_start]+chest_new+s[chest_end:]
+          p.write_text(s)
+
+          allow=Path('ops/release/static-files.txt'); a=allow.read_text(); marker='art/town-npc-atlas-v1.svg\n'
+          if a.count(marker)!=1: raise SystemExit('allowlist marker mismatch')
+          a=a.replace(marker,marker+'art/dungeon-props-atlas-v1.svg\n',1); allow.write_text(a)
+          PY
+          cat > test/dungeon-props-authority-v131.cjs <<'EOF'
+          'use strict';
+          const fs=require('fs'),path=require('path'); const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
+          const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'); const runtime=fs.readFileSync(path.join(root,'game/core/runtime-bootstrap.js'),'utf8'); const allow=fs.readFileSync(path.join(root,'ops/release/static-files.txt'),'utf8');
+          let pass=0,fail=0; const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
+          ok(fs.existsSync(path.join(root,'art/dungeon-props-atlas-v1.svg')),'promoted prop atlas exists outside quarantine');
+          ok(core.includes("dungeonPropsAtlasV1.src = 'art/dungeon-props-atlas-v1.svg'")&&core.includes('function drawDungeonProp('),'core owns prop asset and drawing');
+          ok(core.includes('trapPropForDepth')&&core.includes('webNest:6')&&core.includes('iceCrystal:7')&&core.includes('lavaVent:9')&&core.includes('voidRift:10'),'depth-themed trap art is preserved');
+          ok(core.includes("type === 'shop' ? DUNGEON_PROP_ART.marketStall")&&core.includes("type === 'rest' ? DUNGEON_PROP_ART.campfire")&&core.includes("type === 'shrine' ? DUNGEON_PROP_ART.angelShrine"),'service props are core-rendered');
+          ok(core.includes('DUNGEON_PROP_ART.woodBarrel')&&core.includes('DUNGEON_PROP_ART.treasureChest'),'cask and chest art are core-rendered');
+          ok(core.includes("heroAtlasV11.src = 'art/hero-atlas-v11.png'")&&core.includes("monsterAtlasV11.src = 'art/monster-atlas-v11.png'")&&core.includes("guardianAtlasV11.src = 'art/guardian-atlas-v11.png'")&&core.includes("finalBossV11.src = 'art/final-boss-v11.png'"),'v11 character/boss baselines remain authoritative');
+          ok(allow.includes('art/dungeon-props-atlas-v1.svg'),'prop atlas is release-allowed');
+          ok(!runtime.includes('art-runtime-v2.js')&&!runtime.includes('dungeon-props-atlas-v1.svg'),'retired overlay runtime remains absent');
+          ok(!core.includes('drawAmbientProps('),'ambient decoration layer remains retired');
+          console.log(`\nRESULT  ${pass} passed / ${fail} failed`); process.exit(fail?1:0);
+          EOF
+          git rm .github/workflows/recover-dungeon-props-v131-once.yml .github/workflows/recover-dungeon-props-v131-retry.yml
+          git add art/dungeon-props-atlas-v1.svg game/core/game.js ops/release/static-files.txt test/dungeon-props-authority-v131.cjs
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'art: promote dungeon interaction props into canonical renderer'
+          cmp -s art/dungeon-props-atlas-v1.svg archive/quarantine-v130/art/assets/runtime/dungeon-props-atlas-v1.svg
+          node test/dungeon-props-authority-v131.cjs
+          node --check game/core/game.js
+          bash ops/check-authority-local.sh
+          test "$(git diff --name-only origin/main...HEAD | sort | tr '\n' ' ')" = "art/dungeon-props-atlas-v1.svg game/core/game.js ops/release/static-files.txt test/dungeon-props-authority-v131.cjs "
+          git push origin HEAD:feature/recover-dungeon-props-v131
