@@ -77,6 +77,7 @@ assert(deploy.includes(`EXPECTED_GENERATION=${generation}`), 'deployer generatio
 assert(deploy.includes(stampPath), 'deployer release stamp gate drifted');
 assert(/sha256sum --check/.test(deploy) && /ROLLED_BACK/.test(deploy) && /mv -Tf/.test(deploy), 'deployer checksum/atomic rollback contract drifted');
 assert(health.includes(`ASSET_GENERATION=${generation}`) && health.includes('/dungeon-echo/en/'), 'healthcheck route/generation contract drifted');
+assert(health.includes("followers:'presentation-only'") && !health.includes("followers:'dom-only'"), 'healthcheck follower boundary drifted');
 
 const revision = run('git', ['rev-parse', 'HEAD']).stdout.trim();
 assert.match(revision, /^[0-9a-f]{40}$/);
