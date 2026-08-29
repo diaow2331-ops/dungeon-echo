@@ -4,7 +4,11 @@
  * - game/core/game.js is the sole dungeon/town Canvas renderer;
  * - no presentation overlay may redraw heroes, monsters, loot, terrain or town art;
  * - the v1.3.0 storage epoch starts clean and does not migrate any historical save;
- * - New Adventure means a genuinely new local game, including Greedy meta.
+ * - New Adventure has exactly one production DOM owner: this bootstrap.
+ *
+ * The historical game.js listener still targets #btn-new. This bootstrap runs first
+ * and synchronously claims that DOM node by renaming it before game.js executes, so
+ * the historical listener has no production target and never registers.
  */
 (() => {
   'use strict';
@@ -13,6 +17,7 @@
   const STORAGE_EPOCH = 'v130';
   const STORAGE_EPOCH_KEY = 'de-storage-epoch';
   const LEGACY_PREFIX = 'de-';
+  const FRESH_BUTTON_ID = 'btn-fresh-adventure';
 
   function clearDungeonStorage() {
     if (typeof localStorage === 'undefined') return 0;
@@ -32,17 +37,6 @@
     }
   } catch (_err) {}
 
-  const AUTHORITY = Object.freeze({
-    version:'1.3.0',
-    renderer:'game/core/game.js',
-    gameplayState:'game/core/game.js',
-    gameplayInput:'game/core/game.js',
-    gameplayPersistence:'game/core/game.js',
-    newAdventureReset:'game/core/production-bootstrap.js',
-    gamepadTransport:'game/input/desktop-controls.js',
-    dynamicFollowerLoader:'game/core/runtime-bootstrap.js',
-  });
-
   let autoFresh = false;
   if (typeof location !== 'undefined') {
     try {
@@ -56,53 +50,64 @@
     } catch (_err) {}
   }
 
-  let dispatchingFresh = false;
-  function installNewAdventureReset() {
-    if (typeof document === 'undefined') return false;
-    const button = document.getElementById('btn-new');
-    if (!button || button.__deV130ResetOwner) return !!button;
-    button.__deV130ResetOwner = true;
-    button.addEventListener('click', event => {
-      if (dispatchingFresh) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      try { clearDungeonStorage(); } catch (_err) {}
-      try {
-        const url = new URL(location.href);
-        url.searchParams.delete('seed');
-        url.searchParams.set('profile', 'classic-100');
-        url.searchParams.set('fresh', '1');
-        location.replace(url.href);
-      } catch (_err) {
-        location.reload();
-      }
-    }, true);
-    return true;
-  }
-
-  function finishFreshStart(attempt = 0) {
-    installNewAdventureReset();
-    if (!autoFresh) return;
-    const button = typeof document !== 'undefined' && document.getElementById('btn-new');
-    if ((!window.DE_TEST || !button) && attempt < 100) {
-      setTimeout(() => finishFreshStart(attempt + 1), 20);
-      return;
-    }
-    if (!window.DE_TEST || !button) return;
-    autoFresh = false;
-    dispatchingFresh = true;
+  function beginFreshAdventure() {
+    try { clearDungeonStorage(); } catch (_err) {}
     try {
-      window.DE_TEST.setSeed(String(Date.now()) + '-' + Math.random().toString(36).slice(2));
-      button.click();
-    } finally {
-      dispatchingFresh = false;
+      const url = new URL(location.href);
+      url.searchParams.delete('seed');
+      url.searchParams.set('profile', 'classic-100');
+      url.searchParams.set('fresh', '1');
+      location.replace(url.href);
+    } catch (_err) {
+      location.reload();
     }
   }
 
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => finishFreshStart(), { once:true });
-    else setTimeout(() => finishFreshStart(), 0);
+  function claimFreshAdventureButton() {
+    if (typeof document === 'undefined') return null;
+    const button = document.getElementById('btn-new');
+    if (!button) return document.getElementById(FRESH_BUTTON_ID);
+    button.id = FRESH_BUTTON_ID;
+    // Preserve the reviewed title-action span previously supplied by #btn-new CSS.
+    if (button.style) button.style.gridColumn = '1 / -1';
+    button.addEventListener('click', beginFreshAdventure);
+    return button;
   }
+
+  // IMPORTANT: synchronous claim. production-bootstrap.js is the first production
+  // script, so game.js later sees no #btn-new element and cannot bind a second owner.
+  claimFreshAdventureButton();
+
+  function enterFreshClassSelect() {
+    if (!autoFresh || typeof document === 'undefined') return;
+    autoFresh = false;
+    try {
+      const event = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        code: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(event);
+    } catch (_err) {}
+  }
+
+  if (autoFresh && typeof setTimeout === 'function') {
+    // Production scripts are parser-blocking and ordered. A zero-delay task therefore
+    // runs after game.js has installed the canonical title-screen keyboard command.
+    setTimeout(enterFreshClassSelect, 0);
+  }
+
+  const AUTHORITY = Object.freeze({
+    version:'1.3.0',
+    renderer:'game/core/game.js',
+    gameplayState:'game/core/game.js',
+    gameplayInput:'game/core/game.js',
+    gameplayPersistence:'game/core/game.js',
+    newAdventureReset:'game/core/production-bootstrap.js',
+    gamepadTransport:'game/input/desktop-controls.js',
+    dynamicFollowerLoader:'game/core/runtime-bootstrap.js',
+  });
 
   window.__DE_PRODUCTION_AUTHORITY_V130 = Object.freeze({
     version:'1.3.0',
@@ -114,7 +119,8 @@
     authority:AUTHORITY,
     storageEpoch:STORAGE_EPOCH,
     clearDungeonStorage,
-    newAdventure:'full-reset',
+    newAdventure:'full-reset-single-owner',
+    newAdventureButtonId:FRESH_BUTTON_ID,
     historicalSaveMigration:false,
     presentationOverlays:false,
   });
