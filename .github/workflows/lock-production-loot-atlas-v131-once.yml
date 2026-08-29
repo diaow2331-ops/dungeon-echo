@@ -1,0 +1,61 @@
+name: lock-production-loot-atlas-v131-once
+on:
+  push:
+    branches: ["docs/lock-production-loot-atlas-v131"]
+    paths: [".github/workflows/lock-production-loot-atlas-v131-once.yml"]
+permissions:
+  contents: write
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/lock-production-loot-atlas-v131
+          fetch-depth: 0
+      - name: Correct stale note and lock admitted atlas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B <<'PY'
+          from pathlib import Path
+          p=Path('game/core/game.js'); s=p.read_text()
+          old='  // 六栏位扩展（21-32 号格）：美术批次待补图集格子，此前渲染回退 0 号格\n'
+          new='  // 六栏位扩展（21-32 号格）：生产 4×8 图集已完整覆盖，31 个 live id 各占独立格。\n'
+          if s.count(old)!=1: raise SystemExit('stale loot comment anchor mismatch')
+          p.write_text(s.replace(old,new,1))
+          PY
+          cat > test/production-loot-atlas-v131.cjs <<'EOF'
+          'use strict';
+          const fs=require('fs'),path=require('path'),assert=require('assert');
+          const root=path.resolve(__dirname,'..');
+          const read=p=>fs.readFileSync(path.join(root,p));
+          const text=p=>read(p).toString('utf8');
+          const game=text('game/core/game.js'),css=text('style.css'),allow=text('ops/release/static-files.txt'),runtime=text('game/core/runtime-bootstrap.js');
+          const block=(game.match(/const LOOT_ICON_IDS = Object\.freeze\(\[([\s\S]*?)\]\);/)||[])[1];
+          assert(block,'LOOT_ICON_IDS block missing');
+          const ids=[...block.matchAll(/'([^']+)'/g)].map(m=>m[1]);
+          assert.equal(ids.length,31,'production loot atlas must expose 31 live ids');
+          assert.equal(new Set(ids).size,31,'live loot ids must be unique');
+          for(const id of ['helm-cloth','helm-iron','helm-knight','helm-dragon','boots-cloth','boots-leather','boots-steel','boots-wind','amulet-copper','amulet-moonstone','amulet-guardian','amulet-abyss']) assert(ids.includes(id),`missing extended slot icon ${id}`);
+          const png=read('art/loot-atlas.png');
+          assert(png.subarray(1,4).toString()==='PNG','loot atlas must be PNG');
+          assert.equal(png.readUInt32BE(16),1024,'admitted atlas width');
+          assert.equal(png.readUInt32BE(20),2048,'admitted atlas height');
+          assert(game.includes("lootAtlas.src = 'art/loot-atlas.png'"),'core must own admitted loot atlas');
+          assert(game.includes('return { x: i % 4, y: Math.floor(i / 4) };'),'core coordinate map must remain 4 columns');
+          assert(css.includes('background-image: url("art/loot-atlas.png")')&&css.includes('background-size: 400% 800%'),'DOM loot icons must use the same 4x8 atlas');
+          assert(allow.includes('art/loot-atlas.png'),'admitted loot atlas must ship');
+          assert(!allow.includes('loot-atlas-v2.svg')&&!runtime.includes('art-runtime-v2.js'),'historical v2 runtime must stay retired');
+          assert(!game.includes('美术批次待补图集格子'),'stale fallback note must be gone');
+          console.log('production_loot_atlas_v131=PASS');
+          EOF
+          git rm .github/workflows/lock-production-loot-atlas-v131-once.yml
+          git add game/core/game.js test/production-loot-atlas-v131.cjs
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs: lock admitted 4x8 loot atlas coverage'
+          node test/production-loot-atlas-v131.cjs
+          node --check game/core/game.js
+          bash ops/check-authority-local.sh
+          test "$(git diff --name-only origin/main...HEAD | sort | tr '\n' ' ')" = "game/core/game.js test/production-loot-atlas-v131.cjs "
+          git push origin HEAD:docs/lock-production-loot-atlas-v131
