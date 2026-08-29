@@ -1,0 +1,47 @@
+name: fix-skill-evolution-core-runtime-once
+on:
+  push:
+    branches: [feature/recover-skill-evolution-v131]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/recover-skill-evolution-v131
+          fetch-depth: 0
+      - name: Use canonical locale helper and run runtime smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B <<'PY'
+          from pathlib import Path
+          p=Path('game/core/game.js'); s=p.read_text()
+          old='''const EVO = (id, zhName, enName, zhDesc, enDesc) => [
+            id, copy(zhName, enName), copy(zhDesc, enDesc),
+          ];'''
+          new='''const EVO = (id, zhName, enName, zhDesc, enDesc) => [
+            id, ui(zhName, enName), ui(zhDesc, enDesc),
+          ];'''
+          if s.count(old)!=1: raise SystemExit('EVO locale helper anchor mismatch')
+          p.write_text(s.replace(old,new,1))
+
+          t=Path('test/skill-evolution.cjs'); x=t.read_text()
+          anchor="assert(core.includes('const SKILL_EVOLUTION_ROWS = {'),'evolution data must live in canonical core');\n"
+          add="assert(core.includes('id, ui(zhName, enName), ui(zhDesc, enDesc)'),'evolution data must use canonical core locale helper');\n"
+          if x.count(anchor)!=1: raise SystemExit('skill test locale anchor mismatch')
+          t.write_text(x.replace(anchor,anchor+add,1))
+          PY
+          git rm .github/workflows/fix-skill-evolution-core-runtime-once.yml
+          git add game/core/game.js test/skill-evolution.cjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: use core locale helper for skill evolution'
+          node test/skill-evolution.cjs
+          node --check game/core/game.js
+          node test/production.cjs
+          bash ops/check-authority-local.sh
+          test "$(git diff --name-only origin/main...HEAD | sort | tr '\n' ' ')" = "game/core/game.js test/skill-evolution.cjs "
+          git push origin HEAD:feature/recover-skill-evolution-v131
