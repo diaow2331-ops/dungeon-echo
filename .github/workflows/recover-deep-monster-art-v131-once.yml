@@ -1,0 +1,91 @@
+name: recover-deep-monster-art-v131-once
+on:
+  push:
+    branches: ["feature/recover-deep-monster-art-v131"]
+    paths: [".github/workflows/recover-deep-monster-art-v131-once.yml"]
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/recover-deep-monster-art-v131
+          fetch-depth: 0
+      - name: Promote additive deep monster art and validate candidate HEAD
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp archive/quarantine-v130/art/assets/runtime/monster-deep-atlas-v2.svg art/monster-deep-atlas-v1.svg
+          python -B <<'PY'
+          from pathlib import Path
+          p=Path('game/core/game.js'); s=p.read_text()
+          asset_anchor="""const monsterAtlasV11 = new Image();
+          monsterAtlasV11.src = 'art/monster-atlas-v11.png';
+          """
+          asset_add="""const deepMonsterAtlasV1 = new Image();
+          deepMonsterAtlasV1.src = 'art/monster-deep-atlas-v1.svg';
+          const DEEP_MONSTER_ART_INDEX = Object.freeze({
+            abomination:0, seraph:1, voidspawn:2, voidlord:3,
+          });
+          """
+          if s.count(asset_anchor)!=1: raise SystemExit('deep monster asset anchor mismatch')
+          s=s.replace(asset_anchor,asset_anchor+asset_add,1)
+
+          render_anchor="""  if (monsterIndex !== undefined && imageReady(monsterAtlasV11)) {
+            const size = m.elite ? 40 : 35;
+            return { pos: drawAtlasEntity(m, monsterAtlasV11, monsterIndex, 4, 4, size, size + 3, now), size: size + 3, bespoke: true };
+          }
+          """
+          render_add="""  const deepMonsterIndex = DEEP_MONSTER_ART_INDEX[m.sprite];
+          if (deepMonsterIndex !== undefined && imageReady(deepMonsterAtlasV1)) {
+            const size = m.elite ? 40 : 35;
+            return { pos: drawAtlasEntity(m, deepMonsterAtlasV1, deepMonsterIndex, 4, 4, size, size + 3, now), size: size + 3, bespoke: true };
+          }
+          """
+          if s.count(render_anchor)!=1: raise SystemExit('deep monster render anchor mismatch')
+          s=s.replace(render_anchor,render_anchor+render_add,1)
+          p.write_text(s)
+
+          allow=Path('ops/release/static-files.txt'); a=allow.read_text()
+          marker='art/monster-atlas-v11.png\n'
+          if a.count(marker)!=1: raise SystemExit('monster allowlist anchor mismatch')
+          if 'art/monster-deep-atlas-v1.svg\n' not in a:
+            a=a.replace(marker,marker+'art/monster-deep-atlas-v1.svg\n',1)
+          allow.write_text(a)
+          PY
+
+          cat > test/deep-monster-art-authority-v131.cjs <<'EOF'
+          'use strict';
+          const fs=require('fs'),path=require('path'),assert=require('assert');
+          const root=path.resolve(__dirname,'..');
+          const text=p=>fs.readFileSync(path.join(root,p),'utf8');
+          const core=text('game/core/game.js'),profile=text('profiles/classic-100.profile.js'),allow=text('ops/release/static-files.txt'),runtime=text('game/core/runtime-bootstrap.js');
+          const deep=['abomination','seraph','voidspawn','voidlord'];
+          for(const id of deep) assert(profile.includes(`sprite: '${id}'`),`classic-100 must actively use ${id}`);
+          const originalBlock=(core.match(/const MONSTER_ART_INDEX = Object\.fromEntries\(\[([\s\S]*?)\]\.map/)||[])[1];
+          assert(originalBlock,'v11 monster index block missing');
+          const original=[...originalBlock.matchAll(/'([^']+)'/g)].map(m=>m[1]);
+          assert.equal(original.length,16,'v11 original monster atlas must remain 16 cells');
+          for(const id of deep) assert(!original.includes(id),`${id} must stay additive rather than overwrite v11`);
+          assert(core.includes("deepMonsterAtlasV1.src = 'art/monster-deep-atlas-v1.svg'"),'core must own additive deep atlas');
+          assert(core.includes('abomination:0, seraph:1, voidspawn:2, voidlord:3'),'direct four-id map must match reviewed source');
+          const start=core.indexOf('function drawMonsterV11(m, now) {'),end=core.indexOf('function drawLootIcon(',start),body=core.slice(start,end);
+          const order=[body.indexOf('m.boss && imageReady(finalBossV11)'),body.indexOf('guardianArtIndex(m)'),body.indexOf('MONSTER_ART_INDEX[m.sprite]'),body.indexOf('DEEP_MONSTER_ART_INDEX[m.sprite]'),body.indexOf('SPRITES[m.sprite] || SPRITES.demon')];
+          assert(order.every(x=>x>=0)&&order.every((x,i)=>i===0||x>order[i-1]),'render precedence must be final boss > guardian > v11 > additive deep > vector fallback');
+          assert(allow.includes('art/monster-atlas-v11.png')&&allow.includes('art/monster-deep-atlas-v1.svg'),'both v11 and additive atlas must ship');
+          assert(!runtime.includes('art-runtime-v2.js')&&!runtime.includes('monster-deep-atlas-v2.svg'),'retired overlay runtime must stay absent');
+          console.log('deep_monster_art_authority_v131=PASS');
+          EOF
+
+          git rm .github/workflows/recover-deep-monster-art-v131-once.yml
+          git add art/monster-deep-atlas-v1.svg game/core/game.js ops/release/static-files.txt test/deep-monster-art-authority-v131.cjs
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'art: fill four live deep-monster atlas gaps'
+          cmp -s art/monster-deep-atlas-v1.svg archive/quarantine-v130/art/assets/runtime/monster-deep-atlas-v2.svg
+          node test/deep-monster-art-authority-v131.cjs
+          node --check game/core/game.js
+          bash ops/check-authority-local.sh
+          test "$(git diff --name-only origin/main...HEAD | sort | tr '\n' ' ')" = "art/monster-deep-atlas-v1.svg game/core/game.js ops/release/static-files.txt test/deep-monster-art-authority-v131.cjs "
+          git push origin HEAD:feature/recover-deep-monster-art-v131
