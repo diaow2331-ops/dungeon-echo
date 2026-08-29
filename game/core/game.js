@@ -2309,7 +2309,6 @@ function die() {
       // 保险符：碎裂抵一次死亡——背包完好，随身金币仍坠入深渊
       meta.insurance--;
       syncMetaFromPlayer('insured');
-      meta.wheelSpins = 0; meta.wheelResets = 0; meta.wheelSlots = null;
       enterTown();
       msg(ui(`保险符碎裂成金光！背包里的 ${player.inv.length} 件物品完好无损。`, `The Insurance Charm shatters into golden light! All ${player.inv.length} backpack items are safe.`), 'gold');
       msg(ui(`但随身携带的 ${lostGold} 金币还是掉进了深渊。`, `But ${lostGold} carried Gold still fell into the abyss.`), 'bad');
@@ -4539,15 +4538,15 @@ function showTown() {
   ensureTownLoop();
 }
 // ================= 幸运转盘（城镇金币回收站） =================
-// 8 个奖品槽在进镇时生成、随元档持久化；抽奖随机开一槽，重置则重摇全部槽位。
-// 抽奖费与重置费都随本轮使用次数递增——金币越滚越贵，纯度极高的回收池。
-// 死亡（含保险符结算）后计数归零、轮盘重摇：死神的怜悯，也防止无限膨胀。
+// 8 个奖品槽随元档持久化；每格最多结算一次，只有付费重置才能换新盘。
+// 抽奖/重置同时按操作次数与城镇阶段递增，死亡不会免费洗盘或清掉成本。
 const WHEEL_SLOTS = 8;
 const WHEEL_BASE_SPIN = 40, WHEEL_SPIN_STEP = 20;
 const WHEEL_BASE_RESET = 60, WHEEL_RESET_STEP = 40;
 const wheelDepth = () => Math.max(3, meta ? (meta.bestDepth || 0) : 0);
-const spinCost = () => WHEEL_BASE_SPIN + (meta && meta.wheelSpins || 0) * WHEEL_SPIN_STEP;
-const resetWheelCost = () => WHEEL_BASE_RESET + (meta && meta.wheelResets || 0) * WHEEL_RESET_STEP;
+const wheelTownTier = () => clamp(Math.ceil(Math.max(1, Number(meta && meta.bestDepth) || 1) / 10), 1, 10);
+const spinCost = () => WHEEL_BASE_SPIN + (meta && meta.wheelSpins || 0) * WHEEL_SPIN_STEP + wheelTownTier() * 20;
+const resetWheelCost = () => WHEEL_BASE_RESET + (meta && meta.wheelResets || 0) * WHEEL_RESET_STEP + wheelTownTier() * 45;
 function genWheelSlot() {
   const bd = wheelDepth();
   // v2 平衡奖池：装备合计仅 5%（稀有≥2 的 4% + 史诗≥3 的 1%）——
@@ -4575,7 +4574,23 @@ const ensureWheel = () => {
   if (!Array.isArray(meta.wheelSlots) || meta.wheelSlots.length !== WHEEL_SLOTS)
     meta.wheelSlots = rollWheelSlots();
 };
+const wheelClaimedCount = () => meta && Array.isArray(meta.wheelSlots)
+  ? meta.wheelSlots.reduce((n, slot) => n + (slot && slot.claimed ? 1 : 0), 0) : 0;
+function consumeWheelSlot(index) {
+  if (!meta || !Array.isArray(meta.wheelSlots)) return false;
+  const slot = meta.wheelSlots[index];
+  if (!slot || slot.claimed) return false;
+  const prizeKind = String(slot.kind || 'nothing');
+  slot.claimed = true;
+  slot.claimedKind = prizeKind;
+  slot.claimedAtSpin = Number(meta.wheelTotal) || 0;
+  slot.kind = 'nothing';
+  if ('item' in slot) delete slot.item;
+  if ('amount' in slot) delete slot.amount;
+  return true;
+}
 function wheelSlotText(s) {
+  if (s && s.claimed) return ui('已领取','Claimed');
   switch (s.kind) {
     case 'gold': return `${s.amount} G`;
     case 'potion': return ui('治疗药水','Healing Potion');
@@ -4608,10 +4623,17 @@ function applyWheelPrize(p) {
   }
 }
 function spinWheel() {
-  if (state !== 'town' || !meta) return;
+  if (state !== 'town' || !meta) return false;
   ensureWheel();
+  if (wheelClaimedCount() >= WHEEL_SLOTS) {
+    msg(ui('这一轮八格都已经领取，先付费重置轮盘。','All eight slots are claimed. Reset the wheel before spinning again.'), 'bad');
+    return false;
+  }
   const cost = spinCost();
-  if (meta.gold < cost) { msg(ui(`金库金币不够——抽奖需要 ${cost} G。`, `Not enough vault Gold — spinning costs ${cost} G.`), 'bad'); return; }
+  if (meta.gold < cost) {
+    msg(ui(`金库金币不够——抽奖需要 ${cost} G。`, `Not enough vault Gold — spinning costs ${cost} G.`), 'bad');
+    return false;
+  }
   meta.gold -= cost;
   const idx = rnd(WHEEL_SLOTS);
   const prize = meta.wheelSlots[idx];
@@ -4619,14 +4641,20 @@ function spinWheel() {
   meta.wheelTotal = (meta.wheelTotal || 0) + 1;
   sfx.chest();
   msg(ui(`轮盘停在第 ${idx + 1} 槽——`, `The wheel stops on slot ${idx + 1} —`), 'info');
-  applyWheelPrize(prize);
+  if (prize && !prize.claimed) {
+    applyWheelPrize(prize);
+    consumeWheelSlot(idx);
+  } else {
+    msg(ui('这一格已经领取过，本次不会重复发奖。','This slot was already claimed; it pays nothing again.'), 'bad');
+  }
   startWheelSpin(idx);
   saveMeta(); renderTown();
+  return true;
 }
 function resetWheel() {
-  if (state !== 'town' || !meta) return;
+  if (state !== 'town' || !meta) return false;
   const cost = resetWheelCost();
-  if (meta.gold < cost) { msg(ui(`金库金币不够——重置轮盘需要 ${cost} G。`, `Not enough vault Gold — resetting costs ${cost} G.`), 'bad'); return; }
+  if (meta.gold < cost) { msg(ui(`金库金币不够——重置轮盘需要 ${cost} G。`, `Not enough vault Gold — resetting costs ${cost} G.`), 'bad'); return false; }
   meta.gold -= cost;
   meta.wheelResets++;
   meta.wheelSlots = rollWheelSlots();
@@ -4634,6 +4662,7 @@ function resetWheel() {
   msg(ui(`轮盘已重摇（第 ${meta.wheelResets} 次），看看新的八格。`, `Wheel reset ${meta.wheelResets} times. Check the new eight slots.`), 'info');
   startWheelKick();
   saveMeta(); renderTown();
+  return true;
 }
 
 // ---- 转盘视图：真正的圆盘 + 指针 + 缓动旋转（纯视觉层，结算保持同步） ----
@@ -4643,6 +4672,7 @@ const SECTOR_COLORS = {
   escape: '#50648a', insurance: '#6b4356', equip: '#7a3b52', nothing: '#241810',
 };
 function wheelSlotShort(s) {
+  if (s && s.claimed) return ui('已领','Claimed');
   switch (s.kind) {
     case 'gold': return `${s.amount}G`;
     case 'potion': return ui('药水','Potion');
@@ -4684,7 +4714,7 @@ function drawWheel(now) {
     const s = meta.wheelSlots[i];
     const a0 = -Math.PI / 2 + i * SECTOR_A + wheelView.angle, a1 = a0 + SECTOR_A;
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0, a1); ctx.closePath();
-    ctx.fillStyle = SECTOR_COLORS[s.kind] || '#333'; ctx.fill();
+    ctx.fillStyle = s.claimed ? '#241810' : (SECTOR_COLORS[s.kind] || '#333'); ctx.fill();
     if (i % 2) { ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fill(); }
     if (i === wheelView.lastWin && now < wheelView.winUntil) {
       ctx.fillStyle = `rgba(242,210,123,${(.45 + .35 * Math.sin(now / 110)).toFixed(2)})`; ctx.fill();
@@ -5019,11 +5049,12 @@ function renderTown() {
   if (wheelEl) {
     ensureWheel();
     const sc = spinCost(), rc = resetWheelCost();
+    const claimed = wheelClaimedCount(), exhausted = claimed >= WHEEL_SLOTS;
     wheelEl.innerHTML =
       '<canvas id="wheel-canvas" width="240" height="240"></canvas>' +
-      `<p class="dim-note wheel-hint">${ui('转盘停在哪格，就开哪格——空门也是命运。','The wheel opens the slot it lands on — Empty is part of the odds.')}</p>` +
-      `<div class="row-actions"><button type="button" data-wheelspin="1"${(meta.gold < sc || wheelBusy) ? ' disabled' : ''}` +
-      ` title="${ui(`转动轮盘，下一抽 ${sc} G`, `Spin the wheel for ${sc} G`)}">${ui(`抽奖 ${sc} G`, `Spin ${sc} G`)}</button>` +
+      `<p class="dim-note wheel-hint">${ui(`八格每格最多领取一次 · 已领取 ${claimed}/8`, `Each slot pays once · ${claimed}/8 claimed`)}</p>` +
+      `<div class="row-actions"><button type="button" data-wheelspin="1"${(exhausted || meta.gold < sc || wheelBusy) ? ' disabled' : ''}` +
+      ` title="${ui(exhausted ? '八格已领完，请先重置轮盘' : `转动轮盘，下一抽 ${sc} G`, exhausted ? 'All slots claimed; reset the wheel first' : `Spin the wheel for ${sc} G`)}">${exhausted ? ui('本轮已全部领取','All prizes claimed') : ui(`抽奖 ${sc} G`, `Spin ${sc} G`)}</button>` +
       `<button type="button" data-wheelreset="1"${(meta.gold < rc || wheelBusy) ? ' disabled' : ''}` +
       ` title="${ui(`重摇全部八格，需 ${rc} G`, `Reroll all eight slots for ${rc} G`)}">${ui(`重置轮盘 ${rc} G`, `Reset Wheel ${rc} G`)}</button></div>`;
   }
@@ -5191,7 +5222,6 @@ function useEscape() {
 }
 function greedyDeathReturn(lostInv, lostGold) {
   syncMetaFromPlayer(true);
-  meta.wheelSpins = 0; meta.wheelResets = 0; meta.wheelSlots = null;
   enterTown();
   msg(ui(`你倒在第 ${depth} 层……失去了背包里的 ${lostInv} 件物品和随身 ${lostGold} 金币。`, `You fell on Floor ${depth} and lost ${lostInv} backpack items and ${lostGold} carried Gold.`), 'bad');
   msg(ui('好在穿在身上的装备还在。整备一番，再下去！','Your equipped gear survived. Prepare and descend again!'), 'gold');
