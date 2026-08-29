@@ -20,7 +20,8 @@
     "responsiveLayout": "game/ui/responsive-final-v154.js",
     "helpCopy": "game/ui/help-copy-v126.js",
     "contentClassification": "game/domain/content/content-rules-v130.js",
-    "equipmentStatScoring": "game/domain/inventory/equipment-rules-v130.js"
+    "equipmentStatScoring": "game/domain/inventory/equipment-rules-v130.js",
+    "equipmentTransactionPricing": "game/domain/economy/economy-rules-v130.js"
   },
   "plannedExtraction": {
     "combat": "game/domain/combat/",
@@ -33,7 +34,6 @@
     "persistence": "game/persistence/"
   },
   "stagedPureLibraries": {
-    "economyRules": "game/domain/economy/economy-rules-v130.js",
     "progressionRules": "game/domain/progression/progression-rules-v130.js",
     "townRules": "game/domain/town/town-rules-v130.js",
     "combatRules": "game/domain/combat/combat-rules-v130.js"

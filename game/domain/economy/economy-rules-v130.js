@@ -1,10 +1,10 @@
-/* Dungeon Echo staged economy rules v1.3.0.
+/* Dungeon Echo production equipment-transaction-pricing authority v1.3.0.
  *
- * Pure calculations extracted from the canonical core and quarantined commerce work.
- * This library owns NO production authority yet and is intentionally not shipped.
+ * Sole production authority for canonical forge/sell price quotes from an item-value input.
+ * Town supply, dungeon-heal, quick-dive and wheel helpers remain dormant pure exports and are
+ * not production decisions without separate atomic authority transfers.
  *
- * Boundary rule: inventory/equipment decides an item's value score; economy only turns
- * that value into prices/costs. No duplicated equipment scoring lives here.
+ * Boundary rule: no item valuation, gold/stock mutation, transaction commit, RNG, UI or storage.
  */
 (() => {
   'use strict';
@@ -85,12 +85,9 @@
   }
 
   const api = Object.freeze({
-    version:'v1.3.0-staged',
-    authority:'none',
-    sources:Object.freeze([
-      'game/core/game.js',
-      'archive/quarantine-v130/gameplay/economy/commerce-system.js',
-    ]),
+    version:'v1.3.0-production',
+    authority:'equipment-transaction-pricing',
+    sources:Object.freeze(['game/core/game.js']),
     round5,
     townTier,
     townPriceScale,

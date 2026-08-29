@@ -11,6 +11,7 @@ const expectedScripts = [
   'game/locale/locale-data-v134.js?v=169',
   'game/domain/content/content-rules-v130.js?v=169',
   'game/domain/inventory/equipment-rules-v130.js?v=169',
+  'game/domain/economy/economy-rules-v130.js?v=169',
   'game/core/game.js?v=169',
   'game/locale/core-locale-data-v139.js?v=169',
   'game/input/desktop-controls.js?v=169',
