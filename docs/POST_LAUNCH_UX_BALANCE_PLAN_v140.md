@@ -18,6 +18,21 @@ Before implementation, compare public implementations and adopt design principle
 
 Do not copy GPL runtime code. Re-implement the principles inside canonical `game/core/game.js`.
 
+## Non-negotiable authority boundary
+
+v1.4.0 must preserve the single-authority architecture established by v1.3.x governance. Product recovery must never restore retired topology.
+
+- `game/core/game.js` remains the sole owner of live gameplay state, turn resolution, combat execution, keyboard/touch gameplay semantics, run persistence/restore, and dungeon/town Canvas runtime.
+- `game/domain/inventory/equipment-rules-v130.js` may expose only pure deterministic equipment/proficiency rules. It may not mutate inventory/equipment, consume RNG, write storage, or bind input.
+- `game/core/production-bootstrap.js` owns only New Adventure reset/handoff and static production bootstrap concerns. It may not own combat resources, class state, or save payloads.
+- `game/input/desktop-controls.js` is transport only (gamepad → canonical action contract); it must not duplicate attack/skill/Mana semantics.
+- Runtime followers remain presentation-only and may not intercept/capture gameplay input, mutate player state, patch gameplay APIs, write gameplay storage, or own a Canvas.
+- `archive/quarantine-v130/**` is historical evidence only and must never re-enter the production script graph.
+
+Mana, J/K directional attack/skill semantics, ranged combat, weapon proficiency, and save migration must therefore be implemented through canonical core plus pure rule helpers only.
+
+Acceptance: repository authority tests must fail if a second gameplay input/state/save/Canvas owner or the historical combat-controls wrapper is reintroduced.
+
 ## P0 — Class identity and combat economy
 
 ### Weapon proficiency
