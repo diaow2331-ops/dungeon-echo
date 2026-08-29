@@ -4,7 +4,6 @@ en/index.html
 style.css
 game/core/production-bootstrap.js
 profiles/classic-100.profile.js
-game/core/save-integrity-system.js
 game/locale/locale-data-v134.js
 game/core/game.js
 game/locale/core-locale-data-v139.js
@@ -20,21 +19,13 @@ game/systems/combat-pressure.js
 game/core/runtime-bootstrap.js
 game/systems/challenge-pressure.js
 game/systems/risk-reward-system.js
-game/ui/visual-polish.js
-game/ui/art-runtime-v2.js
-game/ui/art-runtime-v4.js
-game/ui/new-run-reset-v167.js
 game/ui/equipment-shop-ui.js
 game/core/release-stamp-v1212.js
 game/locale/fixed-locale-entry-v130.js
-game/locale/stable-item-id-migration-v150.js
 game/locale/core-screen-owner-v153.js
 game/ui/town-workspace-v156.js
-game/ui/town-art-v160.js
 game/ui/town-workspace-events-v156.js
 game/locale/town-canvas-locale-v153.js
-game/ui/character-art-cleanup-v122.js
-game/ui/world-loot-polish-v122.js
 game/ui/forge-feedback-v122.js
 game/input/combat-controls.js
 game/ui/combat-hint-polish.js
@@ -48,7 +39,6 @@ game/systems/gameplay-tuning.js
 game/systems/defense-system.js
 game/input/desktop-controls.js
 art/loot-atlas.png
-art/loot-atlas-v12.svg
 art/equipment-weapons-v13.png
 art/equipment-wearables-v13.png
 art/title-backdrop.webp
@@ -58,9 +48,3 @@ art/monster-atlas-v11.png
 art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
-art/runtime/loot-atlas-v2.svg
-art/runtime/monster-deep-atlas-v2.svg
-art/runtime/hero-action-atlas-v2.svg
-art/runtime/dungeon-props-atlas-v1.svg
-art/runtime/boss-guardian-atlas-v3.png
-art/runtime/final-boss-v3.png
