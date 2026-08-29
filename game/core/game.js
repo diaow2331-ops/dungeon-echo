@@ -229,7 +229,7 @@ const LOOT_ICON_IDS = Object.freeze([
   'copper-ring', 'ruby-ring', 'guardian-ring', 'healing-potion',
   'teleport-scroll', 'gold-pile', 'dungeon-heart', 'dungeon-key',
   'dagger', 'hunting-bow', 'arcane-staff',
-  // 六栏位扩展（21-32 号格）：美术批次待补图集格子，此前渲染回退 0 号格
+  // 六栏位扩展（21-32 号格）：生产 4×8 图集已完整覆盖，31 个 live id 各占独立格。
   'helm-cloth', 'helm-iron', 'helm-knight', 'helm-dragon',
   'boots-cloth', 'boots-leather', 'boots-steel', 'boots-wind',
   'amulet-copper', 'amulet-moonstone', 'amulet-guardian', 'amulet-abyss',
