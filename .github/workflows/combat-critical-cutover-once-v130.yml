@@ -25,7 +25,9 @@ jobs:
           from pathlib import Path
           p = Path('.github/combat-critical-cutover-once.py')
           s = p.read_text(encoding='utf-8')
-          s = s.replace('  <script src=\\"', '<script src=\\"')
+          s = s.replace("old = '  <script src=", "old = '<script src=")
+          s = s.replace("new = '  <script src=", "new = '<script src=")
+          s = s.replace('\\n  <script src=', '\\n<script src=')
           p.write_text(s, encoding='utf-8')
           PY
           python -m py_compile .github/combat-critical-cutover-once.py
