@@ -2,8 +2,6 @@ name: release-governance
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -25,7 +23,7 @@ jobs:
         run: node test/economy-rules-v130.cjs
       - name: Build immutable Dungeon Echo v1.3.0 baseline ZIP
         env:
-          SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+          SOURCE_REVISION: ${{ github.sha }}
         run: bash ops/release/build-site-bundle.sh "$RUNNER_TEMP/91hwl-play-dungeon-echo-v1.3.0.zip"
       - name: Upload authority-baseline artifact
         uses: actions/upload-artifact@v4
