@@ -1,28 +1,24 @@
-/* Dungeon Echo production UX bootstrap v20.
- *
- * v1.3.1 recovery release generation 170 rule:
- * - game/core/game.js is the sole gameplay/render/input/persistence writer;
- * - this bootstrap may load DOM-only followers only;
- * - followers must not touch Canvas contexts, mutate DE_TEST gameplay APIs,
- *   write gameplay localStorage, or capture gameplay keyboard actions.
+/* Dungeon Echo production UX bootstrap v21.
+ * v1.3.1 recovery patch on cache generation 170.
+ * game/core/game.js remains sole gameplay/render/input/persistence writer.
+ * This bootstrap may load presentation-only followers. Adaptive BGM owns only a private
+ * WebAudio music graph and lifecycle ticker; it may not own Canvas/gameplay/storage/input.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
-
   const assetVersion = '170';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
-
   const chain = Object.freeze([
     [fresh('game/core/release-stamp-v131.js'), 'data-de-release-stamp-v131', () => !!window.__DE_RELEASE_STAMP_V131],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/ui/responsive-final-v154.js'), 'data-de-responsive-final-v154', () => !!window.__DE_RESPONSIVE_FINAL_V154],
     [fresh('game/ui/help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],
     [fresh('game/ui/theme-atmosphere-v131.js'), 'data-de-theme-atmosphere-v131', () => !!window.__DE_THEME_ATMOSPHERE_V131],
+    [fresh('game/ui/adaptive-bgm-v132.js'), 'data-de-adaptive-bgm-v132', () => !!window.__DE_ADAPTIVE_BGM_V132],
   ]);
-
   let started = false;
   function loadScript(src, marker, ready) {
     return new Promise(resolve => {
@@ -39,7 +35,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v20');
+      script.setAttribute(marker, 'v21');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -48,7 +44,6 @@
       setTimeout(() => settle('timeout'), 3000);
     });
   }
-
   async function start() {
     if (started) return false;
     started = true;
@@ -57,20 +52,12 @@
     }
     return true;
   }
-
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
   window.__DE_PRODUCTION_UX_BOOTSTRAP = Object.freeze({
-    version:'v20',
-    assetVersion,
-    locale:english?'en':'zh-CN',
-    renderOwner:'game/core/game.js',
-    gameplayStateOwner:'game/core/game.js',
-    inputOwner:'game/core/game.js',
-    persistenceWriter:'game/core/game.js',
-    dynamicLoaderOwner:'game/core/runtime-bootstrap.js',
-    followers:'dom-only',
-    start,
-    loadScript,
-    chain,
+    version:'v21', assetVersion, locale:english?'en':'zh-CN',
+    renderOwner:'game/core/game.js', gameplayStateOwner:'game/core/game.js',
+    inputOwner:'game/core/game.js', persistenceWriter:'game/core/game.js',
+    dynamicLoaderOwner:'game/core/runtime-bootstrap.js', followers:'presentation-only',
+    audioFollower:'game/ui/adaptive-bgm-v132.js', start, loadScript, chain,
   });
 })();
