@@ -1,22 +1,22 @@
-/* Dungeon Echo production UX bootstrap v14.
+/* Dungeon Echo production UX bootstrap v15.
  * Core gameplay/input/balance are synchronous in index.html.
  * Release-critical followers use one version query so deployments cannot mix cached generations.
  * Fixed-route locale identity and language-neutral item migration are established before presentation owners boot.
  *
- * v14 stages the v1.2.11 expedition-pressure surface after onboarding, keeping the push-or-return
- * decision visible without changing extraction rules or save semantics.
+ * v15 freezes the v1.2.12 art-closeout release on public cache generation 166 while preserving
+ * the v1.2.11 expedition-pressure follower, extraction rules and save semantics.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined' || window.__DE_PRODUCTION_UX_BOOTSTRAP) return;
 
-  const assetVersion = '156';
+  const assetVersion = '166';
   const routeLang = String(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.deLocale || '').toLowerCase();
   const english = routeLang === 'en';
   const fresh = src => `${src}?v=${assetVersion}`;
 
   const baseChain = [
-    [fresh('game/core/release-stamp-v1211.js'), 'data-de-release-stamp-v1211', () => !!window.__DE_RELEASE_STAMP_V1211],
+    [fresh('game/core/release-stamp-v1212.js'), 'data-de-release-stamp-v1212', () => !!window.__DE_RELEASE_STAMP_V1212],
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/locale/stable-item-id-migration-v150.js'), 'data-de-stable-item-id-v150', () => !!window.__DE_STABLE_ITEM_ID_MIGRATION_V150],
     [fresh('game/locale/core-screen-owner-v153.js'), 'data-de-core-screen-v153', () => !!window.__DE_CORE_SCREEN_OWNER_V153],
@@ -54,7 +54,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v14');
+      script.setAttribute(marker, 'v15');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -72,5 +72,5 @@
     return true;
   }
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
-  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v14',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
+  window.__DE_PRODUCTION_UX_BOOTSTRAP = {version:'v15',assetVersion,locale:english?'en':'zh-CN',english,start,loadScript,chain,baseChain:Object.freeze(baseChain),followerChain:Object.freeze(followerChain)};
 })();
