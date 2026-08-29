@@ -19,6 +19,7 @@ const tests = [
   'theme-atmosphere-v131.cjs',
   'town-npc-distinct-v132.cjs',
   'resource-pressure-v132.cjs',
+  'guardian-pressure-v132.cjs',
   'descent100.cjs',
   'save-integrity-v128.cjs',
   'current-control-contract-v132.cjs',
