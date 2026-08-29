@@ -62,7 +62,9 @@ assert(!/[\u3400-\u9fff]/.test(read('en/index.html')), 'English authored route c
 
 assert(runtime.includes(`const assetVersion = '${generation}'`), 'runtime cache generation drifted');
 assert(runtime.includes(`fresh('${stampPath}')`), 'runtime release stamp drifted');
-assert(runtime.includes("followers:'dom-only'"), 'runtime follower boundary drifted');
+assert(runtime.includes("followers:'presentation-only'"), 'runtime presentation follower boundary drifted');
+assert(runtime.includes("audioFollower:'game/ui/adaptive-bgm-v132.js'"), 'adaptive BGM boundary drifted');
+assert(runtime.includes("forgeFeedback:'game/ui/forge-feedback-v132.js'"), 'forge feedback boundary drifted');
 assert(runtime.includes("gameplayStateOwner:'game/core/game.js'"), 'runtime state owner drifted');
 assert(production.includes(`version:'${version}'`), 'production authority version drifted');
 assert(production.includes("const STORAGE_EPOCH = 'v130'"), 'v130 storage compatibility must remain stable');
@@ -97,6 +99,8 @@ assert.equal(fs.readFileSync(path.join(extracted, 'REVISION'), 'utf8').trim(), r
 const packagedFiles = run('unzip', ['-Z1', archive]).stdout.trim().split(/\r?\n/);
 assert(packagedFiles.includes('public/dungeon-echo/game/core/game.js'));
 assert(packagedFiles.includes(`public/dungeon-echo/${stampPath}`));
+assert(packagedFiles.includes('public/dungeon-echo/game/ui/adaptive-bgm-v132.js'));
+assert(packagedFiles.includes('public/dungeon-echo/game/ui/forge-feedback-v132.js'));
 assert(!packagedFiles.some(rel => /(?:^|\/)(?:archive|test)(?:\/|$)|dev\.html$/.test(rel)), 'final artifact contains dev/quarantine files');
 const deploySyntax = run('bash', ['-n', path.join(extracted, 'ops/deploy.sh')]);
 const healthSyntax = run('bash', ['-n', path.join(extracted, 'ops/healthcheck.sh')]);
