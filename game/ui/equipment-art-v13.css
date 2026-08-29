@@ -1,6 +1,7 @@
-/* Dungeon Echo v13 equipment art recovery.
- * Static presentation only: remaps the 26 equipment cells emitted by canonical core.
- * Consumables and world-loot cells intentionally remain on art/loot-atlas.png.
+/* Dungeon Echo recovered loot/equipment presentation.
+ * - 26 equipment cells use the reviewed v13 weapon/wearable sheets.
+ * - potion, scroll, gold, heart and key use the historical unified loot-v2 cells.
+ * Static DOM presentation only; the canonical dungeon Canvas stays in game/core/game.js.
  */
 @import url("./static-art-polish-v131.css");
 
@@ -17,6 +18,14 @@
 .loot-icon[style*="--ix:0;--iy:2"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:0% 75%; }
 .loot-icon[style*="--ix:1;--iy:2"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:40% 75%; }
 .loot-icon[style*="--ix:2;--iy:2"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:80% 75%; }
+
+/* Utility / world-loot DOM icons keep the current 4x8 coordinate contract, but use the
+ * historically shipped high-detail v2 atlas. */
+.loot-icon[style*="--ix:3;--iy:2"] { background-image:url("../../art/loot-atlas-v2.svg"); background-size:400% 800%; background-position:100% 28.571429%; }
+.loot-icon[style*="--ix:0;--iy:3"] { background-image:url("../../art/loot-atlas-v2.svg"); background-size:400% 800%; background-position:0% 42.857143%; }
+.loot-icon[style*="--ix:1;--iy:3"] { background-image:url("../../art/loot-atlas-v2.svg"); background-size:400% 800%; background-position:33.333333% 42.857143%; }
+.loot-icon[style*="--ix:2;--iy:3"] { background-image:url("../../art/loot-atlas-v2.svg"); background-size:400% 800%; background-position:66.666667% 42.857143%; }
+.loot-icon[style*="--ix:3;--iy:3"] { background-image:url("../../art/loot-atlas-v2.svg"); background-size:400% 800%; background-position:100% 42.857143%; }
 
 .loot-icon[style*="--ix:0;--iy:4"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:40% 100%; }
 .loot-icon[style*="--ix:1;--iy:4"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:100% 33.333333%; }
