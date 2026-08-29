@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/en/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Live:** Dungeon Echo **v1.2.12** is the current release line. The generation-167 hotfix keeps the complete boss/terrain/town art pass, restores the established high-detail hero presentation, and makes New Run discard the active expedition save before starting again.
+> **Release candidate:** Dungeon Echo **v1.3.0** resets the production architecture to one authoritative Canvas renderer and one clean browser-storage epoch. Public runtime cache generation is **168**.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -12,76 +12,35 @@ Dungeon Echo is a vanilla HTML/CSS/JavaScript roguelike built around one continu
 
 `descend → fight → loot → decide whether to push deeper → return safely → secure the build → descend again`
 
-No launcher, account or runtime backend is required. Open the page and play; compatible progress is stored in browser `localStorage`.
-
 ## Why play it?
 
-- **100-floor campaign** with earned checkpoints, ten-floor guardian milestones and a three-phase floor-100 finale.
-- **Four classes** — Warrior, Ranger, Arcanist and Assassin — with different combat rhythms and detailed class/action artwork.
+- **100-floor campaign** with ten-floor guardian milestones and a Floor-100 finale.
+- **Four classes** — Warrior, Ranger, Arcanist and Assassin — with distinct combat rhythms.
 - **Build-driven equipment** across six slots, rarity/affix tradeoffs, forging and refinement.
-- **Greedy Expedition** risk loop: push deeper with carried loot, or spend a Return Scroll to secure it in town.
-- **Town workspace** with compact Gear & Stash, Market, Fortune and Progress panels instead of a long scrolling document UI.
-- **Skill evolution at 20 / 40 / 60 / 80**, explicit `J` Attack / `K` Skill combat and class-specific Mana.
-- **PC + mobile + gamepad**, fullscreen support, adaptive procedural BGM and independent Music/SFX controls.
-- **Fixed Chinese and English routes** on the same origin with shared compatible saves.
-- **Open source** under MIT, with engineering/release decisions documented in this repository.
+- **Greedy Expedition** risk loop: push deeper with carried loot or return safely to town.
+- **Town workspace** for gear, stash, market, fortune and progression.
+- **Skill evolution at 20 / 40 / 60 / 80**, `J` Attack / `K` Skill combat and class-specific Mana.
+- **PC + mobile + gamepad**, fullscreen support, procedural BGM and independent Music/SFX controls.
+- **Fixed Chinese and English routes** on the same origin.
+- **Open source** under MIT.
 
-## Start here
+## v1.3.0 authority model
 
-The repository is folder-first: all active JavaScript lives under `game/`, so visitors do not have to scroll through dozens of loose runtime files.
+The v1.2 line accumulated several presentation layers that could draw or intercept the same Canvas. v1.3.0 removes that structure instead of adding another compatibility patch.
 
-- [`index.html`](index.html) — fixed Chinese production source entry.
-- [`en/index.html`](en/index.html) — fixed English production source entry; shares the same gameplay graph and saves.
-- [`game/core/`](game/core/) — engine, boot, save integrity, runtime bootstrap and release boundary.
-- [`game/systems/`](game/systems/) — equipment, town, commerce, progression, encounters and gameplay owners.
-- [`game/input/`](game/input/) — keyboard/gamepad and combat input ownership.
-- [`game/locale/`](game/locale/) — fixed-route locale data and exact screen/Canvas sinks.
-- [`game/ui/`](game/ui/) — bounded presentation owners, including responsive/mobile UX and the current art/town presentation layers.
-- [`art/`](art/) — production artwork.
-- [`docs/`](docs/) — engineering, maintenance, design and release documentation.
-- [`test/`](test/) — deterministic repository/gameplay contracts.
-- [`ops/`](ops/) — immutable-artifact release, deployment, rollback and repository-maintenance tooling.
-- [`archive/`](archive/) — retired runtime/history; nothing here is loaded by production.
+- `game/core/game.js` is the **only dungeon/town Canvas render owner**.
+- Historical art overlays, Canvas monkey patches and presentation coordinators are removed from the active tree and release artifact.
+- Production no longer ships the old `art/runtime/` overlay asset graph.
+- Canonical hero, monster, guardian, final-boss and town art is rendered directly by core.
+- The runtime bootstrap may load DOM/UI helpers, but those helpers do not own dungeon/town Canvas rendering.
 
-The repository root intentionally contains **zero active `.js` files**. New runtime code belongs under the appropriate `game/` ownership directory.
+## Storage reset
 
-## Controls
+v1.3.0 starts storage epoch `v130`.
 
-| Action | Keyboard | Gamepad | Mobile |
-| --- | --- | --- | --- |
-| Move / face | Arrow keys / WASD | Stick / D-pad | Four-way D-pad |
-| Attack | `J` | RT | Attack |
-| Class skill | `K` | X | Skill |
-| Wait / focus | Space / `.` | B | — |
-| Potion | `Q` | Y | Potion |
-| Scroll | `E` | LB | Scroll |
-| Return to town | `T` | Hold View | Return |
-| Descend | `Enter` | A | Descend |
-| Pause | `Esc` | Start | Pause |
-| Master mute | `M` | — | Sound |
-| Fullscreen | `F` | RB | Fullscreen |
+On the first v1.3.0 visit, prior Dungeon Echo `de-*` browser storage is cleared. Historical save-integrity and migration shims are not loaded or shipped. **New Adventure** performs a full Dungeon Echo reset, including Greedy Expedition meta, and begins with a fresh seed.
 
-## Language and saves
-
-`/dungeon-echo/` is the fixed Chinese route and `/dungeon-echo/en/` is the fixed English route. Language switching is navigation, not whole-page live translation.
-
-Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and related gameplay namespaces. Choosing **New Run** clears `de-run-v6` before class selection, while Greedy Expedition meta/town progression remains intentionally persistent. An explicit `?seed=` still preserves deterministic reproduction. v1.2.12 does not require a progress reset.
-
-## Run locally
-
-```bash
-python3 -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000/
-http://localhost:8000/en/
-http://localhost:8000/dev.html
-```
-
-`dev.html` is an internal deterministic harness and is excluded from production packaging.
+This means **v1.2 browser progress is intentionally not migrated into v1.3.0**.
 
 ## Repository layout
 
@@ -108,21 +67,57 @@ http://localhost:8000/dev.html
 └── VERSION
 ```
 
+Active production JavaScript belongs under `game/`. Retired runtime history belongs in Git history or `archive/`, never in the production dependency graph.
+
+## Controls
+
+| Action | Keyboard | Gamepad | Mobile |
+| --- | --- | --- | --- |
+| Move / face | Arrow keys / WASD | Stick / D-pad | Four-way D-pad |
+| Attack | `J` | RT | Attack |
+| Class skill | `K` | X | Skill |
+| Wait / focus | Space / `.` | B | — |
+| Potion | `Q` | Y | Potion |
+| Scroll | `E` | LB | Scroll |
+| Return to town | `T` | Hold View | Return |
+| Descend | `Enter` | A | Descend |
+| Pause | `Esc` | Start | Pause |
+| Master mute | `M` | — | Sound |
+| Fullscreen | `F` | RB | Fullscreen |
+
+## Language
+
+`/dungeon-echo/` is the fixed Chinese route and `/dungeon-echo/en/` is the fixed English route. Language switching is navigation, not whole-page live translation.
+
+## Run locally
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000/
+http://localhost:8000/en/
+http://localhost:8000/dev.html
+```
+
+`dev.html` is an internal deterministic harness and is excluded from production packaging.
+
 ## Validation and release governance
 
-Engineering checks protect contracts but do not replace human playtesting. The v1.2.12 generation-167 hotfix preserves the complete guardian/boss, terrain, monster/prop and town art work while retiring the experimental pixel-direction hero overlay and programmatic line FX that regressed the live presentation. Long-run balance/economy/guardian evidence remains post-release gameplay work rather than an art-patch blocker.
+The focused v1.3.0 release contract verifies the single-authority runtime, clean storage epoch, retained combat/expedition contracts and the final immutable ZIP. The artifact itself must reject all retired overlay and save-migration files.
 
-`VERSION` is the semantic release authority. The v1.2.12 line uses public runtime cache generation **167**; semantic and cache generations are intentionally independent.
+`VERSION` is the semantic release authority. v1.3.0 uses public runtime cache generation **168**.
 
-Production release governance follows one rule: **build elsewhere, deploy artifacts only**. The server receives a validated immutable ZIP and only performs checksum verification, staging/backup, atomic activation, health checks and rollback. It must not fetch Git, build, patch or transform production content. See [`.agents/skills/91hwl-static-release/SKILL.md`](.agents/skills/91hwl-static-release/SKILL.md).
+Production follows one rule: **build elsewhere, deploy artifacts only**. The server verifies checksums, stages the artifact, atomically activates it, runs health checks and rolls back on failure. It does not fetch Git or build production content.
 
-Release notes: [`docs/releases/RELEASE_NOTES_v1.2.12.md`](docs/releases/RELEASE_NOTES_v1.2.12.md).
+Release notes: [`docs/releases/RELEASE_NOTES_v1.3.0.md`](docs/releases/RELEASE_NOTES_v1.3.0.md).
 
 ## Contributing
 
-Focused issues and pull requests are welcome. Post-launch development is evidence-driven: player report → reproducible issue → smallest useful fix → focused validation → patch release.
-
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) before changing production ownership or persistent state.
+Focused issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) before changing production ownership or persistent state.
 
 ## AI-assisted development
 
