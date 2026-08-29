@@ -35,7 +35,8 @@
     "economyRules": "game/domain/economy/economy-rules-v130.js",
     "progressionRules": "game/domain/progression/progression-rules-v130.js",
     "contentRules": "game/domain/content/content-rules-v130.js",
-    "townRules": "game/domain/town/town-rules-v130.js"
+    "townRules": "game/domain/town/town-rules-v130.js",
+    "combatRules": "game/domain/combat/combat-rules-v130.js"
   },
   "plannedDestinationsAreAuthorities": false,
   "stagedPureLibrariesAreAuthorities": false,
