@@ -22,7 +22,7 @@ const sourceHealth=read('ops/home-mount/healthcheck.sh');
 const sourceSocial=read('ops/home-mount/build-social-v134.cjs');
 const sourceTrust=read('ops/home-mount/build-trust-v135.cjs');
 
-assert.equal(read('VERSION').trim(),'1.2.11');
+assert.equal(read('VERSION').trim(),'1.2.12');
 assert.equal(read('moyu/VERSION').trim(),'1.11.5');
 assert.equal(siteVersion,'1.3.5');
 assert.equal(sourceAds,'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0');
@@ -64,7 +64,7 @@ assert.match(sourceTrust,/About, privacy and contact — easy to find\./);
 assert.match(sourceTrust,/mailto:diaow2331@gmail\.com/);
 assert.match(sourceTrust,/data-site-version="1\.3\.5"/);
 assert.match(sourceDeploy,/test "\$version" = '1\.3\.5'/);
-assert.match(sourceDeploy,/Dungeon Echo v1\.2\.11 detail marker missing/);
+assert.match(sourceDeploy,/Dungeon Echo v1\.2\.12 detail marker missing/);
 assert.match(sourceDeploy,/Clock Out Alive v1\.11\.5 detail marker missing/);
 assert.match(sourceDeploy,/site-trust-hub-v135/);
 assert.match(sourceDeploy,/mailto:diaow2331@gmail\.com/);
@@ -78,7 +78,7 @@ assert.doesNotMatch(sourceDeploy,/live homepage changed unexpectedly/,'legitimat
 assert.match(sourceHealth,/public site v1\.3\.5 check failed/);
 assert.match(sourceHealth,/site-trust-hub-v135/);
 assert.match(sourceHealth,/关于、隐私与联系，一眼就能找到。/);
-assert.match(sourceHealth,/de_origin.*1\.2\.11/s);
+assert.match(sourceHealth,/de_origin.*1\.2\.12/s);
 assert.match(sourceHealth,/moyu_origin.*1\.11\.5/s);
 assert.match(sourceHealth,/Google AdSense and consent/);
 assert.match(sourceHealth,/mailto:diaow2331@gmail\.com/);
@@ -92,7 +92,7 @@ const archive=path.join(tmp,'mount.zip');
 let r=run('bash',[path.join(root,'ops/release/build-home-mount-bundle.sh'),archive]);
 assert.equal(r.status,0,r.stderr);
 assert.match(r.stdout,/site_version=1\.3\.5/);
-assert.match(r.stdout,/game_version=1\.2\.11/);
+assert.match(r.stdout,/game_version=1\.2\.12/);
 assert.match(r.stdout,/moyu_version=1\.11\.5/);
 assert.doesNotMatch(r.stdout,/previous_home_sha256=/);
 assert.match(r.stdout,/site_bundle_build=PASS/);
@@ -114,7 +114,7 @@ const bundledAds=unzipText('public/ads.txt').trim();
 const bundledDeploy=unzipText('ops/deploy.sh');
 const bundledHealth=unzipText('ops/healthcheck.sh');
 assert.match(bundledHome,/data-site-version="1\.3\.5"/);
-assert.match(bundledHome,/v1\.2\.11/);
+assert.match(bundledHome,/v1\.2\.12/);
 assert.match(bundledHome,/v1\.11\.5/);
 assert.match(bundledHome,/GitHub \/ Source/);
 assert.match(bundledHome,/公开仓库/);
@@ -130,8 +130,8 @@ assert.match(bundledHome,/name="twitter:image" content="https:\/\/play\.91hwl\.c
 assert.match(bundledHome,/ca-pub-2648680835467283/);
 assert.match(bundledHome,/href="\/privacy\/"/);
 assert.match(bundledDe,/data-site-version="1\.3\.5"/);
-assert.match(bundledDe,/softwareVersion":"1\.2\.11"/);
-assert.match(bundledDe,/901–1180px/);
+assert.match(bundledDe,/softwareVersion":"1\.2\.12"/);
+assert.match(bundledDe,/整轮美术热更新/);
 assert.match(bundledDe,/property="og:url" content="https:\/\/91hwl\.cn\/toys\/dungeon-echo\/"/);
 assert.match(bundledDe,/name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguelike"/);
 assert.match(bundledDe,/GitHub \/ Source/);
@@ -153,4 +153,4 @@ for(const [name,text] of [['deploy.sh',bundledDeploy],['healthcheck.sh',bundledH
 }
 
 fs.rmSync(tmp,{recursive:true,force:true});
-console.log('RESULT  91hwl site v1.3.5 immutable-artifact + visible trust hub contract PASS');
+console.log('RESULT  91hwl site v1.3.5 immutable-artifact + Dungeon v1.2.12 presentation contract PASS');
