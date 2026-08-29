@@ -2,11 +2,6 @@ name: release-governance
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/release-governance.yml
 
 permissions:
   contents: read
