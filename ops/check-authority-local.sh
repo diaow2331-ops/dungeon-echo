@@ -9,6 +9,7 @@ checks=(
   test/entry-authority-v130.cjs
   test/content-authority-cutover-tool-v130.cjs
   test/inventory-authority-cutover-tool-v130.cjs
+  test/economy-authority-cutover-tool-v130.cjs
   test/inventory-rules-v130.cjs
   test/economy-rules-v130.cjs
   test/progression-rules-v130.cjs

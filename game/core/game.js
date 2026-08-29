@@ -1261,8 +1261,11 @@ function itemValueScore(it) {
   const statScore = Math.max(0, eqScoreOf(it.stats || {}));
   return statScore + mechanicValueBonus(it, statScore);
 }
-const forgeCost = it => 30 + Math.round(itemValueScore(it) * 1.2) * ((it.forge || 0) + 1);
-const sellPrice = it => Math.max(4, Math.round(itemValueScore(it) * .45) + (it.forge || 0) * 15);
+const ECONOMY_RULES = typeof window !== 'undefined' ? window.DE_ECONOMY_RULES_V130 : null;
+if (!ECONOMY_RULES || ECONOMY_RULES.authority !== 'economy-pricing-rules')
+  throw new Error('Dungeon Echo economy-pricing-rules authority missing');
+const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueScore(it), it && it.forge || 0);
+const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it && it.forge || 0);
 function genEquip(d, minRarity = 0) {
   const roll = rng();
   // 六栏位分布：武器 .30 护甲 .25 头盔 .15 靴 .15 戒指 .10 项链 .05
@@ -2359,10 +2362,7 @@ function descend() {
 
 // ================= 快速下潜（付费跳层） =================
 const QUICK_DIVE_STEP = 5;
-function quickDiveCost(fromDepth, n) {
-  const floors = Math.max(0, Math.floor(n) || 0);
-  return floors * (8 + Math.max(1, Math.floor(fromDepth)) * 4);
-}
+const quickDiveCost = (fromDepth, n) => ECONOMY_RULES.quickDiveCost(fromDepth, n);
 function quickDive(n) {
   if (state !== 'playing') return;
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
@@ -3801,11 +3801,9 @@ function showTown() {
 // 抽奖费与重置费都随本轮使用次数递增——金币越滚越贵，纯度极高的回收池。
 // 死亡（含保险符结算）后计数归零、轮盘重摇：死神的怜悯，也防止无限膨胀。
 const WHEEL_SLOTS = 8;
-const WHEEL_BASE_SPIN = 40, WHEEL_SPIN_STEP = 20;
-const WHEEL_BASE_RESET = 60, WHEEL_RESET_STEP = 40;
 const wheelDepth = () => Math.max(3, meta ? (meta.bestDepth || 0) : 0);
-const spinCost = () => WHEEL_BASE_SPIN + (meta && meta.wheelSpins || 0) * WHEEL_SPIN_STEP;
-const resetWheelCost = () => WHEEL_BASE_RESET + (meta && meta.wheelResets || 0) * WHEEL_RESET_STEP;
+const spinCost = () => ECONOMY_RULES.wheelSpinCost(meta && meta.wheelSpins || 0);
+const resetWheelCost = () => ECONOMY_RULES.wheelResetCost(meta && meta.wheelResets || 0);
 function genWheelSlot() {
   const bd = wheelDepth();
   // v2 平衡奖池：装备合计仅 5%（稀有≥2 的 4% + 史诗≥3 的 1%）——

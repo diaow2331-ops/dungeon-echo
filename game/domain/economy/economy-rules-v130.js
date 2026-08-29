@@ -1,10 +1,8 @@
-/* Dungeon Echo staged economy rules v1.3.0.
+/* Dungeon Echo production economy-pricing-rules authority v1.3.0.
  *
- * Pure calculations extracted from the canonical core and quarantined commerce work.
- * This library owns NO production authority yet and is intentionally not shipped.
- *
- * Boundary rule: inventory/equipment decides an item's value score; economy only turns
- * that value into prices/costs. No duplicated equipment scoring lives here.
+ * Pure deterministic quote/cost calculations. Inventory/core supplies item-value inputs;
+ * core remains the owner of gold, stock, purchases, forge results, wheel lifecycle, RNG,
+ * rendering and persistence. Future dynamic town/heal helpers remain unadopted by core.
  */
 (() => {
   'use strict';
@@ -59,38 +57,30 @@
   }
 
   function forgeCost(itemValue, forgeLevel=0) {
-    const value = Math.max(0, Number(itemValue) || 0);
-    const level = nonNegativeInt(forgeLevel);
-    return 30 + Math.round(value * 1.2) * (level + 1);
+    return 30 + Math.round(itemValue * 1.2) * ((forgeLevel || 0) + 1);
   }
 
   function sellPrice(itemValue, forgeLevel=0) {
-    const value = Math.max(0, Number(itemValue) || 0);
-    const level = nonNegativeInt(forgeLevel);
-    return Math.max(4, Math.round(value * 0.45) + level * 15);
+    return Math.max(4, Math.round(itemValue * 0.45) + (forgeLevel || 0) * 15);
   }
 
-  function quickDiveCost(fromDepth, floors) {
-    const count = nonNegativeInt(floors);
-    const depth = Math.max(1, Math.floor(Number(fromDepth) || 1));
-    return count * (8 + depth * 4);
+  function quickDiveCost(fromDepth, n) {
+    const floors = Math.max(0, Math.floor(n) || 0);
+    return floors * (8 + Math.max(1, Math.floor(fromDepth)) * 4);
   }
 
   function wheelSpinCost(spins=0) {
-    return 40 + nonNegativeInt(spins) * 20;
+    return 40 + (spins || 0) * 20;
   }
 
   function wheelResetCost(resets=0) {
-    return 60 + nonNegativeInt(resets) * 40;
+    return 60 + (resets || 0) * 40;
   }
 
   const api = Object.freeze({
-    version:'v1.3.0-staged',
-    authority:'none',
-    sources:Object.freeze([
-      'game/core/game.js',
-      'archive/quarantine-v130/gameplay/economy/commerce-system.js',
-    ]),
+    version:'v1.3.0-production',
+    authority:'economy-pricing-rules',
+    sources:Object.freeze(['game/core/game.js']),
     round5,
     townTier,
     townPriceScale,
