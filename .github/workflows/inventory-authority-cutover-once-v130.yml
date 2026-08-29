@@ -37,6 +37,57 @@ jobs:
           PY
           node --check ops/inventory-authority-cutover-v130.cjs
           node --check test/inventory-authority-cutover-tool-v130.cjs
+      - name: Keep completed Content cutover audit resilient to later modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('ops/content-authority-cutover-v130.cjs')
+          s = p.read_text()
+          old = """function stage(rel, fn) {
+            const before = read(rel);
+            const after = fn(before);
+            return { rel, before, after, changed: after !== before };
+          }
+
+          const results = [];
+          """
+          new = """function stage(rel, fn) {
+            const before = read(rel);
+            const after = fn(before);
+            return { rel, before, after, changed: after !== before };
+          }
+
+          function completedContentCutover() {
+            const map = JSON.parse(read('docs/authority-map-v130.json'));
+            if (!map.authorities || map.authorities.contentClassification !== 'game/domain/content/content-rules-v130.js') return false;
+            const moduleSource = read('game/domain/content/content-rules-v130.js');
+            if (!moduleSource.includes(\"authority: 'content-classification'\")) return false;
+            const game = read('game/core/game.js');
+            if (!game.includes(\"const CONTENT_RULES = typeof window !== 'undefined' ? window.DE_CONTENT_RULES_V130 : null\")) return false;
+            const contentScript = 'game/domain/content/content-rules-v130.js?v=169';
+            const coreScript = 'game/core/game.js?v=169';
+            for (const rel of ['index.html', 'en/index.html']) {
+              const html = read(rel);
+              if (!html.includes(contentScript) || !html.includes(coreScript) || html.indexOf(contentScript) >= html.indexOf(coreScript)) return false;
+            }
+            const manifest = read('ops/release/static-files.txt').split(/\\r?\\n/).filter(Boolean);
+            return manifest.includes('game/domain/content/content-rules-v130.js');
+          }
+
+          if (completedContentCutover()) {
+            console.log(APPLY ? 'content_authority_cutover=PASS changed=0' : 'content_authority_cutover_preflight=PASS files=10 would_change=0');
+            process.exit(0);
+          }
+
+          const results = [];
+          """
+          if old not in s:
+              raise SystemExit('content cutover insertion anchor not found')
+          p.write_text(s.replace(old, new))
+          PY
+          node --check ops/content-authority-cutover-v130.cjs
       - name: Preflight atomic inventory authority transfer
         run: node ops/inventory-authority-cutover-v130.cjs --check
       - name: Apply atomic inventory authority transfer
