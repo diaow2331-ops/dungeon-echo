@@ -20,7 +20,7 @@ game/core/runtime-bootstrap.js
 game/systems/challenge-pressure.js
 game/systems/risk-reward-system.js
 game/ui/equipment-shop-ui.js
-game/core/release-stamp-v1212.js
+game/core/release-stamp-v130.js
 game/locale/fixed-locale-entry-v130.js
 game/locale/core-screen-owner-v153.js
 game/ui/town-workspace-v156.js
