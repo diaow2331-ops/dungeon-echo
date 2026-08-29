@@ -19,6 +19,7 @@ assert.equal(authority.authorities.contentClassification, 'game/domain/content/c
 assert.equal(authority.authorities.equipmentStatScoring, 'game/domain/inventory/equipment-rules-v130.js');
 assert.equal(authority.authorities.equipmentTransactionPricing, 'game/domain/economy/economy-rules-v130.js');
 assert.equal(authority.authorities.levelUpArithmetic, 'game/domain/progression/progression-rules-v130.js');
+assert.equal(authority.authorities.criticalDamageMultiplier, 'game/domain/combat/combat-rules-v130.js');
 assert.equal(authority.authorities.canvasRendering, 'game/core/game.js');
 assert.equal(authority.authorities.keyboardTouchInput, 'game/core/game.js');
 assert.equal(authority.authorities.gameplayPersistence, 'game/core/game.js');
@@ -132,6 +133,9 @@ assert(game.includes('PROGRESSION_RULES.xpThreshold(player.lvl)'), 'core must de
 assert(game.includes('PROGRESSION_RULES.levelUpDelta()'), 'core must delegate level-up delta');
 assert(game.includes('PROGRESSION_RULES.talentDue(player.lvl)'), 'core must delegate talent due');
 for (const dormant of ['progressionCaps','clampGrowthSnapshot','reachedEvolutionMilestones','nextEvolutionMilestone','nextTalentLevel']) assert(!game.includes(`PROGRESSION_RULES.${dormant}(`), `core unexpectedly adopted dormant progression helper ${dormant}`);
+assert(!game.includes("const pCritMul  = () => 1.8 + (player.critPower || 0) / 100;"), 'core still duplicates critical multiplier arithmetic');
+assert(game.includes("const pCritMul  = () => COMBAT_RULES.criticalMultiplier(player.critPower || 0);"), 'core must delegate critical multiplier');
+for (const dormant of ['warriorDamageReduction','totalDefense','grievousHealMultiplier','outgoingHitDamage','incomingMeleeDamage','incomingRangedDamage','thornsDamage','killHeal']) assert(!game.includes(`COMBAT_RULES.${dormant}(`), `core unexpectedly adopted dormant combat helper ${dormant}`);
 
 for (const token of [
   "heroAtlasV11.src = 'art/hero-atlas-v11.png'",
@@ -144,6 +148,7 @@ for (const token of [
   "const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null",
   "const ECONOMY_RULES = typeof window !== 'undefined' ? window.DE_ECONOMY_RULES_V130 : null",
   "const PROGRESSION_RULES = typeof window !== 'undefined' ? window.DE_PROGRESSION_RULES_V130 : null",
+  "const COMBAT_RULES = typeof window !== 'undefined' ? window.DE_COMBAT_RULES_V130 : null",
   "document.addEventListener('keydown'",
 ]) assert(game.includes(token), `canonical core contract missing: ${token}`);
 
@@ -170,6 +175,7 @@ for (const rel of [
   'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/progression/progression-rules-v130.js',
+  'game/domain/combat/combat-rules-v130.js',
   'art/hero-atlas-v11.png','art/monster-atlas-v11.png','art/guardian-atlas-v11.png',
   'art/final-boss-v11.png','art/town-backdrop-v11.webp',
 ]) {

@@ -9,6 +9,7 @@ game/domain/content/content-rules-v130.js
 game/domain/inventory/equipment-rules-v130.js
 game/domain/economy/economy-rules-v130.js
 game/domain/progression/progression-rules-v130.js
+game/domain/combat/combat-rules-v130.js
 game/core/game.js
 game/locale/core-locale-data-v139.js
 game/core/runtime-bootstrap.js
