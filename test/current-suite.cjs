@@ -13,7 +13,7 @@ const compat = path.join(__dirname, 'layout-compat.cjs');
 const tests = [
   'public-repo-safety.cjs',
   'repository-event-safety.cjs',
-  'production.cjs',
+  'current-production-entry-v132.cjs',
   'equipment-art-recovery-v131.cjs',
   'static-art-polish-v131.cjs',
   'hero-action-ui-recovery-v131.cjs',
@@ -25,6 +25,7 @@ const tests = [
   'current-save-contract-v132.cjs',
   'current-control-contract-v132.cjs',
   'adaptive-bgm-v132.cjs',
+  'forge-feedback-v132.cjs',
   'current-runtime-contract-v132.cjs',
   'wheel-death-reroll.cjs',
   'guardian-content.cjs',

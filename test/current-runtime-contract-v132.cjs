@@ -19,6 +19,7 @@ const productionFollowers = [
   'game/ui/help-copy-v126.js',
   'game/ui/theme-atmosphere-v131.js',
   'game/ui/adaptive-bgm-v132.js',
+  'game/ui/forge-feedback-v132.js',
 ];
 for (const file of productionFollowers) {
   ok(fs.existsSync(path.join(root, file)), `runtime target exists: ${file}`);
@@ -47,12 +48,15 @@ for (const file of retired) {
   ok(!manifest.includes(file), `retired runtime stays out of release: ${file}`);
 }
 
-ok(/assetVersion = '170'/.test(runtime) && /version:'v21'/.test(runtime), 'runtime stays on cache generation 170 with bootstrap v21');
+ok(/assetVersion = '170'/.test(runtime) && /version:'v22'/.test(runtime), 'runtime stays on cache generation 170 with bootstrap v22');
 ok(/renderOwner:'game\/core\/game\.js'/.test(runtime) && /inputOwner:'game\/core\/game\.js'/.test(runtime), 'core remains render/input authority');
 ok(/persistenceWriter:'game\/core\/game\.js'/.test(runtime), 'core remains persistence authority');
-ok(/followers:'presentation-only'/.test(runtime), 'runtime follower boundary matches current BGM recovery');
+ok(/followers:'presentation-only'/.test(runtime), 'runtime follower boundary remains presentation-only');
+ok(/audioFollower:'game\/ui\/adaptive-bgm-v132\.js'/.test(runtime), 'adaptive BGM boundary remains explicit');
+ok(/forgeFeedback:'game\/ui\/forge-feedback-v132\.js'/.test(runtime), 'forge feedback boundary is explicit');
 
 const staleSuiteEntries = [
+  'production.cjs',
   'runtime-debt-contract-v141.cjs',
   'progression-commitment.cjs',
   'extraction-channel.cjs',
@@ -64,6 +68,7 @@ const staleSuiteEntries = [
   'final-fixed-locale-v153.cjs',
 ];
 for (const name of staleSuiteEntries) ok(!suite.includes(`'${name}'`), `historical test is not a current gate: ${name}`);
+ok(suite.includes("'current-production-entry-v132.cjs'"), 'current suite uses the canonical production entry gate');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);
