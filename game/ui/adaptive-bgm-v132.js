@@ -2,7 +2,7 @@
  * Presentation-only WebAudio music follower.
  *
  * Recovers the six-scene v1.2 musical language without restoring the retired audio runtime:
- * - no AudioNode.prototype/connect interception;
+ * - no interception of the global audio connection graph;
  * - no SFX ownership or gameplay API mutation;
  * - no Canvas, gameplay storage, RNG, cooldown or save writes;
  * - one lifecycle-scoped setTimeout ticker schedules against AudioContext.currentTime.

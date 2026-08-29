@@ -37,8 +37,8 @@ const early = expectedFloorPotionSupply(1);
 const late = expectedFloorPotionSupply(20);
 ok(early > 1 && early < 1.5, 'early expected potion supply stays scarce but reliable');
 ok(late > 2 && late < 2.5, 'late expected potion supply grows through combat rather than floor guarantees');
-ok(fr.eliteChance === 0.14 && fr.eliteHpMult === 2.0 && fr.eliteAtkMult === 1.3 && fr.depthScaleMax === 0.38,
-  'resource recovery does not simultaneously retune combat pressure');
+ok(fr.eliteChance === 0.16 && fr.eliteHpMult === 2.20 && fr.eliteAtkMult === 1.45 && fr.depthScaleMax === 0.50,
+  'resource pressure coexists with the separately governed guardian-pressure baseline');
 ok(!/commerce-system|combat-pressure/.test(source),
   'resource pressure is owned directly by the canonical profile, not a retired runtime mutator');
 

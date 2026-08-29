@@ -433,6 +433,8 @@ const lootAtlas = new Image();
 lootAtlas.src = 'art/loot-atlas.png';
 const heroAtlasV11 = new Image();
 heroAtlasV11.src = 'art/hero-atlas-v11.png';
+const heroActionAtlasV2 = new Image();
+heroActionAtlasV2.src = 'art/hero-action-atlas-v2.svg';
 const monsterAtlasV11 = new Image();
 monsterAtlasV11.src = 'art/monster-atlas-v11.png';
 const deepMonsterAtlasV1 = new Image();
@@ -1376,26 +1378,63 @@ function addDecal(x, y) {
 }
 
 const TEXC = {};
+const THEME_MOTIFS = Object.freeze([
+  'masonry','moss','vein','ember','frost','ripple','rune','forge','web','star','crack',
+  'vein','frost','ember','rune','bone','star','dark','crack','rune','dark',
+]);
+function paintThemeMotif(g, motif, r, t, variant = 0) {
+  g.save();
+  g.globalAlpha = .34 + variant * .035;
+  g.strokeStyle = t.sp2; g.fillStyle = t.sp2; g.lineWidth = 1.15;
+  const line = pts => { g.beginPath(); pts.forEach(([x,y],i) => i ? g.lineTo(x,y) : g.moveTo(x,y)); g.stroke(); };
+  if (motif === 'masonry') {
+    for (let y=8;y<TILE;y+=8) { line([[2,y+.5],[TILE-2,y+.5]]); const x=((y/8+variant)%2?10:20); line([[x,y-8],[x,y]]); }
+  } else if (motif === 'moss') {
+    for (let i=0;i<6;i++) { const x=4+r()*(TILE-8), y=5+r()*(TILE-10); g.beginPath(); g.arc(x,y,1.3+r()*2,0,Math.PI*2); g.fill(); }
+  } else if (motif === 'vein') {
+    line([[3,25],[10+r()*4,18],[18+r()*3,20],[29,7]]); line([[15,19],[11,9]]);
+  } else if (motif === 'ember') {
+    for (let i=0;i<7;i++) { const x=4+r()*24,y=5+r()*22; g.globalAlpha=.18+r()*.34; g.fillRect(x,y,1.5+r()*2,1.5+r()*2); }
+  } else if (motif === 'frost') {
+    const cx=10+r()*12, cy=10+r()*12; for (let a=0;a<Math.PI;a+=Math.PI/3) { const dx=Math.cos(a)*8,dy=Math.sin(a)*8; line([[cx-dx,cy-dy],[cx+dx,cy+dy]]); }
+  } else if (motif === 'ripple') {
+    for (let i=0;i<3;i++) { g.beginPath(); g.ellipse(16,16,5+i*5,2+i*2.2,.2,0,Math.PI*2); g.stroke(); }
+  } else if (motif === 'rune') {
+    line([[7,24],[12,7],[18,23],[24,8]]); line([[10,16],[21,16]]);
+  } else if (motif === 'forge') {
+    g.strokeRect(6.5,6.5,19,19); for (const [x,y] of [[9,9],[23,9],[9,23],[23,23]]) { g.beginPath(); g.arc(x,y,1.5,0,Math.PI*2); g.fill(); }
+  } else if (motif === 'web') {
+    const cx=7+variant*4,cy=7; for (const [x,y] of [[30,6],[30,28],[7,30],[18,30]]) line([[cx,cy],[x,y]]); for (let rr=7;rr<23;rr+=6) { g.beginPath(); g.arc(cx,cy,rr,0,Math.PI*.65); g.stroke(); }
+  } else if (motif === 'star') {
+    for (let i=0;i<6;i++) { const x=4+r()*24,y=4+r()*24; g.fillRect(x,y,1.5,1.5); if (i<2) { line([[x-3,y],[x+4,y]]); line([[x,y-3],[x,y+4]]); } }
+  } else if (motif === 'crack') {
+    line([[4,5],[12,13],[9,20],[20,27],[28,21]]); line([[12,13],[21,10]]);
+  } else if (motif === 'bone') {
+    for (let i=0;i<3;i++) { const x=5+r()*20,y=7+r()*18; line([[x,y],[x+7,y+3]]); g.beginPath(); g.arc(x,y,1.5,0,Math.PI*2); g.arc(x+7,y+3,1.5,0,Math.PI*2); g.stroke(); }
+  } else if (motif === 'dark') {
+    for (let i=0;i<3;i++) { g.beginPath(); g.arc(7+r()*18,7+r()*18,2+r()*5,0,Math.PI*2); g.stroke(); }
+  }
+  g.restore();
+}
 function buildThemeTex(depthVal) {
   const ti = themeIdx(depthVal);
   if (TEXC[ti]) return;
   const t = THEMES[ti];
+  // Presentation construction owns a theme-local RNG. Building a Canvas must never advance
+  // gameplay RNG or alter future rooms, drops, combat rolls or equipment.
+  const texRng = makeRng(hashSeed(`theme-texture:${ti}`));
+  const tr = () => texRng();
+  const motif = THEME_MOTIFS[ti] || 'masonry';
   const floors = [];
   for (let v = 0; v < 4; v++) {
     const c = document.createElement('canvas'); c.width = c.height = TILE;
     const g = c.getContext('2d');
     g.fillStyle = v % 2 ? t.fl2 : t.fl; g.fillRect(0, 0, TILE, TILE);
     for (let i = 0; i < 18; i++) {
-      g.fillStyle = vfx() < .5 ? t.sp1 : t.sp2;
-      g.fillRect(Math.floor(vfx()*TILE), Math.floor(vfx()*TILE), 2 + Math.floor(vfx()*2), 2);
+      g.fillStyle = tr() < .5 ? t.sp1 : t.sp2;
+      g.fillRect(Math.floor(tr()*TILE), Math.floor(tr()*TILE), 2 + Math.floor(tr()*2), 2);
     }
-    if (v === 2) {
-      g.strokeStyle = t.sp1; g.lineWidth = 1.5; g.beginPath();
-      g.moveTo(6, 7); g.lineTo(17, 17); g.lineTo(15, 27); g.stroke();
-    }
-    if (v === 3) {
-      for (let i = 0; i < 3; i++) ell(g, 8 + rnd(18), 8 + rnd(18), 2.4, 1.8, t.sp2, t.sp1, 1);
-    }
+    paintThemeMotif(g, motif, tr, t, v);
     g.fillStyle = 'rgba(255,255,255,.035)'; g.fillRect(0, 0, TILE, 1); g.fillRect(0, 0, 1, TILE);
     g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(0, TILE - 1, TILE, 1); g.fillRect(TILE - 1, 0, 1, TILE);
     floors.push(c);
@@ -1411,6 +1450,7 @@ function buildThemeTex(depthVal) {
       g.beginPath(); g.moveTo(x + .5, r * 8); g.lineTo(x + .5, r * 8 + 8); g.stroke();
     }
   }
+  paintThemeMotif(g, motif, tr, t, 1);
   g.fillStyle = t.wh; g.fillRect(0, 0, TILE, 2.5);
   g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, TILE - 2.5, TILE, 2.5);
   TEXC[ti] = { floors, wall: w };
@@ -1457,6 +1497,51 @@ const FORGE_MAIN = {
   weapon: ['atk', 2], armor: ['def', 2], ring: ['hp', 4],
   helmet: ['def', 2], boots: ['hp', 4], amulet: ['crit', 3],
 };
+const FORGE_REFINEMENT_PATHS = Object.freeze({
+  weapon: Object.freeze([
+    Object.freeze({ id:'keen', zh:'锋锐', en:'Keen', zhDesc:'更稳定地走暴击路线。', enDesc:'Commit the weapon to a steadier critical-hit route.', refine:{crit:4}, master:{crit:4} }),
+    Object.freeze({ id:'blooded', zh:'饮血', en:'Blooded', zhDesc:'用持续吸血换取推进续航。', enDesc:'Trade raw burst for sustained leech while pushing deeper.', refine:{leech:3}, master:{leech:3} }),
+  ]),
+  armor: Object.freeze([
+    Object.freeze({ id:'bastion', zh:'壁垒', en:'Bastion', zhDesc:'把生存重心转向生命，而不是继续堆纯护甲。', enDesc:'Shift survivability toward HP instead of stacking only armor.', refine:{hp:20}, master:{hp:20} }),
+    Object.freeze({ id:'barbed', zh:'荆棘', en:'Barbed', zhDesc:'近战换血时获得更强反伤收益。', enDesc:'Gain stronger thorns value when trading hits in melee.', refine:{thorns:5}, master:{thorns:5} }),
+  ]),
+  helmet: Object.freeze([
+    Object.freeze({ id:'vital', zh:'生息', en:'Vital', zhDesc:'扩大生命池，提高失误容错。', enDesc:'Expand the HP pool to increase room for mistakes.', refine:{hp:18}, master:{hp:18} }),
+    Object.freeze({ id:'restoring', zh:'回春', en:'Restoring', zhDesc:'强化击杀后的长期续航。', enDesc:'Strengthen long-run sustain after kills.', refine:{regen:3}, master:{regen:2} }),
+  ]),
+  boots: Object.freeze([
+    Object.freeze({ id:'stout', zh:'稳步', en:'Stout', zhDesc:'以生命换取稳定推进。', enDesc:'Use extra HP to make forward progress more forgiving.', refine:{hp:16}, master:{hp:16} }),
+    Object.freeze({ id:'hunter', zh:'猎步', en:'Hunter', zhDesc:'轻量暴击方向，适合主动拉扯构筑。', enDesc:'A light crit route for active kiting builds.', refine:{crit:3}, master:{crit:3} }),
+  ]),
+  ring: Object.freeze([
+    Object.freeze({ id:'precision', zh:'洞察', en:'Precision', zhDesc:'把戒指定型为暴击核心。', enDesc:'Turn the ring into a critical-hit centerpiece.', refine:{crit:5}, master:{crit:5} }),
+    Object.freeze({ id:'sanguine', zh:'血契', en:'Sanguine', zhDesc:'把戒指定型为吸血续航核心。', enDesc:'Turn the ring into a leech-and-sustain centerpiece.', refine:{leech:4}, master:{leech:4} }),
+  ]),
+  amulet: Object.freeze([
+    Object.freeze({ id:'fury', zh:'狂意', en:'Fury', zhDesc:'直接强化攻击，适合高压输出路线。', enDesc:'Directly increase ATK for high-pressure damage routes.', refine:{atk:3}, master:{atk:3} }),
+    Object.freeze({ id:'focus', zh:'凝神', en:'Focus', zhDesc:'把项链定型为暴击/爆发方向。', enDesc:'Commit the amulet to a crit-and-burst route.', refine:{crit:5}, master:{crit:5} }),
+  ]),
+});
+function forgeRefinementPath(item) {
+  const rows = FORGE_REFINEMENT_PATHS[item && item.slot] || [];
+  return rows.find(row => row.id === item.refinePath) || null;
+}
+function addForgeStats(item, stats) {
+  if (!item || !stats) return;
+  item.stats = item.stats || {};
+  for (const [key, value] of Object.entries(stats)) item.stats[key] = (Number(item.stats[key]) || 0) + Number(value || 0);
+  item.score = eqScoreOf(item.stats);
+}
+function applyForgeMasterwork(item) {
+  if (!item || item.masterworked || (Number(item.forge) || 0) < FORGE_MAX) return null;
+  const path = forgeRefinementPath(item);
+  if (!path) return null;
+  addForgeStats(item, path.master);
+  item.masterworked = true;
+  item.masterworkVersion = 1;
+  return path;
+}
 // 经济价值与战斗适配评分分离：score/fitScore 继续回答“这件装备适不适合当前职业”，
 // itemValueScore 回答“这件物品本身值多少”。机制词缀进入后者，但不会吞掉属性维度。
 function mechanicValueBonus(it, statScore = eqScoreOf((it && it.stats) || {})) {
@@ -1563,7 +1648,13 @@ const pMaxHp = () => player.hpBase + eqStat('hp');
 const pAtk   = () => player.atkBase + eqStat('atk');
 // 战士被动「坚甲」：天生扁平减伤，随等级成长（1级+1，每5级+1）——近战换血的生存根基
 const warriorDr = () => (classId === 'warrior' ? 1 + Math.floor((player.lvl - 1) / 5) : 0);
-const pDef   = () => eqStat('def') + (player.flatDr || 0) + warriorDr();
+const pArmor = () => eqStat('def');
+const pFixedDr = () => (player.flatDr || 0) + warriorDr();
+const pDef = () => pArmor() + pFixedDr();
+const mitigatePlayerHit = (raw, armorScale = 1, ignoreArmor = false) => {
+  const armor = ignoreArmor ? 0 : Math.floor(pArmor() * Math.max(0, armorScale));
+  return Math.max(1, Math.round(raw) - armor - pFixedDr());
+};
 const pCrit  = () => {
   const crisis = mechanicPower('crisis');
   const crisisBonus = crisis && player.hp <= pMaxHp() * 0.40 ? (crisis >= 2 ? 20 : 12) : 0;
@@ -2163,7 +2254,7 @@ function monsterAttack(m, armorBreak = false) {
     return;
   }
   const raw = m.atk + ri(-1, 1);
-  let dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - pDef());
+  let dmg = mitigatePlayerHit(raw, 1, armorBreak);
   dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
     floater(player, ui('破甲重击!','ARMOR BREAK!'), '#e0a73a');
@@ -2171,7 +2262,7 @@ function monsterAttack(m, armorBreak = false) {
   } else {
     msg(ui(`${m.name}击中你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you for ${dmg} damage!`), 'bad');
   }
-  player.hp -= dmg;
+  player.hp -= dmg; player.hurtT = 1;
   armReprisal();
   floater(player, `-${dmg}`, '#ff6b6b');
   addTrauma(armorBreak ? 0.48 : 0.35); sfx.hurt();
@@ -2230,8 +2321,8 @@ function killMonster(m) {
   addDecal(m.x, m.y);
   msg(ui(`${m.name}被消灭了！（+${m.xp} 经验）`, `${visibleWorldName(m.name)} was slain! (+${m.xp} XP)`), 'good');
   if (boomHit) {
-    const dmg = Math.max(2, Math.round(m.atk * 0.55) - Math.floor(pDef() / 2));
-    player.hp -= dmg;
+    const dmg = Math.max(2, mitigatePlayerHit(Math.round(m.atk * 0.55), .5, false));
+    player.hp -= dmg; player.hurtT = 1;
     floater(player, `-${dmg}`, '#e0a73a');
     burst(m.fx, m.fy, '#e0a73a', 22);
     msg(ui(`${m.name} 炸裂开来，你受到 ${dmg} 点溅射伤害！`, `${visibleWorldName(m.name)} exploded, dealing ${dmg} splash damage to you!`), 'bad');
@@ -2715,8 +2806,8 @@ function triggerTrap(x, y) {
   const t = (traps || []).find(tr => tr.armed && tr.x === x && tr.y === y);
   if (!t) return;
   t.armed = false;
-  const dmg = Math.max(1, t.dmg - Math.floor(pDef() / 2));
-  player.hp -= dmg;
+  const dmg = mitigatePlayerHit(t.dmg, .5, false);
+  player.hp -= dmg; player.hurtT = 1;
   floater(player, `-${dmg}`, '#e0a73f');
   burst(x, y, '#e0a73f', 8);
   addTrauma(0.2);
@@ -3160,8 +3251,7 @@ function randomStep(m) {
 function monsterRangedAttack(m, armorBreak = false) {
   fireArrow(m.x, m.y, player.x, player.y);
   const raw = Math.round(m.atk * 0.8) + ri(-1, 1);
-  const effDef = Math.floor(pDef() / 2);
-  let dmg = armorBreak ? Math.max(1, raw) : Math.max(1, raw - effDef);
+  let dmg = mitigatePlayerHit(raw, .5, armorBreak);
   dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
     floater(player, ui('破甲重击!','ARMOR BREAK!'), '#e0a73a');
@@ -3169,7 +3259,7 @@ function monsterRangedAttack(m, armorBreak = false) {
   } else {
     msg(ui(`${m.name} 远程袭击你，造成 ${dmg} 点伤害！`, `${visibleWorldName(m.name)} hit you from range for ${dmg} damage!`), 'bad');
   }
-  player.hp -= dmg;
+  player.hp -= dmg; player.hurtT = 1;
   armReprisal();
   floater(player, `-${dmg}`, '#ff6b6b');
   addTrauma(armorBreak ? 0.45 : 0.32); sfx.hurt();
@@ -3648,7 +3738,15 @@ function drawEquippedHero(now) {
     ctx.beginPath(); ctx.ellipse(cx, cy + TILE * .34, 15 + best, 5 + best * .25, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
-  const pos = drawAtlasEntity(player, heroAtlasV11, heroIndex, 4, 1, 43, 52, now);
+  const hurtState = clamp(Number(player.hurtT) || 0, 0, 1) > .01;
+  const skillState = clamp(classSkillFxT, 0, 1) > .01;
+  const attackState = clamp(Number(player.lungeT) || 0, 0, 1) > .01;
+  // Sprite-state ownership stays in the canonical renderer: hurt > skill > attack > idle.
+  const actionCol = hurtState ? 2 : skillState ? 3 : attackState ? 1 : 0;
+  const useActionAtlas = imageReady(heroActionAtlasV2);
+  const heroImage = useActionAtlas ? heroActionAtlasV2 : heroAtlasV11;
+  const heroFrame = useActionAtlas ? heroIndex * 4 + actionCol : heroIndex;
+  const pos = drawAtlasEntity(player, heroImage, heroFrame, 4, useActionAtlas ? 4 : 1, 43, 52, now);
   const px = pos[0], py = pos[1];
   ctx.save();
   ctx.lineCap = 'round';
@@ -4228,7 +4326,7 @@ function restoreRun(raw) {
 
 // 弹窗打开期间锁定页面滚动，防止背景画布跟着滚动条上下摆动
 const UI_SCREENS = ['title-screen', 'class-screen', 'pause-screen', 'shop-screen',
-  'talent-screen', 'shrine-screen', 'echo-screen', 'town-screen', 'achv-screen', 'help-screen',
+  'talent-screen', 'refine-screen', 'shrine-screen', 'echo-screen', 'town-screen', 'achv-screen', 'help-screen',
   'overlay'];
 function syncUiLock() {
   const open = UI_SCREENS.some(id => { const el = $(id); return el && !el.classList.contains('hidden'); });
@@ -4981,6 +5079,49 @@ function ensureTownLoop() {
 }
 
 
+let activeRefineItem = null;
+function refinePathLabel(path) {
+  if (!path) return '';
+  return LOCALE_DATA && typeof LOCALE_DATA.refineName === 'function'
+    ? LOCALE_DATA.refineName(path.id) : ui(path.zh, path.en);
+}
+function refineStatText(stats) {
+  return Object.entries(stats || {}).map(([key, value]) =>
+    LOCALE_DATA && typeof LOCALE_DATA.affixText === 'function'
+      ? LOCALE_DATA.affixText(key, value) : `${key} +${value}`).join(' · ');
+}
+function pendingRefineItem() {
+  if (!meta) return null;
+  return [...(meta.bag || []), ...(meta.stash || [])].find(it => it && it.refinePending && !it.refinePath) || null;
+}
+function openForgeRefinement(item) {
+  if (state !== 'town' || !item || !item.refinePending || item.refinePath) return;
+  const rows = FORGE_REFINEMENT_PATHS[item.slot] || [];
+  if (!rows.length) { item.refinePending = false; return; }
+  activeRefineItem = item;
+  const title = $('refine-title'), copy = $('refine-copy'), grid = $('refine-grid');
+  if (title) title.textContent = ui(`+3 精炼：为【${visibleItemName(item)}】定一个方向`, `+3 Refinement: choose a path for [${visibleItemName(item)}]`);
+  if (copy) copy.textContent = ui('精炼不会失败，也不会毁坏装备。这个选择会在 +5 时自动继续淬炼强化。', 'Refinement cannot fail or destroy the item. Your choice receives a second automatic upgrade at +5.');
+  if (grid) grid.innerHTML = rows.map(path => `<button type="button" class="refine-choice" data-refine="${path.id}"><b>${esc(refinePathLabel(path))} · ${esc(refineStatText(path.refine))}</b><small>${esc(ui(path.zhDesc, path.enDesc))}</small></button>`).join('');
+  showUi('refine-screen');
+}
+function chooseForgeRefinement(pathId) {
+  const item = activeRefineItem;
+  if (!item || !item.refinePending || item.refinePath) return;
+  const path = (FORGE_REFINEMENT_PATHS[item.slot] || []).find(row => row.id === pathId);
+  if (!path) return;
+  item.refinePath = path.id;
+  item.refineVersion = 1;
+  item.refinePending = false;
+  addForgeStats(item, path.refine);
+  activeRefineItem = null;
+  hideUi('refine-screen');
+  sfx.levelup();
+  msg(ui(`精炼完成：【${visibleItemName(item)}】获得 ${refineStatText(path.refine)}。`, `Refinement complete: [${visibleItemName(item)}] gained ${refineStatText(path.refine)}.`), 'epic');
+  saveMeta(); renderTown();
+}
+
+
 function renderTown() {
   if (!meta) return;
   const head = $('town-head');
@@ -5005,14 +5146,28 @@ function renderTown() {
   const itemTag = it => {
     const f = it.forge || 0;
     const forgeTag = f ? ` +${f}` : '';
-    return `${esc(visibleItemName(it))}${forgeTag}<small>${ui(`${it.score} 分`, `Score ${it.score}`)}</small>`;
+    const fit = typeof INVENTORY_RULES.classFitScore === 'function' ? INVENTORY_RULES.classFitScore(it.stats || {}, meta.classId) : Number(it.score) || 0;
+    const equipped = meta.equip && meta.equip[it.slot];
+    const equippedFit = equipped && typeof INVENTORY_RULES.classFitScore === 'function'
+      ? INVENTORY_RULES.classFitScore(equipped.stats || {}, meta.classId) : null;
+    const delta = equippedFit === null ? null : fit - equippedFit;
+    const fitText = delta === null
+      ? ui(`职业适配 ${fit}`, `Class fit ${fit}`)
+      : ui(`职业适配 ${fit} · 较当前 ${delta >= 0 ? '+' : ''}${delta}`, `Class fit ${fit} · ${delta >= 0 ? '+' : ''}${delta} vs equipped`);
+    return `${esc(visibleItemName(it))}${forgeTag}<small>${ui(`${it.score} 分`, `Score ${it.score}`)} · ${esc(fitText)}</small>`;
   };
   const tradeBtns = (where, i, it) => {
     const fc = forgeCost(it);
     const maxed = (it.forge || 0) >= FORGE_MAX;
+    const pendingRefine = !!(it.refinePending && !it.refinePath);
+    const forgeDisabled = maxed || pendingRefine || meta.gold < fc;
+    const forgeTitle = pendingRefine
+      ? ui('先完成 +3 精炼，再继续强化。', 'Complete the +3 refinement before forging further.')
+      : maxed ? ui('已至 +5 极致','Maxed at +5')
+      : ui(`强化到 +${(it.forge || 0) + 1}，需 ${fc} G`, `Forge to +${(it.forge || 0) + 1} for ${fc} G`);
     return `<span class="row-actions">` +
-      `<button type="button" data-forge="${where}:${i}"${(maxed || meta.gold < fc) ? ' disabled' : ''}` +
-      ` title="${maxed ? ui('已至 +5 极致','Maxed at +5') : ui(`强化到 +${(it.forge || 0) + 1}，需 ${fc} G`, `Forge to +${(it.forge || 0) + 1} for ${fc} G`)}">${ui('强化','Forge')}</button>` +
+      `<button type="button" data-forge="${where}:${i}"${forgeDisabled ? ' disabled' : ''}` +
+      ` title="${forgeTitle}">${pendingRefine ? ui('待精炼','Refine') : ui('强化','Forge')}</button>` +
       `<button type="button" data-sell="${where}:${i}" title="${ui(`出售得 ${sellPrice(it)} G`, `Sell for ${sellPrice(it)} G`)}">${ui(`卖 ${sellPrice(it)}G`, `Sell ${sellPrice(it)}G`)}</button>` +
       `</span>`;
   };
@@ -5058,6 +5213,8 @@ function renderTown() {
       `<button type="button" data-wheelreset="1"${(meta.gold < rc || wheelBusy) ? ' disabled' : ''}` +
       ` title="${ui(`重摇全部八格，需 ${rc} G`, `Reroll all eight slots for ${rc} G`)}">${ui(`重置轮盘 ${rc} G`, `Reset Wheel ${rc} G`)}</button></div>`;
   }
+  const pending = pendingRefineItem();
+  if (pending && $('refine-screen') && $('refine-screen').classList.contains('hidden')) openForgeRefinement(pending);
 }
 function depositStash(i) {
   if (state !== 'town' || !meta) return;
@@ -5097,6 +5254,11 @@ function forgeItem(where, i) {
   if (!it) return;
   const lvl = it.forge || 0;
   if (lvl >= FORGE_MAX) { msg(ui('这件装备已经强化到极致（+5）。','This item is already maxed at +5.')); return; }
+  if (it.refinePending && !it.refinePath) {
+    msg(ui('先完成这件装备的 +3 精炼，再继续强化。',"Complete this item's +3 refinement before forging further."), 'bad');
+    openForgeRefinement(it);
+    return;
+  }
   const cost = forgeCost(it);
   if (meta.gold < cost) {
     msg(ui(`金库金币不够——强化到 +${lvl + 1} 需要 ${cost} G。去地牢里再搜刮一番！`, `Not enough vault Gold — forging to +${lvl + 1} costs ${cost} G.`), 'bad');
@@ -5108,8 +5270,16 @@ function forgeItem(where, i) {
   it.stats = it.stats || {};
   it.stats[k] = (it.stats[k] || 0) + v;
   it.score = eqScoreOf(it.stats);
+  if (it.forge === 3 && !it.refinePath) {
+    it.refinePending = true;
+    it.refineVersion = 1;
+  }
+  const masterPath = it.forge === 5 ? applyForgeMasterwork(it) : null;
   sfx.levelup();
-  msg(ui(`锻造成功！【${it.name}】强化至 +${it.forge}，花费 ${cost} G。`, `Forge success! [${visibleItemName(it)}] reached +${it.forge} for ${cost} G.`), 'epic');
+  const finish = masterPath
+    ? ui(` · ${refinePathLabel(masterPath)}淬炼完成`, ` · ${refinePathLabel(masterPath)} Masterwork completed`)
+    : it.refinePending ? ui(' · 等待 +3 精炼选择', ' · +3 refinement choice ready') : '';
+  msg(ui(`锻造成功！【${visibleItemName(it)}】强化至 +${it.forge}，花费 ${cost} G${finish}。`, `Forge success! [${visibleItemName(it)}] reached +${it.forge} for ${cost} G${finish}.`), 'epic');
   saveMeta(); renderTown();
 }
 function withdrawStash(i) {
@@ -5527,6 +5697,12 @@ if ($('talent-grid')) $('talent-grid').addEventListener('click', e => {
   if (!btn) return;
   ensureAudio();
   pickTalent(btn.dataset.talent);
+});
+if ($('refine-grid')) $('refine-grid').addEventListener('click', e => {
+  const btn = e.target.closest('[data-refine]');
+  if (!btn) return;
+  ensureAudio();
+  chooseForgeRefinement(btn.dataset.refine);
 });
 if ($('btn-shrine-ok')) $('btn-shrine-ok').addEventListener('click', () => { ensureAudio(); applyShrine(); });
 if ($('btn-shrine-leave')) $('btn-shrine-leave').addEventListener('click', () => {

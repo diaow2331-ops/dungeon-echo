@@ -555,7 +555,7 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 .skillstat b.cd { color: var(--danger); }
 
 #title-screen, #class-screen, #pause-screen, #shop-screen,
-#talent-screen, #shrine-screen, #echo-screen, #town-screen,
+#talent-screen, #refine-screen, #shrine-screen, #echo-screen, #town-screen,
 #achv-screen, #help-screen {
   position: fixed;
   inset: 0;
@@ -602,11 +602,11 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 }
 /* 矮窗口下长卡片不被裁剪：margin auto 居中且可滚动 */
 #title-screen > .title-card, #class-screen > .title-card, #pause-screen > .title-card,
-#shop-screen > .title-card, #talent-screen > .title-card, #shrine-screen > .title-card,
+#shop-screen > .title-card, #talent-screen > .title-card, #refine-screen > .title-card, #shrine-screen > .title-card,
 #echo-screen > .title-card, #town-screen > .title-card, #achv-screen > .title-card,
 #help-screen > .title-card { margin: auto; }
 #title-screen.hidden, #class-screen.hidden, #pause-screen.hidden, #shop-screen.hidden,
-#talent-screen.hidden, #shrine-screen.hidden, #echo-screen.hidden, #town-screen.hidden,
+#talent-screen.hidden, #refine-screen.hidden, #shrine-screen.hidden, #echo-screen.hidden, #town-screen.hidden,
 #achv-screen.hidden, #help-screen.hidden { display: none; }
 
 #descend-fab {
@@ -649,13 +649,18 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
   font: 11px/1.2 Consolas, monospace;
 }
 
-#talent-grid {
+#talent-grid, #refine-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 8px 0 8px;
   text-align: left;
 }
+#refine-screen { z-index: 42; }
+#refine-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.refine-choice { min-height: 112px; text-align: left; }
+.refine-choice b { display: block; margin-bottom: 7px; color: var(--accent-hi); }
+.refine-choice small { display: block; color: var(--muted); line-height: 1.45; }
 
 
 .title-card {
@@ -834,7 +839,7 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
 @media (max-width: 900px) {
   #minimap { width: 120px; height: 84px; right: 6px; bottom: 6px; }
   #class-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #talent-grid { grid-template-columns: 1fr; }
+  #talent-grid, #refine-grid { grid-template-columns: 1fr; }
   .title-card button.class-card { min-height: 340px; }
   #actions { grid-template-columns: repeat(3, minmax(88px, 1fr)); }
   canvas#game { width: min(100%, 544px); justify-self: center; }

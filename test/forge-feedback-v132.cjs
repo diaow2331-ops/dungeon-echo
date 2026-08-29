@@ -27,7 +27,7 @@ ok(!/refinePath|refineName|masterworked|DE_FORGE_REFINEMENT|data-de-refine/.test
 ok(!/localStorage/.test(src), 'feedback writes no storage');
 ok(!/getContext\(|requestAnimationFrame|MutationObserver|setInterval\(/.test(src), 'feedback owns no Canvas, RAF, observer or polling interval');
 ok(!/preventDefault|stopPropagation|stopImmediatePropagation/.test(src), 'feedback observes input without capturing control flow');
-ok(!/api\.[A-Za-z_$][\w$]*\s*=/.test(src), 'feedback never assigns into gameplay APIs');
+ok(!/api\.[A-Za-z_$][\w$]*\s*=(?!=)/.test(src), 'feedback never assigns into gameplay APIs');
 ok(!/\.gold\s*[-+*/]?=|\.forge\s*[-+*/]?=|\.stats\s*=/.test(src), 'feedback does not mutate item or economy state');
 
 ok(/const FORGE_MAX = 5/.test(core), 'core remains forge cap authority');

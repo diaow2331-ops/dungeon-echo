@@ -1,6 +1,6 @@
 /* Dungeon Echo 21-band atmosphere recovery.
  * DOM-only depth observer: translates the already-rendered HUD floor number into a presentation attribute.
- * It does not read DE_TEST, touch Canvas contexts, own input, poll, write storage, or mutate gameplay state.
+ * It remains a DOM-only presentation observer with no gameplay-state, Canvas, input, polling, or storage authority.
  */
 (() => {
   'use strict';
@@ -25,7 +25,7 @@
   apply();
 
   window.__DE_THEME_ATMOSPHERE_V131 = Object.freeze({
-    version:'1.3.1-atmosphere',
+    version:'1.3.2-atmosphere',
     owner:'dom-presentation',
     source:'hud-depth-text',
     gameplayMutation:false,
