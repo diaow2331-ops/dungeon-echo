@@ -11,16 +11,18 @@ const executableSource = source
   .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
-assert.equal(rules.authority, 'none');
-assert.equal(rules.version, 'v1.3.0-staged');
-assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|fetch\s*\(|Math\.random/.test(executableSource), 'staged combat rules must stay pure, deterministic and disconnected');
+assert.equal(rules.authority, 'critical-damage-multiplier');
+assert.equal(rules.version, 'v1.3.0-production');
+assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|fetch\s*\(|Math\.random/.test(executableSource), 'production combat rules must stay pure and deterministic');
 
 const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8')
   .split(/\r?\n/).filter(Boolean);
-assert(!manifest.includes(rel), 'staged combat rules must not enter release before atomic authority transfer');
+assert(manifest.includes(rel), 'production combat rules must ship exactly once');
+assert.equal(manifest.filter(x => x === rel).length, 1, 'combat rules duplicated in release allowlist');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(!html.includes(rel), `${entry}: staged combat rules must not be loaded in production`);
+  assert.equal((html.match(/game\/domain\/combat\/combat-rules-v130\.js\?v=169/g) || []).length, 1, `${entry}: combat rules must load exactly once`);
+  assert(html.indexOf('game/domain/combat/combat-rules-v130.js?v=169') < html.indexOf('game/core/game.js?v=169'), `${entry}: combat authority must load before core`);
 }
 
 assert.equal(rules.warriorDamageReduction('warrior', 1), 1);

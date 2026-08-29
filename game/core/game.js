@@ -1363,7 +1363,10 @@ const pLeech = () => (player.leechBase || 0) + eqStat('leech');
 const pGoldBonus = () => (player.goldFind || 0) + eqStat('gold');
 const pThorns   = () => (player.thornsBase || 0) + eqStat('thorns');
 const pKillHeal = () => (player.regenBase || 0) + eqStat('regen');
-const pCritMul  = () => 1.8 + (player.critPower || 0) / 100;
+const COMBAT_RULES = typeof window !== 'undefined' ? window.DE_COMBAT_RULES_V130 : null;
+if (!COMBAT_RULES || COMBAT_RULES.authority !== 'critical-damage-multiplier')
+  throw new Error('Dungeon Echo critical-damage-multiplier authority missing');
+const pCritMul  = () => COMBAT_RULES.criticalMultiplier(player.critPower || 0);
 const pPlunder  = () => 1 + (player.plunder || 0) / 100;
 // —— 可读反制：隐藏随机穿甲已移除 ——
 // 普通攻击永远按护甲结算；高 DEF 不再提高任何隐藏的无视护甲概率。

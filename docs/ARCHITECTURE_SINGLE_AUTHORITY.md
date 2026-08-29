@@ -15,6 +15,7 @@ A feature may be split into data, rendering helpers, tests and archived prototyp
 | Equipment stat scoring | `game/domain/inventory/equipment-rules-v130.js` | return the canonical deterministic equipment stat score to core | mutate bag/equipment/player state, consume RNG, generate loot, alter class-fit/rarity/depth rules, or price economy transactions |
 | Equipment transaction pricing | `game/domain/economy/economy-rules-v130.js` | quote canonical forge/sell prices from supplied item value + forge level | value items, mutate gold/stock/items, commit transactions, or own town/heal/quick-dive/wheel pricing |
 | Level-up arithmetic | `game/domain/progression/progression-rules-v130.js` | calculate XP threshold, level deltas and talent-due classification | mutate XP/player state, open talent UI, enforce caps/clamps or activate skill-evolution milestones |
+| Critical-damage multiplier | `game/domain/combat/combat-rules-v130.js` | calculate the canonical critical damage multiplier from caller-supplied crit power | roll critical hits, mutate actors, sequence attacks, or own other combat/defense/healing arithmetic |
 | Dungeon + town Canvas rendering | `game/core/game.js` | supply static art/data | obtain production Canvas contexts, mask/redraw entities |
 | Keyboard + touch gameplay commands | `game/core/game.js` | transport standard commands | register competing gameplay key/click handlers |
 | Gamepad input | `game/input/desktop-controls.js` | translate pad input to canonical commands | call gameplay systems or mutate state/storage |
@@ -40,7 +41,7 @@ Quarantine is not a trash can. It is the staging area for previously completed w
 
 ## Current staged domain shelves
 
-The currently staged pure libraries are registered in `docs/authority-map-v130.json` and include town and combat rules. Content classification, equipment stat scoring, equipment transaction pricing and level-up arithmetic have completed their atomic authority transfers and are now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.
+The currently staged pure libraries are registered in `docs/authority-map-v130.json` and currently include town rules only. Content classification, equipment stat scoring, equipment transaction pricing, level-up arithmetic and the critical-damage multiplier have completed their atomic authority transfers and are now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.
 
 Cross-responsibility boundaries are strict:
 
@@ -49,7 +50,7 @@ Cross-responsibility boundaries are strict:
 - progression currently owns only XP thresholds, level deltas and talent-due classification; caps/clamps/next-talent/skill-evolution helpers remain dormant until separately transferred;
 - content classifies floor eligibility without spawning or consuming RNG;
 - town owns checkpoint/readiness policy only;
-- combat performs deterministic math from supplied values only.
+- combat currently owns only the canonical critical-damage multiplier; defense, grievous/healing, incoming/outgoing damage, thorns and kill-heal helpers remain dormant pure exports.
 
 ## Restoring a quarantined feature
 

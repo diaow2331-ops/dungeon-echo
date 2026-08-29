@@ -1,7 +1,8 @@
-/* Dungeon Echo staged combat rules v1.3.0.
+/* Dungeon Echo production combat rules v1.3.0.
  *
  * Pure deterministic combat math extracted from the canonical core and quarantined
- * defense/combat-pressure work. This library owns NO production authority yet.
+ * defense/combat-pressure work. This library owns only the canonical critical-damage
+ * multiplier in production; all other helpers remain dormant pure exports.
  *
  * Boundary rule: combat rules calculate from caller-supplied values only. They do not
  * consume RNG, mutate actors, advance turns, emit VFX/audio, listen to input or persist.
@@ -58,12 +59,10 @@
   }
 
   const api = Object.freeze({
-    version: 'v1.3.0-staged',
-    authority: 'none',
+    version: 'v1.3.0-production',
+    authority: 'critical-damage-multiplier',
     sources: Object.freeze([
       'game/core/game.js',
-      'archive/quarantine-v130/gameplay/combat/defense-system.js',
-      'archive/quarantine-v130/gameplay/combat/combat-pressure.js',
     ]),
     warriorDamageReduction,
     totalDefense,
