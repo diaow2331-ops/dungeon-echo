@@ -1,108 +1,98 @@
 'use strict';
-const fs = require('fs');
-const path = require('path');
-const vm = require('vm');
+const fs=require('fs'),path=require('path'),assert=require('assert'),vm=require('vm');
+const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const core=read('game/core/game.js'),docs=read('docs/SKILL_EVOLUTION.md');
+assert(!fs.existsSync(path.join(root,'progression-system.js')),'retired root progression wrapper must remain absent');
+assert(core.includes('const SKILL_EVOLUTION_ROWS = {'),'evolution data must live in canonical core');
+assert(core.includes('id, ui(zhName, enName), ui(zhDesc, enDesc)'),'evolution data must use canonical core locale helper');
+const evoStart=core.indexOf('const EVO ='),evoEnd=core.indexOf('function hashSeed',evoStart);
+assert(evoStart>=0&&evoEnd>evoStart,'evolution initialization block must be bounded');
+const sandbox={ui:(zh,en)=>en,player:null,depth:100,classId:'warrior'}; vm.createContext(sandbox);
+vm.runInContext(core.slice(evoStart,evoEnd)+'\n;globalThis.__evoCount=Object.keys(SKILL_EVOLUTION_TALENTS).length;',sandbox,{filename:'skill-evolution-init.js'});
+assert.equal(sandbox.__evoCount,32,'evolution initialization must execute and materialize 32 choices');
+assert(core.includes('function pendingSkillEvolution()'),'core must own milestone delivery');
+assert(core.includes('for (const milestone of SKILL_EVOLUTION_MILESTONES)'),'earliest-missing milestone scan required');
+assert(core.includes('const evolutionPicks = pendingSkillEvolution();'),'talent screen must prioritize a pending evolution pair');
+assert(core.includes('if (evolutionPicks) picks.push(...pool);'),'pending milestone must expose exactly its pair, not random ordinary talents');
+assert(core.includes("TALENTS.find(x => x.id === id) || skillEvolutionTalent(id)"),'pickTalent must accept stable evolution ids');
+const ids=[...core.matchAll(/EVO\('(se_[^']+)'/g)].map(m=>m[1]);
+assert.equal(ids.length,32,'must contain 32 reviewed evolution choices');
+assert.equal(new Set(ids).size,32,'all evolution ids must be unique');
+for(const c of ['w','r','m','a']) for(const d of [20,40,60,80])
+  assert.equal(ids.filter(id=>id.startsWith(`se_${c}${d}_`)).length,2,`${c} floor ${d} must have exactly two choices`);
+assert(core.includes('function useBaseSkill() {')&&core.includes('function useSkill() {'),'base cast must be wrapped inside core, not an external runtime');
+assert(core.includes('finally { p.atkBase=originalAtk; p.flatDr=originalDr; p.skillHaste=originalHaste; }'),'temporary cast stats must always restore');
+assert(core.includes('let skillFollowup = null;'),'follow-up attack state must be transient module state');
+assert(core.includes('function consumeSkillFollowup()'),'core must own follow-up consumption');
+const melee=core.slice(core.indexOf('function playerAttack('),core.indexOf('function findRangedTarget('));
+const ranged=core.slice(core.indexOf('function playerRangedAttack('),core.indexOf('function monsterAttack('));
+assert(melee.includes('consumeSkillFollowup()')&&ranged.includes('consumeSkillFollowup()'),'melee and ranged shared core paths must consume follow-up');
+assert(!core.includes('window.DE_SKILL_EVOLUTION'),'no old global wrapper API should return');
+assert(!core.includes('Press J to attack in your facing direction. Press K to use'),'legacy English K/J skill hint must be gone');
+assert(core.includes('Press C to use ${c.skill.name}. Move into an enemy to attack.'),'English launch hint must match current C contract');
+assert(docs.includes('`C` hotkey'),'formal skill-evolution docs must match production C input');
+console.log('skill_evolution_core_v131=PASS');
 
-let pass = 0, fail = 0;
-function ok(cond, name) {
-  if (cond) { pass++; console.log('  PASS ' + name); }
-  else { fail++; console.log('  FAIL ' + name); }
+// Execute the actual core evolution functions against a minimal deterministic combat sandbox.
+{
+  const dataStart=core.indexOf('const EVO ='),dataEnd=core.indexOf('function hashSeed',dataStart);
+  const castStart=core.indexOf('function skillEvolutionVisibleMonsters()'),castEnd=core.indexOf('function descend()',castStart);
+  assert(dataStart>=0&&dataEnd>dataStart&&castStart>=0&&castEnd>castStart,'core evolution executable regions must be discoverable');
+  const sb={
+    console, ui:(zh,en)=>en,
+    state:'playing',classId:'warrior',depth:20,turns:0,
+    player:{x:5,y:5,hp:70,hpBase:100,atkBase:10,flatDr:0,skillHaste:0,skillCd:0,equip:{},talents:[]},
+    monsters:[],npcs:[],visible:Array.from({length:12},()=>Array(12).fill(true)),
+    msg(){},
+  };
+  sb.pAtk=()=>sb.player.atkBase;
+  sb.pMaxHp=()=>sb.player.hpBase;
+  sb.walkable=()=>true;
+  sb.monsterAt=(x,y)=>sb.monsters.find(m=>m.x===x&&m.y===y)||null;
+  sb.npcAt=()=>null;
+  sb.applyDamageToMonster=(m,dmg)=>{m.hp-=dmg;if(m.hp<=0)sb.monsters.splice(sb.monsters.indexOf(m),1);};
+  sb.useBaseSkill=()=>{sb.turns++;sb.player.skillCd=5;};
+  vm.createContext(sb);
+  vm.runInContext(core.slice(dataStart,dataEnd)+core.slice(castStart,castEnd)+`\n;globalThis.__evo={pendingSkillEvolution,useSkill,consumeSkillFollowup};`,sb,{filename:'skill-evolution-behavior.js'});
+
+  let pair=sb.__evo.pendingSkillEvolution();
+  assert.equal(pair.length,2); assert(pair.every(t=>t.id.startsWith('se_w20_')),'Floor 20 must offer the warrior pair');
+  sb.player.talents=['se_w20_guard']; sb.depth=40;
+  pair=sb.__evo.pendingSkillEvolution();
+  assert.equal(pair.length,2); assert(pair.every(t=>t.id.startsWith('se_w40_')),'earliest missing milestone must advance to Floor 40');
+
+  sb.depth=20; sb.player.talents=['se_w20_guard']; sb.player.skillCd=0; sb.turns=0;
+  sb.monsters=[{x:6,y:5,hp:30,maxHp:30,def:0}];
+  let drSeen=-1; sb.useBaseSkill=()=>{drSeen=sb.player.flatDr;sb.turns++;sb.player.skillCd=5;};
+  sb.__evo.useSkill();
+  assert.equal(drSeen,3,'Guard Stance must exist during the cast turn');
+  assert.equal(sb.player.flatDr,0,'Guard Stance must not leak permanent DR');
+
+  sb.player.talents=['se_w20_arc'];sb.player.skillCd=0;sb.turns=0;sb.player.atkBase=10;
+  const diag={x:6,y:6,hp:30,maxHp:30,def:0};sb.monsters=[{x:6,y:5,hp:30,maxHp:30,def:0},diag];
+  sb.useBaseSkill=()=>{sb.turns++;sb.player.skillCd=5;};sb.__evo.useSkill();
+  assert(diag.hp<30,'Arc Sweep must damage a diagonal secondary target');
+
+  sb.classId='mage';sb.depth=20;sb.player.talents=['se_m20_fork'];sb.player.skillCd=0;sb.turns=0;sb.player.x=1;sb.player.y=1;
+  const primary={x:3,y:1,hp:30,maxHp:30,def:0},secondary={x:4,y:1,hp:30,maxHp:30,def:0};sb.monsters=[primary,secondary];
+  sb.useBaseSkill=()=>{sb.turns++;sb.player.skillCd=5;};sb.__evo.useSkill();
+  assert(secondary.hp<30,'Forked Arcana must damage the second visible target');
+
+  sb.classId='ranger';sb.depth=40;sb.player.talents=['se_r40_hunt'];sb.player.skillCd=0;sb.turns=0;sb.player.x=1;sb.player.y=1;
+  sb.monsters=[{x:2,y:1,hp:1,maxHp:1,def:0}];
+  sb.useBaseSkill=()=>{sb.monsters=[];sb.turns++;sb.player.skillCd=5;};sb.__evo.useSkill();
+  assert.equal(sb.player.skillCd,0,'Hunt Continues must reset cooldown after a skill kill');
+
+  sb.classId='assassin';sb.depth=20;sb.player.talents=['se_a20_execute'];sb.player.skillCd=0;sb.turns=0;sb.player.atkBase=10;
+  sb.monsters=[{x:2,y:1,hp:4,maxHp:10,def:0}];let atkSeen=0;
+  sb.useBaseSkill=()=>{atkSeen=sb.player.atkBase;sb.turns++;sb.player.skillCd=5;};sb.__evo.useSkill();
+  assert(atkSeen>10,'Execution Line must raise ATK for a low-health target cast');
+  assert.equal(sb.player.atkBase,10,'Execution Line must restore permanent ATK');
+
+  sb.classId='ranger';sb.depth=60;sb.player.talents=['se_r60_marksman'];sb.player.skillCd=0;sb.turns=0;sb.monsters=[];
+  sb.useBaseSkill=()=>{sb.turns++;sb.player.skillCd=5;};sb.__evo.useSkill();
+  const follow=sb.__evo.consumeSkillFollowup();
+  assert(follow&&follow.scale===.35,'Drawstring Momentum must arm the reviewed +35% follow-up');
+  assert.equal(sb.__evo.consumeSkillFollowup(),null,'follow-up must be consumed exactly once');
 }
-
-const listeners = {};
-global.document = {
-  documentElement:{dataset:{deLocale:'zh-CN'}},
-  getElementById() { return null; },
-  addEventListener(type, fn) { (listeners[type] ||= []).push(fn); },
-};
-global.setInterval = () => 1;
-global.clearInterval = () => {};
-
-const baseIds = ['iron','edge','luck','blood','haste','pack','gold','ward','bramble','scavenge','elixir','frenzy','tenacity','plunder','stone','echoborn'];
-const talents = baseIds.map(id => ({ id, name: id, desc: id, apply() {} }));
-let classId = 'warrior';
-const grid = Array.from({ length: 10 }, () => Array(10).fill(1));
-const player = {
-  x: 5, y: 5, hp: 70, hpBase: 100, atkBase: 10, flatDr: 0, skillHaste: 0,
-  skillCd: 0, equip: {}, talents: [],
-};
-const api = {
-  profileId: 'classic-100', TALENTS: talents, depth: 20, state: 'playing', turns: 0,
-  player, monsters: [], npcs: [], mapGrid: grid,
-  get classId() { return classId; },
-  pMaxHp: () => 100,
-  applyDamageToMonster(m, dmg) {
-    m.hp -= dmg;
-    if (m.hp <= 0) api.monsters.splice(api.monsters.indexOf(m), 1);
-  },
-  useSkill() { api.turns++; player.skillCd = 5; },
-};
-global.window = { DE_TEST: api, addEventListener() {} };
-
-const source = fs.readFileSync(path.resolve(__dirname, '..', 'progression-system.js'), 'utf8');
-vm.runInThisContext(source, { filename: 'progression-system.js' });
-
-ok(window.__DE_PROGRESSION_SYSTEM === 'v3', 'progression bridge reports v3');
-ok((listeners.keydown || []).length === 1 && (listeners.click || []).length === 1,
-  'progression no longer registers a second keyboard-only follow-up attack listener');
-ok(window.DE_SKILL_EVOLUTION.nextAttackOwner === 'mechanics-integrity',
-  'cross-input mechanics layer is the single owner of next-attack consumption');
-ok(api.TALENTS.length === 2 && api.TALENTS.every(t => t.id.startsWith('se_w20_')),
-  'floor 20 exposes exactly two warrior skill evolutions');
-
-player.talents = ['se_w20_guard'];
-api.depth = 40;
-const pending40 = window.DE_SKILL_EVOLUTION.pending();
-ok(pending40 && pending40.length === 2 && pending40.every(t => t.id.startsWith('se_w40_')),
-  'next missing milestone advances to floor 40');
-
-let drSeen = -1;
-api.useSkill = () => { drSeen = player.flatDr; api.turns++; player.skillCd = 5; };
-api.monsters = [{ x: 6, y: 5, hp: 30, maxHp: 30, def: 0 }];
-api.depth = 20; player.talents = ['se_w20_guard']; player.skillCd = 0;
-window.DE_SKILL_EVOLUTION.cast();
-ok(drSeen === 3 && player.flatDr === 0, 'warrior guard applies only during the skill turn');
-
-player.talents = ['se_w20_arc']; player.skillCd = 0; api.turns = 0;
-const diagonal = { x: 6, y: 6, hp: 30, maxHp: 30, def: 0 };
-api.monsters = [{ x: 6, y: 5, hp: 30, maxHp: 30, def: 0 }, diagonal];
-api.useSkill = () => { api.turns++; player.skillCd = 5; };
-window.DE_SKILL_EVOLUTION.cast();
-ok(diagonal.hp < 30, 'warrior arc damages a diagonal secondary target');
-
-classId = 'mage'; player.talents = ['se_m20_fork']; player.skillCd = 0; api.depth = 20;
-player.x = 1; player.y = 1;
-const primary = { x: 3, y: 1, hp: 30, maxHp: 30, def: 0 };
-const secondary = { x: 4, y: 1, hp: 30, maxHp: 30, def: 0 };
-api.monsters = [primary, secondary];
-api.useSkill = () => { api.turns++; player.skillCd = 4; };
-window.DE_SKILL_EVOLUTION.cast();
-ok(secondary.hp < 30, 'mage fork damages the second visible target');
-
-classId = 'ranger'; player.talents = ['se_r40_hunt']; player.skillCd = 0;
-api.monsters = [{ x: 2, y: 2, hp: 1, maxHp: 1, def: 0 }];
-api.useSkill = () => { api.monsters = []; api.turns++; player.skillCd = 5; };
-window.DE_SKILL_EVOLUTION.cast();
-ok(player.skillCd === 0, 'ranger hunt resets cooldown on a skill kill');
-
-classId = 'assassin'; player.talents = ['se_a20_execute']; player.skillCd = 0;
-player.x = 1; player.y = 1;
-const prey = { x: 2, y: 1, hp: 4, maxHp: 10, def: 0 };
-api.monsters = [prey];
-let atkSeen = 0;
-api.useSkill = () => { atkSeen = player.atkBase; api.turns++; player.skillCd = 5; };
-window.DE_SKILL_EVOLUTION.cast();
-ok(atkSeen > 10 && player.atkBase === 10,
-  'assassin execute boosts a low-health target cast without leaking base attack');
-
-classId = 'warrior';
-player.talents = ['se_w20_guard', 'se_w60_pressure']; player.skillCd = 0; api.depth = 60;
-api.monsters = [{ x: 9, y: 9, hp: 30, maxHp: 30, def: 0 }];
-const baseAtk = player.atkBase, baseDr = player.flatDr, baseHaste = player.skillHaste;
-api.useSkill = () => {};
-window.DE_SKILL_EVOLUTION.cast();
-ok(player.atkBase === baseAtk && player.flatDr === baseDr && player.skillHaste === baseHaste,
-  'failed casts do not leak temporary permanent stats');
-
-console.log(`\nSkill evolution: ${pass} passed, ${fail} failed`);
-if (fail) process.exit(1);
+console.log('skill_evolution_behavior_v131=PASS');

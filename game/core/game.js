@@ -190,6 +190,190 @@ const TALENTS = [
   { id: 'echoborn', name: '回响体', desc: '自然回复加快：每 4 回合 +1 生命。', apply: p => { p.fastRegen = true; } },
 ];
 
+const EVO = (id, zhName, enName, zhDesc, enDesc) => [
+  id, ui(zhName, enName), ui(zhDesc, enDesc),
+];
+const SKILL_EVOLUTION_ROWS = {
+  warrior: {
+    20: [
+      EVO('se_w20_arc', '环斩', 'Arc Sweep',
+        '横扫额外擦过四个斜角近身位；围攻时不再只处理十字四格。',
+        'Sweep also clips the four adjacent diagonals, so surrounding enemies are no longer limited to the cardinal tiles.'),
+      EVO('se_w20_guard', '盾势', 'Guard Stance',
+        '施放横扫的这一回合获得额外减伤，适合贴身换血。',
+        'Gain extra damage reduction during the turn Sweep is cast, improving close-range trades.'),
+    ],
+    40: [
+      EVO('se_w40_reach', '破阵长锋', 'Linebreaker Reach',
+        '横扫同时打击上下左右第二格目标，形成直线纵深。',
+        'Sweep also hits targets two tiles away in the four cardinal directions.'),
+      EVO('se_w40_rhythm', '战阵节拍', 'Battle Rhythm',
+        '一次横扫覆盖至少两个目标时额外返还 1 回合冷却。',
+        'If one Sweep covers at least two targets, refund 1 extra turn of cooldown.'),
+    ],
+    60: [
+      EVO('se_w60_blood', '血战续行', 'Bloodied Advance',
+        '横扫造成击杀时恢复少量最大生命。',
+        'Kills caused by Sweep restore a small amount of Max HP.'),
+      EVO('se_w60_pressure', '压阵', 'Press the Line',
+        '横扫本身获得基于当前攻击的额外威力，强化破阵而非普攻。',
+        'Sweep gains extra power based on current ATK, strengthening the skill rather than basic attacks.'),
+    ],
+    80: [
+      EVO('se_w80_tempest', '风暴横扫', 'Tempest Sweep',
+        '横扫扩展到两格范围内的非核心目标，成为真正的深层清场技。',
+        'Sweep extends to secondary targets within two tiles, becoming a true deep-floor clearing skill.'),
+      EVO('se_w80_fortress', '移动堡垒', 'Moving Fortress',
+        '施放横扫时获得更强临时减伤；技能越用于危险贴身局面越有价值。',
+        'Gain stronger temporary damage reduction while casting Sweep; it rewards committing in dangerous melee situations.'),
+    ],
+  },
+  ranger: {
+    20: [
+      EVO('se_r20_evasion', '掠影', 'Passing Shadow',
+        '疾步期间获得临时减伤，让位移可用于穿过危险接触区。',
+        'Gain temporary damage reduction during Fleet Step, allowing movement through dangerous contact zones.'),
+      EVO('se_r20_tempo', '轻装疾行', 'Lightfoot Tempo',
+        '疾步本次施放按额外技能急速结算，缩短下一次位移等待。',
+        'This Fleet Step gains extra skill haste, shortening the wait before the next movement skill.'),
+    ],
+    40: [
+      EVO('se_r40_hunt', '猎杀续步', 'Hunt Continues',
+        '疾步造成击杀时立即重置技能冷却。',
+        'A kill caused by Fleet Step immediately resets its cooldown.'),
+      EVO('se_r40_flow', '无伤转场', 'Clean Transition',
+        '疾步没有造成击杀时额外返还 2 回合冷却，鼓励把技能用于走位。',
+        'If Fleet Step does not kill, refund 2 extra cooldown turns, rewarding repositioning.'),
+    ],
+    60: [
+      EVO('se_r60_marksman', '拉弦余势', 'Drawstring Momentum',
+        '疾步成功后强化下一次方向攻击；空跑不会消耗在普通移动上。',
+        'After a successful Fleet Step, empower the next directional attack; ordinary movement does not consume it.'),
+      EVO('se_r60_sustain', '猎手续命', 'Hunter Renewal',
+        '疾步击杀敌人时恢复最大生命，提升连续猎杀续航。',
+        'Kills caused by Fleet Step restore Max HP, improving sustained hunts.'),
+    ],
+    80: [
+      EVO('se_r80_chain', '无尽追猎', 'Endless Hunt',
+        '疾步造成击杀时保持零冷却，并强化下一次方向攻击，形成高风险追猎链。',
+        'Fleet Step kills keep cooldown at zero and empower the next directional attack, enabling a high-risk chase chain.'),
+      EVO('se_r80_phantom', '幻步', 'Phantom Step',
+        '疾步回合获得更强减伤，并为下一次方向攻击留下较小增幅。',
+        'Gain stronger damage reduction during Fleet Step and leave a smaller boost for the next directional attack.'),
+    ],
+  },
+  mage: {
+    20: [
+      EVO('se_m20_fork', '分叉奥术', 'Forked Arcana',
+        '奥术弹命中前，同时削击第二近的可见敌人。',
+        'Before Arcane Bolt lands, also strike the second-nearest visible enemy.'),
+      EVO('se_m20_barrier', '施法屏障', 'Casting Barrier',
+        '施放奥术弹的这一回合获得临时减伤，换取更稳定的站桩输出。',
+        'Gain temporary damage reduction during the Arcane Bolt turn for more stable stationary damage.'),
+    ],
+    40: [
+      EVO('se_m40_chain', '回响连锁', 'Echo Chain',
+        '奥术弹额外波及第二、第三个可见目标，强化群战。',
+        'Arcane Bolt also splashes the second and third visible targets, improving group fights.'),
+      EVO('se_m40_focus', '单点聚焦', 'Single-Target Focus',
+        '视野里只有一个敌人时，奥术弹获得显著额外威力。',
+        'When only one enemy is visible, Arcane Bolt gains significant extra power.'),
+    ],
+    60: [
+      EVO('se_m60_overload', '过载回路', 'Overload Circuit',
+        '奥术弹造成击杀时额外返还 2 回合冷却。',
+        'Arcane Bolt kills refund 2 extra turns of cooldown.'),
+      EVO('se_m60_repulse', '强制退相', 'Forced Displacement',
+        '奥术弹结算后若目标仍存活，会尝试把它再推离一格。',
+        'If the target survives Arcane Bolt, attempt to push it one additional tile away.'),
+    ],
+    80: [
+      EVO('se_m80_storm', '奥术风暴', 'Arcane Storm',
+        '奥术弹施放前对最多三个次要可见目标造成高比例溅射。',
+        'Before Arcane Bolt is cast, deal heavy splash damage to up to three secondary visible targets.'),
+      EVO('se_m80_singularity', '奇点核心', 'Singularity Core',
+        '只有单一可见目标时大幅强化本次奥术弹，但不改善群战。',
+        'When exactly one target is visible, greatly empower this Arcane Bolt without improving group fights.'),
+    ],
+  },
+  assassin: {
+    20: [
+      EVO('se_a20_execute', '斩首线', 'Execution Line',
+        '影袭锁定的最近目标低于 45% 生命时，本次处决获得额外威力。',
+        'When Shadow Strike targets an enemy below 45% HP, this execution gains extra power.'),
+      EVO('se_a20_smoke', '烟遁', 'Smoke Veil',
+        '施放影袭的这一回合获得临时减伤，降低落点失误成本。',
+        'Gain temporary damage reduction during the Shadow Strike turn, reducing the cost of a bad landing.'),
+    ],
+    40: [
+      EVO('se_a40_blood', '血返', 'Blood Return',
+        '影袭击杀时恢复最大生命，适合连续切入。',
+        'Shadow Strike kills restore Max HP, supporting repeated dives.'),
+      EVO('se_a40_tempo', '影刃节拍', 'Shadowblade Tempo',
+        '影袭击杀时额外返还 2 回合冷却。',
+        'Shadow Strike kills refund 2 extra turns of cooldown.'),
+    ],
+    60: [
+      EVO('se_a60_mark', '死亡标记', 'Death Mark',
+        '影袭成功后强化下一次方向攻击，逼迫你继续贴身完成连段。',
+        'After a successful Shadow Strike, empower the next directional attack and reward staying close to finish the combo.'),
+      EVO('se_a60_escape', '脱影', 'Slip into Shadow',
+        '影袭回合获得更强临时减伤，偏向安全进出。',
+        'Gain stronger temporary damage reduction during the Shadow Strike turn, favoring safer entries and exits.'),
+    ],
+    80: [
+      EVO('se_a80_chain', '无间影袭', 'Unbroken Shadow Strike',
+        '影袭造成击杀时直接重置技能冷却。',
+        'Shadow Strike kills immediately reset the skill cooldown.'),
+      EVO('se_a80_predator', '猎物未死', 'Prey Survived',
+        '影袭未能击杀时返还部分冷却并强化下一次方向攻击。',
+        'If Shadow Strike does not kill, refund part of the cooldown and empower the next directional attack.'),
+    ],
+  },
+};
+
+
+
+const SKILL_EVOLUTION_MILESTONES = Object.freeze([20, 40, 60, 80]);
+const SKILL_EVOLUTION_TALENTS = Object.freeze(Object.fromEntries(
+  Object.entries(SKILL_EVOLUTION_ROWS).flatMap(([cid, milestones]) =>
+    Object.entries(milestones).flatMap(([milestone, rows]) => rows.map(([id, name, desc]) => [id, Object.freeze({
+      id, name: ui(`${milestone}层 · ${name}`, `Floor ${milestone} · ${name}`), desc, apply() {}, evolution: true, classId: cid, milestone: Number(milestone),
+    })]))
+  )
+));
+function skillEvolutionTalent(id) { return SKILL_EVOLUTION_TALENTS[id] || null; }
+function hasSkillEvolution(id) { return !!(player && Array.isArray(player.talents) && player.talents.includes(id)); }
+function pendingSkillEvolution() {
+  if (!player) return null;
+  const chosen = new Set(player.talents || []);
+  for (const milestone of SKILL_EVOLUTION_MILESTONES) {
+    if (depth < milestone) break;
+    const pair = SKILL_EVOLUTION_ROWS[classId] && SKILL_EVOLUTION_ROWS[classId][milestone];
+    if (pair && !pair.some(row => chosen.has(row[0]))) return pair.map(row => skillEvolutionTalent(row[0]));
+  }
+  return null;
+}
+let skillFollowup = null;
+function skillFollowupPlan(cid, killed) {
+  let scale = 0, zh = '', en = '';
+  if (cid === 'ranger') {
+    if (hasSkillEvolution('se_r60_marksman')) { scale = .35; zh = '拉弦余势'; en = 'Drawstring Momentum'; }
+    if (hasSkillEvolution('se_r80_phantom') && scale < .20) { scale = .20; zh = '幻步余势'; en = 'Phantom Momentum'; }
+    if (hasSkillEvolution('se_r80_chain') && killed && scale < .25) { scale = .25; zh = '无尽追猎'; en = 'Endless Hunt'; }
+  } else if (cid === 'assassin') {
+    if (hasSkillEvolution('se_a60_mark')) { scale = .40; zh = '死亡标记'; en = 'Death Mark'; }
+    if (hasSkillEvolution('se_a80_predator') && !killed && scale < .25) { scale = .25; zh = '猎物未死'; en = 'Prey Survived'; }
+  }
+  return scale ? Object.freeze({ scale, zh, en }) : null;
+}
+function consumeSkillFollowup() {
+  const plan = skillFollowup;
+  if (plan) skillFollowup = null;
+  return plan;
+}
+
+
 
 function hashSeed(str) {
   let h = 1779033703 ^ str.length;
@@ -1890,8 +2074,11 @@ function applyDamageToMonster(m, dmg, crit) {
 }
 function playerAttack(m) {
   lunge(player, m.x, m.y);
-  let dmg = Math.max(1, pAtk() + ri(-1, 1) - m.def);
+  const skillPlan = consumeSkillFollowup();
+  const skillBonus = skillPlan ? Math.max(1, Math.round(pAtk() * skillPlan.scale)) : 0;
+  let dmg = Math.max(1, pAtk() + skillBonus + ri(-1, 1) - m.def);
   let mult = 1;
+  if (skillPlan) msg(ui(`【${skillPlan.zh}】强化了这次方向攻击。`, `[${skillPlan.en}] empowered this directional attack.`), 'good');
   const echo = consumeTimedMechanic('echoEdgeTurn', 'echo_edge');
   if (echo) mult *= echo >= 2 ? 1.40 : 1.25;
   const reprisal = consumeTimedMechanic('reprisalTurn', 'reprisal');
@@ -1932,8 +2119,11 @@ function findRangedTarget(dx, dy) {
 }
 function playerRangedAttack(m) {
   fireArrow(player.x, player.y, m.x, m.y);
-  let dmg = Math.max(1, pAtk() + ri(-1, 1) - m.def);
+  const skillPlan = consumeSkillFollowup();
+  const skillBonus = skillPlan ? Math.max(1, Math.round(pAtk() * skillPlan.scale)) : 0;
+  let dmg = Math.max(1, pAtk() + skillBonus + ri(-1, 1) - m.def);
   let mult = 1;
+  if (skillPlan) msg(ui(`【${skillPlan.zh}】强化了这次方向攻击。`, `[${skillPlan.en}] empowered this directional attack.`), 'good');
   const echo = consumeTimedMechanic('echoEdgeTurn', 'echo_edge');
   if (echo) mult *= echo >= 2 ? 1.40 : 1.25;
   const skirmish = consumeTimedMechanic('skirmishTurn', 'skirmish');
@@ -2278,7 +2468,7 @@ function useScroll() {
   msg(ui('卷轴的光芒将你传送到了未知之处……','The scroll carries you to an unknown place…'));
   endTurn();
 }
-function useSkill() {
+function useBaseSkill() {
   if (state !== 'playing') return;
   if (player.skillCd > 0) { msg(ui(`技能冷却中（${player.skillCd} 回合）。`, `Skill cooldown: ${player.skillCd} turns.`)); return; }
   const sk = classDef().skill;
@@ -2376,6 +2566,93 @@ function useSkill() {
   if (state !== 'playing') { updateHud(); return; }
   endTurn();
 }
+
+function skillEvolutionVisibleMonsters() {
+  return monsters.filter(m => m && m.hp > 0 && visible[m.y] && visible[m.y][m.x])
+    .sort((a, b) => (Math.abs(a.x - player.x) + Math.abs(a.y - player.y)) - (Math.abs(b.x - player.x) + Math.abs(b.y - player.y)));
+}
+function skillEvolutionWarriorSplash() {
+  const coreAdjacent = monsters.some(m => Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1);
+  if (!coreAdjacent) return;
+  const targets = [];
+  if (hasSkillEvolution('se_w20_arc')) for (const m of monsters) if (Math.abs(m.x-player.x)===1 && Math.abs(m.y-player.y)===1) targets.push([m,.65]);
+  if (hasSkillEvolution('se_w40_reach')) for (const m of monsters) {
+    const dx=Math.abs(m.x-player.x), dy=Math.abs(m.y-player.y);
+    if ((dx===2&&dy===0)||(dx===0&&dy===2)) targets.push([m,.70]);
+  }
+  if (hasSkillEvolution('se_w80_tempest')) for (const m of monsters) {
+    const dx=Math.abs(m.x-player.x), dy=Math.abs(m.y-player.y), core=dx+dy===1;
+    if (!core && Math.max(dx,dy)<=2 && !targets.some(row=>row[0]===m)) targets.push([m,.72]);
+  }
+  const base=pAtk();
+  for (const [m,scale] of [...targets]) if (m.hp>0 && monsters.includes(m)) applyDamageToMonster(m,Math.max(1,Math.round(base*scale)-(Number(m.def)||0)),false);
+}
+function skillEvolutionMageSplash(vis) {
+  const base=pAtk(), rows=[];
+  if (hasSkillEvolution('se_m80_storm')) for (const m of vis.slice(1,4)) rows.push([m,.65]);
+  else if (hasSkillEvolution('se_m40_chain')) for (const m of vis.slice(1,3)) rows.push([m,.45]);
+  else if (hasSkillEvolution('se_m20_fork') && vis[1]) rows.push([vis[1],.55]);
+  for (const [m,scale] of rows) if (m && m.hp>0 && monsters.includes(m)) applyDamageToMonster(m,Math.max(1,Math.round(base*scale)-Math.floor((Number(m.def)||0)*.4)),false);
+}
+function useSkill() {
+  if (state !== 'playing' || !player) return;
+  const cid=classId;
+  const hasAny=(player.talents||[]).some(id=>String(id).startsWith(`se_${cid[0]}`));
+  if (!hasAny || player.skillCd>0) return useBaseSkill();
+  const p=player, beforeTurn=turns, beforeCount=monsters.length, beforeHp=Number(p.hp)||0;
+  const originalAtk=Number(p.atkBase)||0, originalDr=Number(p.flatDr)||0, originalHaste=Number(p.skillHaste)||0;
+  const visBefore=skillEvolutionVisibleMonsters(), targetBefore=visBefore[0]||null;
+  const nearbyBefore=monsters.filter(m=>Math.abs(m.x-p.x)+Math.abs(m.y-p.y)<=2).length;
+  let tempAtk=0,tempDr=0,tempHaste=0;
+  if (cid==='warrior') {
+    skillEvolutionWarriorSplash();
+    if (hasSkillEvolution('se_w20_guard')) tempDr+=3;
+    if (hasSkillEvolution('se_w80_fortress')) tempDr+=7;
+    if (hasSkillEvolution('se_w60_pressure')) tempAtk+=Math.max(2,Math.round(pAtk()*.22));
+  } else if (cid==='mage') {
+    skillEvolutionMageSplash(visBefore);
+    if (hasSkillEvolution('se_m20_barrier')) tempDr+=4;
+    if (hasSkillEvolution('se_m40_focus') && visBefore.length===1) tempAtk+=Math.max(2,Math.round(pAtk()*.30));
+    if (hasSkillEvolution('se_m80_singularity') && visBefore.length===1) tempAtk+=Math.max(3,Math.round(pAtk()*.45));
+  } else if (cid==='ranger') {
+    if (hasSkillEvolution('se_r20_evasion')) tempDr+=4;
+    if (hasSkillEvolution('se_r80_phantom')) tempDr+=5;
+    if (hasSkillEvolution('se_r20_tempo')) tempHaste+=1;
+  } else if (cid==='assassin') {
+    if (hasSkillEvolution('se_a20_smoke')) tempDr+=4;
+    if (hasSkillEvolution('se_a60_escape')) tempDr+=5;
+    if (hasSkillEvolution('se_a20_execute') && targetBefore && targetBefore.maxHp && targetBefore.hp<=targetBefore.maxHp*.45) tempAtk+=Math.max(2,Math.round(pAtk()*.35));
+  }
+  p.atkBase=originalAtk+tempAtk; p.flatDr=originalDr+tempDr; p.skillHaste=originalHaste+tempHaste;
+  try { useBaseSkill(); }
+  finally { p.atkBase=originalAtk; p.flatDr=originalDr; p.skillHaste=originalHaste; }
+  const used=turns>beforeTurn;
+  if (!used) return;
+  const killed=monsters.length<beforeCount;
+  if (cid==='warrior') {
+    if (hasSkillEvolution('se_w40_rhythm') && nearbyBefore>=2) p.skillCd=Math.max(0,(p.skillCd||0)-1);
+    if (hasSkillEvolution('se_w60_blood') && killed) p.hp=Math.min(pMaxHp(),p.hp+Math.max(2,Math.round(pMaxHp()*.08)));
+  } else if (cid==='mage') {
+    if (hasSkillEvolution('se_m60_overload') && killed) p.skillCd=Math.max(0,(p.skillCd||0)-2);
+    if (hasSkillEvolution('se_m60_repulse') && targetBefore && targetBefore.hp>0 && monsters.includes(targetBefore)) {
+      const dx=Math.sign(targetBefore.x-p.x),dy=Math.sign(targetBefore.y-p.y),nx=targetBefore.x+dx,ny=targetBefore.y+dy;
+      if (walkable(nx,ny) && !monsterAt(nx,ny) && !npcAt(nx,ny)) { targetBefore.x=nx;targetBefore.y=ny;targetBefore.fx=nx;targetBefore.fy=ny; }
+    }
+  } else if (cid==='ranger') {
+    if ((hasSkillEvolution('se_r80_chain')||hasSkillEvolution('se_r40_hunt')) && killed) p.skillCd=0;
+    if (hasSkillEvolution('se_r40_flow') && !killed) p.skillCd=Math.max(0,(p.skillCd||0)-2);
+    if (hasSkillEvolution('se_r60_sustain') && killed) p.hp=Math.min(pMaxHp(),p.hp+Math.max(2,Math.round(pMaxHp()*.10)));
+  } else if (cid==='assassin') {
+    if (hasSkillEvolution('se_a80_chain') && killed) p.skillCd=0;
+    else if (hasSkillEvolution('se_a40_tempo') && killed) p.skillCd=Math.max(0,(p.skillCd||0)-2);
+    if (hasSkillEvolution('se_a40_blood') && killed) p.hp=Math.min(pMaxHp(),p.hp+Math.max(2,Math.round(pMaxHp()*.12)));
+    if (hasSkillEvolution('se_a80_predator') && !killed) p.skillCd=Math.max(0,(p.skillCd||0)-2);
+  }
+  skillFollowup=skillFollowupPlan(cid,killed);
+  if (skillFollowup) msg(ui(`【${skillFollowup.zh}】已蓄势：下一次方向攻击获得强化。`,`[${skillFollowup.en}] is primed: your next directional attack is empowered.`),'good');
+  if ((Number(p.hp)||0)>beforeHp) msg(ui('技能进化触发了额外续航。','Skill evolution triggered extra sustain.'),'good');
+}
+
 function descend() {
   if (state !== 'playing') return;
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
@@ -2513,9 +2790,11 @@ function openTalent() {
   pendingTalent = false;
   state = 'talent';
   const grid = $('talent-grid');
-  const pool = [...TALENTS];
+  const evolutionPicks = pendingSkillEvolution();
+  const pool = evolutionPicks ? [...evolutionPicks] : [...TALENTS];
   const picks = [];
-  while (picks.length < 3 && pool.length) {
+  if (evolutionPicks) picks.push(...pool);
+  else while (picks.length < 3 && pool.length) {
     picks.push(pool.splice(rnd(pool.length), 1)[0]);
   }
   if (grid) {
@@ -2529,7 +2808,7 @@ function openTalent() {
 }
 
 function pickTalent(id) {
-  const t = TALENTS.find(x => x.id === id);
+  const t = TALENTS.find(x => x.id === id) || skillEvolutionTalent(id);
   hideUi('talent-screen');
   if (t) {
     t.apply(player);
@@ -3668,6 +3947,7 @@ function clearRun() {
   try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 忽略 */ }
 }
 function restoreRun(raw) {
+  skillFollowup = null;
   buildSprites();
   classId = raw.classId in CLASSES ? raw.classId : 'warrior';
   setSeed(raw.seed);
@@ -3961,6 +4241,7 @@ function renderAchv() {
   }).join('');
 }
 function enterTown() {
+  skillFollowup = null;
   state = 'town';
   checkAchv();
   meta.bestDepth = Math.max(meta.bestDepth || 0, depth);
@@ -4678,6 +4959,7 @@ document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
 function newGame(chosen) {
+  skillFollowup = null;
   if (chosen) classId = chosen;
   if (greedyMode) { initGreedyRun(classId); return; }
   setSeed(RUN_SEED);
@@ -4707,7 +4989,7 @@ function newGame(chosen) {
   msg(fmtText(runText('intro')));
   msg(ui(`你选择了${c.name}。技能「${c.skill.name}」按 C 释放。撞向敌人即攻击。` +
     (c.rangedRange ? `面朝敌人所在直线（射程 ${c.rangedRange} 格内、无遮挡）移动即可射箭。` : ''),
-    `You chose ${c.name}. Press J to attack in your facing direction. Press K to use ${c.skill.name}.` +
+    `You chose ${c.name}. Press C to use ${c.skill.name}. Move into an enemy to attack.` +
     (c.rangedRange ? ` Ranged attacks reach ${c.rangedRange} unobstructed tiles along your facing line.` : '')));
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。站上楼梯按 Enter 下潜。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots. Stand on the stairs and press Enter to descend.`), 'good');
   renderBag(); renderEquip(); updateHud();
