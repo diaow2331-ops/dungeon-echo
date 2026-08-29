@@ -4,10 +4,10 @@
  *
  * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
  * equipment atlas without changing any equipment IDs, save keys or save schemas.
- * v4 art coordinator + hero gear + town art: suppress stale direct entity-art tags,
- * then load one fresh unified entity runtime plus terrain, equipment-feedback and
- * town presentation layers. They may replace visible art, but core canvas/gameplay
- * remains the fail-safe fallback.
+ * v4 art coordinator + hero gear + class combat FX + town art: suppress stale direct
+ * entity-art tags, then load one fresh unified entity runtime plus terrain,
+ * equipment-feedback, directional combat and town presentation layers. They may
+ * replace visible art, but core canvas/gameplay remains the fail-safe fallback.
  *
  * Production input integrity: movement keys may use normal OS key repeat, while
  * tactical one-shot actions are edge-triggered across keyboard, touch and gamepad.
@@ -101,6 +101,7 @@
   const loadArtRuntimes = () => {
     appendArtRuntime('de-art-runtime-v4-loader', '../ui/art-runtime-v4.js?v=160', '__DE_ART_RUNTIME_V4');
     appendArtRuntime('de-hero-gear-art-v162-loader', '../ui/hero-gear-art-v162.js?v=162', '__DE_HERO_GEAR_ART_V162');
+    appendArtRuntime('de-class-combat-fx-v163-loader', '../ui/class-combat-fx-v163.js?v=163', '__DE_CLASS_COMBAT_FX_V163');
     appendArtRuntime('de-town-art-v160-loader', '../ui/town-art-v160.js?v=161', '__DE_TOWN_ART_V160');
   };
   if (typeof document !== 'undefined') {
