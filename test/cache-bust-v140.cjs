@@ -1,4 +1,4 @@
-/* Historical filename; focused release contract now locks production asset generation 169. */
+/* Historical filename; focused release contract now locks production asset generation 170. */
 'use strict';
 const fs=require('fs'),path=require('path');
 const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
@@ -12,25 +12,25 @@ const scriptSrcs=html=>[...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script
 for(const [name,html] of [['zh',zh],['en',en]]){
   const versions=[...html.matchAll(/\?v=(\d+)/g)].map(m=>m[1]);
   const scripts=scriptSrcs(html);
-  ok(versions.length>0&&versions.every(v=>v==='169'),`${name} authored entry uses only cache generation 169`);
-  ok(/style\.css\?v=169/.test(html),`${name} stylesheet uses generation 169`);
-  ok(scripts.length===12&&scripts.every(src=>src.endsWith('?v=169')),`${name} boots 12 generation-169 synchronous scripts`);
-  ok(html.includes('game/locale/locale-data-v134.js?v=169')&&html.indexOf('game/locale/locale-data-v134.js?v=169')<html.indexOf('game/core/game.js?v=169'),`${name} locale data boots before core`);
-  ok(html.includes('game/domain/combat/combat-rules-v130.js?v=169')&&html.indexOf('game/domain/combat/combat-rules-v130.js?v=169')<html.indexOf('game/core/game.js?v=169'),`${name} active domain authorities boot before core`);
-  ok(html.includes('game/core/game.js?v=169')&&html.includes('game/locale/core-locale-data-v139.js?v=169')&&html.indexOf('game/core/game.js?v=169')<html.indexOf('game/locale/core-locale-data-v139.js?v=169'),`${name} one-shot core locale data boots after core`);
-  ok(scripts[scripts.length-1]==='game/core/runtime-bootstrap.js?v=169',`${name} runtime bootstrap is final synchronous script`);
+  ok(versions.length>0&&versions.every(v=>v==='170'),`${name} authored entry uses only cache generation 170`);
+  ok(/style\.css\?v=170/.test(html),`${name} stylesheet uses generation 170`);
+  ok(scripts.length===12&&scripts.every(src=>src.endsWith('?v=170')),`${name} boots 12 generation-170 synchronous scripts`);
+  ok(html.includes('game/locale/locale-data-v134.js?v=170')&&html.indexOf('game/locale/locale-data-v134.js?v=170')<html.indexOf('game/core/game.js?v=170'),`${name} locale data boots before core`);
+  ok(html.includes('game/domain/combat/combat-rules-v130.js?v=170')&&html.indexOf('game/domain/combat/combat-rules-v130.js?v=170')<html.indexOf('game/core/game.js?v=170'),`${name} active domain authorities boot before core`);
+  ok(html.includes('game/core/game.js?v=170')&&html.includes('game/locale/core-locale-data-v139.js?v=170')&&html.indexOf('game/core/game.js?v=170')<html.indexOf('game/locale/core-locale-data-v139.js?v=170'),`${name} one-shot core locale data boots after core`);
+  ok(scripts[scripts.length-1]==='game/core/runtime-bootstrap.js?v=170',`${name} runtime bootstrap is final synchronous script`);
 }
-ok(authority.version==='1.3.0'&&authority.cacheGeneration===169,'authority map locks v1.3.0 cache generation 169');
-ok(runtime.includes("const assetVersion = '169'"),'runtime followers use generation 169 cache key');
-ok(deployReadme.includes('v1.3.0 publishes cache generation 169'),'deployment README declares generation 169');
+ok(authority.version==='1.3.1'&&authority.cacheGeneration===170,'authority map locks v1.3.1 cache generation 170');
+ok(runtime.includes("const assetVersion = '170'"),'runtime followers use generation 170 cache key');
+ok(deployReadme.includes('v1.3.1 publishes cache generation 170'),'deployment README declares generation 170');
 ok(!/cache generation (?:153|157|166|167|168)\b/.test(deployReadme),'deployment README contains no retired cache generation');
 for(const active of [
-  "fresh('game/core/release-stamp-v130.js')",
+  "fresh('game/core/release-stamp-v131.js')",
   "fresh('game/locale/fixed-locale-entry-v130.js')",
   "fresh('game/ui/responsive-final-v154.js')",
   "fresh('game/ui/help-copy-v126.js')",
 ]) ok(runtime.includes(active),`runtime cache-busts active follower: ${active}`);
 for(const retired of ['core-screen-owner-v153.js','town-canvas-locale-v153.js','forge-feedback-v122.js','world-loot-polish-v122.js','expedition-record-v126.js'])
-  ok(!runtime.includes(retired),`retired follower stays out of v169 runtime: ${retired}`);
+  ok(!runtime.includes(retired),`retired follower stays out of v170 runtime: ${retired}`);
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail?1:0);

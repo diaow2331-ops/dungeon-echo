@@ -1,6 +1,6 @@
 # Dungeon Echo Maintenance Guide
 
-This document describes the v1.3.0 authority-baseline maintenance contract.
+This document describes the v1.3.1 single-authority maintenance contract.
 
 ## Core rule
 
@@ -45,8 +45,8 @@ Never restore an archived file by adding it back to an entry page or runtime loa
 
 ## Version and cache generation
 
-- Semantic version: `1.3.0`.
-- Authority-baseline public cache generation: `169`.
+- Semantic version: `1.3.1`.
+- Public cache generation: `170`.
 - `VERSION` owns the semantic version.
 - Source HTML/JS is already deployable; the release builder copies it and must not rewrite dependencies.
 

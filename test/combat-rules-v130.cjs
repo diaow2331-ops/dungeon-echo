@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
+const generation = String(JSON.parse(fs.readFileSync(path.join(root, 'docs/authority-map-v130.json'), 'utf8')).cacheGeneration);
 const rel = 'game/domain/combat/combat-rules-v130.js';
 const source = fs.readFileSync(path.join(root, rel), 'utf8');
 const executableSource = source
@@ -21,8 +22,9 @@ assert(manifest.includes(rel), 'production combat rules must ship exactly once')
 assert.equal(manifest.filter(x => x === rel).length, 1, 'combat rules duplicated in release allowlist');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert.equal((html.match(/game\/domain\/combat\/combat-rules-v130\.js\?v=169/g) || []).length, 1, `${entry}: combat rules must load exactly once`);
-  assert(html.indexOf('game/domain/combat/combat-rules-v130.js?v=169') < html.indexOf('game/core/game.js?v=169'), `${entry}: combat authority must load before core`);
+  const exact = `${rel}?v=${generation}`;
+  assert.equal(html.split(exact).length - 1, 1, `${entry}: combat rules must load exactly once`);
+  assert(html.indexOf(exact) < html.indexOf(`game/core/game.js?v=${generation}`), `${entry}: combat authority must load before core`);
 }
 
 assert.equal(rules.warriorDamageReduction('warrior', 1), 1);

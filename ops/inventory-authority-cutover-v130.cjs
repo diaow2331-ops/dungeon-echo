@@ -35,8 +35,10 @@ function completedInventoryCutover() {
   const game = read('game/core/game.js');
   if (!game.includes("const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null")) return false;
   if (!game.includes('const eqScoreOf = stats => INVENTORY_RULES.equipmentStatScore(stats);')) return false;
-  const inventoryScript = 'game/domain/inventory/equipment-rules-v130.js?v=169';
-  const coreScript = 'game/core/game.js?v=169';
+  const generation = String(map.cacheGeneration || '');
+  if (!/^\d+$/.test(generation)) return false;
+  const inventoryScript = `game/domain/inventory/equipment-rules-v130.js?v=${generation}`;
+  const coreScript = `game/core/game.js?v=${generation}`;
   for (const rel of ['index.html', 'en/index.html']) {
     const html = read(rel);
     if (!html.includes(inventoryScript) || !html.includes(coreScript) || html.indexOf(inventoryScript) >= html.indexOf(coreScript)) return false;

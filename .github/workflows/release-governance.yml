@@ -15,14 +15,14 @@ jobs:
           fetch-depth: 0
       - name: Verify canonical local authority gate
         run: bash ops/check-authority-local.sh
-      - name: Build immutable Dungeon Echo v1.3.0 baseline ZIP
+      - name: Build immutable Dungeon Echo v1.3.1 recovery ZIP
         env:
           SOURCE_REVISION: ${{ github.sha }}
-        run: bash ops/release/build-site-bundle.sh "$RUNNER_TEMP/91hwl-play-dungeon-echo-v1.3.0.zip"
-      - name: Upload authority-baseline artifact
+        run: bash ops/release/build-site-bundle.sh "$RUNNER_TEMP/91hwl-play-dungeon-echo-v1.3.1.zip"
+      - name: Upload recovery-release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dungeon-echo-v1.3.0-authority-baseline-169
-          path: ${{ runner.temp }}/91hwl-play-dungeon-echo-v1.3.0.zip
+          name: dungeon-echo-v1.3.1-recovery-170
+          path: ${{ runner.temp }}/91hwl-play-dungeon-echo-v1.3.1.zip
           if-no-files-found: error
           retention-days: 7
