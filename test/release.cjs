@@ -109,4 +109,4 @@ assert.equal(deploySyntax.status, 0, deploySyntax.stderr);
 assert.equal(healthSyntax.status, 0, healthSyntax.stderr);
 
 fs.rmSync(tmp, { recursive:true, force:true });
-console.log('release_v1_3_4=PASS');
+console.log('release_v1_3_5=PASS');
