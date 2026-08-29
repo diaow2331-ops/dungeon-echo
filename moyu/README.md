@@ -1,25 +1,24 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.11.5**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.12.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
-The game remains a deterministic static release:
+v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
-- `index.html` — stable product shell/HUD template.
-- `style.css` — stable cross-device base layout.
-- `visual-v1113.css` — accepted v1.11.3 typography/readability layer, reused unchanged with the current cache key.
-- `build-v1113.cjs` — deterministic first-paint/prepaint adapter.
-- `build-v1114.cjs` — deterministic v1.11.4 quality/fingerprint adapter.
-- `build-v1115.cjs` — deterministic v1.11.5 language-consistency/fingerprint adapter.
-- `src/game.part01.js` … `game.part15.js` — accepted v1.11.0 runtime slices.
-- `patches/runtime-v1111.patch` — accepted v1.11.1 presentation patch.
-- `patches/runtime-v1112.patch` — accepted v1.11.2 shared-language bridge.
-- `patches/runtime-v1114.patch` — accepted input/performance/fairness patch.
-- `patches/runtime-v1115.patch` — focused stored-language precedence fix.
+- `game.js` — the only canonical gameplay runtime.
+- `index.html` — final production shell; no build adapter rewrites it.
+- `style.css` — stable base presentation.
+- `visual-v1113.css` — accepted readability layer, retained as a static asset.
+- `responsive-v1120.css` — viewport-first desktop/mobile presentation.
+- `archive/v1.11.5/` — recovery evidence for the former 15-slice + patch + adapter chain. It is not a release input.
 
-Packaging reconstructs and verifies the accepted v1.11.0 base runtime, applies v1.11.1 and verifies its exact intermediate SHA, applies v1.11.2, performs the v1.11.3 first-paint adaptation, applies the v1.11.4 quality patch, then applies the v1.11.5 language-consistency patch and final fingerprints. Browsers still receive one final `game.js`; no patch layer executes in the browser.
+`ops/release/build-moyu-bundle.sh` now packages tracked canonical bytes directly. The bundled `game.js` is byte-for-byte identical to `moyu/game.js`; no patch command or runtime build adapter participates in v1.12 packaging.
 
-v1.11.5 fixes one release-quality defect in the language owner. The prepaint script already resolved language as explicit `?lang=zh|en` → shared `91hwl_lang` cookie → stored preference → browser language. The runtime fallback previously used an ambiguous `||` / ternary expression: with no cookie and a stored `en`, the first paint could be English and the runtime could subsequently fall back to Chinese. The runtime now uses the same explicit precedence as prepaint and validates stored values as only `zh` or `en`.
+## v1.12.0 P0
 
-All v1.11.4 gameplay-quality changes remain unchanged: one-shot keyboard repeat suppression, primary-button mouse input, event-driven Canvas layout measurement, memoized presentation-state synchronization and final-width spacing reserve for long-mutating BUGs.
+The gameplay rules remain the accepted v1.11.5 rules: 14:00 → 18:00, Jump / Double Jump, existing obstacle weights, hitboxes, rewards, discoveries, endings and local saves.
 
-The four-scene 14:00 → 18:00 route, `DAY_END_DISTANCE`, player hitbox, obstacle weights, speed curve, rewards, endings and local saves are unchanged. The v1.11.3 notranslate/typography work and earlier no-halo, ground-only jump-dust and shared-language fixes also remain intact.
+The display contract changes. `fitGameFrameToViewport()` measures the real visual viewport and the frame's current top position, then caps the rendered frame width so the complete game frame fits above the fold on ordinary desktop browser windows. Canvas backing pixels are still transformed to the fixed logical `1200 × 620` world, so CSS sizing does not change collision or physics coordinates.
+
+On portrait phones the page uses nearly the full safe width for the frame, keeps the 1200:620 ratio, and shows a short landscape/fullscreen hint. Fullscreen remains optional; the core game is still playable with one tap action in portrait.
+
+P1 scene-specific actions, risk pickups, stronger near-miss scoring, run history and Daily Shift are intentionally not part of this P0 cutover.

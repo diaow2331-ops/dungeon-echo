@@ -1,0 +1,55 @@
+/* Clock Out Alive v1.12.0 viewport-first presentation.
+ * Runtime geometry stays 1200x620. CSS/DOM fitting only changes display size.
+ */
+.frame{width:100%;margin-inline:auto}
+.viewport-hint{display:none}
+.vh-en{display:none}
+html[data-lang="en"] .vh-zh{display:none}
+html[data-lang="en"] .vh-en{display:inline}
+
+@supports (padding:max(0px)) {
+  body {
+    padding-left:max(18px, env(safe-area-inset-left));
+    padding-right:max(18px, env(safe-area-inset-right));
+    padding-bottom:calc(30px + env(safe-area-inset-bottom));
+  }
+  @media(max-width:720px) {
+    body {
+      padding-left:max(8px, env(safe-area-inset-left));
+      padding-right:max(8px, env(safe-area-inset-right));
+      padding-bottom:calc(22px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+@media(max-width:700px) and (orientation:portrait) {
+  body{padding-left:max(2px,env(safe-area-inset-left));padding-right:max(2px,env(safe-area-inset-right))}
+  .frame{border-width:2px;box-shadow:4px 5px 0 var(--shadow)}
+  .viewport-hint{display:block;margin:7px auto 0;max-width:34ch;color:var(--muted);font-size:9px;font-weight:850;line-height:1.45}
+}
+
+@media(max-width:560px) {
+  header { align-items:center; gap:8px; }
+  .brand { min-width:0; flex:1 1 auto; }
+  .top-actions { flex:0 0 auto; gap:4px; }
+  .home-link {
+    width:44px;
+    min-width:44px;
+    padding:0;
+    overflow:hidden;
+    font-size:0;
+    white-space:nowrap;
+    display:inline-grid;
+    place-items:center;
+  }
+  .home-link::before { content:"←"; font-size:18px; line-height:1; }
+  #settingsBtn { width:44px; min-width:44px; padding:0; }
+  #settingsBtn [data-i18n="settings"] { display:none; }
+  #fullscreenBtn { min-width:44px; padding-left:9px; padding-right:9px; }
+}
+
+@media(max-width:380px) {
+  header { flex-wrap:wrap; }
+  .brand { flex:1 0 100%; }
+  .top-actions { width:100%; justify-content:flex-end; }
+}
