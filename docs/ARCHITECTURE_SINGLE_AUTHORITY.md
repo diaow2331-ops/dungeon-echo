@@ -12,6 +12,7 @@ A feature may be split into data, rendering helpers, tests and archived prototyp
 | --- | --- | --- | --- |
 | Gameplay state / turn flow | `game/core/game.js` | read exported test/debug state | assign state, wrap turn/combat functions |
 | Content classification | `game/domain/content/content-rules-v130.js` | supply deterministic eligibility decisions to core | spawn entities, consume RNG, mutate map/player/combat state |
+| Inventory derived rules | `game/domain/inventory/equipment-rules-v130.js` | supply deterministic item/equipment calculations to core | mutate bag/equipment/player state, consume RNG, price or commit economy transactions |
 | Dungeon + town Canvas rendering | `game/core/game.js` | supply static art/data | obtain production Canvas contexts, mask/redraw entities |
 | Keyboard + touch gameplay commands | `game/core/game.js` | transport standard commands | register competing gameplay key/click handlers |
 | Gamepad input | `game/input/desktop-controls.js` | translate pad input to canonical commands | call gameplay systems or mutate state/storage |
@@ -37,7 +38,7 @@ Quarantine is not a trash can. It is the staging area for previously completed w
 
 ## Current staged domain shelves
 
-The currently staged pure libraries are registered in `docs/authority-map-v130.json` and include inventory, economy, progression, town and combat rules. Content classification has completed its atomic authority transfer and is now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.
+The currently staged pure libraries are registered in `docs/authority-map-v130.json` and include economy, progression, town and combat rules. Content classification and inventory derived rules have completed their atomic authority transfers and are now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.
 
 Cross-responsibility boundaries are strict:
 

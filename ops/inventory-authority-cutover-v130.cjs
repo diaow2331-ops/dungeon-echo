@@ -154,13 +154,13 @@ assert(!/DE_TEST|addEventListener|getContext\\s*\\(|localStorage|sessionStorage|
 `assert(!manifest.includes(rel), 'staged inventory rules must not enter the release allowlist before atomic authority transfer');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(!html.includes(rel), \`${entry}: staged inventory rules must not be loaded in production\`);
+  assert(!html.includes(rel), \`\${entry}: staged inventory rules must not be loaded in production\`);
 }`,
 `assert(manifest.includes(rel), 'production inventory rules must ship after atomic authority transfer');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(html.includes(\`${rel}?v=169\`), \`${entry}: production inventory rules must be loaded\`);
-  assert(html.indexOf(\`${rel}?v=169\`) < html.indexOf('game/core/game.js?v=169'), \`${entry}: inventory authority must load before core\`);
+  assert(html.includes(\`\${rel}?v=169\`), \`\${entry}: production inventory rules must be loaded\`);
+  assert(html.indexOf(\`\${rel}?v=169\`) < html.indexOf('game/core/game.js?v=169'), \`\${entry}: inventory authority must load before core\`);
 }`,
     'inventory test production graph');
   out = replaceLiteral(out,

@@ -25,6 +25,28 @@ function stage(rel, fn) {
   return { rel, before, after, changed: after !== before };
 }
 
+function completedContentCutover() {
+  const map = JSON.parse(read('docs/authority-map-v130.json'));
+  if (!map.authorities || map.authorities.contentClassification !== 'game/domain/content/content-rules-v130.js') return false;
+  const moduleSource = read('game/domain/content/content-rules-v130.js');
+  if (!moduleSource.includes("authority: 'content-classification'")) return false;
+  const game = read('game/core/game.js');
+  if (!game.includes("const CONTENT_RULES = typeof window !== 'undefined' ? window.DE_CONTENT_RULES_V130 : null")) return false;
+  const contentScript = 'game/domain/content/content-rules-v130.js?v=169';
+  const coreScript = 'game/core/game.js?v=169';
+  for (const rel of ['index.html', 'en/index.html']) {
+    const html = read(rel);
+    if (!html.includes(contentScript) || !html.includes(coreScript) || html.indexOf(contentScript) >= html.indexOf(coreScript)) return false;
+  }
+  const manifest = read('ops/release/static-files.txt').split(/\r?\n/).filter(Boolean);
+  return manifest.includes('game/domain/content/content-rules-v130.js');
+}
+
+if (completedContentCutover()) {
+  console.log(APPLY ? 'content_authority_cutover=PASS changed=0' : 'content_authority_cutover_preflight=PASS files=10 would_change=0');
+  process.exit(0);
+}
+
 const results = [];
 
 results.push(stage('game/domain/content/content-rules-v130.js', src => {

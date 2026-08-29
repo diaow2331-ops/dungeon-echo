@@ -16,6 +16,7 @@ assert.equal(authority.policy, 'one-responsibility-one-production-authority');
 assert.equal(authority.cacheGeneration, 169);
 assert.equal(authority.authorities.gameplayState, 'game/core/game.js');
 assert.equal(authority.authorities.contentClassification, 'game/domain/content/content-rules-v130.js');
+assert.equal(authority.authorities.inventoryDerivedRules, 'game/domain/inventory/equipment-rules-v130.js');
 assert.equal(authority.authorities.canvasRendering, 'game/core/game.js');
 assert.equal(authority.authorities.keyboardTouchInput, 'game/core/game.js');
 assert.equal(authority.authorities.gameplayPersistence, 'game/core/game.js');
@@ -115,6 +116,7 @@ assert(!game.includes('const isFinalFloor = () => !player.echoMode && depth >= M
 assert(!game.includes('const pool = MONSTERS.filter(m => d >= m.min && d <= m.max)'), 'core still duplicates monster-pool classification');
 assert(!game.includes('SHOP_FLOORS.includes(depth)'), 'core still duplicates shop-floor classification');
 assert(!game.includes('REST_FLOORS.includes(depth)'), 'core still duplicates rest-floor classification');
+assert(!game.includes('Math.round((stats.atk || 0) * 3'), 'core still duplicates inventory stat-score formula');
 
 for (const token of [
   "heroAtlasV11.src = 'art/hero-atlas-v11.png'",
@@ -124,6 +126,7 @@ for (const token of [
   "townBackdropV11.src = 'art/town-backdrop-v11.webp'",
   "const ctx = canvas.getContext('2d')",
   "const CONTENT_RULES = typeof window !== 'undefined' ? window.DE_CONTENT_RULES_V130 : null",
+  "const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null",
   "document.addEventListener('keydown'",
 ]) assert(game.includes(token), `canonical core contract missing: ${token}`);
 
@@ -147,7 +150,7 @@ for (const rel of js) {
 
 for (const rel of [
   'game/core/game.js','game/core/production-bootstrap.js','game/core/runtime-bootstrap.js',
-  'game/domain/content/content-rules-v130.js',
+  'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js',
   'art/hero-atlas-v11.png','art/monster-atlas-v11.png','art/guardian-atlas-v11.png',
   'art/final-boss-v11.png','art/town-backdrop-v11.webp',
 ]) {
