@@ -1,0 +1,15 @@
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
+let pass=0,fail=0; const ok=(c,m)=>{if(c){pass++;console.log('  PASS '+m)}else{fail++;console.error('  FAIL '+m)}};
+const core=read('game/core/game.js'), locale=read('game/locale/core-locale-data-v139.js'), bootstrap=read('game/core/production-bootstrap.js'), style=read('style.css'), en=read('en/index.html');
+ok(bootstrap.includes("window.__DE_FRESH_CLASS_SELECT_PENDING = true"),'fresh adventure keeps one-shot pending handoff');
+ok(core.includes("window.addEventListener('de:core-locale-ready', enterFreshClassSelect, { once:true })"),'core waits for locale readiness exactly once');
+ok(core.includes('if (window.__DE_CORE_LOCALE_DATA_V139) enterFreshClassSelect();'),'core can consume an already-ready locale without timing races');
+ok(locale.indexOf('localizeClasses();') < locale.indexOf("dispatchEvent(new CustomEvent('de:core-locale-ready'"),'locale patches class data before signaling readiness');
+ok((locale.match(/warrior:\{name:'Warrior'/g)||[]).length===1 && /ranger:\{name:'Ranger'/.test(locale) && /mage:\{name:'Arcanist'/.test(locale) && /assassin:\{name:'Assassin'/.test(locale),'English class catalog covers all four classes');
+ok(/#title-screen #btn-continue\.hidden \{ display: none; \}/.test(style),'no-save Continue button has an actual hidden style');
+ok(/id="btn-continue" class="hidden"/.test(en),'English authored entry starts Continue hidden');
+ok(!bootstrap.includes('setTimeout(enterFreshClassSelect, 0)'),'fresh handoff does not regress to timer ordering');
+console.log(`\nRESULT ${pass} passed / ${fail} failed`); process.exit(fail?1:0);

@@ -6239,8 +6239,13 @@ if (typeof window !== 'undefined') {
 if ($('title-screen')) {
   showTitle();
   if (typeof window !== 'undefined' && window.__DE_FRESH_CLASS_SELECT_PENDING) {
-    window.__DE_FRESH_CLASS_SELECT_PENDING = false;
-    showClassSelect();
+    const enterFreshClassSelect = () => {
+      if (!window.__DE_FRESH_CLASS_SELECT_PENDING) return;
+      window.__DE_FRESH_CLASS_SELECT_PENDING = false;
+      showClassSelect();
+    };
+    if (window.__DE_CORE_LOCALE_DATA_V139) enterFreshClassSelect();
+    else window.addEventListener('de:core-locale-ready', enterFreshClassSelect, { once:true });
   }
 } else newGame('warrior');
 const seedLabel = $('seed-label');

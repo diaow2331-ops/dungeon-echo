@@ -92,4 +92,6 @@
     version:'v139',owner:'core-locale-data-v139',locale:english?'en':'zh-CN',classes,talents,achievements,
     localizeClasses,localizeTalents,localizeAchievements,
   };
+  try { window.dispatchEvent(new CustomEvent('de:core-locale-ready', { detail:{ locale:english?'en':'zh-CN' } })); }
+  catch (_err) { /* locale data is already applied; readiness event is best-effort */ }
 })();
