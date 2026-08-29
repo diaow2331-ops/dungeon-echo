@@ -5,6 +5,7 @@ const root=process.env.DE_ROOT||path.resolve(__dirname,'..');
 const zh=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const en=fs.readFileSync(path.join(root,'en','index.html'),'utf8');
 const runtime=fs.readFileSync(path.join(root,'game','core','runtime-bootstrap.js'),'utf8');
+const deployReadme=fs.readFileSync(path.join(root,'ops','site-bundle','README.txt'),'utf8');
 const authority=JSON.parse(fs.readFileSync(path.join(root,'docs','authority-map-v130.json'),'utf8'));
 let pass=0,fail=0;const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
 const scriptSrcs=html=>[...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)].map(m=>m[1]);
@@ -21,6 +22,8 @@ for(const [name,html] of [['zh',zh],['en',en]]){
 }
 ok(authority.version==='1.3.0'&&authority.cacheGeneration===169,'authority map locks v1.3.0 cache generation 169');
 ok(runtime.includes("const assetVersion = '169'"),'runtime followers use generation 169 cache key');
+ok(deployReadme.includes('v1.3.0 publishes cache generation 169'),'deployment README declares generation 169');
+ok(!/cache generation (?:153|157|166|167|168)\b/.test(deployReadme),'deployment README contains no retired cache generation');
 for(const active of [
   "fresh('game/core/release-stamp-v130.js')",
   "fresh('game/locale/fixed-locale-entry-v130.js')",
