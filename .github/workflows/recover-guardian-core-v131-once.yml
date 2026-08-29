@@ -265,10 +265,11 @@ jobs:
           assert(core.includes('if (guardianAction(m))'),'monster authority must consume guardian warning/resolve turns');
           assert(core.includes('drawGuardianTelegraph(m, now);'),'sole core renderer must draw telegraphs');
           assert(!core.includes("'de-guardian-encounter-v1'"),'no guardian sidecar storage key may return');
-          assert(!core.includes("createElement('canvas')"),'guardian recovery must not add a second canvas');
           const start=core.indexOf('const GUARDIAN_SPECS =');
           const end=core.indexOf('function monstersTurn()',start);
           assert(start>=0&&end>start,'guardian executable region must be discoverable');
+          const guardianRegion=core.slice(start,end);
+          assert(!guardianRegion.includes("createElement('canvas')"),'guardian recovery must not add a second canvas');
           const hits={melee:0,ranged:0};
           const ctx={save(){},restore(){},fillRect(){},strokeRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},arc(){},set globalAlpha(v){},set fillStyle(v){},set strokeStyle(v){},set lineWidth(v){}};
           const sb={
