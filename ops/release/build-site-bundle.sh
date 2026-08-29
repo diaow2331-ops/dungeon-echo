@@ -3,7 +3,8 @@ set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 version="$(tr -d '\r\n' < "$repo_root/VERSION")"
-revision="$(git -C "$repo_root" rev-parse HEAD)"
+revision="${SOURCE_REVISION:-$(git -C "$repo_root" rev-parse HEAD)}"
+[[ "$revision" =~ ^[0-9a-f]{40}$ ]] || { echo "invalid source revision: $revision" >&2; exit 2; }
 output="${1:-$repo_root/91hwl-play-dungeon-echo-v$version.zip}"
 manifest="$repo_root/ops/release/static-files.txt"
 stage_root="$(mktemp -d)"
