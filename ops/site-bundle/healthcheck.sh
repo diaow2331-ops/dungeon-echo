@@ -54,7 +54,7 @@ probe_asset 'game/core/runtime-bootstrap.js' 'runtime.js' || fail 'runtime loade
 probe_asset 'game/input/desktop-controls.js' 'gamepad.js' || fail 'gamepad transport missing'
 
 grep -Fq "const assetVersion = '$ASSET_GENERATION'" "$work_dir/runtime.js" || fail 'runtime generation mismatch'
-grep -Fq "followers:'dom-only'" "$work_dir/runtime.js" || fail 'runtime followers not DOM-only'
+grep -Fq "followers:'presentation-only'" "$work_dir/runtime.js" || fail 'runtime followers not presentation-only'
 grep -Fq "gameplayStateOwner:'game/core/game.js'" "$work_dir/runtime.js" || fail 'state authority mismatch'
 grep -Fq "gameplayInputOwner:'game/core/game.js'" "$work_dir/production.js" || fail 'input authority mismatch'
 grep -Fq "gameplayPersistenceOwner:'game/core/game.js'" "$work_dir/production.js" || fail 'persistence authority mismatch'
