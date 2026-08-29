@@ -3831,6 +3831,59 @@ function closeShrine() {
 }
 
 // ================= 贪婪远征：城镇 / 回城 / 元进度 =================
+const TOWN_CHECKPOINTS = Object.freeze([1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
+let selectedTownCheckpoint = 1;
+function unlockedTownCheckpoints() {
+  const best = Math.max(0, Math.floor(Number(meta && meta.bestDepth) || 0));
+  return TOWN_CHECKPOINTS.filter(d => d === 1 || best >= d);
+}
+function selectTownCheckpoint(target) {
+  if (state !== 'town' || !meta) return false;
+  const checkpointDepth = Math.max(1, Math.floor(Number(target) || 1));
+  if (!unlockedTownCheckpoints().includes(checkpointDepth)) return false;
+  selectedTownCheckpoint = checkpointDepth;
+  renderTown();
+  return true;
+}
+function renderTownCheckpoints() {
+  const panel = $('town-checkpoints');
+  if (!panel || !meta) return;
+  const unlocked = unlockedTownCheckpoints();
+  if (!unlocked.includes(selectedTownCheckpoint)) selectedTownCheckpoint = 1;
+  const best = Math.max(0, Math.floor(Number(meta.bestDepth) || 0));
+  panel.replaceChildren();
+  const head = document.createElement('div');
+  head.className = 'checkpoint-head';
+  const title = document.createElement('b');
+  title.textContent = ui('已征服段首', 'Conquered Checkpoints');
+  const note = document.createElement('small');
+  note.textContent = ui(`最深 ${best} 层 · 到达新段首后即可从小镇重返`, `Deepest Floor ${best} · reached segment starts become departure points`);
+  head.append(title, note);
+  panel.appendChild(head);
+  const grid = document.createElement('div');
+  grid.className = 'checkpoint-grid';
+  for (const checkpointDepth of TOWN_CHECKPOINTS) {
+    const open = unlocked.includes(checkpointDepth);
+    const active = open && checkpointDepth === selectedTownCheckpoint;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.checkpoint = String(checkpointDepth);
+    button.textContent = ui(`第 ${checkpointDepth} 层`, `Floor ${checkpointDepth}`);
+    button.className = `${active ? 'active' : ''}${open ? '' : ' locked'}`;
+    button.disabled = !open;
+    button.setAttribute('aria-disabled', String(!open));
+    button.setAttribute('aria-pressed', String(active));
+    button.title = open
+      ? ui(`从第 ${checkpointDepth} 层出发`, `Depart for Floor ${checkpointDepth}`)
+      : ui(`尚未到达第 ${checkpointDepth} 层`, `Floor ${checkpointDepth} not reached yet`);
+    grid.appendChild(button);
+  }
+  panel.appendChild(grid);
+  const depart = $('btn-depart');
+  if (depart) depart.textContent = selectedTownCheckpoint === 1
+    ? ui('从第 1 层出发', 'Depart for Floor 1')
+    : ui(`从已征服区 · 第 ${selectedTownCheckpoint} 层出发`, `Depart from conquered ground · Floor ${selectedTownCheckpoint}`);
+}
 function syncMetaFromPlayer(died) {
   if (!player) return;
   meta.lvl = player.lvl; meta.xp = player.xp;
@@ -4357,6 +4410,7 @@ function renderTown() {
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span></div>` +
       `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('安全仓库 · 限量市集 · 锻造强化 · 已征服区出发','Safe Stash · Limited Market · Forge Upgrades · Conquered-Depth Departures')}</span></div>`;
   }
+  renderTownCheckpoints();
   const itemTag = it => {
     const f = it.forge || 0;
     const forgeTag = f ? ` +${f}` : '';
@@ -4498,10 +4552,14 @@ function initGreedyRun(chosen) {
   saveMeta();
   departTown();
 }
-function departTown() {
+function departTown(targetDepth = selectedTownCheckpoint) {
   if (!greedyMode || !meta) return;
+  const unlocked = unlockedTownCheckpoints();
+  const requested = Math.max(1, Math.floor(Number(targetDepth) || 1));
+  const startDepth = unlocked.includes(requested) ? requested : 1;
+  selectedTownCheckpoint = startDepth;
   buildSprites();
-  depth = 1; turns = 0; state = 'playing';
+  depth = startDepth; turns = 0; state = 'playing';
   buildThemeTex(depth);
   player = {
     x: 0, y: 0, fx: 0, fy: 0,
@@ -4539,7 +4597,7 @@ function departTown() {
   applyViewport();
   computeFov();
   msg(fmtText(runText('intro')));
-  msg(ui(`第 ${meta.runs} 次下潜：搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, `Descent ${meta.runs}: loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!`), 'gold');
+  msg(ui(`第 ${meta.runs} 次下潜：从第 ${startDepth} 层出发。搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, `Descent ${meta.runs}: departing from Floor ${startDepth}. Loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!`), 'gold');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
@@ -4802,6 +4860,8 @@ if ($('btn-greedy')) $('btn-greedy').addEventListener('click', () => {
   refreshTitle();
 });
 if ($('town-screen')) $('town-screen').addEventListener('click', e => {
+  const checkpoint = e.target.closest('[data-checkpoint]');
+  if (checkpoint) { ensureAudio(); selectTownCheckpoint(+checkpoint.dataset.checkpoint); return; }
   const dep = e.target.closest('[data-deposit]');
   if (dep) { ensureAudio(); depositStash(+dep.dataset.deposit); return; }
   const depAll = e.target.closest('[data-depositall]');
@@ -4919,6 +4979,7 @@ if (typeof window !== 'undefined') {
     setGreedy, getMeta: () => meta,
     get meta() { return meta; },
     useEscape, departTown, depositStash, withdrawStash, buyTown,
+    unlockedTownCheckpoints, selectTownCheckpoint, get selectedTownCheckpoint() { return selectedTownCheckpoint; },
     spinWheel, resetWheel, spinCost, resetWheelCost, applyWheelPrize, genWheelSlot,
     ACHV, checkAchv,
     sellItem, forgeItem, depositAllBag, forgeCost, sellPrice, sanitizeMeta,
