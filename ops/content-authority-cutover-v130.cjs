@@ -11,26 +11,18 @@ function write(rel, text) { fs.writeFileSync(path.join(root, rel), text); }
 function countLiteral(text, needle) { return text.split(needle).length - 1; }
 function replaceLiteral(text, before, after, label) {
   if (text.includes(after)) {
-    if (text.includes(before)) throw new Error(`${label}: mixed pre/post-cutover state`);
+    const residue = text.replace(after, '');
+    if (residue.includes(before)) throw new Error(`${label}: mixed pre/post-cutover state`);
     return text;
   }
   const n = countLiteral(text, before);
   if (n !== 1) throw new Error(`${label}: expected exactly one pre-cutover match, found ${n}`);
   return text.replace(before, after);
 }
-function replaceRegex(text, re, after, label) {
-  const flags = re.flags.includes('g') ? re.flags : re.flags + 'g';
-  const probe = new RegExp(re.source, flags);
-  const hits = [...text.matchAll(probe)];
-  if (hits.length === 0 && text.includes(after)) return text;
-  if (hits.length !== 1) throw new Error(`${label}: expected exactly one regex match, found ${hits.length}`);
-  return text.replace(re, after);
-}
 function stage(rel, fn) {
   const before = read(rel);
   const after = fn(before);
-  if (APPLY && after !== before) write(rel, after);
-  return { rel, changed: after !== before, after };
+  return { rel, before, after, changed: after !== before };
 }
 
 const results = [];
@@ -157,6 +149,22 @@ results.push(stage('test/single-authority-v130.cjs', src => {
 }));
 
 const changed = results.filter(r => r.changed).map(r => r.rel);
+if (APPLY && changed.length) {
+  const written = [];
+  try {
+    for (const result of results) {
+      if (!result.changed) continue;
+      write(result.rel, result.after);
+      written.push(result);
+    }
+  } catch (error) {
+    for (const result of written.reverse()) {
+      try { write(result.rel, result.before); } catch (_) { /* best-effort rollback */ }
+    }
+    throw error;
+  }
+}
+
 if (CHECK && !APPLY) {
   console.log(`content_authority_cutover_preflight=PASS files=${results.length} would_change=${changed.length}`);
   for (const rel of changed) console.log(`would_change=${rel}`);
