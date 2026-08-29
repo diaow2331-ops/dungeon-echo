@@ -1,50 +1,43 @@
 # Active browser runtime
 
-All active Dungeon Echo JavaScript lives under this directory. The repository root intentionally contains no runtime `.js` files.
+The active runtime is deliberately small. Historical functionality is preserved under `archive/quarantine-v130/`, not executed from `game/`.
+
+## Authority rule
+
+**One responsibility has exactly one production authority.**
+
+The canonical map lives in `docs/authority-map-v130.json`.
 
 ## `core/`
 
-Core runtime and release boundary:
-
-- `game.js` — map/state/turn engine.
-- `production-bootstrap.js` — production profile selection and narrow compatibility bootstrap.
-- `save-integrity-system.js` — pre-core persistent-state validation.
-- `runtime-bootstrap.js` — late presentation/locale follower loader shared by both fixed routes.
-- `release-stamp-v129.js` — current v1.2.9 semantic release stamp.
-
-## `systems/`
-
-Explicit gameplay owners for equipment, town, commerce, forging, progression, encounter content, pressure, defense and risk/reward behavior.
-
-A system file should own a concrete gameplay responsibility. Do not split modules merely to increase module count, and do not duplicate canonical state across owners.
+- `game.js` — sole owner of gameplay state, turn flow, combat, economy, progression, town behavior, dungeon/town Canvas rendering, keyboard/touch gameplay input and gameplay persistence.
+- `production-bootstrap.js` — pre-core storage epoch reset and production authority declaration. It must not become a gameplay system.
+- `runtime-bootstrap.js` — loads only approved DOM/CSS followers. It must not load gameplay wrappers or Canvas overlays.
+- `release-stamp-v130.js` — visible semantic release stamp only.
 
 ## `input/`
 
-Synchronous input ownership:
+- `desktop-controls.js` — gamepad transport only. It converts Gamepad API input into canonical commands and must not call gameplay systems, mutate `DE_TEST` or write gameplay storage.
 
-- `desktop-controls.js` — keyboard/gamepad adapter and semantic Return delegation.
-- `combat-controls.js` — J Attack / K Skill + Mana contract.
-
-Input modules may delegate to gameplay owners but must not silently fork their state machines.
+Keyboard and touch gameplay input stay in `game.js` until/unless they are deliberately extracted into one replacement owner.
 
 ## `locale/`
 
-Fixed-route display/data ownership:
+- `locale-data-v134.js` / `core-locale-data-v139.js` — language data.
+- `fixed-locale-entry-v130.js` — fixed-route language navigation and bounded language preference UI.
 
-- `locale-data-v134.js` and `core-locale-data-v139.js` — route-aware display data.
-- `fixed-locale-entry-v130.js` — Chinese/English route navigation and legacy `?lang=` convergence.
-- `stable-item-id-migration-v150.js` — additive language-neutral item display IDs.
-- `core-screen-owner-v153.js` — exact remaining English core screen sinks.
-- `town-canvas-locale-v153.js` — exact Town / Fortune Wheel Canvas text sinks.
-
-These files must not fork gameplay saves, reintroduce whole-document translation, or add generic polling/MutationObserver followers.
+No locale module may intercept Canvas methods or become a gameplay/save owner.
 
 ## `ui/`
 
-Bounded presentation followers, including visual cleanup, shop presentation, forge feedback, combat hints, audio, mobile UX, Help and Expedition Record.
+Only DOM/CSS followers approved by `runtime-bootstrap.js` belong here. Current production followers are responsive layout and help copy. UI files must not draw over the dungeon/town Canvas, patch gameplay APIs, write gameplay state or capture gameplay key commands.
 
-Files here may observe/render presentation state but must not become hidden owners of combat balance, economy, RNG or persistent gameplay identity.
+## Quarantine
 
-## Repository rule
+Previously implemented systems, UI, combat controls, localization shims, persistence helpers and overlay art runtimes are preserved under `archive/quarantine-v130/` by responsibility.
 
-New active JavaScript belongs in one of these ownership folders. Do not add compatibility copies or loose `.js` files back to the repository root. Historical code belongs under `archive/`, and production release membership remains explicit in `ops/release/static-files.txt`.
+They are reference implementations. Restore behavior by porting it into the sole owner named by `docs/authority-map-v130.json`; never load a quarantine wrapper directly.
+
+## Release boundary
+
+`ops/release/static-files.txt` is the production allowlist. `archive/` and `game/systems/` must never appear in the artifact while the v1.3.0 authority baseline is active.
