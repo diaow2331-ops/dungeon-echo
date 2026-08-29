@@ -71,6 +71,7 @@ function defaultMeta(classId) {
     insurance: 0,
     totalKills: 0, wins: 0, wheelTotal: 0, gotLegend: 0, achv: {},
     wheelSpins: 0, wheelResets: 0, wheelSlots: null,
+    market: null,
     equip: { weapon: null, armor: null, ring: null },
     bag: [], stash: [],
     bestDepth: 0, runs: 0, deaths: 0,
@@ -109,6 +110,15 @@ function sanitizeMeta(raw) {
   base.wheelSlots = (Array.isArray(raw.wheelSlots) && raw.wheelSlots.length === WHEEL_SLOTS &&
     raw.wheelSlots.every(s => s && typeof s === 'object' && !Array.isArray(s) && typeof s.kind === 'string'))
     ? raw.wheelSlots : null;
+  const market = raw.market;
+  const marketStock = market && market.stock;
+  const marketIds = ['potion', 'scroll', 'escape', 'key', 'insurance'];
+  if (market && market.v === 1 && Number.isInteger(market.cycleRun) && market.cycleRun >= 0 &&
+      Number.isInteger(market.tier) && market.tier >= 1 && market.tier <= 10 &&
+      marketStock && typeof marketStock === 'object' &&
+      marketIds.every(id => Number.isInteger(marketStock[id]) && marketStock[id] >= 0 && marketStock[id] <= 99)) {
+    base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock } };
+  }
   base.totalKills = num(raw.totalKills, 0);
   base.wins = num(raw.wins, 0);
   base.wheelTotal = num(raw.wheelTotal, 0);
@@ -4334,6 +4344,53 @@ function closeShrine() {
 }
 
 // ================= 贪婪远征：城镇 / 回城 / 元进度 =================
+const TOWN_MARKET_SUPPLIES = Object.freeze({
+  potion: { zh:'治疗药水', en:'Healing Potion', base:SHOP.potionPrice || 16,
+    stock:tier => 4 + Math.floor((tier - 1) / 3), held:m => m.potions || 0,
+    apply:m => { m.potions = (m.potions || 0) + 1; } },
+  scroll: { zh:'传送卷轴', en:'Teleport Scroll', base:SHOP.scrollPrice || 28,
+    stock:tier => 2 + Math.floor((tier - 1) / 4), held:m => m.scrolls || 0,
+    apply:m => { m.scrolls = (m.scrolls || 0) + 1; } },
+  escape: { zh:'回城卷轴', en:'Return Scroll', base:SHOP.escapePrice || 26,
+    stock:tier => tier >= 5 ? 2 : 1, held:m => m.escapes || 0,
+    apply:m => { m.escapes = (m.escapes || 0) + 1; } },
+  key: { zh:'锈蚀钥匙', en:'Rusty Key', base:SHOP.keyPrice || 22,
+    stock:tier => 2 + (tier >= 4 ? 1 : 0) + (tier >= 8 ? 1 : 0), held:m => m.keys || 0,
+    apply:m => { m.keys = (m.keys || 0) + 1; } },
+  insurance: { zh:'保险符', en:'Insurance Charm', base:SHOP.insurancePrice || 120,
+    stock:() => 1, held:m => m.insurance || 0,
+    apply:m => { m.insurance = (m.insurance || 0) + 1; } },
+});
+const TOWN_MARKET_IDS = Object.freeze(Object.keys(TOWN_MARKET_SUPPLIES));
+function townMarketPriceScale(tier) {
+  const t = clamp(Math.floor(Number(tier) || 1), 1, 10) - 1;
+  return 1 + .42 * t + .065 * t * t;
+}
+function townMarketPrice(id, tier) {
+  const def = TOWN_MARKET_SUPPLIES[id];
+  if (!def) return 0;
+  return Math.max(5, Math.round((def.base * townMarketPriceScale(tier)) / 5) * 5);
+}
+function freshTownMarket(tier = townTierForArt()) {
+  const stock = {};
+  for (const id of TOWN_MARKET_IDS) stock[id] = Math.max(0, Math.floor(TOWN_MARKET_SUPPLIES[id].stock(tier)));
+  return { v:1, cycleRun:Math.max(0, Math.floor(Number(meta && meta.runs) || 0)), tier, stock };
+}
+function validTownMarket(row) {
+  return !!(row && row.v === 1 && Number.isInteger(row.cycleRun) && row.cycleRun >= 0 &&
+    Number.isInteger(row.tier) && row.tier >= 1 && row.tier <= 10 && row.stock &&
+    TOWN_MARKET_IDS.every(id => Number.isInteger(row.stock[id]) && row.stock[id] >= 0 && row.stock[id] <= 99));
+}
+function ensureTownMarket() {
+  if (!meta) return null;
+  const cycleRun = Math.max(0, Math.floor(Number(meta.runs) || 0));
+  const tier = townTierForArt();
+  if (!validTownMarket(meta.market) || meta.market.cycleRun !== cycleRun || meta.market.tier !== tier) {
+    meta.market = freshTownMarket(tier);
+    saveMeta();
+  }
+  return meta.market;
+}
 const TOWN_CHECKPOINTS = Object.freeze([1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
 let selectedTownCheckpoint = 1;
 function unlockedTownCheckpoints() {
@@ -4946,15 +5003,19 @@ function renderTown() {
       `<span class="row-actions"><button type="button" data-withdraw="${i}"${meta.bag.length >= BAG_CAP ? ' disabled' : ''}>${ui('取出','Withdraw')}</button>${tradeBtns('stash', i, it)}</span></div>`).join('')
     : `<p class="dim-note">${ui('仓库是空的。把装备「存入」这里，死亡也夺不走。','The stash is empty. Store gear here to keep it safe from death.')}</p>`;
   const shopEl = $('town-shop');
-  if (shopEl) shopEl.innerHTML = [
-    { id: 'potion', name: ui(`治疗药水 ×1（带 ${meta.potions}）`, `Healing Potion ×1 (carrying ${meta.potions})`), price: SHOP.potionPrice },
-    { id: 'escape', name: ui(`回城卷轴 ×1（带 ${meta.escapes}）`, `Return Scroll ×1 (carrying ${meta.escapes})`), price: SHOP.escapePrice || 26 },
-    { id: 'key', name: ui(`锈蚀钥匙 ×1（带 ${meta.keys}）`, `Rusty Key ×1 (carrying ${meta.keys})`), price: SHOP.keyPrice },
-    { id: 'insurance', name: ui(`保险符 ×1 死亡保背包（带 ${meta.insurance || 0}）`, `Insurance Charm ×1 · protects backpack on death (carrying ${meta.insurance || 0})`), price: SHOP.insurancePrice || 120 },
-  ].map(r =>
-    `<div class="shop-row"><span>${esc(r.name)}</span><b>${r.price} G</b>` +
-    `<button type="button" data-townbuy="${r.id}"${meta.gold < r.price ? ' disabled' : ''}>${ui('购买','Buy')}</button></div>`).join('');
-  const wheelEl = $('town-wheel');
+if (shopEl) {
+  const market = ensureTownMarket();
+  shopEl.innerHTML = market ? TOWN_MARKET_IDS.map(id => {
+    const def = TOWN_MARKET_SUPPLIES[id];
+    const price = townMarketPrice(id, market.tier);
+    const left = market.stock[id] || 0;
+    const held = def.held(meta);
+    const label = ui(def.zh, def.en);
+    return `<div class="shop-row" data-town-supply="${id}"><span>${esc(label)} ×1 <small>${ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`)}</small></span>` +
+      `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
+  }).join('') + `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>` : '';
+}
+const wheelEl = $('town-wheel');
   if (wheelEl) {
     ensureWheel();
     const sc = spinCost(), rc = resetWheelCost();
@@ -5031,18 +5092,28 @@ function withdrawStash(i) {
   saveMeta(); renderTown();
 }
 function buyTown(id) {
-  if (state !== 'town' || !meta) return;
-  const prices = { potion: SHOP.potionPrice, escape: SHOP.escapePrice || 26, key: SHOP.keyPrice, insurance: SHOP.insurancePrice || 120 };
-  const price = prices[id];
-  if (!price) return;
-  if (meta.gold < price) { msg(ui('金库里的金币不够。','Not enough Gold in the vault.'), 'bad'); return; }
+  if (state !== 'town' || !meta) return false;
+  const market = ensureTownMarket();
+  const def = TOWN_MARKET_SUPPLIES[id];
+  if (!market || !def) return false;
+  const left = Math.max(0, Number(market.stock[id]) || 0);
+  const price = townMarketPrice(id, market.tier);
+  if (left <= 0) {
+    msg(ui(`${def.zh}本轮已经售罄。`, `${def.en} is sold out for this expedition cycle.`), 'bad');
+    renderTown();
+    return false;
+  }
+  if (meta.gold < price) {
+    msg(ui(`金库金币不足：${def.zh}需要 ${price} G。`, `Not enough vault Gold: ${def.en} costs ${price} G.`), 'bad');
+    return false;
+  }
   meta.gold -= price;
-  if (id === 'potion') meta.potions++;
-  else if (id === 'escape') meta.escapes++;
-  else if (id === 'key') meta.keys++;
-  else if (id === 'insurance') meta.insurance = (meta.insurance || 0) + 1;
+  def.apply(meta);
+  market.stock[id] = left - 1;
   sfx.pickup();
+  msg(ui(`购入【${def.zh}】×1。`, `Bought [${def.en}] ×1.`), 'good');
   saveMeta(); renderTown();
+  return true;
 }
 function initGreedyRun(chosen) {
   classId = CLASSES[chosen] ? chosen : (meta && meta.classId) || 'warrior';
