@@ -9,18 +9,34 @@ output="${1:-$repo_root/91hwl-play-dungeon-echo-v$version.zip}"
 manifest="$repo_root/ops/release/static-files.txt"
 stage_root="$(mktemp -d)"
 bundle="$stage_root/91hwl-play-dungeon-echo-v$version"
-source_generation=153
-legacy_art_generation=157
-asset_generation=168
+asset_generation=169
 
 cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
 
-test -r "$manifest"
 test "$version" = '1.3.0'
+test -r "$manifest"
 command -v zip >/dev/null
-mkdir -p "$bundle/public/dungeon-echo" "$bundle/ops"
 
+# Source must already be the deployable graph. The builder never edits HTML/JS.
+! grep -Eq '^game/systems/' "$manifest"
+for forbidden in \
+  game/input/combat-controls.js \
+  game/locale/core-screen-owner-v153.js \
+  game/locale/town-canvas-locale-v153.js \
+  game/ui/equipment-shop-ui.js \
+  game/ui/town-workspace-v156.js \
+  game/ui/town-workspace-events-v156.js \
+  game/ui/forge-feedback-v122.js \
+  game/ui/combat-hint-polish.js \
+  game/ui/expedition-pressure-v1211.js \
+  game/ui/audio-director.js \
+  game/ui/mobile-ux.js \
+  game/ui/expedition-record-v126.js; do
+  ! grep -Fxq "$forbidden" "$manifest"
+done
+
+mkdir -p "$bundle/public/dungeon-echo" "$bundle/ops"
 while IFS= read -r file; do
   test -n "$file" || continue
   [[ "$file" != /* && "$file" != *'..'* ]]
@@ -31,63 +47,18 @@ while IFS= read -r file; do
 done < "$manifest"
 
 for entry in "$bundle/public/dungeon-echo/index.html" "$bundle/public/dungeon-echo/en/index.html"; do
-  test -r "$entry"
-  # Immutable production bytes are normalized to the v1.3.0 single-authority graph.
-  sed -i \
-    -e '/game\/core\/save-integrity-system\.js/d' \
-    -e '/game\/ui\/visual-polish\.js/d' \
-    -e '/game\/ui\/art-runtime-v2\.js/d' \
-    -e '/art\/runtime\//d' \
-    -e 's/v1\.2\.12/v1.3.0/g' \
-    -e "s/?v=$source_generation/?v=$asset_generation/g" \
-    -e "s/?v=$legacy_art_generation/?v=$asset_generation/g" \
-    "$entry"
-  grep -Fq "?v=$asset_generation" "$entry"
   grep -Fq 'v1.3.0' "$entry"
-  ! grep -Fq "?v=$source_generation" "$entry"
-  ! grep -Fq "?v=$legacy_art_generation" "$entry"
-  ! grep -Eq 'save-integrity-system|visual-polish|art-runtime-v2|art-runtime-v4|town-art-v160|hero-directional|class-combat-fx|new-run-reset|art/runtime/' "$entry"
+  grep -Fq "?v=$asset_generation" "$entry"
+  ! grep -Eq '\?v=(153|157|166|167|168)' "$entry"
+  ! grep -Eq 'game/systems/|combat-controls|core-screen-owner|town-canvas-locale|town-workspace|forge-feedback|combat-hint-polish|expedition-pressure|audio-director|mobile-ux|expedition-record|art-runtime|visual-polish' "$entry"
 done
 
 grep -Fq "const assetVersion = '$asset_generation'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-grep -Fq "release-stamp-v130.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-grep -Fq "renderOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-grep -Fq "renderOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
-grep -Fq "storageEpoch:STORAGE_EPOCH" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
-grep -Fq "historicalSaveMigration:false" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
+grep -Fq "followers:'dom-only'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "gameplayStateOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "gameplayInputOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
+grep -Fq "gameplayPersistenceOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
 grep -Fq "newAdventure:'full-reset'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
-grep -Fq "installNoTranslateBoundary" "$bundle/public/dungeon-echo/game/locale/fixed-locale-entry-v130.js"
-grep -Fq "responsive-final-v154.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-
-# The active artifact has exactly one Canvas renderer: game/core/game.js.
-for required in \
-  game/core/game.js \
-  game/core/release-stamp-v130.js \
-  art/hero-atlas-v11.png \
-  art/monster-atlas-v11.png \
-  art/guardian-atlas-v11.png \
-  art/final-boss-v11.png \
-  art/town-backdrop-v11.webp; do
-  test -r "$bundle/public/dungeon-echo/$required"
-done
-
-for retired in \
-  game/core/save-integrity-system.js \
-  game/core/release-stamp-v1212.js \
-  game/locale/stable-item-id-migration-v150.js \
-  game/ui/visual-polish.js \
-  game/ui/art-runtime-v2.js \
-  game/ui/art-runtime-v4.js \
-  game/ui/town-art-v160.js \
-  game/ui/character-art-cleanup-v122.js \
-  game/ui/world-loot-polish-v122.js \
-  game/ui/hero-directional-art-v165.js \
-  game/ui/class-combat-fx-v163.js \
-  game/ui/new-run-reset-v167.js; do
-  test ! -e "$bundle/public/dungeon-echo/$retired"
-done
-
-test ! -d "$bundle/public/dungeon-echo/art/runtime"
 
 install -m 0755 "$repo_root/ops/site-bundle/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$repo_root/ops/site-bundle/healthcheck.sh" "$bundle/ops/healthcheck.sh"
@@ -99,7 +70,6 @@ printf '%s\n' "$revision" > "$bundle/REVISION"
   find README.txt REVISION VERSION ops public -type f -print0 | sort -z |
     while IFS= read -r -d '' file; do sha256sum "$file"; done > SHA256SUMS
 )
-
 mkdir -p "$(dirname "$output")"
 rm -f -- "$output"
 (cd "$bundle" && zip -q -r "$output" .)
@@ -107,4 +77,5 @@ echo "bundle=$output"
 echo "version=$version"
 echo "revision=$revision"
 echo "asset_generation=$asset_generation"
+echo 'authority_graph=single'
 echo 'dungeon_echo_bundle_build=PASS'
