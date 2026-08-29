@@ -9,7 +9,7 @@ Server usage:
   cd /tmp/91hwl-play-dungeon-echo-v1.3.0
   sudo ./ops/deploy.sh
 
-v1.3.0 publishes cache generation 168 and establishes one production authority:
+v1.3.0 publishes cache generation 169 and establishes one production authority:
 game/core/game.js is the only dungeon/town Canvas renderer. Historical art overlays,
 Canvas interception/cleanup layers, save-integrity/migration shims and transitional
 New Run patches are not shipped. The first v1.3.0 visit clears prior Dungeon Echo
