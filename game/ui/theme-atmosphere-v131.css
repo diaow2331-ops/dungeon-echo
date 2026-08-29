@@ -1,0 +1,74 @@
+/* 21-band atmosphere values recovered from the retired terrain runtime.
+ * CSS only. Motifs are deliberately subtle edge atmosphere, not a replacement terrain renderer.
+ */
+#stage {
+  --de-hue: 218;
+  --de-sat: 18%;
+  --de-light: 62%;
+  --de-canvas-sat: 1.07;
+  --de-canvas-contrast: 1.045;
+  --de-canvas-bright: .985;
+  --de-atm-alpha: .10;
+  --de-motif-alpha: .045;
+  --de-pattern: linear-gradient(90deg, transparent 47%, hsla(var(--de-hue),var(--de-sat),var(--de-light),.24) 48% 52%, transparent 53%);
+  --de-pattern-size: 32px 32px;
+  isolation: isolate;
+}
+#stage::before,
+#stage::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 2px;
+}
+#stage::before {
+  background:
+    radial-gradient(circle at 50% 40%, transparent 32%, hsla(var(--de-hue),var(--de-sat),var(--de-light),var(--de-atm-alpha)) 76%, rgba(4,3,3,.16) 100%),
+    linear-gradient(180deg, hsla(var(--de-hue),var(--de-sat),var(--de-light),.035), transparent 30% 72%, hsla(var(--de-hue),var(--de-sat),var(--de-light),.055));
+  mix-blend-mode: screen;
+}
+#stage::after {
+  background-image: var(--de-pattern);
+  background-size: var(--de-pattern-size);
+  opacity: var(--de-motif-alpha);
+  -webkit-mask-image: radial-gradient(circle at 50% 48%, transparent 20%, #000 82%);
+  mask-image: radial-gradient(circle at 50% 48%, transparent 20%, #000 82%);
+}
+#minimap { z-index: 4; }
+
+/* stone · moss · blood · hell */
+#stage[data-de-theme-band="0"] { --de-hue:218; --de-sat:18%; --de-light:62%; --de-pattern:linear-gradient(90deg,transparent 47%,hsla(218,18%,72%,.24) 48% 52%,transparent 53%),linear-gradient(0deg,transparent 47%,hsla(218,18%,72%,.18) 48% 52%,transparent 53%); --de-pattern-size:34px 22px; }
+#stage[data-de-theme-band="1"] { --de-hue:118; --de-sat:26%; --de-light:49%; --de-canvas-sat:1.09; --de-pattern:radial-gradient(circle at 22% 72%,hsla(118,46%,58%,.38) 0 2px,transparent 3px),radial-gradient(circle at 74% 28%,hsla(118,40%,52%,.24) 0 1px,transparent 2px); --de-pattern-size:38px 34px; }
+#stage[data-de-theme-band="2"] { --de-hue:350; --de-sat:46%; --de-light:50%; --de-atm-alpha:.115; --de-pattern:repeating-linear-gradient(128deg,transparent 0 18px,hsla(350,72%,58%,.22) 19px,transparent 21px 34px); --de-pattern-size:44px 44px; }
+#stage[data-de-theme-band="3"] { --de-hue:18; --de-sat:62%; --de-light:52%; --de-canvas-sat:1.10; --de-atm-alpha:.12; --de-pattern:radial-gradient(circle,hsla(18,90%,60%,.42) 0 1px,transparent 2px); --de-pattern-size:27px 31px; }
+
+/* frostbone · drowned · void · forge */
+#stage[data-de-theme-band="4"] { --de-hue:204; --de-sat:48%; --de-light:67%; --de-canvas-bright:1.0; --de-pattern:linear-gradient(45deg,transparent 48%,hsla(204,82%,82%,.26) 49% 51%,transparent 52%),linear-gradient(-45deg,transparent 48%,hsla(204,82%,82%,.18) 49% 51%,transparent 52%); --de-pattern-size:31px 31px; }
+#stage[data-de-theme-band="5"] { --de-hue:164; --de-sat:32%; --de-light:52%; --de-pattern:repeating-radial-gradient(ellipse at 50% 50%,transparent 0 8px,hsla(164,58%,66%,.20) 9px 10px,transparent 11px 18px); --de-pattern-size:52px 26px; }
+#stage[data-de-theme-band="6"] { --de-hue:270; --de-sat:44%; --de-light:60%; --de-atm-alpha:.125; --de-pattern:linear-gradient(45deg,transparent 44%,hsla(270,72%,72%,.24) 45% 48%,transparent 49% 51%,hsla(270,72%,72%,.16) 52% 55%,transparent 56%); --de-pattern-size:36px 36px; }
+#stage[data-de-theme-band="7"] { --de-hue:24; --de-sat:68%; --de-light:52%; --de-canvas-contrast:1.055; --de-pattern:linear-gradient(90deg,hsla(24,70%,62%,.18) 1px,transparent 1px),linear-gradient(0deg,hsla(24,70%,62%,.14) 1px,transparent 1px); --de-pattern-size:29px 29px; }
+
+/* web · star · shatter · crimson */
+#stage[data-de-theme-band="8"] { --de-hue:278; --de-sat:22%; --de-light:70%; --de-pattern:repeating-conic-gradient(from 0deg at 0 0,hsla(278,20%,88%,.18) 0 1deg,transparent 2deg 29deg); --de-pattern-size:46px 46px; }
+#stage[data-de-theme-band="9"] { --de-hue:214; --de-sat:58%; --de-light:70%; --de-canvas-bright:1.0; --de-pattern:radial-gradient(circle,hsla(214,88%,84%,.50) 0 1px,transparent 1.7px); --de-pattern-size:33px 39px; }
+#stage[data-de-theme-band="10"] { --de-hue:264; --de-sat:28%; --de-light:60%; --de-pattern:repeating-linear-gradient(37deg,transparent 0 21px,hsla(264,60%,70%,.22) 22px,transparent 24px 41px); --de-pattern-size:48px 48px; }
+#stage[data-de-theme-band="11"] { --de-hue:342; --de-sat:58%; --de-light:53%; --de-atm-alpha:.12; --de-pattern:repeating-linear-gradient(151deg,transparent 0 17px,hsla(342,78%,62%,.23) 18px 19px,transparent 21px 38px); --de-pattern-size:45px 45px; }
+
+/* deepfrost · molten · voidecho · death */
+#stage[data-de-theme-band="12"] { --de-hue:205; --de-sat:52%; --de-light:72%; --de-canvas-bright:1.005; --de-pattern:linear-gradient(45deg,transparent 47%,hsla(205,90%,88%,.28) 48% 52%,transparent 53%),linear-gradient(-45deg,transparent 47%,hsla(205,90%,88%,.17) 48% 52%,transparent 53%); --de-pattern-size:27px 27px; }
+#stage[data-de-theme-band="13"] { --de-hue:19; --de-sat:74%; --de-light:55%; --de-canvas-sat:1.11; --de-atm-alpha:.135; --de-pattern:radial-gradient(circle at 30% 70%,hsla(19,96%,64%,.48) 0 1px,transparent 2px),radial-gradient(circle at 75% 25%,hsla(40,96%,62%,.28) 0 1px,transparent 2px); --de-pattern-size:31px 35px; }
+#stage[data-de-theme-band="14"] { --de-hue:276; --de-sat:54%; --de-light:61%; --de-atm-alpha:.135; --de-pattern:repeating-conic-gradient(from 45deg at 50% 50%,transparent 0 43deg,hsla(276,84%,72%,.22) 44deg 46deg,transparent 47deg 90deg); --de-pattern-size:41px 41px; }
+#stage[data-de-theme-band="15"] { --de-hue:102; --de-sat:22%; --de-light:52%; --de-canvas-sat:1.04; --de-pattern:radial-gradient(ellipse at 35% 50%,transparent 0 7px,hsla(102,28%,70%,.16) 8px 9px,transparent 10px); --de-pattern-size:38px 24px; }
+
+/* stardust · lightless · ending · voidcore · nightcity */
+#stage[data-de-theme-band="16"] { --de-hue:226; --de-sat:62%; --de-light:73%; --de-canvas-bright:1.005; --de-pattern:radial-gradient(circle,hsla(226,96%,90%,.54) 0 1px,transparent 1.6px); --de-pattern-size:29px 37px; }
+#stage[data-de-theme-band="17"] { --de-hue:232; --de-sat:12%; --de-light:55%; --de-canvas-sat:1.025; --de-canvas-bright:.965; --de-atm-alpha:.075; --de-motif-alpha:.026; --de-pattern:linear-gradient(135deg,transparent 48%,hsla(232,18%,70%,.12) 49% 51%,transparent 52%); --de-pattern-size:43px 43px; }
+#stage[data-de-theme-band="18"] { --de-hue:334; --de-sat:62%; --de-light:56%; --de-atm-alpha:.135; --de-pattern:repeating-linear-gradient(56deg,transparent 0 22px,hsla(334,86%,66%,.24) 23px,transparent 25px 45px); --de-pattern-size:49px 49px; }
+#stage[data-de-theme-band="19"] { --de-hue:282; --de-sat:66%; --de-light:62%; --de-canvas-contrast:1.06; --de-atm-alpha:.145; --de-pattern:repeating-conic-gradient(from 0deg at 50% 50%,hsla(282,88%,72%,.17) 0 3deg,transparent 4deg 44deg,hsla(282,88%,72%,.17) 45deg 48deg,transparent 49deg 90deg); --de-pattern-size:38px 38px; }
+#stage[data-de-theme-band="20"] { --de-hue:222; --de-sat:58%; --de-light:67%; --de-canvas-contrast:1.06; --de-canvas-bright:.99; --de-atm-alpha:.14; --de-pattern:linear-gradient(90deg,transparent 0 69%,hsla(222,88%,78%,.22) 70% 72%,transparent 73%),radial-gradient(circle,hsla(48,92%,74%,.48) 0 1px,transparent 1.8px); --de-pattern-size:47px 37px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #stage::before, #stage::after { transition: none; }
+}

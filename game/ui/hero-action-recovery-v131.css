@@ -2,6 +2,7 @@
  * Production use is deliberately DOM/CSS-only here: the canonical game Canvas stays in game/core/game.js.
  * The large class portraits remain on the newer roster art; this atlas appears as an action preview and HUD identity chip.
  */
+@import url("./theme-atmosphere-v131.css");
 
 .class-card[data-class="warrior"], .class-chip[data-class="warrior"] { --de-hero-row: 0%; }
 .class-card[data-class="ranger"], .class-chip[data-class="ranger"] { --de-hero-row: 33.333333%; }

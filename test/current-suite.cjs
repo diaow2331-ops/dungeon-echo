@@ -16,6 +16,7 @@ const tests = [
   'equipment-art-recovery-v131.cjs',
   'static-art-polish-v131.cjs',
   'hero-action-ui-recovery-v131.cjs',
+  'theme-atmosphere-v131.cjs',
   'descent100.cjs',
   'save-integrity-v128.cjs',
   'combat-controls-v1.cjs',

@@ -7,6 +7,7 @@ The v1.3.1 recovery closeout completed the reviewed single-authority recovery se
 - v13 weapon and wearable sheets are promoted to production and statically mapped to all 26 equipment icon cells.
 - Safe static visual-polish values are restored for the main dungeon canvas and Echo Town without restoring any overlay Canvas or follower runtime.
 - The historical four-class × four-state hero action atlas is now a production asset. It is visibly used for class-card action previews and the HUD class identity chip while the newer large class roster art remains intact.
+- All 21 historical classic-100 depth palettes/motif identities are restored as a low-opacity atmosphere layer. A DOM-only observer derives the band from the already-rendered HUD floor text; it does not read gameplay APIs or own a Canvas.
 
 ## Still missing from the current production art graph
 
@@ -22,11 +23,11 @@ Historical v1.2.12 shipped `boss-guardian-atlas-v3.png` and `final-boss-v3.png`,
 
 Recovery requirement: visually compare v3 against the current v11 baseline, then promote only if it is an actual quality improvement. Keep encounter mechanics and telegraphs in canonical core. Do not infer visual quality from the historical version number alone.
 
-### 21-theme terrain material pass
+### 21-theme terrain material pass — partial recovery
 
-Historical `art-runtime-v4.js` defined deterministic visual material/motif treatment across all 21 classic-100 themes. The old implementation used a second terrain Canvas and is therefore retired.
+The retired `art-runtime-v4.js` defined deterministic visual language across all 21 classic-100 themes. Those palette and motif identities are now represented in production by the DOM/CSS atmosphere layer without a second Canvas or duplicate FOV/map authority.
 
-Recovery requirement: rebuild the useful hue/material/motif rules inside the canonical terrain draw path, with no second Canvas and no duplicate FOV or map authority.
+Remaining requirement: if tile-level wall/floor material detail is still desirable after visual QA, implement it inside the canonical `game/core/game.js` theme texture path. The old terrain overlay Canvas must remain retired.
 
 ### Remaining historical art-library candidates
 

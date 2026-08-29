@@ -1,10 +1,10 @@
 /* Recovered static presentation value from the pre-v1.3 visual-polish pass.
- * CSS only: no Canvas, gameplay state, polling, input or persistence authority.
+ * CSS only: no Canvas context, gameplay state, polling, input or persistence authority.
  */
 @import url("./hero-action-recovery-v131.css");
 
 canvas#game {
-  filter: saturate(1.07) contrast(1.045) brightness(.985);
+  filter: saturate(var(--de-canvas-sat, 1.07)) contrast(var(--de-canvas-contrast, 1.045)) brightness(var(--de-canvas-bright, .985));
 }
 
 #town-scene {

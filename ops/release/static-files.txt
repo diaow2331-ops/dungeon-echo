@@ -20,6 +20,8 @@ game/ui/help-copy-v126.js
 game/ui/equipment-art-v13.css
 game/ui/static-art-polish-v131.css
 game/ui/hero-action-recovery-v131.css
+game/ui/theme-atmosphere-v131.css
+game/ui/theme-atmosphere-v131.js
 game/input/desktop-controls.js
 art/loot-atlas.png
 art/equipment-weapons-v13.png

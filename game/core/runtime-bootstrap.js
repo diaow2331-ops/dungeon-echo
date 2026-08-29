@@ -1,4 +1,4 @@
-/* Dungeon Echo production UX bootstrap v19.
+/* Dungeon Echo production UX bootstrap v20.
  *
  * v1.3.1 recovery release generation 170 rule:
  * - game/core/game.js is the sole gameplay/render/input/persistence writer;
@@ -20,6 +20,7 @@
     [fresh('game/locale/fixed-locale-entry-v130.js'), 'data-de-fixed-locale-v130', () => !!window.__DE_FIXED_LOCALE_ENTRY],
     [fresh('game/ui/responsive-final-v154.js'), 'data-de-responsive-final-v154', () => !!window.__DE_RESPONSIVE_FINAL_V154],
     [fresh('game/ui/help-copy-v126.js'), 'data-de-help-copy-v126', () => !!window.__DE_HELP_COPY_V126],
+    [fresh('game/ui/theme-atmosphere-v131.js'), 'data-de-theme-atmosphere-v131', () => !!window.__DE_THEME_ATMOSPHERE_V131],
   ]);
 
   let started = false;
@@ -38,7 +39,7 @@
       const script = document.createElement('script');
       script.src = src;
       script.async = false;
-      script.setAttribute(marker, 'v19');
+      script.setAttribute(marker, 'v20');
       let done = false;
       const settle = status => { if (done) return; done = true; resolve(status); };
       script.addEventListener('load', () => settle(ready() ? 'ready' : 'loaded'), { once:true });
@@ -59,7 +60,7 @@
 
   if (document.body) start(); else window.addEventListener('DOMContentLoaded', start, { once:true });
   window.__DE_PRODUCTION_UX_BOOTSTRAP = Object.freeze({
-    version:'v19',
+    version:'v20',
     assetVersion,
     locale:english?'en':'zh-CN',
     renderOwner:'game/core/game.js',
