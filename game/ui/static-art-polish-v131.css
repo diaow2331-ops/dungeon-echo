@@ -1,0 +1,36 @@
+/* Recovered static presentation value from the pre-v1.3 visual-polish pass.
+ * CSS only: no Canvas, gameplay state, polling, input or persistence authority.
+ */
+
+canvas#game {
+  filter: saturate(1.07) contrast(1.045) brightness(.985);
+}
+
+#town-scene {
+  filter: saturate(1.12) contrast(1.065) brightness(.985);
+  border-color: rgba(224,167,58,.22);
+  border-radius: 10px;
+  box-shadow: inset 0 0 44px rgba(0,0,0,.32), 0 14px 34px rgba(0,0,0,.26);
+}
+
+#town-screen .town-service {
+  background: linear-gradient(180deg,rgba(37,27,19,.88),rgba(16,13,11,.92));
+  border-color: rgba(224,167,58,.18);
+  box-shadow: inset 0 1px rgba(255,236,190,.035),0 8px 22px rgba(0,0,0,.18);
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+#town-screen .town-service:hover,
+#town-screen .town-service:focus-within {
+  transform: translateY(-1px);
+  border-color: rgba(224,167,58,.34);
+  box-shadow: inset 0 1px rgba(255,236,190,.05),0 12px 28px rgba(0,0,0,.24);
+}
+
+#town-screen .town-growth {
+  background: linear-gradient(90deg,rgba(12,10,9,.78),rgba(42,29,18,.48),rgba(12,10,9,.78));
+  border-color: rgba(224,167,58,.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #town-screen .town-service { transition: none; transform: none; }
+}
