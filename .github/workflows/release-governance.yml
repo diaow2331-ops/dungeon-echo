@@ -13,14 +13,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verify single-authority topology
-        run: node test/single-authority-v130.cjs
-      - name: Verify production entry authority
-        run: node test/entry-authority-v130.cjs
-      - name: Verify staged inventory rules
-        run: node test/inventory-rules-v130.cjs
-      - name: Verify staged economy rules
-        run: node test/economy-rules-v130.cjs
+      - name: Verify canonical local authority gate
+        run: bash ops/check-authority-local.sh
       - name: Build immutable Dungeon Echo v1.3.0 baseline ZIP
         env:
           SOURCE_REVISION: ${{ github.sha }}
