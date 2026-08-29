@@ -23,6 +23,8 @@ const tests = [
   'descent100.cjs',
   'save-integrity-v128.cjs',
   'current-control-contract-v132.cjs',
+  'adaptive-bgm-v132.cjs',
+  'current-runtime-contract-v132.cjs',
   'extraction-channel.cjs',
   'dungeon-service-safety.cjs',
   'wheel-death-reroll.cjs',
@@ -35,7 +37,6 @@ const tests = [
   'final-fixed-locale-v153.cjs',
   'fixed-locale-routes-v131.cjs',
   'cache-bust-v140.cjs',
-  'runtime-debt-contract-v141.cjs',
   'release.cjs',
   'repository-governance-v122.cjs',
 ];
