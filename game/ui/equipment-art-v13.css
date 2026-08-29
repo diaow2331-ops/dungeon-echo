@@ -2,6 +2,7 @@
  * Static presentation only: remaps the 26 equipment cells emitted by canonical core.
  * Consumables and world-loot cells intentionally remain on art/loot-atlas.png.
  */
+@import url("./static-art-polish-v131.css");
 
 .loot-icon[style*="--ix:0;--iy:0"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:0% 0%; }
 .loot-icon[style*="--ix:1;--iy:0"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:20% 0%; }
