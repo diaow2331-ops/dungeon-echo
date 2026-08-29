@@ -4,6 +4,9 @@ const path = require('path');
 const root = process.env.DE_ROOT || path.resolve(__dirname, '..');
 const core = fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
 const help = fs.readFileSync(path.join(root,'game/ui/help-copy-v126.js'),'utf8');
+const version = fs.readFileSync(path.join(root,'VERSION'),'utf8').trim();
+const zh = fs.readFileSync(path.join(root,'index.html'),'utf8');
+const en = fs.readFileSync(path.join(root,'en/index.html'),'utf8');
 let pass=0, fail=0;
 const ok=(cond,name)=>{if(cond){pass++;console.log('  PASS '+name)}else{fail++;console.log('  FAIL '+name)}};
 
@@ -16,7 +19,9 @@ ok(/document\.addEventListener\('keydown', schedule, false\)/.test(help) && /doc
 ok(!/preventDefault|stopPropagation|stopImmediatePropagation/.test(help), 'copy repair never owns gameplay input');
 ok(!/localStorage|getContext\(|DE_TEST\.[A-Za-z_$][\w$]*\s*=/.test(help), 'copy repair owns no gameplay state, storage or Canvas');
 ok(help.includes('Walk into the merchant to trade') === false, 'copy repair does not duplicate or overwrite dynamic encounter hints');
-ok(/version:'1\.4\.1'/.test(help), 'help-copy version identifies the current-control repair');
+ok(help.includes(`version:'${version}'`), 'help-copy version follows the repository release instead of a stale literal');
+ok(zh.includes('点击背包查看 · 再选择装备/丢弃') && !zh.includes('点击背包装备'), 'Chinese footer describes select-then-decide backpack semantics');
+ok(en.includes('click backpack to inspect · then Equip / Drop') && !en.includes('click backpack to equip'), 'English footer describes select-then-decide backpack semantics');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);
