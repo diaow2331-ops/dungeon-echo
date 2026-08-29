@@ -1,0 +1,37 @@
+/* Dungeon Echo v13 equipment art recovery.
+ * Static presentation only: remaps the 26 equipment cells emitted by canonical core.
+ * Consumables and world-loot cells intentionally remain on art/loot-atlas.png.
+ */
+
+.loot-icon[style*="--ix:0;--iy:0"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:0% 0%; }
+.loot-icon[style*="--ix:1;--iy:0"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:20% 0%; }
+.loot-icon[style*="--ix:2;--iy:0"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:60% 33.333333%; }
+.loot-icon[style*="--ix:3;--iy:0"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:60% 0%; }
+
+.loot-icon[style*="--ix:0;--iy:1"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:0% 0%; }
+.loot-icon[style*="--ix:1;--iy:1"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:40% 0%; }
+.loot-icon[style*="--ix:2;--iy:1"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:80% 0%; }
+.loot-icon[style*="--ix:3;--iy:1"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:60% 0%; }
+
+.loot-icon[style*="--ix:0;--iy:2"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:0% 75%; }
+.loot-icon[style*="--ix:1;--iy:2"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:40% 75%; }
+.loot-icon[style*="--ix:2;--iy:2"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:80% 75%; }
+
+.loot-icon[style*="--ix:0;--iy:4"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:40% 100%; }
+.loot-icon[style*="--ix:1;--iy:4"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:100% 33.333333%; }
+.loot-icon[style*="--ix:2;--iy:4"] { background-image:url("../../art/equipment-weapons-v13.png"); background-size:600% 400%; background-position:80% 66.666667%; }
+
+.loot-icon[style*="--ix:3;--iy:4"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:0% 25%; }
+.loot-icon[style*="--ix:0;--iy:5"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:40% 25%; }
+.loot-icon[style*="--ix:1;--iy:5"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:60% 25%; }
+.loot-icon[style*="--ix:2;--iy:5"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:100% 25%; }
+
+.loot-icon[style*="--ix:3;--iy:5"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:0% 50%; }
+.loot-icon[style*="--ix:0;--iy:6"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:20% 50%; }
+.loot-icon[style*="--ix:1;--iy:6"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:40% 50%; }
+.loot-icon[style*="--ix:2;--iy:6"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:80% 50%; }
+
+.loot-icon[style*="--ix:3;--iy:6"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:0% 100%; }
+.loot-icon[style*="--ix:0;--iy:7"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:20% 100%; }
+.loot-icon[style*="--ix:1;--iy:7"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:60% 100%; }
+.loot-icon[style*="--ix:2;--iy:7"] { background-image:url("../../art/equipment-wearables-v13.png"); background-size:600% 500%; background-position:100% 100%; }
