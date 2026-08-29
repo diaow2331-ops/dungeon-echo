@@ -25,6 +25,7 @@ const tests = [
   'current-save-contract-v132.cjs',
   'current-control-contract-v132.cjs',
   'adaptive-bgm-v132.cjs',
+  'forge-feedback-v132.cjs',
   'current-runtime-contract-v132.cjs',
   'wheel-death-reroll.cjs',
   'guardian-content.cjs',
