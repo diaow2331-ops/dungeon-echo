@@ -22,11 +22,12 @@ Each shelf preserves completed work but owns **zero production authority**.
 
 ## Staged extraction
 
-Three pure libraries have now been re-housed without entering production:
+Four pure libraries have now been re-housed without entering production:
 
 - `game/domain/inventory/equipment-rules-v130.js` — class-fit, affix scaling, deep-slot and rarity rules.
 - `game/domain/economy/economy-rules-v130.js` — town supply pricing/stock, heal pricing, forge/sell costs, quick-dive and wheel costs.
 - `game/domain/progression/progression-rules-v130.js` — XP thresholds, level-up deltas, talent cadence, progression caps and skill-evolution milestones.
+- `game/domain/content/content-rules-v130.js` — floor theme bands, monster eligibility/fallback, encounter counts and special-floor classification.
 
 All staged libraries are intentionally absent from `ops/release/static-files.txt`, are not loaded by either production entry, and own no runtime authority. Their quarantined source implementations remain intact as provenance/reference until later atomic transfers are complete.
 
@@ -34,7 +35,8 @@ The boundaries are deliberately narrow:
 
 - inventory/equipment decides class fit and item-value inputs;
 - economy converts value/depth inputs into prices and costs;
-- progression calculates thresholds/caps/milestones but never mutates player/meta state.
+- progression calculates thresholds/caps/milestones but never mutates player/meta state;
+- content answers what is eligible on a floor, but never spawns entities, consumes RNG or applies combat effects.
 
 That separation prevents a staged library from becoming a second hidden owner while still preserving already-designed mechanics in the correct future shelf.
 
