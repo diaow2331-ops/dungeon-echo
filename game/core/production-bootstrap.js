@@ -1,30 +1,55 @@
-/* Dungeon Echo production bootstrap.
- * Public builds always enter the single 1→100 expedition. Internal short profiles
- * remain available through dev/test harnesses, but are never selected by index.html.
+/* Dungeon Echo production authority bootstrap v1.3.0.
  *
- * v1.1 art bridge: route the legacy loot-atlas path to the completed unified
- * equipment atlas without changing any equipment IDs, save keys or save schemas.
- * v4 art coordinator + town art: suppress stale direct entity-art tags, then load one
- * fresh unified entity runtime plus terrain and town presentation layers. The unified
- * entity runtime keeps the established high-detail hero/action atlas. The experimental
- * four-direction pixel overlay and programmatic line FX are retired from production.
- * v1.2.12 hotfix publishes this corrected graph under cache generation 167.
- *
- * Production input integrity: movement keys may use normal OS key repeat, while
- * tactical one-shot actions are edge-triggered across keyboard, touch and gamepad.
- * This guard boots before game.js/combat-controls so repeated keydown events cannot
- * consume extra turns/items or oscillate pause/audio/fullscreen state.
- *
- * Gameplay systems own their own mechanics. Bootstrap is limited to production-entry
- * policy, input-edge policy and presentation compatibility/loading bridges.
+ * Production policy is deliberately simple:
+ * - game/core/game.js is the sole dungeon/town Canvas renderer;
+ * - no presentation overlay may redraw heroes, monsters, loot, terrain or town art;
+ * - the v1.3.0 storage epoch starts clean and does not migrate any historical save;
+ * - New Adventure means a genuinely new local game, including Greedy meta.
  */
 (() => {
   'use strict';
   if (typeof window === 'undefined') return;
 
-  const BOOTSTRAP_SRC = typeof document !== 'undefined' && document.currentScript
-    ? document.currentScript.src : '';
+  const STORAGE_EPOCH = 'v130';
+  const STORAGE_EPOCH_KEY = 'de-storage-epoch';
+  const LEGACY_PREFIX = 'de-';
 
+  function clearDungeonStorage() {
+    if (typeof localStorage === 'undefined') return 0;
+    const remove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(LEGACY_PREFIX) && key !== STORAGE_EPOCH_KEY) remove.push(key);
+    }
+    for (const key of remove) localStorage.removeItem(key);
+    localStorage.setItem(STORAGE_EPOCH_KEY, STORAGE_EPOCH);
+    return remove.length;
+  }
+
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_EPOCH_KEY) !== STORAGE_EPOCH) {
+      clearDungeonStorage();
+    }
+  } catch (_err) {}
+
+  // Retire every historical Canvas/presentation owner before the parser reaches them.
+  // The files may still exist in repository history, but production must never execute them.
+  const retired = Object.freeze({ version:'retired-by-v130', owner:'production-authority', retired:true });
+  for (const guard of [
+    '__DE_VISUAL_POLISH',
+    '__DE_ART_RUNTIME_V2',
+    '__DE_ART_RUNTIME_V4',
+    '__DE_TOWN_ART_V160',
+    '__DE_CHARACTER_ART_CLEANUP_V122',
+    '__DE_WORLD_LOOT_V122',
+    '__DE_HERO_DIRECTIONAL_ART_V165',
+    '__DE_CLASS_COMBAT_FX_V163',
+    '__DE_NEW_RUN_RESET_V167',
+  ]) {
+    if (!window[guard]) window[guard] = retired;
+  }
+
+  // Edge-trigger tactical actions. Movement may repeat normally.
   const ONE_SHOT_REPEAT_KEYS = new Set([
     'Escape', ' ', 'Spacebar', '.',
     'q', 'Q', 'e', 'E', 't', 'T', 'c', 'C', 'j', 'J', 'k', 'K',
@@ -38,97 +63,79 @@
     };
     window.addEventListener('keydown', repeatGuard, true);
     window.__DE_ONE_SHOT_REPEAT_GUARD = {
-      version:'v1', owner:'production-bootstrap', keys:ONE_SHOT_REPEAT_KEYS, repeatGuard,
+      version:'v1', owner:'production-authority', keys:ONE_SHOT_REPEAT_KEYS, repeatGuard,
     };
   }
 
-  const EQUIPMENT_ATLAS = 'art/loot-atlas-v12.svg';
-
-  try {
-    if (typeof document !== 'undefined' && !window.__DE_EQUIPMENT_ART_V12) {
-      window.__DE_EQUIPMENT_ART_V12 = true;
-
-      const style = document.createElement('style');
-      style.id = 'de-equipment-art-v12';
-      style.textContent = `.loot-icon{background-image:url("${EQUIPMENT_ATLAS}")!important}`;
-      document.head.appendChild(style);
-
-      if (typeof HTMLImageElement !== 'undefined') {
-        const proto = HTMLImageElement.prototype;
-        const desc = Object.getOwnPropertyDescriptor(proto, 'src');
-        if (desc && desc.get && desc.set) {
-          Object.defineProperty(proto, 'src', {
-            configurable: desc.configurable,
-            enumerable: desc.enumerable,
-            get: desc.get,
-            set(value) {
-              const raw = String(value == null ? '' : value);
-              const next = /(?:^|\/)art\/loot-atlas\.png(?:[?#].*)?$/.test(raw)
-                ? EQUIPMENT_ATLAS : value;
-              return desc.set.call(this, next);
-            },
-          });
-        }
-      }
-    }
-  } catch (e) {
-    // Art routing is presentation-only. If a restrictive browser rejects the bridge,
-    // the original atlas remains a safe fallback and gameplay still boots.
-  }
-
-  if (!window.__DE_ART_RUNTIME_V4 && !window.__DE_ART_RUNTIME_V2) {
-    window.__DE_ART_RUNTIME_V2 = Object.freeze({
-      version:'superseded-by-v4', owner:'production-bootstrap', sentinel:true,
-    });
-  }
-
-  const appendArtRuntime = (id, file, guard) => {
-    if (typeof document === 'undefined' || window[guard] || document.getElementById(id)) return;
-    try {
-      const script = document.createElement('script');
-      script.id = id;
-      script.async = false;
-      script.src = new URL(file,
-        BOOTSTRAP_SRC || (typeof location !== 'undefined' ? location.href : '')).href;
-      (document.body || document.head || document.documentElement).appendChild(script);
-    } catch (e) {
-      // Art overlays are optional presentation. Core art/gameplay remains authoritative.
-    }
-  };
-
-  const retireExperimentalHeroLayers = () => {
-    if (typeof document === 'undefined') return;
-    for (const id of ['de-hero-directional-art-v165','de-class-combat-fx-v163']) {
-      const node = document.getElementById(id);
-      if (node && node.parentNode) node.parentNode.removeChild(node);
-    }
-  };
-
-  const loadArtRuntimes = () => {
-    retireExperimentalHeroLayers();
-    appendArtRuntime('de-art-runtime-v4-loader', '../ui/art-runtime-v4.js?v=167', '__DE_ART_RUNTIME_V4');
-    appendArtRuntime('de-town-art-v160-loader', '../ui/town-art-v160.js?v=167', '__DE_TOWN_ART_V160');
-  };
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadArtRuntimes, { once:true });
-    } else {
-      loadArtRuntimes();
-    }
-  }
-
+  let autoFresh = false;
   if (typeof location !== 'undefined') {
     try {
       const url = new URL(location.href);
-      if (url.searchParams.get('profile') !== 'classic-100') {
-        url.searchParams.set('profile', 'classic-100');
-        if (typeof history !== 'undefined' && typeof history.replaceState === 'function') {
-          history.replaceState(null, '', url.href);
-        }
+      autoFresh = url.searchParams.get('fresh') === '1';
+      url.searchParams.delete('fresh');
+      if (url.searchParams.get('profile') !== 'classic-100') url.searchParams.set('profile', 'classic-100');
+      if (typeof history !== 'undefined' && typeof history.replaceState === 'function') {
+        history.replaceState(null, '', url.href);
       }
-    } catch (e) {
-      // Production hosting is normal http(s). If a non-standard shell rejects URL/history,
-      // game.js will fail closed rather than silently selecting an arbitrary short profile.
+    } catch (_err) {}
+  }
+
+  let dispatchingFresh = false;
+  function installNewAdventureReset() {
+    if (typeof document === 'undefined') return false;
+    const button = document.getElementById('btn-new');
+    if (!button || button.__deV130ResetOwner) return !!button;
+    button.__deV130ResetOwner = true;
+    button.addEventListener('click', event => {
+      if (dispatchingFresh) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      try { clearDungeonStorage(); } catch (_err) {}
+      try {
+        const url = new URL(location.href);
+        url.searchParams.delete('seed');
+        url.searchParams.set('profile', 'classic-100');
+        url.searchParams.set('fresh', '1');
+        location.replace(url.href);
+      } catch (_err) {
+        location.reload();
+      }
+    }, true);
+    return true;
+  }
+
+  function finishFreshStart(attempt = 0) {
+    installNewAdventureReset();
+    if (!autoFresh) return;
+    const button = typeof document !== 'undefined' && document.getElementById('btn-new');
+    if ((!window.DE_TEST || !button) && attempt < 100) {
+      setTimeout(() => finishFreshStart(attempt + 1), 20);
+      return;
+    }
+    if (!window.DE_TEST || !button) return;
+    autoFresh = false;
+    dispatchingFresh = true;
+    try {
+      window.DE_TEST.setSeed(String(Date.now()) + '-' + Math.random().toString(36).slice(2));
+      button.click();
+    } finally {
+      dispatchingFresh = false;
     }
   }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => finishFreshStart(), { once:true });
+    else setTimeout(() => finishFreshStart(), 0);
+  }
+
+  window.__DE_PRODUCTION_AUTHORITY_V130 = Object.freeze({
+    version:'1.3.0',
+    owner:'production-authority',
+    renderOwner:'game/core/game.js',
+    storageEpoch:STORAGE_EPOCH,
+    clearDungeonStorage,
+    newAdventure:'full-reset',
+    historicalSaveMigration:false,
+    presentationOverlays:false,
+  });
 })();
