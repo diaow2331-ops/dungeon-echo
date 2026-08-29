@@ -21,7 +21,7 @@ const tests = [
   'resource-pressure-v132.cjs',
   'descent100.cjs',
   'save-integrity-v128.cjs',
-  'combat-controls-v1.cjs',
+  'current-control-contract-v132.cjs',
   'extraction-channel.cjs',
   'dungeon-service-safety.cjs',
   'wheel-death-reroll.cjs',
