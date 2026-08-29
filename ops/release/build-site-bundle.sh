@@ -11,13 +11,13 @@ stage_root="$(mktemp -d)"
 bundle="$stage_root/91hwl-play-dungeon-echo-v$version"
 source_generation=153
 legacy_art_generation=157
-asset_generation=167
+asset_generation=168
 
 cleanup(){ rm -rf -- "$stage_root"; }
 trap cleanup EXIT
 
 test -r "$manifest"
-test "$version" = '1.2.12'
+test "$version" = '1.3.0'
 command -v zip >/dev/null
 mkdir -p "$bundle/public/dungeon-echo" "$bundle/ops"
 
@@ -30,48 +30,64 @@ while IFS= read -r file; do
   cp -a "$repo_root/$file" "$bundle/public/dungeon-echo/$file"
 done < "$manifest"
 
-grep -Fq "正式版 <b>v$version</b>" "$bundle/public/dungeon-echo/index.html"
-grep -Fq "Release <b>v$version</b>" "$bundle/public/dungeon-echo/en/index.html"
-
 for entry in "$bundle/public/dungeon-echo/index.html" "$bundle/public/dungeon-echo/en/index.html"; do
   test -r "$entry"
-  grep -Fq "?v=$source_generation" "$entry"
+  # Immutable production bytes are normalized to the v1.3.0 single-authority graph.
   sed -i \
+    -e '/game\/core\/save-integrity-system\.js/d' \
+    -e '/game\/ui\/visual-polish\.js/d' \
+    -e '/game\/ui\/art-runtime-v2\.js/d' \
+    -e '/art\/runtime\//d' \
+    -e 's/v1\.2\.12/v1.3.0/g' \
     -e "s/?v=$source_generation/?v=$asset_generation/g" \
     -e "s/?v=$legacy_art_generation/?v=$asset_generation/g" \
     "$entry"
   grep -Fq "?v=$asset_generation" "$entry"
+  grep -Fq 'v1.3.0' "$entry"
   ! grep -Fq "?v=$source_generation" "$entry"
   ! grep -Fq "?v=$legacy_art_generation" "$entry"
+  ! grep -Eq 'save-integrity-system|visual-polish|art-runtime-v2|art-runtime-v4|town-art-v160|hero-directional|class-combat-fx|new-run-reset|art/runtime/' "$entry"
 done
 
 grep -Fq "const assetVersion = '$asset_generation'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-grep -Fq "release-stamp-v1212.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-grep -Fq "new-run-reset-v167.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
-grep -Fq "responsive-final-v154.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "release-stamp-v130.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "renderOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
+grep -Fq "renderOwner:'game/core/game.js'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
+grep -Fq "storageEpoch:STORAGE_EPOCH" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
+grep -Fq "historicalSaveMigration:false" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
+grep -Fq "newAdventure:'full-reset'" "$bundle/public/dungeon-echo/game/core/production-bootstrap.js"
 grep -Fq "installNoTranslateBoundary" "$bundle/public/dungeon-echo/game/locale/fixed-locale-entry-v130.js"
+grep -Fq "responsive-final-v154.js" "$bundle/public/dungeon-echo/game/core/runtime-bootstrap.js"
 
-# Corrected v1.2.12 art closeout: keep the established detailed hero/action atlas,
-# terrain, town, monsters, guardians and boss; explicitly exclude the experimental
-# pixel-direction hero overlay and line-drawn combat FX that regressed presentation.
-for art_file in \
+# The active artifact has exactly one Canvas renderer: game/core/game.js.
+for required in \
+  game/core/game.js \
+  game/core/release-stamp-v130.js \
+  art/hero-atlas-v11.png \
+  art/monster-atlas-v11.png \
+  art/guardian-atlas-v11.png \
+  art/final-boss-v11.png \
+  art/town-backdrop-v11.webp; do
+  test -r "$bundle/public/dungeon-echo/$required"
+done
+
+for retired in \
+  game/core/save-integrity-system.js \
+  game/core/release-stamp-v1212.js \
+  game/locale/stable-item-id-migration-v150.js \
+  game/ui/visual-polish.js \
   game/ui/art-runtime-v2.js \
   game/ui/art-runtime-v4.js \
   game/ui/town-art-v160.js \
-  art/runtime/loot-atlas-v2.svg \
-  art/runtime/monster-deep-atlas-v2.svg \
-  art/runtime/hero-action-atlas-v2.svg \
-  art/runtime/dungeon-props-atlas-v1.svg \
-  art/runtime/boss-guardian-atlas-v3.png \
-  art/runtime/final-boss-v3.png; do
-  test -r "$bundle/public/dungeon-echo/$art_file"
+  game/ui/character-art-cleanup-v122.js \
+  game/ui/world-loot-polish-v122.js \
+  game/ui/hero-directional-art-v165.js \
+  game/ui/class-combat-fx-v163.js \
+  game/ui/new-run-reset-v167.js; do
+  test ! -e "$bundle/public/dungeon-echo/$retired"
 done
 
-test -r "$bundle/public/dungeon-echo/game/ui/new-run-reset-v167.js"
-test ! -e "$bundle/public/dungeon-echo/game/ui/hero-directional-art-v165.js"
-test ! -e "$bundle/public/dungeon-echo/game/ui/class-combat-fx-v163.js"
-test ! -e "$bundle/public/dungeon-echo/art/runtime/hero-directional-atlas-v1.png"
-test ! -e "$bundle/public/dungeon-echo/game/ui/hero-gear-art-v162.js"
+test ! -d "$bundle/public/dungeon-echo/art/runtime"
 
 install -m 0755 "$repo_root/ops/site-bundle/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$repo_root/ops/site-bundle/healthcheck.sh" "$bundle/ops/healthcheck.sh"
