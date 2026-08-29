@@ -241,6 +241,11 @@ const heroAtlasV11 = new Image();
 heroAtlasV11.src = 'art/hero-atlas-v11.png';
 const monsterAtlasV11 = new Image();
 monsterAtlasV11.src = 'art/monster-atlas-v11.png';
+const deepMonsterAtlasV1 = new Image();
+deepMonsterAtlasV1.src = 'art/monster-deep-atlas-v1.svg';
+const DEEP_MONSTER_ART_INDEX = Object.freeze({
+  abomination:0, seraph:1, voidspawn:2, voidlord:3,
+});
 const guardianAtlasV11 = new Image();
 guardianAtlasV11.src = 'art/guardian-atlas-v11.png';
 const finalBossV11 = new Image();
@@ -3186,6 +3191,11 @@ function drawMonsterV11(m, now) {
   if (monsterIndex !== undefined && imageReady(monsterAtlasV11)) {
     const size = m.elite ? 40 : 35;
     return { pos: drawAtlasEntity(m, monsterAtlasV11, monsterIndex, 4, 4, size, size + 3, now), size: size + 3, bespoke: true };
+  }
+  const deepMonsterIndex = DEEP_MONSTER_ART_INDEX[m.sprite];
+  if (deepMonsterIndex !== undefined && imageReady(deepMonsterAtlasV1)) {
+    const size = m.elite ? 40 : 35;
+    return { pos: drawAtlasEntity(m, deepMonsterAtlasV1, deepMonsterIndex, 4, 4, size, size + 3, now), size: size + 3, bespoke: true };
   }
   const size = (m.boss || m.midBoss) ? 54 : 30;
   const spr = SPRITES[m.sprite] || SPRITES.demon;
