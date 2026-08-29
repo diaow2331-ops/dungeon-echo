@@ -35,15 +35,9 @@ jobs:
           """
           if s.count(old)!=1: raise SystemExit('lunge anchor mismatch')
           s=s.replace(old,new,1)
-          old2="""  if (!used) return;
-          const echo = mechanicPower('echo_edge');
-          """
-          new2="""  if (!used) return;
-          classSkillFxT = 1;
-          const echo = mechanicPower('echo_edge');
-          """
-          if s.count(old2)!=1: raise SystemExit('skill anchor mismatch')
-          s=s.replace(old2,new2,1)
+          skill_anchor="  const echo = mechanicPower('echo_edge');\n"
+          if s.count(skill_anchor)!=1: raise SystemExit('skill anchor mismatch')
+          s=s.replace(skill_anchor,"  classSkillFxT = 1;\n"+skill_anchor,1)
           old3="""function drawShadow(px, py, rx, ry) {
           """
           fx=r"""function drawClassCombatFx(now) {
@@ -103,7 +97,7 @@ jobs:
             }
             ctx.restore();
           }
-          
+
           """
           if s.count(old3)!=1: raise SystemExit('drawShadow anchor mismatch')
           s=s.replace(old3,fx+old3,1)
@@ -118,14 +112,9 @@ jobs:
           """
           if s.count(old4)!=1: raise SystemExit('hero draw anchor mismatch')
           s=s.replace(old4,new4,1)
-          old5="""    if (e.lungeT > 0) e.lungeT = Math.max(0, e.lungeT - dt * 5);
-            if (e.hurtT > 0) e.hurtT = Math.max(0, e.hurtT - dt * 4);
-          };
-          """
-          new5=old5+"""  if (classSkillFxT > 0) classSkillFxT = Math.max(0, classSkillFxT - dt * (reducedMotion ? 4 : 2.2));
-          """
-          if s.count(old5)!=1: raise SystemExit('visual decay anchor mismatch')
-          s=s.replace(old5,new5,1)
+          decay_anchor="    if (e.hurtT > 0) e.hurtT = Math.max(0, e.hurtT - dt * 4);\n  };\n"
+          if s.count(decay_anchor)!=1: raise SystemExit('visual decay anchor mismatch')
+          s=s.replace(decay_anchor,decay_anchor+"  if (classSkillFxT > 0) classSkillFxT = Math.max(0, classSkillFxT - dt * (reducedMotion ? 4 : 2.2));\n",1)
           p.write_text(s)
           PY
           cat > test/class-combat-fx-authority-v131.cjs <<'EOF'
@@ -144,6 +133,7 @@ jobs:
           console.log(`\nRESULT  ${pass} passed / ${fail} failed`); process.exit(fail?1:0);
           EOF
           node test/class-combat-fx-authority-v131.cjs
+          node --check game/core/game.js
           bash ops/check-authority-local.sh
       - name: Remove one-shot workflow and commit recovery
         shell: bash
