@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Play in English](https://play.91hwl.cn/dungeon-echo/en/) · [Project page](https://91hwl.cn/toys/dungeon-echo/)
 
-> **Live:** Dungeon Echo **v1.2.11** is deployed publicly. Chinese and English fixed routes, shared browser saves, the Return Scroll flow, the bounded town workspace and representative PC/mobile use have completed launch acceptance.
+> **Live:** Dungeon Echo **v1.2.12** is the current release candidate for the complete art-closeout hot update. Chinese and English fixed routes, shared browser saves, the Return Scroll flow and bounded town workspace remain on the established v1.2 contracts.
 
 ![Dungeon Echo title artwork](art/title-backdrop.webp)
 
@@ -17,7 +17,7 @@ No launcher, account or runtime backend is required. Open the page and play; com
 ## Why play it?
 
 - **100-floor campaign** with earned checkpoints, ten-floor guardian milestones and a three-phase floor-100 finale.
-- **Four classes** — Warrior, Ranger, Arcanist and Assassin — with different combat rhythms.
+- **Four classes** — Warrior, Ranger, Arcanist and Assassin — with different combat rhythms and explicit four-direction hero presentation.
 - **Build-driven equipment** across six slots, rarity/affix tradeoffs, forging and refinement.
 - **Greedy Expedition** risk loop: push deeper with carried loot, or spend a Return Scroll to secure it in town.
 - **Town workspace** with compact Gear & Stash, Market, Fortune and Progress panels instead of a long scrolling document UI.
@@ -36,7 +36,7 @@ The repository is folder-first: all active JavaScript lives under `game/`, so vi
 - [`game/systems/`](game/systems/) — equipment, town, commerce, progression, encounters and gameplay owners.
 - [`game/input/`](game/input/) — keyboard/gamepad and combat input ownership.
 - [`game/locale/`](game/locale/) — fixed-route locale data and exact screen/Canvas sinks.
-- [`game/ui/`](game/ui/) — bounded presentation owners, including responsive/mobile UX and the current town workspace.
+- [`game/ui/`](game/ui/) — bounded presentation owners, including responsive/mobile UX and the current art/town presentation layers.
 - [`art/`](art/) — production artwork.
 - [`docs/`](docs/) — engineering, maintenance, design and release documentation.
 - [`test/`](test/) — deterministic repository/gameplay contracts.
@@ -65,7 +65,7 @@ The repository root intentionally contains **zero active `.js` files**. New runt
 
 `/dungeon-echo/` is the fixed Chinese route and `/dungeon-echo/en/` is the fixed English route. Language switching is navigation, not whole-page live translation.
 
-Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and related gameplay namespaces. `stable-item-id-migration-v150.js` adds language-neutral display IDs without destructively renaming historical stored items. v1.2.11 does not require a progress reset.
+Both routes keep the same `de-run-v6`, `de-greedy-meta-v1` and related gameplay namespaces. `stable-item-id-migration-v150.js` adds language-neutral display IDs without destructively renaming historical stored items. v1.2.12 does not require a progress reset.
 
 ## Run locally
 
@@ -110,13 +110,13 @@ http://localhost:8000/dev.html
 
 ## Validation and release governance
 
-Engineering checks protect contracts but do not replace human playtesting. Launch acceptance now covers the fixed Chinese/English routes, Return Scroll town transition, save continuity, town presentation and representative desktop/mobile use. Long-run balance/economy/guardian evidence remains intentionally tracked as post-launch validation rather than a launch blocker.
+Engineering checks protect contracts but do not replace human playtesting. The v1.2.12 release freeze covers the full art-closeout payload while preserving the fixed Chinese/English routes, Return Scroll town transition, save continuity and established desktop/mobile ownership. Long-run balance/economy/guardian evidence remains intentionally tracked as post-release gameplay work rather than an art-patch blocker.
 
-`VERSION` is the semantic release authority. The deployed v1.2.11 line currently uses public runtime cache generation **156**; semantic and cache generations are intentionally independent.
+`VERSION` is the semantic release authority. The v1.2.12 line uses public runtime cache generation **166**; semantic and cache generations are intentionally independent.
 
 Production release governance follows one rule: **build elsewhere, deploy artifacts only**. The server receives a validated immutable ZIP and only performs checksum verification, staging/backup, atomic activation, health checks and rollback. It must not fetch Git, build, patch or transform production content. See [`.agents/skills/91hwl-static-release/SKILL.md`](.agents/skills/91hwl-static-release/SKILL.md).
 
-Release notes: [`docs/releases/RELEASE_NOTES_v1.2.11.md`](docs/releases/RELEASE_NOTES_v1.2.11.md).
+Release notes: [`docs/releases/RELEASE_NOTES_v1.2.12.md`](docs/releases/RELEASE_NOTES_v1.2.12.md).
 
 ## Contributing
 

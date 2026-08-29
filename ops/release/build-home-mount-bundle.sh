@@ -21,7 +21,7 @@ command -v bash >/dev/null
 command -v node >/dev/null
 
 test "$site_version" = '1.3.5' || { echo "unexpected site version: $site_version" >&2; exit 2; }
-test "$game_version" = '1.2.11' || { echo "unexpected Dungeon Echo version: $game_version" >&2; exit 2; }
+test "$game_version" = '1.2.12' || { echo "unexpected Dungeon Echo version: $game_version" >&2; exit 2; }
 test "$moyu_version" = '1.11.5' || { echo "unexpected Moyu version: $moyu_version" >&2; exit 2; }
 git -C "$repo_root" merge-base --is-ancestor "$accepted_site_v133" HEAD || { echo 'accepted site v1.3.3 boundary is not an ancestor of HEAD' >&2; exit 2; }
 
@@ -96,7 +96,7 @@ grep -Fq 'ca-pub-2648680835467283' "$home"
 grep -Fq 'href="/privacy/"' "$home"
 grep -Fq 'data-site-version="1.3.5"' "$de_detail"
 grep -Fq "softwareVersion\":\"$game_version\"" "$de_detail"
-grep -Fq '901–1180px' "$de_detail"
+grep -Fq '整轮美术热更新' "$de_detail"
 grep -Fq 'property="og:url" content="https://91hwl.cn/toys/dungeon-echo/"' "$de_detail"
 grep -Fq 'name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguelike"' "$de_detail"
 grep -Fq 'GitHub / Source' "$de_detail"
@@ -122,7 +122,7 @@ grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$ads_txt
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
 grep -Fq "test \"\$version\" = '1.3.5'" "$source_root/deploy.sh"
-grep -Fq 'Dungeon Echo v1.2.11 detail marker missing' "$source_root/deploy.sh"
+grep -Fq 'Dungeon Echo v1.2.12 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'Clock Out Alive v1.11.5 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'site-trust-hub-v135' "$source_root/deploy.sh"
 grep -Fq 'mailto:diaow2331@gmail.com' "$source_root/deploy.sh"

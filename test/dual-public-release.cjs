@@ -7,7 +7,7 @@ const root=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const run=(cmd,args)=>spawnSync(cmd,args,{cwd:root,encoding:'utf8'});
 
-assert.equal(read('VERSION').trim(),'1.2.11');
+assert.equal(read('VERSION').trim(),'1.2.12');
 assert.equal(read('moyu/VERSION').trim(),'1.11.5');
 assert.equal(read('ops/home-mount/SITE_VERSION').trim(),'1.3.5');
 
@@ -32,7 +32,8 @@ assert.match(skill,/production server is an activation target, not a build machi
 assert.match(skill,/user uploads ZIP to \/tmp/i);
 assert.match(skill,/one offline deployment command/i);
 
-assert.match(read('docs/releases/RELEASE_NOTES_v1.2.11.md'),/v1\.2\.11/);
+assert.match(read('docs/releases/RELEASE_NOTES_v1.2.12.md'),/v1\.2\.12/);
+assert.match(read('docs/releases/RELEASE_NOTES_v1.2.12.md'),/complete art-closeout/i);
 assert.match(read('docs/releases/RELEASE_NOTES_launch-2026-08-28.md'),/Clock Out Alive v1\.11\.5/);
 const siteNotes=read('docs/releases/RELEASE_NOTES_site_v1.3.5.md');
 assert.match(siteNotes,/site v1\.3\.5/i);

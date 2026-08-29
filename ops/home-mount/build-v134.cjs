@@ -11,7 +11,7 @@ let de=fs.readFileSync(dePath,'utf8');
 let moyu=fs.readFileSync(moyuPath,'utf8');
 
 home=replaceAll(home,'data-site-version="1.3.3"','data-site-version="1.3.4"','home site version');
-home=replaceAll(home,'v1.2.7','v1.2.11','home Dungeon version');
+home=replaceAll(home,'v1.2.7','v1.2.12','home Dungeon version');
 home=replaceAll(home,'v1.11.3','v1.11.5','home Moyu version');
 home=replaceAll(home,'site v1.3.3','site v1.3.4','home footer site version');
 const moyuCta='<a class="btn" href="https://play.91hwl.cn/moyu/" data-carry><span class="i18n-zh">开始摸鱼</span><span class="i18n-en">Play Clock Out Alive</span></a>';
@@ -48,11 +48,11 @@ const story=`<section class="site-story" aria-label="About the games">
 </section>`;
 home=replaceOnce(home,'</div></section>\n<section class="section" id="games">','</div></section>\n'+story+'\n<section class="section" id="games">','homepage story section');
 
-de=replaceOnce(de,'玩法说明、远征录、双语和移动端交互已经通过真人验收；v1.2.7 进一步收拢机制所有权与发布一致性。','v1.2.11 收口桌面一次性键位、901–1180px 笔记本布局与手机触控尺寸；固定中英文路线与兼容存档保持不变。','Dungeon current Chinese release copy');
-de=replaceOnce(de,'How to Play, Expedition Record, bilingual UI and mobile controls remain verified; v1.2.7 further consolidates mechanic ownership and release consistency.','v1.2.11 tightens one-shot desktop input, 901–1180px laptop layout and mobile touch targets while preserving fixed ZH/EN routes and compatible saves.','Dungeon current English release copy');
+de=replaceOnce(de,'玩法说明、远征录、双语和移动端交互已经通过真人验收；v1.2.7 进一步收拢机制所有权与发布一致性。','v1.2.12 完成整轮美术热更新：九位守卫与终局 Boss、21 段地形氛围、城镇 NPC、四职业方向战斗特效与四面朝向角色图一起上线；玩法、数值与存档契约保持不变。','Dungeon current Chinese release copy');
+de=replaceOnce(de,'How to Play, Expedition Record, bilingual UI and mobile controls remain verified; v1.2.7 further consolidates mechanic ownership and release consistency.','v1.2.12 ships the complete art closeout together: nine guardians and the final boss, 21 terrain bands, town NPCs, directional class combat FX and four-facing hero art, while gameplay and save contracts remain unchanged.','Dungeon current English release copy');
 de=replaceAll(de,'data-site-version="1.3.3"','data-site-version="1.3.4"','Dungeon detail site version');
-de=replaceAll(de,'v1.2.7','v1.2.11','Dungeon detail version');
-de=replaceOnce(de,'"softwareVersion":"1.2.7"','"softwareVersion":"1.2.11"','Dungeon structured version');
+de=replaceAll(de,'v1.2.7','v1.2.12','Dungeon detail version');
+de=replaceOnce(de,'"softwareVersion":"1.2.7"','"softwareVersion":"1.2.12"','Dungeon structured version');
 
 moyu=replaceOnce(moyu,'<h3><span class="zh">先把字看清楚</span><span class="en">Readable first</span></h3><p><span class="zh">结算正文、操作说明、顶部按钮与辅助信息统一到同一字号阶梯。</span><span class="en">Results, control notes, top buttons and supporting text now share one readable type scale.</span></p>','<h3><span class="zh">双端更稳</span><span class="en">Cleaner across screens</span></h3><p><span class="zh">语言首屏与运行时保持一致，键盘连发、Canvas 布局与窄屏安全区进一步收口，电脑和手机都更稳定。</span><span class="en">First-paint language, keyboard repeat, Canvas layout and narrow-screen safe areas are tightened for steadier desktop and mobile play.</span></p>','Moyu current release copy');
 moyu=replaceAll(moyu,'data-site-version="1.3.3"','data-site-version="1.3.4"','Moyu detail site version');
@@ -63,9 +63,9 @@ for(const [name,text] of [['home',home],['Dungeon',de],['Moyu',moyu]]){
   assert(text.includes('data-site-version="1.3.4"'),`${name} v1.3.4 marker missing`);
   assert(text.includes('name="google" content="notranslate"'),`${name} notranslate marker missing`);
 }
-assert(home.includes('v1.2.11')&&home.includes('v1.11.5')&&home.includes('GitHub / Source'));
+assert(home.includes('v1.2.12')&&home.includes('v1.11.5')&&home.includes('GitHub / Source'));
 assert(home.includes('site-story-polish')&&home.includes('100 层构筑远征')&&home.includes('roughly four-minute office run'));
-assert(de.includes('softwareVersion":"1.2.11"')&&de.includes('901–1180px'));
+assert(de.includes('softwareVersion":"1.2.12"')&&de.includes('整轮美术热更新'));
 assert(moyu.includes('softwareVersion":"1.11.5"')&&moyu.includes('Cleaner across screens'));
 fs.writeFileSync(homePath,home);
 fs.writeFileSync(dePath,de);

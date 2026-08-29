@@ -26,7 +26,7 @@ game/ui/art-runtime-v4.js
 game/ui/hero-directional-art-v165.js
 game/ui/class-combat-fx-v163.js
 game/ui/equipment-shop-ui.js
-game/core/release-stamp-v1211.js
+game/core/release-stamp-v1212.js
 game/locale/fixed-locale-entry-v130.js
 game/locale/stable-item-id-migration-v150.js
 game/locale/core-screen-owner-v153.js

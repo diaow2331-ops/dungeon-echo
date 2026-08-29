@@ -8,6 +8,7 @@
  * direct entity-art tags, then load one fresh unified entity runtime plus terrain,
  * four-direction hero, directional combat and town presentation layers. They may
  * replace visible art, but core canvas/gameplay remains the fail-safe fallback.
+ * v1.2.12 publishes the complete art-closeout graph under cache generation 166.
  *
  * Production input integrity: movement keys may use normal OS key repeat, while
  * tactical one-shot actions are edge-triggered across keyboard, touch and gamepad.
@@ -99,10 +100,10 @@
     }
   };
   const loadArtRuntimes = () => {
-    appendArtRuntime('de-art-runtime-v4-loader', '../ui/art-runtime-v4.js?v=160', '__DE_ART_RUNTIME_V4');
-    appendArtRuntime('de-hero-directional-art-v165-loader', '../ui/hero-directional-art-v165.js?v=165', '__DE_HERO_DIRECTIONAL_ART_V165');
-    appendArtRuntime('de-class-combat-fx-v163-loader', '../ui/class-combat-fx-v163.js?v=163', '__DE_CLASS_COMBAT_FX_V163');
-    appendArtRuntime('de-town-art-v160-loader', '../ui/town-art-v160.js?v=161', '__DE_TOWN_ART_V160');
+    appendArtRuntime('de-art-runtime-v4-loader', '../ui/art-runtime-v4.js?v=166', '__DE_ART_RUNTIME_V4');
+    appendArtRuntime('de-hero-directional-art-v165-loader', '../ui/hero-directional-art-v165.js?v=166', '__DE_HERO_DIRECTIONAL_ART_V165');
+    appendArtRuntime('de-class-combat-fx-v163-loader', '../ui/class-combat-fx-v163.js?v=166', '__DE_CLASS_COMBAT_FX_V163');
+    appendArtRuntime('de-town-art-v160-loader', '../ui/town-art-v160.js?v=166', '__DE_TOWN_ART_V160');
   };
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {

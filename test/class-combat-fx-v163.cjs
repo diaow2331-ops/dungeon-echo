@@ -9,8 +9,11 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 
 const runtime = read('game/ui/class-combat-fx-v163.js');
 const bootstrap = read('game/core/production-bootstrap.js');
+const releaseRuntime = read('game/core/runtime-bootstrap.js');
+const releaseGen = (releaseRuntime.match(/const assetVersion = '(\d+)'/) || [,''])[1];
 const releaseFiles = new Set(read('ops/release/static-files.txt').trim().split(/\r?\n/));
 
+assert(/^\d+$/.test(releaseGen), 'release cache generation missing');
 assert(releaseFiles.has('game/ui/class-combat-fx-v163.js'), 'class combat FX runtime missing from release boundary');
 for (const cls of ['warrior','ranger','mage','assassin'])
   assert(runtime.includes(`${cls}:`), `class FX palette missing: ${cls}`);
@@ -32,7 +35,7 @@ assert(runtime.includes('gameplayMutation:false'), 'class combat FX must explici
 assert(runtime.includes('directional:true'), 'directional metadata missing');
 assert(runtime.includes('skillCooldownReadOnly:true'), 'skill cooldown read-only metadata missing');
 
-assert(bootstrap.includes("../ui/class-combat-fx-v163.js?v=163"), 'production bootstrap must load class combat FX');
+assert(bootstrap.includes(`../ui/class-combat-fx-v163.js?v=${releaseGen}`), 'production bootstrap must load class combat FX at current release generation');
 assert(bootstrap.includes("'__DE_CLASS_COMBAT_FX_V163'"), 'production bootstrap must guard class combat FX');
 
 for (const forbidden of [

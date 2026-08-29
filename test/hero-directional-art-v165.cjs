@@ -9,8 +9,11 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 
 const runtime = read('game/ui/hero-directional-art-v165.js');
 const bootstrap = read('game/core/production-bootstrap.js');
+const releaseRuntime = read('game/core/runtime-bootstrap.js');
+const releaseGen = (releaseRuntime.match(/const assetVersion = '(\d+)'/) || [,''])[1];
 const releaseFiles = new Set(read('ops/release/static-files.txt').trim().split(/\r?\n/));
 
+assert(/^\d+$/.test(releaseGen), 'release cache generation missing');
 assert(fs.existsSync(path.join(root, 'art/runtime/hero-directional-atlas-v1.png')), 'directional hero atlas missing');
 assert(releaseFiles.has('game/ui/hero-directional-art-v165.js'), 'directional hero runtime missing from release boundary');
 assert(releaseFiles.has('art/runtime/hero-directional-atlas-v1.png'), 'directional hero atlas missing from release boundary');
@@ -27,7 +30,7 @@ assert(runtime.includes('gameplayMutation:false'), 'directional hero art must ex
 assert(runtime.includes('equipmentOverlay:false'), 'dynamic equipment-on-body overlay must stay disabled');
 assert(runtime.includes('z-index:4'), 'directional hero must render above unified entity art');
 
-assert(bootstrap.includes("../ui/hero-directional-art-v165.js?v=165"), 'production must load directional hero runtime');
+assert(bootstrap.includes(`../ui/hero-directional-art-v165.js?v=${releaseGen}`), 'production must load directional hero runtime at current release generation');
 assert(bootstrap.includes("'__DE_HERO_DIRECTIONAL_ART_V165'"), 'production must guard directional hero runtime');
 assert(!bootstrap.includes('hero-gear-art-v162.js'), 'production must not load retired equipment overlay');
 assert(bootstrap.includes('class-combat-fx-v163.js'), 'existing class combat FX must remain loaded');
