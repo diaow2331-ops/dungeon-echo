@@ -12,7 +12,7 @@ jobs:
         with:
           ref: feature/recover-skill-evolution-v131
           fetch-depth: 0
-      - name: Use canonical locale helper and run runtime smoke
+      - name: Use canonical locale helper and execute evolution initialization
         shell: bash
         run: |
           set -euo pipefail
@@ -29,19 +29,27 @@ jobs:
           p.write_text(s.replace(old,new,1))
 
           t=Path('test/skill-evolution.cjs'); x=t.read_text()
+          x=x.replace("const fs=require('fs'),path=require('path'),assert=require('assert');", "const fs=require('fs'),path=require('path'),assert=require('assert'),vm=require('vm');", 1)
           anchor="assert(core.includes('const SKILL_EVOLUTION_ROWS = {'),'evolution data must live in canonical core');\n"
-          add="assert(core.includes('id, ui(zhName, enName), ui(zhDesc, enDesc)'),'evolution data must use canonical core locale helper');\n"
-          if x.count(anchor)!=1: raise SystemExit('skill test locale anchor mismatch')
+          add="""assert(core.includes('id, ui(zhName, enName), ui(zhDesc, enDesc)'),'evolution data must use canonical core locale helper');
+          const evoStart=core.indexOf('const EVO ='),evoEnd=core.indexOf('function hashSeed',evoStart);
+          assert(evoStart>=0&&evoEnd>evoStart,'evolution initialization block must be bounded');
+          const sandbox={ui:(zh,en)=>en,player:null,depth:100,classId:'warrior'}; vm.createContext(sandbox);
+          vm.runInContext(core.slice(evoStart,evoEnd)+'\\n;globalThis.__evoCount=Object.keys(SKILL_EVOLUTION_TALENTS).length;',sandbox,{filename:'skill-evolution-init.js'});
+          assert.equal(sandbox.__evoCount,32,'evolution initialization must execute and materialize 32 choices');
+          """
+          if x.count(anchor)!=1: raise SystemExit('skill test runtime anchor mismatch')
           t.write_text(x.replace(anchor,anchor+add,1))
           PY
           git rm .github/workflows/fix-skill-evolution-core-runtime-once.yml
           git add game/core/game.js test/skill-evolution.cjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'fix: use core locale helper for skill evolution'
+          git commit -m 'fix: execute skill evolution initialization contract'
           node test/skill-evolution.cjs
           node --check game/core/game.js
-          node test/production.cjs
+          node test/game-core-locale-v140.cjs
+          node test/fixed-locale-routes-v131.cjs
           bash ops/check-authority-local.sh
           test "$(git diff --name-only origin/main...HEAD | sort | tr '\n' ' ')" = "game/core/game.js test/skill-evolution.cjs "
           git push origin HEAD:feature/recover-skill-evolution-v131
