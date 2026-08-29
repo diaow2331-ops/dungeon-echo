@@ -22,25 +22,32 @@ Each shelf preserves completed work but owns **zero production authority**.
 
 ## Staged extraction
 
-Two pure libraries have now been re-housed without entering production:
+Three pure libraries have now been re-housed without entering production:
 
 - `game/domain/inventory/equipment-rules-v130.js` — class-fit, affix scaling, deep-slot and rarity rules.
 - `game/domain/economy/economy-rules-v130.js` — town supply pricing/stock, heal pricing, forge/sell costs, quick-dive and wheel costs.
+- `game/domain/progression/progression-rules-v130.js` — XP thresholds, level-up deltas, talent cadence, progression caps and skill-evolution milestones.
 
-Both are intentionally absent from `ops/release/static-files.txt`, are not loaded by either production entry, and own no runtime authority. Their quarantined source implementations remain intact as provenance/reference until later atomic transfers are complete.
+All staged libraries are intentionally absent from `ops/release/static-files.txt`, are not loaded by either production entry, and own no runtime authority. Their quarantined source implementations remain intact as provenance/reference until later atomic transfers are complete.
 
-The economy boundary deliberately accepts an item value score as input rather than redefining equipment scoring. Inventory/equipment and economy therefore remain separate responsibilities instead of creating a new cross-module owner conflict.
+The boundaries are deliberately narrow:
+
+- inventory/equipment decides class fit and item-value inputs;
+- economy converts value/depth inputs into prices and costs;
+- progression calculates thresholds/caps/milestones but never mutates player/meta state.
+
+That separation prevents a staged library from becoming a second hidden owner while still preserving already-designed mechanics in the correct future shelf.
 
 ## Atomic authority-transfer rule
 
 A planned destination is **not** an authority simply because its directory exists.
 
-When a responsibility is extracted from `game/core/game.js`, the same PR must:
+When a responsibility is extracted from `game/core/game.js`, the same change must:
 
 1. move the complete write responsibility into the new owner;
 2. remove the corresponding writer/state-machine ownership from the old owner;
 3. define the narrow interface between owner and followers;
 4. update `docs/authority-map-v130.json`;
-5. update tests so two simultaneous owners cannot pass CI.
+5. update tests so two simultaneous owners cannot pass the lightweight governance check.
 
 Never run old and new owners side by side during a migration.
