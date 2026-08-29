@@ -1,0 +1,45 @@
+name: release-readme-generation-169-once
+
+on:
+  push:
+    branches:
+      - fix/release-readme-generation-169
+    paths:
+      - .github/workflows/release-readme-generation-169-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/release-readme-generation-169
+          fetch-depth: 0
+
+      - name: Validate README generation and rebuilt bundle
+        run: |
+          set -euo pipefail
+          node test/cache-bust-v140.cjs
+          bash ops/check-authority-local.sh
+          out="$RUNNER_TEMP/91hwl-play-dungeon-echo-v1.3.0.zip"
+          SOURCE_REVISION="$(git rev-parse HEAD)" bash ops/release/build-site-bundle.sh "$out"
+          verify="$RUNNER_TEMP/verify"
+          mkdir -p "$verify"
+          unzip -q "$out" -d "$verify"
+          grep -Fq 'v1.3.0 publishes cache generation 169' "$verify/README.txt"
+          ! grep -Eq 'cache generation (153|157|166|167|168)\b' "$verify/README.txt"
+          (cd "$verify" && sha256sum -c SHA256SUMS)
+          echo 'release_readme_generation_169=PASS'
+
+      - name: Remove one-shot workflow and commit validation cleanup
+        run: |
+          rm -f .github/workflows/release-readme-generation-169-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'test: validate release README generation 169'
+          git push origin HEAD:fix/release-readme-generation-169
