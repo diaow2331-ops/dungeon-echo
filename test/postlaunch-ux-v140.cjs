@@ -6,11 +6,13 @@ const core=read('game/core/game.js'),css=read('style.css'),zh=read('index.html')
 let pass=0,fail=0; const ok=(c,n)=>{console.log((c?'  PASS ':'  FAIL ')+n);c?pass++:fail++};
 for(const [name,html] of [['zh',zh],['en',en]]){
   const town=html.slice(html.indexOf('id="town-screen"'),html.indexOf('id="achv-screen"'));
-  ok(town.indexOf('town-primary-actions')>=0&&town.indexOf('town-primary-actions')<town.indexOf('town-scene'),`${name} town puts departure actions before secondary town content`);
-  ok(/<details class="town-service town-service-optional"[^>]*data-service="wheel"/.test(town),`${name} town keeps Fortune Wheel as collapsed optional content`);
+  ok(town.indexOf('town-primary-actions')>=0&&town.indexOf('town-primary-actions')<town.indexOf('town-tabs'),`${name} town keeps primary actions in its fixed header`);
+  ok((town.match(/data-town-page="/g)||[]).length===6&&(town.match(/data-town-page-panel="/g)||[]).length===6,`${name} town exposes six matching tabs and page panels`);
+  ok(/data-town-page-panel="wheel"[^>]*hidden[\s\S]*data-service="wheel"/.test(town),`${name} Fortune Wheel owns a dedicated page`);
 }
-ok(/\.town-primary-actions[\s\S]*position:\s*sticky[\s\S]*top:\s*-1px/.test(css),'town departure actions stay visible while scrolling');
-ok(/width:\s*min\(900px, 100%\)/.test(css),'town artwork no longer scales above its reviewed intrinsic width');
+ok(/#town-screen \.town-shell[\s\S]*height:\s*min\(940px, calc\(100dvh - 24px\)\)[\s\S]*overflow:\s*hidden/.test(css),'town shell is fixed to the viewport');
+ok(/\.town-pages \{[^}]*overflow:\s*hidden/.test(css)&&/\.town-page \{[\s\S]*overflow:\s*auto/.test(css),'town pages contain their own overflow');
+ok(/#town-scene \{[\s\S]*width:\s*100%[\s\S]*max-height:\s*min\(52dvh, 460px\)/.test(css),'town artwork uses the larger responsive canvas');
 ok(/const nextLocked = TOWN_CHECKPOINTS\.find/.test(core)&&/visibleCheckpoints = \[\.\.\.unlocked/.test(core),'checkpoint panel shows conquered starts plus only the next locked goal');
 ok(/function incomingCombatMsg\(text, damage\)/.test(core),'canonical core owns ordinary incoming-combat grouping');
 ok(/kind === 'incoming-combat' && head\.turn === turns/.test(core),'incoming combat only coalesces within the same canonical turn');

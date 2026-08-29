@@ -7,7 +7,7 @@ let pass=0,fail=0;
 const ok=(cond,name)=>{if(cond){pass++;console.log('  PASS '+name)}else{fail++;console.log('  FAIL '+name)}};
 
 for(const [name,html] of [['zh',zh],['en',en]]){
-  ok(/id="town-scene"[^>]+width="900"[^>]+height="300"[^>]+tabindex="0"/.test(html),`${name} ships a focusable walkable town canvas`);
+  ok(/id="town-scene"[^>]+width="1120"[^>]+height="460"[^>]+tabindex="0"/.test(html),`${name} ships a large focusable walkable town canvas`);
   ok(/id="town-prompt"/.test(html)&&/data-service="tavern"/.test(html)&&/id="town-tavern"/.test(html),`${name} exposes town interaction and tavern UI`);
 }
 ok(/innkeeper:14/.test(core)&&/travellingMerchant:6/.test(core)&&/recordsClerk:3/.test(core)&&/portalTechnician:13/.test(core),'previously underused town NPC cells are integrated');

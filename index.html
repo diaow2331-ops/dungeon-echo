@@ -16,7 +16,7 @@
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=177">
+<link rel="stylesheet" href="style.css?v=178">
 </head>
 <body>
 <div id="wrap">
@@ -96,7 +96,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">移动：方向键 / WASD / 点击地图 · J 主动攻击 · K 职业技能（C 兼容）· Shift+Enter 快速下潜 · 空格等待 · Q 药水 · E 卷轴 · T 回城 · Enter 下楼 · Esc 暂停 · 顶部“保存”主动存档 · 点击背包装备 · M 总静音 · 声音按钮独立调音乐/音效 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现） · 正式版 <b>v1.4.1</b></footer>
+  <footer id="help">移动：方向键 / WASD / 点击地图 · J 主动攻击 · K 职业技能（C 兼容）· Shift+Enter 快速下潜 · 空格等待 · Q 药水 · E 卷轴 · T 回城 · Enter 下楼 · Esc 暂停 · 顶部“保存”主动存档 · 点击背包装备 · M 总静音 · 声音按钮独立调音乐/音效 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现） · 正式版 <b>v1.4.2</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">重新开始 (R)</button></div></div>
 
@@ -133,21 +133,43 @@
   <div id="echo-screen" class="hidden"><div class="title-card"><p class="kicker">终局抉择</p><h2>地牢之心在掌心跳动</h2><p class="lede">带走它，第 100 层远征完成。也可以把它按回祭坛，让回响无限叠深。</p><div class="title-actions"><button type="button" id="btn-echo-leave" class="primary">带着心离开</button><button type="button" id="btn-echo-stay">踏入无尽回响</button></div></div></div>
 
   <div id="town-screen" class="hidden">
-    <div class="title-card wide">
-      <p class="kicker">贪婪远征 · 回响小镇</p><h2>可以漫步的回响广场</h2>
-      <p class="lede" id="town-head">整备一番，再下去。</p>
-      <p class="lede dim-note">死亡会失去背包与随身金币；仓库与金库绝对安全。回城卷轴（T）是保住战利品的关键。</p>
+    <div class="title-card wide town-shell">
+      <header class="town-heading"><div><p class="kicker">贪婪远征 · 回响小镇</p><h2>回响小镇</h2><p class="lede" id="town-head">整备一番，再下去。</p></div>
+        <p class="lede dim-note">死亡会失去背包与随身金币；仓库与金库绝对安全。回城卷轴（T）是保住战利品的关键。</p></header>
       <div class="title-actions town-primary-actions"><button type="button" id="btn-depart" class="primary">出发下潜（第 1 层）</button><button type="button" id="btn-town-exit" class="ghost" title="回到标题，进度不会丢失">保存并回标题</button><button type="button" id="btn-achv-town">远征录</button></div>
-      <canvas id="town-scene" width="900" height="300" tabindex="0" aria-label="可用 WASD、方向键或点击移动并与城镇角色交互"></canvas>
-      <div id="town-prompt" class="town-prompt" aria-live="polite">WASD / 方向键漫步 · 点击角色自动走近 · E / Enter 交互</div>
-      <div id="town-growth" class="town-growth" aria-live="polite"></div>
-      <div id="town-checkpoints" class="checkpoint-panel" aria-live="polite"></div>
-      <div class="town-cols">
-        <div class="town-service" data-service="bag"><p class="kicker">背包 <span>随身·有风险</span></p><div id="town-bag"></div></div>
-        <div class="town-service" data-service="stash"><p class="kicker">仓库 <span>绝对安全</span></p><div id="town-stash"></div></div>
-        <div class="town-service" data-service="market"><p class="kicker">市集 <span>限量补给</span></p><div id="town-shop"></div></div>
-        <div class="town-service" data-service="tavern"><p class="kicker">余烬酒馆 <span>归来者的一杯 · 受控永久成长</span></p><div id="town-tavern"></div></div>
-        <details class="town-service town-service-optional" data-service="wheel"><summary><b>命运角落</b><small>可选娱乐 · 不影响远征主线</small></summary><div id="town-wheel"></div></details>
+      <nav class="town-tabs" role="tablist" aria-label="城镇区域">
+        <button type="button" role="tab" aria-selected="true" class="active" data-town-page="plaza">广场</button>
+        <button type="button" role="tab" aria-selected="false" data-town-page="gear">整备</button>
+        <button type="button" role="tab" aria-selected="false" data-town-page="market">市集</button>
+        <button type="button" role="tab" aria-selected="false" data-town-page="tavern">酒馆</button>
+        <button type="button" role="tab" aria-selected="false" data-town-page="wheel">命运</button>
+        <button type="button" role="tab" aria-selected="false" data-town-page="depart">出发</button>
+      </nav>
+      <div class="town-pages">
+        <section class="town-page town-plaza-page active" role="tabpanel" data-town-page-panel="plaza">
+          <div class="town-plaza-stage"><canvas id="town-scene" width="1120" height="460" tabindex="0" aria-label="可用 WASD、方向键或点击移动并与城镇角色交互"></canvas>
+            <div id="town-prompt" class="town-prompt" aria-live="polite">WASD / 方向键漫步 · 点击角色自动走近 · E / Enter 交互</div></div>
+          <div id="town-growth" class="town-growth" aria-live="polite"></div>
+        </section>
+        <section class="town-page" role="tabpanel" data-town-page-panel="gear" hidden>
+          <div class="town-cols town-gear-cols">
+            <div class="town-service" data-service="bag"><p class="kicker">背包 <span>随身·有风险</span></p><div id="town-bag"></div></div>
+            <div class="town-service" data-service="stash"><p class="kicker">仓库与铁匠 <span>绝对安全 · 装备强化</span></p><div id="town-stash"></div></div>
+          </div>
+        </section>
+        <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="market" hidden>
+          <div class="town-service" data-service="market"><p class="kicker">市集 <span>限量补给</span></p><div id="town-shop"></div></div>
+        </section>
+        <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="tavern" hidden>
+          <div class="town-service" data-service="tavern"><p class="kicker">余烬酒馆 <span>归来者的一杯 · 受控永久成长</span></p><div id="town-tavern"></div></div>
+        </section>
+        <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="wheel" hidden>
+          <div class="town-service town-service-optional" data-service="wheel"><p class="kicker">命运角落 <span>可选娱乐 · 不影响远征主线</span></p><div id="town-wheel"></div></div>
+        </section>
+        <section class="town-page town-depart-page" role="tabpanel" data-town-page-panel="depart" hidden>
+          <div class="town-depart-copy"><p class="kicker">传送门</p><h3>选择已征服的段首，再踏入地牢</h3><p>每抵达新的十层段首并平安回镇，传送守卫就会记录新的出发点。</p></div>
+          <div id="town-checkpoints" class="checkpoint-panel" aria-live="polite"></div>
+        </section>
       </div>
     </div>
   </div>
@@ -175,17 +197,17 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=177"></script>
-<script src="profiles/classic-100.profile.js?v=177"></script>
-<script src="game/locale/locale-data-v134.js?v=177"></script>
-<script src="game/domain/content/content-rules-v130.js?v=177"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=177"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=177"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=177"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=177"></script>
-<script src="game/core/game.js?v=177"></script>
-<script src="game/locale/core-locale-data-v139.js?v=177"></script>
-<script src="game/input/desktop-controls.js?v=177"></script>
-<script src="game/core/runtime-bootstrap.js?v=177"></script>
+<script src="game/core/production-bootstrap.js?v=178"></script>
+<script src="profiles/classic-100.profile.js?v=178"></script>
+<script src="game/locale/locale-data-v134.js?v=178"></script>
+<script src="game/domain/content/content-rules-v130.js?v=178"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=178"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=178"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=178"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=178"></script>
+<script src="game/core/game.js?v=178"></script>
+<script src="game/locale/core-locale-data-v139.js?v=178"></script>
+<script src="game/input/desktop-controls.js?v=178"></script>
+<script src="game/core/runtime-bootstrap.js?v=178"></script>
 </body>
 </html>

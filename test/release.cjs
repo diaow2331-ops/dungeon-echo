@@ -25,9 +25,9 @@ const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const health = read('ops/site-bundle/healthcheck.sh');
 
-assert.equal(version, '1.4.1', 'release test must lock the v1.4.1 boundary');
+assert.equal(version, '1.4.2', 'release test must lock the v1.4.2 boundary');
 assert.equal(authority.version, version, 'authority map version drifted');
-assert.equal(generation, '177', 'release test must lock cache generation 177');
+assert.equal(generation, '178', 'release test must lock cache generation 178');
 assert.equal(new Set(manifest).size, manifest.length, 'release manifest contains duplicates');
 assert(manifest.includes('VERSION') && manifest.includes(stampPath), 'semantic version and release stamp must ship');
 assert(manifest.every(rel => fs.existsSync(path.join(root, rel))), 'every allowlisted file must exist');
@@ -81,7 +81,7 @@ assert(health.includes("followers:'presentation-only'") && !health.includes("fol
 
 const revision = run('git', ['rev-parse', 'HEAD']).stdout.trim();
 assert.match(revision, /^[0-9a-f]{40}$/);
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-v141-release-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-v142-release-'));
 const archive = path.join(tmp, `91hwl-play-dungeon-echo-v${version}.zip`);
 const build = run('bash', ['ops/release/build-site-bundle.sh', archive], { env:{ SOURCE_REVISION:revision } });
 assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
@@ -109,4 +109,4 @@ assert.equal(deploySyntax.status, 0, deploySyntax.stderr);
 assert.equal(healthSyntax.status, 0, healthSyntax.stderr);
 
 fs.rmSync(tmp, { recursive:true, force:true });
-console.log('release_v1_4_1=PASS');
+console.log('release_v1_4_2=PASS');

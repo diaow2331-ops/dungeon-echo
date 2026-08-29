@@ -21,8 +21,8 @@ ok(/<html\s+lang="zh-CN"\s+data-de-locale="zh-CN">/.test(zh),'root entry owns Ch
 ok(/<html\s+lang="en"\s+data-de-locale="en">/.test(en),'English entry owns English locale identity');
 ok(/<base\s+href="\.\.\/">/.test(en),'English entry resolves shared assets from the dungeon root');
 ok(!/[\u3400-\u9fff]/.test(en),'English static entry contains no CJK presentation text');
-ok(JSON.stringify(scripts(zh))===JSON.stringify(expectedScripts),'Chinese route boots canonical v177 synchronous graph');
-ok(JSON.stringify(scripts(en))===JSON.stringify(expectedScripts),'English route boots the identical canonical v177 synchronous graph');
+ok(JSON.stringify(scripts(zh))===JSON.stringify(expectedScripts),'Chinese route boots canonical v178 synchronous graph');
+ok(JSON.stringify(scripts(en))===JSON.stringify(expectedScripts),'English route boots the identical canonical v178 synchronous graph');
 for(const file of ['index.html','en/index.html','game/locale/locale-data-v134.js','game/locale/core-locale-data-v139.js','game/locale/fixed-locale-entry-v130.js','game/core/runtime-bootstrap.js','game/ui/responsive-final-v154.js','game/ui/help-copy-v126.js','game/ui/theme-atmosphere-v131.js','game/ui/adaptive-bgm-v132.js','game/ui/forge-feedback-v132.js'])
   ok(manifest.includes(file),`${file} ships in release allowlist`);
 for(const retired of ['stable-item-id-migration-v150.js','core-screen-owner-v153.js','town-canvas-locale-v153.js','locale-event-owner-v130.js','locale-runtime-v122.js','locale-completeness-v128.js']){
@@ -30,7 +30,7 @@ for(const retired of ['stable-item-id-migration-v150.js','core-screen-owner-v153
   ok(!manifest.some(file=>file===retired||file.endsWith('/'+retired)),`${retired} is absent from release manifest`);
 }
 const expectedFollowers=[
-  "fresh('game/core/release-stamp-v141.js')",
+  "fresh('game/core/release-stamp-v142.js')",
   "fresh('game/locale/fixed-locale-entry-v130.js')",
   "fresh('game/ui/responsive-final-v154.js')",
   "fresh('game/ui/help-copy-v126.js')",
@@ -40,7 +40,7 @@ const expectedFollowers=[
 ];
 for(const token of expectedFollowers) ok(runtime.includes(token),`runtime follower present: ${token}`);
 ok(/const english = routeLang === 'en'/.test(runtime),'runtime locale identity is fixed-route derived');
-ok(/const assetVersion = '177'/.test(runtime)&&/version:'v29'/.test(runtime),'runtime bootstrap aligns with generation 177 / v29');
+ok(/const assetVersion = '178'/.test(runtime)&&/version:'v30'/.test(runtime),'runtime bootstrap aligns with generation 178 / v30');
 ok(/const chain = Object\.freeze\(\[/.test(runtime)&&/followers:'presentation-only'/.test(runtime),'runtime owns one bounded presentation follower chain');
 ok(!/MutationObserver|translateTree|setInterval/.test(localeData),'locale data remains source-level and observer-free');
 ok(!/MutationObserver|setInterval|requestAnimationFrame/.test(coreLocale),'core locale data remains one-shot and observer-free');

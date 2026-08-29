@@ -5205,7 +5205,7 @@ const TOWN_HOTSPOTS = Object.freeze([
   { id:'portal', cell:TOWN_NPC_ART.portalWarden, activeCell:TOWN_NPC_ART.portalTechnician, x:.92, y:.82, face:-1, action:'portal', zh:'传送守卫', en:'Portal Warden' },
 ]);
 let selectedTownCheckpoint = 1;
-let townActiveService = 'stash';
+let townActiveService = 'plaza';
 let townPendingHotspot = '';
 let townLastFrame = 0;
 let townPromptKey = '';
@@ -5231,16 +5231,39 @@ function updateTownPrompt() {
     ? ui(`E / Enter 与${near.row.zh}交互 · 点击其他角色可自动走近`, `E / Enter: interact with ${near.row.en} · click another character to walk over`)
     : ui('WASD / 方向键在广场漫步 · 点击角色自动走近 · E / Enter 交互', 'Walk the plaza with WASD / arrows · click a character to approach · E / Enter interacts');
 }
-function renderTownFocus(scroll = false) {
-  if (typeof document.querySelectorAll !== 'function') return;
-  const panels = document.querySelectorAll('#town-screen .town-service[data-service]');
-  panels.forEach(panel => panel.classList.toggle('active', panel.dataset.service === townActiveService));
-  let target = document.querySelector(`#town-screen .town-service[data-service="${townActiveService}"]`);
-  if (target && target.tagName === 'DETAILS') target.open = true;
-  if (townActiveService === 'portal') target = $('town-checkpoints');
-  if (scroll && target && typeof target.scrollIntoView === 'function') target.scrollIntoView({ behavior:'smooth', block:'nearest' });
+const TOWN_PAGE_FOR_SERVICE = Object.freeze({
+  plaza:'plaza', bag:'gear', stash:'gear', market:'market', tavern:'tavern', wheel:'wheel', portal:'depart',
+});
+const TOWN_DEFAULT_SERVICE_FOR_PAGE = Object.freeze({
+  plaza:'plaza', gear:'stash', market:'market', tavern:'tavern', wheel:'wheel', depart:'portal',
+});
+function townPageForService(service) { return TOWN_PAGE_FOR_SERVICE[service] || 'plaza'; }
+function selectTownPage(page, focusTab = false) {
+  if (!Object.prototype.hasOwnProperty.call(TOWN_DEFAULT_SERVICE_FOR_PAGE, page)) return false;
+  if (townPageForService(townActiveService) !== page) townActiveService = TOWN_DEFAULT_SERVICE_FOR_PAGE[page];
+  renderTownFocus(focusTab);
+  return true;
 }
-function activateTownHotspot(row, scroll = true) {
+function renderTownFocus(focusTab = false) {
+  if (typeof document.querySelectorAll !== 'function') return;
+  const page = townPageForService(townActiveService);
+  document.querySelectorAll('#town-screen .town-service[data-service]').forEach(panel => {
+    panel.classList.toggle('active', panel.dataset.service === townActiveService);
+  });
+  document.querySelectorAll('#town-screen [data-town-page-panel]').forEach(panel => {
+    const active = panel.dataset.townPagePanel === page;
+    panel.hidden = !active;
+    panel.classList.toggle('active', active);
+  });
+  document.querySelectorAll('#town-screen [data-town-page]').forEach(tab => {
+    const active = tab.dataset.townPage === page;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    tab.tabIndex = 0;
+    if (active && focusTab && typeof tab.focus === 'function') tab.focus({ preventScroll:true });
+  });
+}
+function activateTownHotspot(row, focusTab = true) {
   if (!row || state !== 'town') return false;
   townPendingHotspot = '';
   if (row.action === 'records') {
@@ -5250,13 +5273,13 @@ function activateTownHotspot(row, scroll = true) {
   }
   if (row.action === 'portal') {
     townActiveService = 'portal';
-    renderTownFocus(scroll);
+    renderTownFocus(focusTab);
     const depart = $('btn-depart');
     if (depart) depart.focus({ preventScroll:true });
     return true;
   }
   townActiveService = row.service || 'stash';
-  renderTownFocus(scroll);
+  renderTownFocus(focusTab);
   return true;
 }
 function interactTown() {
@@ -5431,6 +5454,7 @@ function enterTown() {
   skillFollowup = null;
   recordDepth(); saveRecord();
   state = 'town';
+  townActiveService = 'plaza';
   checkAchv();
   meta.bestDepth = Math.max(meta.bestDepth || 0, depth);
   ensureWheel();
@@ -5692,46 +5716,50 @@ function drawTownNpcFigure(ctx, index, x, baseY, now, facing = 1, scale = 1) {
   }
   ctx.restore();
 }
-function drawTownHeroFigure(ctx, x, baseY, now, facing = 1) {
+function drawTownHeroFigure(ctx, x, baseY, now, facing = 1, scale = 1) {
   const activeClass = meta && CLASSES[meta.classId] ? meta.classId : classId;
   const heroIndex = ['warrior', 'ranger', 'mage', 'assassin'].indexOf(activeClass);
   ctx.save();
+  ctx.translate(x, baseY);
+  ctx.scale(scale, scale);
   ctx.fillStyle = 'rgba(0,0,0,.46)';
-  ctx.beginPath(); ctx.ellipse(x, baseY + 1, 13, 3.6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 1, 13, 3.6, 0, 0, Math.PI * 2); ctx.fill();
   const bob = reducedMotion ? 0 : Math.sin(now * .006) * .8;
   if (heroIndex >= 0 && imageReady(heroAtlasV11)) {
     const sw = heroAtlasV11.naturalWidth / 4, sh = heroAtlasV11.naturalHeight;
-    ctx.translate(x, baseY - 27 + bob); ctx.scale(facing, 1);
+    ctx.translate(0, -27 + bob); ctx.scale(facing, 1);
     ctx.imageSmoothingEnabled = true;
     ctx.shadowColor = 'rgba(0,0,0,.72)'; ctx.shadowBlur = 7; ctx.shadowOffsetY = 3;
     ctx.drawImage(heroAtlasV11, heroIndex * sw, 0, sw, sh, -22, -28, 44, 56);
   } else if (heroIndex >= 0 && imageReady(heroActionAtlasV2)) {
     const sw = heroActionAtlasV2.naturalWidth / 4, sh = heroActionAtlasV2.naturalHeight / 4;
-    ctx.translate(x, baseY - 27 + bob); ctx.scale(facing, 1);
+    ctx.translate(0, -27 + bob); ctx.scale(facing, 1);
     ctx.drawImage(heroActionAtlasV2, 0, heroIndex * sh, sw, sh, -21, -27, 42, 54);
   } else {
-    ctx.fillStyle = '#bda37b'; ctx.beginPath(); ctx.arc(x, baseY - 31, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#3b2d28'; ctx.fillRect(x - 7, baseY - 26, 14, 24);
+    ctx.fillStyle = '#bda37b'; ctx.beginPath(); ctx.arc(0, -31, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3b2d28'; ctx.fillRect(-7, -26, 14, 24);
   }
   ctx.restore();
 }
-function drawTownNameplate(ctx, row, x, baseY, active) {
+function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
   const label = ui(row.zh, row.en);
   ctx.save();
-  ctx.font = '600 10px "Segoe UI", "Microsoft YaHei", sans-serif';
+  ctx.font = `600 ${Math.round(10 * scale)}px "Segoe UI", "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const width = Math.ceil(ctx.measureText(label).width) + 14;
+  const width = Math.ceil(ctx.measureText(label).width) + 14 * scale;
+  const height = 18 * scale, y = baseY - 65 * scale;
   ctx.fillStyle = active ? 'rgba(39,25,12,.94)' : 'rgba(7,6,8,.78)';
   ctx.strokeStyle = active ? '#f2d27b' : 'rgba(183,147,91,.56)';
   ctx.lineWidth = active ? 1.4 : 1;
-  ctx.fillRect(x - width / 2, baseY - 65, width, 18);
-  ctx.strokeRect(x - width / 2 + .5, baseY - 64.5, width - 1, 17);
+  ctx.fillRect(x - width / 2, y, width, height);
+  ctx.strokeRect(x - width / 2 + .5, y + .5, width - 1, height - 1);
   ctx.fillStyle = active ? '#fff0bd' : '#d5c4aa';
-  ctx.fillText(label, x, baseY - 56);
+  ctx.fillText(label, x, y + height / 2);
   ctx.restore();
 }
 function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
   const near = nearestTownHotspot(.105);
+  const artScale = clamp(H / 300, 1, 1.34);
   const actors = TOWN_HOTSPOTS.map(row => ({ type:'hotspot', row, x:W * row.x, baseY:H * row.y }));
   const extras = [
     { min:2, cell:TOWN_NPC_ART.provisioner, x:.52, y:.91, face:1, scale:.72 },
@@ -5745,11 +5773,11 @@ function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
   actors.sort((a, b) => a.baseY - b.baseY);
   for (const actor of actors) {
     if (actor.type === 'hero') {
-      drawTownHeroFigure(ctx, actor.x, actor.baseY, now, townAvatar.face);
+      drawTownHeroFigure(ctx, actor.x, actor.baseY, now, townAvatar.face, artScale);
       continue;
     }
     if (actor.type === 'extra') {
-      drawTownNpcFigure(ctx, actor.row.cell, actor.x, actor.baseY, now, actor.row.face, actor.row.scale);
+      drawTownNpcFigure(ctx, actor.row.cell, actor.x, actor.baseY, now, actor.row.face, actor.row.scale * artScale);
       continue;
     }
     const row = actor.row;
@@ -5760,11 +5788,11 @@ function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
       ctx.save();
       ctx.globalAlpha = .2 + .08 * Math.sin(now * .006);
       ctx.fillStyle = '#f2d27b';
-      ctx.beginPath(); ctx.ellipse(actor.x, actor.baseY + 2, 18, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(actor.x, actor.baseY + 2, 18 * artScale, 5 * artScale, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
-    drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, selected ? 1.02 : .94);
-    drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby);
+    drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, (selected ? 1.02 : .94) * artScale);
+    drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby, artScale);
   }
 }
 function drawTownGrowthVisual(ctx, now, W, H, G) {
@@ -6550,6 +6578,8 @@ if ($('btn-greedy')) $('btn-greedy').addEventListener('click', () => {
   refreshTitle();
 });
 if ($('town-screen')) $('town-screen').addEventListener('click', e => {
+  const pageTab = e.target.closest('[data-town-page]');
+  if (pageTab) { ensureAudio(); selectTownPage(pageTab.dataset.townPage, false); return; }
   const service = e.target.closest('.town-service[data-service]');
   if (service) { townActiveService = service.dataset.service || townActiveService; renderTownFocus(false); }
   const checkpoint = e.target.closest('[data-checkpoint]');

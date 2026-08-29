@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [English route](https://play.91hwl.cn/dungeon-echo/en/)
 
-> **v1.4.1 living-town and hero-art patch:** detailed idle heroes replace abstract linework, Echo Town becomes a walkable seven-character plaza, and the bounded Ember Tavern adds one permanent micro-growth toast per returned expedition on cache generation **177**.
+> **v1.4.2 paged-town release:** Echo Town now stays inside a fixed viewport, opens on a larger detailed walkable plaza, and routes gear, market, tavern, fortune, and departure into focused pages on cache generation **178**.
 
 Dungeon Echo remains a vanilla HTML/CSS/JavaScript roguelike built around one journey from floor 1 to floor 100.
 
