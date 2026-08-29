@@ -9,7 +9,7 @@ VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
 ORIGIN_RESOLVE=play.91hwl.cn:443:127.0.0.1
 PUBLIC_ATTEMPTS=6
 PUBLIC_DELAY=2
-ASSET_GENERATION=156
+ASSET_GENERATION=166
 
 fail(){ echo "DUNGEON_ECHO_HEALTHCHECK_ERROR: $*" >&2; exit 1; }
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
@@ -39,6 +39,14 @@ probe_version(){
   test "$actual" = "$expected"
 }
 
+probe_asset(){
+  path="$1"
+  out="$2"
+  curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
+    "https://$HOST/dungeon-echo/$path?release=$revision" -o "$work_dir/$out"
+  test -s "$work_dir/$out"
+}
+
 probe_game origin --resolve "$ORIGIN_RESOLVE" "$GAME_URL" || fail 'local origin Chinese game/generation check failed'
 probe_game origin-en --resolve "$ORIGIN_RESOLVE" "$EN_URL" || fail 'local origin English game/generation check failed'
 probe_version "$version" --resolve "$ORIGIN_RESOLVE" "$VERSION_URL" || fail 'local origin VERSION check failed'
@@ -46,8 +54,22 @@ probe_version "$version" --resolve "$ORIGIN_RESOLVE" "$VERSION_URL" || fail 'loc
 curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
   "https://$HOST/dungeon-echo/game/core/runtime-bootstrap.js?v=$ASSET_GENERATION" -o "$work_dir/runtime.js" || fail 'runtime bootstrap missing'
 grep -Fq "const assetVersion = '$ASSET_GENERATION'" "$work_dir/runtime.js" || fail 'runtime cache generation mismatch'
-grep -Fq 'release-stamp-v1211.js' "$work_dir/runtime.js" || fail 'v1.2.11 release stamp owner missing'
+grep -Fq 'release-stamp-v1212.js' "$work_dir/runtime.js" || fail 'v1.2.12 release stamp owner missing'
 grep -Fq 'responsive-final-v154.js' "$work_dir/runtime.js" || fail 'responsive owner not wired into runtime'
+
+curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
+  "https://$HOST/dungeon-echo/game/core/production-bootstrap.js?v=$ASSET_GENERATION" -o "$work_dir/production.js" || fail 'production bootstrap missing'
+for marker in art-runtime-v4.js town-art-v160.js class-combat-fx-v163.js hero-directional-art-v165.js; do
+  grep -Fq "$marker" "$work_dir/production.js" || fail "art runtime missing from production bootstrap: $marker"
+done
+
+probe_asset 'game/ui/art-runtime-v4.js' 'art-runtime-v4.js' || fail 'terrain art runtime missing'
+probe_asset 'game/ui/town-art-v160.js' 'town-art-v160.js' || fail 'town art runtime missing'
+probe_asset 'game/ui/class-combat-fx-v163.js' 'class-combat-fx-v163.js' || fail 'class combat FX runtime missing'
+probe_asset 'game/ui/hero-directional-art-v165.js' 'hero-directional-art-v165.js' || fail 'four-direction hero runtime missing'
+probe_asset 'art/runtime/boss-guardian-atlas-v3.png' 'boss-guardian-atlas-v3.png' || fail 'guardian atlas missing'
+probe_asset 'art/runtime/final-boss-v3.png' 'final-boss-v3.png' || fail 'final boss atlas missing'
+probe_asset 'art/runtime/hero-directional-atlas-v1.png' 'hero-directional-atlas-v1.png' || fail 'hero directional atlas missing'
 
 curl --fail --silent --show-error --noproxy '*' --resolve "$ORIGIN_RESOLVE" \
   "https://$HOST/dungeon-echo/game/locale/fixed-locale-entry-v130.js?v=$ASSET_GENERATION" -o "$work_dir/locale.js" || fail 'fixed locale owner asset missing'
