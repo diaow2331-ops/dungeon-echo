@@ -28,12 +28,14 @@ jobs:
           t=Path('test/guardian-content.cjs')
           content=t.read_text()
           assert content.startswith("\\'use strict\\';"), 'expected first-attempt escaped test header'
-          t.write_text("'use strict';"+content[len("\\'use strict\\';"):])
+          fixed="'use strict';"+content[len("\\'use strict\\';"):]
+          fixed=fixed.replace("assert(!core.includes(\"createElement('canvas')\"),'guardian recovery must not add a second canvas');","assert(!core.includes('guardian-telegraph')&&!core.includes('guardian-warning'),'retired guardian overlay DOM must stay absent');")
+          t.write_text(fixed)
           PY
           git rm .github/workflows/recover-guardian-core-v131-once.yml .github/workflows/recover-guardian-core-v131-retry-once.yml
           git add game/core/game.js test/guardian-content.cjs
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+diaow2331-ops@users.noreply.github.com'
           git commit -m 'feat: restore guardian 10-100 state machine in core'
           node test/guardian-content.cjs
           node test/skill-evolution.cjs
