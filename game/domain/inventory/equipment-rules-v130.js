@@ -1,8 +1,11 @@
 /* Dungeon Echo production equipment-stat-scoring authority v1.3.0.
  *
- * Pure deterministic item/equipment calculations. The module owns derived inventory rules only;
- * live bag/equipment state, RNG, equip commands, rendering, persistence and economy transactions
- * remain with their current production owners.
+ * Pure deterministic equipment stat scoring. This module owns only the canonical score consumed
+ * by core. Affinity, rarity, depth-bonus and class-fit helpers remain dormant pure exports and
+ * are not production decisions without a separate atomic authority transfer.
+ *
+ * Boundary rule: no live inventory/equipment mutation, RNG, loot generation, DOM/rendering,
+ * persistence or economy transaction ownership.
  */
 (() => {
   'use strict';
