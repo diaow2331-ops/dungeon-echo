@@ -16,7 +16,7 @@ ok(/document\.addEventListener\('keydown', schedule, false\)/.test(help) && /doc
 ok(!/preventDefault|stopPropagation|stopImmediatePropagation/.test(help), 'copy repair never owns gameplay input');
 ok(!/localStorage|getContext\(|DE_TEST\.[A-Za-z_$][\w$]*\s*=/.test(help), 'copy repair owns no gameplay state, storage or Canvas');
 ok(help.includes('Walk into the merchant to trade') === false, 'copy repair does not duplicate or overwrite dynamic encounter hints');
-ok(/version:'1\.4\.0'/.test(help), 'help-copy version identifies the current-control repair');
+ok(/version:'1\.4\.1'/.test(help), 'help-copy version identifies the current-control repair');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);

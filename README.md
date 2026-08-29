@@ -4,7 +4,7 @@
 
 [91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [English route](https://play.91hwl.cn/dungeon-echo/en/)
 
-> **v1.4.0 core balance and UX recovery:** explicit J basic attacks, K skills with persistent Mana, ranged class identity, weapon proficiency, Greedy New Run continuity, deliberate inventory actions, desktop fit, clearer low-HP/log/loot feedback, and connectivity-safe NPC placement ship on cache generation **176**.
+> **v1.4.1 living-town and hero-art patch:** detailed idle heroes replace abstract linework, Echo Town becomes a walkable seven-character plaza, and the bounded Ember Tavern adds one permanent micro-growth toast per returned expedition on cache generation **177**.
 
 Dungeon Echo remains a vanilla HTML/CSS/JavaScript roguelike built around one journey from floor 1 to floor 100.
 

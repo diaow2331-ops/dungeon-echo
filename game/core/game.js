@@ -147,6 +147,7 @@ function defaultMeta(classId) {
     totalKills: 0, wins: 0, wheelTotal: 0, gotLegend: 0, achv: {},
     wheelSpins: 0, wheelResets: 0, wheelSlots: null,
     market: null,
+    tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
     bag: [], stash: [],
     bestDepth: 0, runs: 0, deaths: 0,
@@ -196,6 +197,11 @@ function sanitizeMeta(raw) {
       marketIds.every(id => Number.isInteger(marketStock[id]) && marketStock[id] >= 0 && marketStock[id] <= 99)) {
     base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock } };
   }
+  base.tavernVisits = Math.min(8, num(raw.tavernVisits, 0));
+  base.tavernLastRun = Number.isInteger(raw.tavernLastRun) && raw.tavernLastRun >= -1 ? raw.tavernLastRun : -1;
+  const tavernRewardIds = ['hearth', 'edge', 'fortune', 'prosperity'];
+  base.tavernHistory = (Array.isArray(raw.tavernHistory) ? raw.tavernHistory : [])
+    .filter(id => tavernRewardIds.includes(id)).slice(-4);
   base.totalKills = num(raw.totalKills, 0);
   base.wins = num(raw.wins, 0);
   base.wheelTotal = num(raw.wheelTotal, 0);
@@ -611,7 +617,10 @@ townBackdropV11.src = 'art/town-backdrop-v11.webp';
 const townNpcAtlasV1 = new Image();
 townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg';
 const TOWN_NPC_ART = Object.freeze({
-  quartermaster:0, smith:1, provisioner:4, alchemist:9, oracle:10, portalWarden:12,
+  quartermaster:0, smith:1, smithAction:2, recordsClerk:3,
+  provisioner:4, provisionerCrate:5, travellingMerchant:6, townWatch:7,
+  apothecaryApprentice:8, alchemist:9, oracle:10, oracleRitual:11,
+  portalWarden:12, portalTechnician:13, innkeeper:14, expeditionScout:15,
 });
 const dungeonPropsAtlasV1 = new Image();
 dungeonPropsAtlasV1.src = 'art/dungeon-props-atlas-v1.svg';
@@ -4321,12 +4330,14 @@ function drawEquippedHero(now) {
   const best = equipped.length ? Math.max(...equipped) : -1;
   const cx = player.fx * TILE + TILE / 2, cy = player.fy * TILE + TILE / 2;
   if (best >= 1) {
+    // Equipment identity is carried by the authored class sprite. A restrained ground glow
+    // communicates rarity without drawing fake weapon/armor geometry across the character.
     const color = RARITIES[best].color;
     ctx.save();
-    ctx.globalAlpha = .2 + best * .045 + .06 * Math.sin(now * 4);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2 + best * .35;
-    ctx.beginPath(); ctx.ellipse(cx, cy + TILE * .34, 15 + best, 5 + best * .25, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = .08 + best * .025 + .025 * Math.sin(now * 4);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.ellipse(cx, cy + TILE * .34, 14 + best, 4.5 + best * .2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   const hurtState = clamp(Number(player.hurtT) || 0, 0, 1) > .01;
@@ -4334,43 +4345,24 @@ function drawEquippedHero(now) {
   const attackState = clamp(Number(player.lungeT) || 0, 0, 1) > .01;
   // Sprite-state ownership stays in the canonical renderer: hurt > skill > attack > idle.
   const actionCol = hurtState ? 2 : skillState ? 3 : attackState ? 1 : 0;
-  const useActionAtlas = imageReady(heroActionAtlasV2);
+  const useActionAtlas = actionCol !== 0 && imageReady(heroActionAtlasV2);
   const heroImage = useActionAtlas ? heroActionAtlasV2 : heroAtlasV11;
   const heroFrame = useActionAtlas ? heroIndex * 4 + actionCol : heroIndex;
   const pos = drawAtlasEntity(player, heroImage, heroFrame, 4, useActionAtlas ? 4 : 1, 43, 52, now);
-  const px = pos[0], py = pos[1];
-  ctx.save();
-  ctx.lineCap = 'round';
-  const weaponRarity = equippedRarity('weapon');
-  if (weaponRarity >= 0) {
-    ctx.strokeStyle = RARITIES[weaponRarity].color;
-    ctx.globalAlpha = .72;
-    ctx.lineWidth = 1.5 + weaponRarity * .3;
-    ctx.beginPath();
-    if (classId === 'ranger') ctx.arc(px, py - 2, 18, -.85, .85);
-    else if (classId === 'mage') { ctx.moveTo(px + 12, py - 18); ctx.lineTo(px + 16, py + 15); }
-    else { ctx.moveTo(px + 8, py + 12); ctx.lineTo(px + 19, py - 13); }
-    ctx.stroke();
+  if (best >= 2) {
+    const color = RARITIES[best].color;
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.globalCompositeOperation = 'screen';
+    for (let i = 0; i < Math.min(3, best); i++) {
+      const phase = now * (1.4 + i * .18) + i * 2.2;
+      ctx.globalAlpha = .16 + .08 * Math.sin(phase);
+      ctx.beginPath();
+      ctx.arc(pos[0] + Math.sin(phase) * (11 + i * 2), pos[1] + 16 - ((now * .018 + i * 8) % 22), 1.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
-  const armorRarity = equippedRarity('armor');
-  if (armorRarity >= 0) {
-    ctx.fillStyle = RARITIES[armorRarity].color;
-    ctx.globalAlpha = .72;
-    ctx.fillRect(px - 16, py - 7, 3, 7); ctx.fillRect(px + 13, py - 7, 3, 7);
-  }
-  const helmetRarity = equippedRarity('helmet');
-  if (helmetRarity >= 0) {
-    ctx.fillStyle = RARITIES[helmetRarity].color;
-    ctx.globalAlpha = .84;
-    ctx.beginPath(); ctx.moveTo(px - 4, py - 19); ctx.lineTo(px, py - 25); ctx.lineTo(px + 4, py - 19); ctx.fill();
-  }
-  const charmRarity = Math.max(equippedRarity('ring'), equippedRarity('amulet'));
-  if (charmRarity >= 2) {
-    ctx.fillStyle = RARITIES[charmRarity].color;
-    ctx.globalAlpha = .55 + .25 * Math.sin(now * 5);
-    ctx.beginPath(); ctx.arc(px, py - 3, 2 + charmRarity * .35, 0, Math.PI * 2); ctx.fill();
-  }
-  ctx.restore();
   return pos;
 }
 function guardianArtIndex(m) {
@@ -5152,8 +5144,150 @@ function ensureTownMarket() {
   }
   return meta.market;
 }
+
+// 酒馆是受控的长期成长金币池：每次远征归来至多一杯，每个角色档最多八杯。
+// 小幅永久收益让“活着回城”更有意义，但低权重攻击成长与硬上限避免刷酒取代装备。
+const TAVERN_MAX_TOASTS = 8;
+const TAVERN_REWARDS = Object.freeze([
+  { id:'hearth', weight:50, zh:'炉火麦酒', en:'Hearth Ale', zhEffect:'生命上限永久 +2', enEffect:'Permanent Max HP +2', apply:m => { m.hpBase += 2; } },
+  { id:'edge', weight:10, zh:'猎人烈酒', en:"Hunter's Spirit", zhEffect:'基础攻击永久 +1', enEffect:'Permanent Base ATK +1', apply:m => { m.atkBase += 1; } },
+  { id:'fortune', weight:25, zh:'幸运苹果酒', en:'Lucky Cider', zhEffect:'暴击率永久 +1%', enEffect:'Permanent Crit +1%', apply:m => { m.critBase += 1; } },
+  { id:'prosperity', weight:15, zh:'商路黑啤', en:'Caravan Stout', zhEffect:'金币获取永久 +1%', enEffect:'Permanent Gold Find +1%', apply:m => { m.goldFind += 1; } },
+]);
+function tavernCost() {
+  const visits = Math.max(0, Math.floor(Number(meta && meta.tavernVisits) || 0));
+  return Math.round((90 + visits * 70 + townTierForArt() * 25) / 5) * 5;
+}
+function tavernRewardById(id) { return TAVERN_REWARDS.find(row => row.id === id) || null; }
+function tavernAvailable() {
+  if (!meta || (meta.tavernVisits || 0) >= TAVERN_MAX_TOASTS) return false;
+  return (meta.tavernLastRun ?? -1) < (meta.runs || 0);
+}
+function drinkAtTavern() {
+  if (state !== 'town' || !meta) return false;
+  if ((meta.tavernVisits || 0) >= TAVERN_MAX_TOASTS) {
+    msg(ui('酒馆老板摇头：你的回响已经足够浓烈了。', 'The innkeeper shakes his head: your echo is strong enough already.'), 'gold');
+    return false;
+  }
+  if (!tavernAvailable()) {
+    msg(ui('这一趟已经喝过了。完成下一次远征后再来。', 'You already drank after this expedition. Return from another descent first.'), 'bad');
+    return false;
+  }
+  const cost = tavernCost();
+  if (meta.gold < cost) {
+    msg(ui(`酒钱需要 ${cost} G，金库还不够。`, `The toast costs ${cost} G; the vault is short.`), 'bad');
+    return false;
+  }
+  const total = TAVERN_REWARDS.reduce((sum, row) => sum + row.weight, 0);
+  let roll = rng() * total;
+  let reward = TAVERN_REWARDS[0];
+  for (const row of TAVERN_REWARDS) { roll -= row.weight; if (roll <= 0) { reward = row; break; } }
+  meta.gold -= cost;
+  reward.apply(meta);
+  meta.tavernVisits = (meta.tavernVisits || 0) + 1;
+  meta.tavernLastRun = Math.max(0, Math.floor(Number(meta.runs) || 0));
+  meta.tavernHistory = [...(meta.tavernHistory || []), reward.id].slice(-4);
+  saveMeta();
+  sfx.levelup();
+  msg(ui(`你举杯喝下【${reward.zh}】：${reward.zhEffect}。`, `You raise [${reward.en}]: ${reward.enEffect}.`), 'gold');
+  renderTown();
+  return true;
+}
+
 const TOWN_CHECKPOINTS = Object.freeze([1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
+const TOWN_HOTSPOTS = Object.freeze([
+  { id:'quartermaster', cell:TOWN_NPC_ART.quartermaster, x:.11, y:.83, face:1, service:'stash', zh:'军需官', en:'Quartermaster' },
+  { id:'smith', cell:TOWN_NPC_ART.smith, activeCell:TOWN_NPC_ART.smithAction, x:.27, y:.82, face:1, service:'bag', zh:'铁匠', en:'Smith' },
+  { id:'innkeeper', cell:TOWN_NPC_ART.innkeeper, x:.43, y:.84, face:-1, service:'tavern', zh:'酒馆老板', en:'Innkeeper' },
+  { id:'merchant', cell:TOWN_NPC_ART.travellingMerchant, x:.59, y:.82, face:-1, service:'market', zh:'行商', en:'Merchant' },
+  { id:'oracle', cell:TOWN_NPC_ART.oracle, activeCell:TOWN_NPC_ART.oracleRitual, x:.72, y:.82, face:1, service:'wheel', zh:'占卜师', en:'Oracle' },
+  { id:'records', cell:TOWN_NPC_ART.recordsClerk, x:.82, y:.83, face:-1, action:'records', zh:'远征书记', en:'Records Clerk' },
+  { id:'portal', cell:TOWN_NPC_ART.portalWarden, activeCell:TOWN_NPC_ART.portalTechnician, x:.92, y:.82, face:-1, action:'portal', zh:'传送守卫', en:'Portal Warden' },
+]);
 let selectedTownCheckpoint = 1;
+let townActiveService = 'stash';
+let townPendingHotspot = '';
+let townLastFrame = 0;
+let townPromptKey = '';
+const townAvatar = { x:.5, y:.90, tx:.5, ty:.90, face:1 };
+function townHotspotById(id) { return TOWN_HOTSPOTS.find(row => row.id === id) || null; }
+function nearestTownHotspot(maxDistance = Infinity) {
+  let best = null, bestDistance = Infinity;
+  for (const row of TOWN_HOTSPOTS) {
+    const dx = townAvatar.x - row.x, dy = (townAvatar.y - row.y) * .72;
+    const distance = Math.hypot(dx, dy);
+    if (distance < bestDistance) { best = row; bestDistance = distance; }
+  }
+  return bestDistance <= maxDistance ? { row:best, distance:bestDistance } : null;
+}
+function updateTownPrompt() {
+  const prompt = $('town-prompt');
+  if (!prompt) return;
+  const near = nearestTownHotspot(.105);
+  const key = near ? near.row.id : 'walk';
+  if (key === townPromptKey) return;
+  townPromptKey = key;
+  prompt.textContent = near
+    ? ui(`E / Enter 与${near.row.zh}交互 · 点击其他角色可自动走近`, `E / Enter: interact with ${near.row.en} · click another character to walk over`)
+    : ui('WASD / 方向键在广场漫步 · 点击角色自动走近 · E / Enter 交互', 'Walk the plaza with WASD / arrows · click a character to approach · E / Enter interacts');
+}
+function renderTownFocus(scroll = false) {
+  if (typeof document.querySelectorAll !== 'function') return;
+  const panels = document.querySelectorAll('#town-screen .town-service[data-service]');
+  panels.forEach(panel => panel.classList.toggle('active', panel.dataset.service === townActiveService));
+  let target = document.querySelector(`#town-screen .town-service[data-service="${townActiveService}"]`);
+  if (target && target.tagName === 'DETAILS') target.open = true;
+  if (townActiveService === 'portal') target = $('town-checkpoints');
+  if (scroll && target && typeof target.scrollIntoView === 'function') target.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function activateTownHotspot(row, scroll = true) {
+  if (!row || state !== 'town') return false;
+  townPendingHotspot = '';
+  if (row.action === 'records') {
+    const button = $('btn-achv-town');
+    if (button) button.click();
+    return true;
+  }
+  if (row.action === 'portal') {
+    townActiveService = 'portal';
+    renderTownFocus(scroll);
+    const depart = $('btn-depart');
+    if (depart) depart.focus({ preventScroll:true });
+    return true;
+  }
+  townActiveService = row.service || 'stash';
+  renderTownFocus(scroll);
+  return true;
+}
+function interactTown() {
+  const near = nearestTownHotspot(.13);
+  return near ? activateTownHotspot(near.row, true) : false;
+}
+function setTownTarget(x, y, hotspotId = '') {
+  townAvatar.tx = clamp(Number(x) || .5, .045, .955);
+  townAvatar.ty = clamp(Number(y) || .9, .79, .93);
+  if (Math.abs(townAvatar.tx - townAvatar.x) > .004) townAvatar.face = townAvatar.tx >= townAvatar.x ? 1 : -1;
+  townPendingHotspot = hotspotId;
+}
+function moveTownAvatar(dx, dy) {
+  if (state !== 'town') return false;
+  setTownTarget(townAvatar.tx + dx * .075, townAvatar.ty + dy * .055);
+  return true;
+}
+function advanceTownAvatar(now) {
+  const dt = townLastFrame ? Math.min(.05, Math.max(0, (now - townLastFrame) / 1000)) : 0;
+  townLastFrame = now;
+  const dx = townAvatar.tx - townAvatar.x, dy = townAvatar.ty - townAvatar.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance > .001 && dt > 0) {
+    const step = Math.min(distance, .46 * dt);
+    townAvatar.x += dx / distance * step;
+    townAvatar.y += dy / distance * step;
+  }
+  if (townPendingHotspot && Math.hypot(townAvatar.tx - townAvatar.x, townAvatar.ty - townAvatar.y) < .012)
+    activateTownHotspot(townHotspotById(townPendingHotspot), true);
+  updateTownPrompt();
+}
 function unlockedTownCheckpoints() {
   const best = Math.max(0, Math.floor(Number(meta && meta.bestDepth) || 0));
   return TOWN_CHECKPOINTS.filter(d => d === 1 || best >= d);
@@ -5309,7 +5443,9 @@ function showTown() {
   hideUi('title-screen'); hideUi('class-screen'); hideUi('pause-screen');
   hideUi('shop-screen'); hideUi('talent-screen'); hideUi('shrine-screen'); hideUi('echo-screen');
   showUi('town-screen');
+  townLastFrame = 0; townPromptKey = '';
   renderTown();
+  renderTownFocus(false); updateTownPrompt();
   ensureTownLoop();
 }
 // ================= 幸运转盘（城镇金币回收站） =================
@@ -5556,17 +5692,80 @@ function drawTownNpcFigure(ctx, index, x, baseY, now, facing = 1, scale = 1) {
   }
   ctx.restore();
 }
-function drawTownNpcPopulation(ctx, now, W, G, tier) {
-  const roles = [
-    { min:1, cell:TOWN_NPC_ART.quartermaster, x:.12, face:1, scale:.92 },
-    { min:1, cell:TOWN_NPC_ART.provisioner, x:.50, face:-1, scale:.90 },
-    { min:2, cell:TOWN_NPC_ART.smith, x:.29, face:1, scale:.96 },
-    { min:3, cell:TOWN_NPC_ART.alchemist, x:.40, face:-1, scale:.90 },
-    { min:4, cell:TOWN_NPC_ART.oracle, x:.68, face:1, scale:.92 },
-    { min:7, cell:TOWN_NPC_ART.portalWarden, x:.86, face:-1, scale:.94 },
+function drawTownHeroFigure(ctx, x, baseY, now, facing = 1) {
+  const activeClass = meta && CLASSES[meta.classId] ? meta.classId : classId;
+  const heroIndex = ['warrior', 'ranger', 'mage', 'assassin'].indexOf(activeClass);
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.46)';
+  ctx.beginPath(); ctx.ellipse(x, baseY + 1, 13, 3.6, 0, 0, Math.PI * 2); ctx.fill();
+  const bob = reducedMotion ? 0 : Math.sin(now * .006) * .8;
+  if (heroIndex >= 0 && imageReady(heroAtlasV11)) {
+    const sw = heroAtlasV11.naturalWidth / 4, sh = heroAtlasV11.naturalHeight;
+    ctx.translate(x, baseY - 27 + bob); ctx.scale(facing, 1);
+    ctx.imageSmoothingEnabled = true;
+    ctx.shadowColor = 'rgba(0,0,0,.72)'; ctx.shadowBlur = 7; ctx.shadowOffsetY = 3;
+    ctx.drawImage(heroAtlasV11, heroIndex * sw, 0, sw, sh, -22, -28, 44, 56);
+  } else if (heroIndex >= 0 && imageReady(heroActionAtlasV2)) {
+    const sw = heroActionAtlasV2.naturalWidth / 4, sh = heroActionAtlasV2.naturalHeight / 4;
+    ctx.translate(x, baseY - 27 + bob); ctx.scale(facing, 1);
+    ctx.drawImage(heroActionAtlasV2, 0, heroIndex * sh, sw, sh, -21, -27, 42, 54);
+  } else {
+    ctx.fillStyle = '#bda37b'; ctx.beginPath(); ctx.arc(x, baseY - 31, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3b2d28'; ctx.fillRect(x - 7, baseY - 26, 14, 24);
+  }
+  ctx.restore();
+}
+function drawTownNameplate(ctx, row, x, baseY, active) {
+  const label = ui(row.zh, row.en);
+  ctx.save();
+  ctx.font = '600 10px "Segoe UI", "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const width = Math.ceil(ctx.measureText(label).width) + 14;
+  ctx.fillStyle = active ? 'rgba(39,25,12,.94)' : 'rgba(7,6,8,.78)';
+  ctx.strokeStyle = active ? '#f2d27b' : 'rgba(183,147,91,.56)';
+  ctx.lineWidth = active ? 1.4 : 1;
+  ctx.fillRect(x - width / 2, baseY - 65, width, 18);
+  ctx.strokeRect(x - width / 2 + .5, baseY - 64.5, width - 1, 17);
+  ctx.fillStyle = active ? '#fff0bd' : '#d5c4aa';
+  ctx.fillText(label, x, baseY - 56);
+  ctx.restore();
+}
+function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
+  const near = nearestTownHotspot(.105);
+  const actors = TOWN_HOTSPOTS.map(row => ({ type:'hotspot', row, x:W * row.x, baseY:H * row.y }));
+  const extras = [
+    { min:2, cell:TOWN_NPC_ART.provisioner, x:.52, y:.91, face:1, scale:.72 },
+    { min:3, cell:TOWN_NPC_ART.apothecaryApprentice, x:.65, y:.91, face:-1, scale:.72 },
+    { min:4, cell:TOWN_NPC_ART.townWatch, x:.035, y:.88, face:1, scale:.76 },
+    { min:5, cell:TOWN_NPC_ART.expeditionScout, x:.975, y:.91, face:-1, scale:.74 },
   ];
-  for (const role of roles) if (tier >= role.min)
-    drawTownNpcFigure(ctx, role.cell, W * role.x, G + 13, now, role.face, role.scale);
+  for (const row of extras) if (tier >= row.min)
+    actors.push({ type:'extra', row, x:W * row.x, baseY:H * row.y });
+  actors.push({ type:'hero', x:W * townAvatar.x, baseY:H * townAvatar.y });
+  actors.sort((a, b) => a.baseY - b.baseY);
+  for (const actor of actors) {
+    if (actor.type === 'hero') {
+      drawTownHeroFigure(ctx, actor.x, actor.baseY, now, townAvatar.face);
+      continue;
+    }
+    if (actor.type === 'extra') {
+      drawTownNpcFigure(ctx, actor.row.cell, actor.x, actor.baseY, now, actor.row.face, actor.row.scale);
+      continue;
+    }
+    const row = actor.row;
+    const selected = townActiveService === row.service || (row.action === 'portal' && townActiveService === 'portal');
+    const nearby = !!(near && near.row.id === row.id);
+    const pulse = !reducedMotion && row.activeCell !== undefined && (selected || nearby) && Math.floor(now / 620) % 2;
+    if (selected || nearby) {
+      ctx.save();
+      ctx.globalAlpha = .2 + .08 * Math.sin(now * .006);
+      ctx.fillStyle = '#f2d27b';
+      ctx.beginPath(); ctx.ellipse(actor.x, actor.baseY + 2, 18, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, selected ? 1.02 : .94);
+    drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby);
+  }
 }
 function drawTownGrowthVisual(ctx, now, W, H, G) {
   const tier = townTierForArt();
@@ -5579,7 +5778,7 @@ function drawTownGrowthVisual(ctx, now, W, H, G) {
     ctx.fillStyle = `rgba(255,181,74,${glow.toFixed(2)})`;
     ctx.fillRect(x - 3, 24 + (i % 2) * 4, 6, 8);
   }
-  drawTownNpcPopulation(ctx, now, W, G, tier);
+  drawTownNpcPopulation(ctx, now, W, H, G, tier);
   if (tier >= 4) {
     ctx.fillStyle = 'rgba(133,49,42,.9)';
     ctx.beginPath(); ctx.moveTo(W * .49, 18); ctx.lineTo(W * .56, 25); ctx.lineTo(W * .49, 45); ctx.closePath(); ctx.fill();
@@ -5748,7 +5947,7 @@ const W0_FIRE = { x: 430 };
 function townFrame(now) {
   townRafId = 0;
   if (state !== 'town') return;
-  try { drawTownScene(now || 0); drawWheel(now || 0); } catch (e) { /* 绘制异常不阻塞游戏 */ }
+  try { advanceTownAvatar(now || 0); drawTownScene(now || 0); drawWheel(now || 0); } catch (e) { /* 绘制异常不阻塞游戏 */ }
   townRafId = requestAnimationFrame(townFrame);
 }
 function ensureTownLoop() {
@@ -5817,7 +6016,7 @@ function renderTown() {
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span></div>` +
-      `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('安全仓库 · 限量市集 · 锻造强化 · 已征服区出发','Safe Stash · Limited Market · Forge Upgrades · Conquered-Depth Departures')}</span></div>`;
+      `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('可交互广场 · 安全仓库 · 限量市集 · 锻造强化 · 余烬酒馆 · 已征服区出发','Walkable Plaza · Safe Stash · Limited Market · Forge Upgrades · Ember Tavern · Conquered-Depth Departures')}</span></div>`;
   }
   renderTownCheckpoints();
   const itemTag = it => {
@@ -5876,6 +6075,23 @@ function renderTown() {
         `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
     }).join('') + `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>` : '';
   }
+  const tavernEl = $('town-tavern');
+  if (tavernEl) {
+    const visits = Math.max(0, meta.tavernVisits || 0);
+    const cost = tavernCost();
+    const available = tavernAvailable();
+    const complete = visits >= TAVERN_MAX_TOASTS;
+    const history = (meta.tavernHistory || []).map(tavernRewardById).filter(Boolean);
+    const historyText = history.length
+      ? history.map(row => ui(row.zhEffect, row.enEffect)).join(' · ')
+      : ui('尚未留下酒馆回响', 'No tavern echoes yet');
+    tavernEl.innerHTML =
+      `<div class="tavern-offer"><b>${ui('回响祝酒','Echo Toast')}</b><span>${ui('每次远征归来限一杯 · 每档最多八杯','One after each expedition · eight per character')}</span></div>` +
+      `<p class="dim-note">${ui('不是免费刷属性：酒价递增、结果随机、攻击成长低权重，并有永久硬上限。','Not a free stat farm: rising price, random result, low-weight ATK, and a permanent hard cap.')}</p>` +
+      `<div class="tavern-history"><small>${ui(`已饮 ${visits}/${TAVERN_MAX_TOASTS}`, `Toasts ${visits}/${TAVERN_MAX_TOASTS}`)}</small><span>${esc(historyText)}</span></div>` +
+      `<button type="button" class="tavern-drink" data-taverndrink="1"${(!available || meta.gold < cost) ? ' disabled' : ''}>` +
+      `${complete ? ui('回响已满','Echo Complete') : available ? ui(`举杯 ${cost} G`,`Raise a Toast ${cost} G`) : ui('完成下一次远征后再来','Return from another expedition')}</button>`;
+  }
   const wheelEl = $('town-wheel');
   if (wheelEl) {
     ensureWheel();
@@ -5889,6 +6105,7 @@ function renderTown() {
       `<button type="button" data-wheelreset="1"${(meta.gold < rc || wheelBusy) ? ' disabled' : ''}` +
       ` title="${ui(`重摇全部八格，需 ${rc} G`, `Reroll all eight slots for ${rc} G`)}">${ui(`重置轮盘 ${rc} G`, `Reset Wheel ${rc} G`)}</button></div>`;
   }
+  renderTownFocus(false);
   const pending = pendingRefineItem();
   if (pending && $('refine-screen') && $('refine-screen').classList.contains('hidden')) openForgeRefinement(pending);
 }
@@ -6210,6 +6427,16 @@ document.addEventListener('keydown', e => {
     return;
   }
   if ($('audio-settings-screen') && !$('audio-settings-screen').classList.contains('hidden')) return;
+  if (state === 'town') {
+    const tag = String(e.target && e.target.tagName || '').toUpperCase();
+    if ((tag === 'BUTTON' || tag === 'SUMMARY') && (e.key === 'Enter' || e.key === ' ')) return;
+    if (KEYMAP[e.key]) { e.preventDefault(); moveTownAvatar(...KEYMAP[e.key]); return; }
+    if (e.key === 'e' || e.key === 'E' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); interactTown(); return;
+    }
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); return; }
+    return;
+  }
   if (state !== 'playing') return;
   if (KEYMAP[e.key]) { e.preventDefault(); tryMove(...KEYMAP[e.key]); return; }
   switch (e.key) {
@@ -6323,6 +6550,8 @@ if ($('btn-greedy')) $('btn-greedy').addEventListener('click', () => {
   refreshTitle();
 });
 if ($('town-screen')) $('town-screen').addEventListener('click', e => {
+  const service = e.target.closest('.town-service[data-service]');
+  if (service) { townActiveService = service.dataset.service || townActiveService; renderTownFocus(false); }
   const checkpoint = e.target.closest('[data-checkpoint]');
   if (checkpoint) { ensureAudio(); selectTownCheckpoint(+checkpoint.dataset.checkpoint); return; }
   const dep = e.target.closest('[data-deposit]');
@@ -6333,6 +6562,8 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (wth) { ensureAudio(); withdrawStash(+wth.dataset.withdraw); return; }
   const buy = e.target.closest('[data-townbuy]');
   if (buy) { ensureAudio(); buyTown(buy.dataset.townbuy); return; }
+  const toast = e.target.closest('[data-taverndrink]');
+  if (toast) { ensureAudio(); drinkAtTavern(); return; }
   const wsp = e.target.closest('[data-wheelspin]');
   if (wsp) { ensureAudio(); spinWheel(); return; }
   const wrs = e.target.closest('[data-wheelreset]');
@@ -6351,6 +6582,24 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
     forgeItem(w, +i);
     return;
   }
+});
+if ($('town-scene')) $('town-scene').addEventListener('pointerdown', e => {
+  if (state !== 'town') return;
+  ensureAudio();
+  const canvas = $('town-scene');
+  const rect = canvas.getBoundingClientRect();
+  const x = clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+  const y = clamp((e.clientY - rect.top) / Math.max(1, rect.height), .79, .93);
+  let nearest = null, distance = Infinity;
+  for (const row of TOWN_HOTSPOTS) {
+    const d = Math.hypot(x - row.x, (y - row.y) * .72);
+    if (d < distance) { nearest = row; distance = d; }
+  }
+  if (nearest && distance < .09) {
+    const standX = clamp(nearest.x + (nearest.x < .5 ? .045 : -.045), .05, .95);
+    setTownTarget(standX, .9, nearest.id);
+  } else setTownTarget(x, y);
+  canvas.focus({ preventScroll:true });
 });
 if ($('btn-depart')) $('btn-depart').addEventListener('click', () => { ensureAudio(); departTown(); });
 if ($('btn-town-exit')) $('btn-town-exit').addEventListener('click', () => {
@@ -6454,6 +6703,8 @@ if (typeof window !== 'undefined') {
     setGreedy, getMeta: () => meta,
     get meta() { return meta; },
     useEscape, departTown, depositStash, withdrawStash, buyTown,
+    tavernCost, tavernAvailable, drinkAtTavern, moveTownAvatar, setTownTarget, interactTown,
+    TOWN_HOTSPOTS, get townAvatar() { return { ...townAvatar }; },
     unlockedTownCheckpoints, selectTownCheckpoint, get selectedTownCheckpoint() { return selectedTownCheckpoint; },
     spinWheel, resetWheel, spinCost, resetWheelCost, applyWheelPrize, genWheelSlot,
     ACHV, checkAchv, getRecord: () => ({ ...ensureRecord(), achv:{...ensureRecord().achv} }),

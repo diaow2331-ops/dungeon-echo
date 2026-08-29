@@ -87,14 +87,25 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
 .town-service {
   min-width: 0;
   padding: 12px 10px 10px;
+  opacity: .78;
   background: linear-gradient(180deg, rgba(36, 25, 18, .88), rgba(15, 10, 8, .94));
   border: 1px solid var(--border);
   border-top: 2px solid var(--service-accent, var(--accent));
   box-shadow: 0 8px 22px rgba(0, 0, 0, .22), inset 0 1px rgba(255, 255, 255, .03);
+  transition: opacity .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.town-service:hover, .town-service:focus-within, .town-service.active {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--service-accent, var(--accent)) 72%, #4c3827);
+}
+.town-service.active {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .34), 0 0 0 1px color-mix(in srgb, var(--service-accent, var(--accent)) 36%, transparent), inset 0 1px rgba(255, 255, 255, .05);
 }
 .town-service[data-service="bag"] { --service-accent: #b76a4a; }
 .town-service[data-service="stash"] { --service-accent: #55a789; }
 .town-service[data-service="market"] { --service-accent: #d7a640; }
+.town-service[data-service="tavern"] { --service-accent: #d36f3f; }
 .town-service[data-service="wheel"] { --service-accent: #8c70c8; }
 .town-service-optional {
   opacity: .88;
@@ -110,17 +121,42 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
 }
 .town-row small { color: var(--dim); margin-left: 8px; font-size: 11px; }
 .town-row button { padding: 3px 12px; font-size: 12px; white-space: nowrap; }
+.tavern-offer { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:7px 4px 4px; }
+.tavern-offer b { color:#f1c094; font-size:14px; }
+.tavern-offer span { color:var(--dim); font-size:10px; text-align:right; }
+.tavern-history { display:grid; gap:4px; margin:6px 4px 10px; padding:8px 9px; border:1px solid rgba(171,91,50,.4); background:rgba(31,16,10,.58); }
+.tavern-history small { color:#d78d63; }
+.tavern-history span { color:#c9b8a4; font-size:11px; line-height:1.45; }
+button.tavern-drink { width:100%; min-height:36px; border-color:#a9552e; color:#ffd1aa; background:linear-gradient(180deg,#3a1c10,#211008); }
+button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-gradient(180deg,#e8925e,#c6673d); }
 .dim-note { color: var(--dim); font-size: 13px; padding: 6px 4px; }
 #town-shop { text-align: left; }
 #town-scene {
   display: block;
   width: min(900px, 100%);
   height: auto;
-  margin: 2px auto 10px;
+  margin: 2px auto 0;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 4px 4px 0 0;
   background: #0b0916;
+  cursor: crosshair;
+  touch-action: manipulation;
   box-shadow: inset 0 0 28px rgba(0, 0, 0, .42), 0 12px 30px rgba(0, 0, 0, .26);
+}
+#town-scene:focus-visible { outline:2px solid var(--accent-hi); outline-offset:2px; }
+.town-prompt {
+  width:min(900px,100%);
+  min-height:30px;
+  margin:0 auto 10px;
+  padding:7px 12px;
+  color:#e8d4b5;
+  background:linear-gradient(90deg,rgba(22,14,10,.97),rgba(38,23,14,.92),rgba(22,14,10,.97));
+  border:1px solid var(--border);
+  border-top:0;
+  border-radius:0 0 4px 4px;
+  font-size:12px;
+  letter-spacing:.15px;
+  text-align:center;
 }
 .town-growth {
   display: grid;
@@ -192,13 +228,18 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
   position: sticky;
   top: -1px;
   z-index: 4;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
   margin: 10px -10px 12px;
   padding: 10px;
   background: linear-gradient(180deg, rgba(20,13,9,.98), rgba(20,13,9,.92));
   border-block: 1px solid rgba(139,104,53,.5);
   box-shadow: 0 10px 24px rgba(0,0,0,.30);
 }
-#town-screen #btn-depart { box-shadow: 0 0 0 1px rgba(242,210,123,.15), 0 0 20px rgba(215,166,64,.12); }
+#town-screen .town-primary-actions > * { flex: 1 1 0; }
+#town-screen #btn-depart { flex-grow: 1.8; box-shadow: 0 0 0 1px rgba(242,210,123,.15), 0 0 20px rgba(215,166,64,.12); }
+@media (max-width: 700px) { #town-screen .town-primary-actions { flex-direction: column; } }
 .town-service-optional > summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; gap:10px; align-items:baseline; color:#bfa8d8; }
 .town-service-optional > summary::-webkit-details-marker { display:none; }
 .town-service-optional > summary::before { content:'＋'; color:#a98bd3; margin-right:7px; }

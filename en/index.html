@@ -17,7 +17,7 @@
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=176">
+<link rel="stylesheet" href="style.css?v=177">
 </head>
 <body>
 <div id="wrap">
@@ -97,7 +97,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">Move: arrows / WASD / click map · J Basic Attack · K Class Skill (C alias) · Shift+Enter Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · top Save button · click backpack to equip · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.4.0</b></footer>
+  <footer id="help">Move: arrows / WASD / click map · J Basic Attack · K Class Skill (C alias) · Shift+Enter Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · top Save button · click backpack to equip · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.4.1</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">Restart (R)</button></div></div>
 
@@ -135,17 +135,19 @@
 
   <div id="town-screen" class="hidden">
     <div class="title-card wide">
-      <p class="kicker">Greedy Expedition · Echo Town</p><h2>Camp &amp; Market</h2>
+      <p class="kicker">Greedy Expedition · Echo Town</p><h2>A Walkable Echo Plaza</h2>
       <p class="lede" id="town-head">Prepare, then descend again.</p>
       <p class="lede dim-note">Death loses backpack items and carried Gold; stash and vault are safe. Return Scroll (T) is the key to securing loot.</p>
       <div class="title-actions town-primary-actions"><button type="button" id="btn-depart" class="primary">Depart for Floor 1</button><button type="button" id="btn-town-exit" class="ghost" title="Return to title without losing progress">Save &amp; Title</button><button type="button" id="btn-achv-town">Expedition Record</button></div>
-      <canvas id="town-scene" width="900" height="210"></canvas>
+      <canvas id="town-scene" width="900" height="300" tabindex="0" aria-label="Walk with WASD, arrow keys, or clicks and interact with town characters"></canvas>
+      <div id="town-prompt" class="town-prompt" aria-live="polite">Walk with WASD / arrows · click a character to approach · E / Enter interacts</div>
       <div id="town-growth" class="town-growth" aria-live="polite"></div>
       <div id="town-checkpoints" class="checkpoint-panel" aria-live="polite"></div>
       <div class="town-cols">
         <div class="town-service" data-service="bag"><p class="kicker">Backpack <span>carried · at risk</span></p><div id="town-bag"></div></div>
         <div class="town-service" data-service="stash"><p class="kicker">Stash <span>fully safe</span></p><div id="town-stash"></div></div>
         <div class="town-service" data-service="market"><p class="kicker">Market <span>limited supplies</span></p><div id="town-shop"></div></div>
+        <div class="town-service" data-service="tavern"><p class="kicker">Ember Tavern <span>one for the returned · bounded permanent growth</span></p><div id="town-tavern"></div></div>
         <details class="town-service town-service-optional" data-service="wheel"><summary><b>Fortune Corner</b><small>optional · does not gate the expedition</small></summary><div id="town-wheel"></div></details>
       </div>
     </div>
@@ -173,17 +175,17 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=176"></script>
-<script src="profiles/classic-100.profile.js?v=176"></script>
-<script src="game/locale/locale-data-v134.js?v=176"></script>
-<script src="game/domain/content/content-rules-v130.js?v=176"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=176"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=176"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=176"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=176"></script>
-<script src="game/core/game.js?v=176"></script>
-<script src="game/locale/core-locale-data-v139.js?v=176"></script>
-<script src="game/input/desktop-controls.js?v=176"></script>
-<script src="game/core/runtime-bootstrap.js?v=176"></script>
+<script src="game/core/production-bootstrap.js?v=177"></script>
+<script src="profiles/classic-100.profile.js?v=177"></script>
+<script src="game/locale/locale-data-v134.js?v=177"></script>
+<script src="game/domain/content/content-rules-v130.js?v=177"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=177"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=177"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=177"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=177"></script>
+<script src="game/core/game.js?v=177"></script>
+<script src="game/locale/core-locale-data-v139.js?v=177"></script>
+<script src="game/input/desktop-controls.js?v=177"></script>
+<script src="game/core/runtime-bootstrap.js?v=177"></script>
 </body>
 </html>
