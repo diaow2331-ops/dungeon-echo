@@ -13,8 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify v1.2.11 expedition pressure
+      - name: Verify retained v1.2.11 expedition pressure
         run: node test/expedition-pressure-v1211.cjs
+      - name: Verify unified boss and guardian art
+        run: node test/art-runtime-v3-bosses.cjs
+      - name: Verify terrain art v4
+        run: node test/art-runtime-v4.cjs
+      - name: Verify town art v160
+        run: node test/town-art-v160.cjs
+      - name: Verify four-class combat FX
+        run: node test/class-combat-fx-v163.cjs
+      - name: Verify four-direction hero art
+        run: node test/hero-directional-art-v165.cjs
       - name: Verify release freeze
         run: node test/release-freeze-v1.2.cjs
       - name: Verify site deploy release boundary
