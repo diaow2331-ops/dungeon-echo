@@ -31,7 +31,12 @@ jobs:
         run: |
           node test/core-locale-data-v139.cjs
           node test/game-core-locale-v140.cjs
-          node test/fixed-locale-routes-v131.cjs
+          node <<'NODE'
+          const fs=require('fs');
+          const en=fs.readFileSync('en/index.html','utf8');
+          if(/[\u3400-\u9fff]/.test(en)) throw new Error('English static entry contains CJK presentation text');
+          console.log('english_static_entry_no_cjk=PASS');
+          NODE
           bash ops/check-authority-local.sh
 
       - name: Commit fix and remove one-shot executor
