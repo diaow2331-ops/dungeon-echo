@@ -23,7 +23,7 @@ for (const recipe of ['hit','crit','hurt','pickup','potion','levelup','stairs','
   ok(new RegExp(`\\b${recipe}\\(\\) \\{`).test(core), `layered SFX recipe exists: ${recipe}`);
 ok(/toggleAudioMuted\(true\)/.test(core), 'M/touch mute use the canonical master preference');
 ok(/audio-settings-screen/.test(core) && /audio-music/.test(core) && /audio-sfx/.test(core), 'core owns settings UI behavior');
-ok(/PERSISTENT_PREF_KEYS = new Set\(\['de-guide-v1', 'de-audio-v1'\]\)/.test(bootstrap), 'fresh adventure preserves onboarding and audio preferences');
+ok(/PERSISTENT_PREF_KEYS = new Set\(\['de-guide-v1', 'de-audio-v1', 'de-expedition-record-v1'\]\)/.test(bootstrap), 'fresh adventure preserves onboarding, audio and the cross-run record');
 ok(/#audio-settings-screen/.test(style) && /\.audio-mix-row/.test(style), 'audio settings use the canonical modal/layout surface');
 for (const [name,html] of [['zh',zh],['en',en]]) {
   ok(html.includes('id="audio-settings-screen"'), `${name} route ships audio settings screen`);

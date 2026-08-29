@@ -1,4 +1,4 @@
-/* Dungeon Echo production authority bootstrap v1.3.4.
+/* Dungeon Echo production authority bootstrap v1.3.5.
  *
  * Production policy is deliberately simple:
  * - game/core/game.js is the sole dungeon/town Canvas renderer;
@@ -18,7 +18,7 @@
   const STORAGE_EPOCH = 'v130';
   const STORAGE_EPOCH_KEY = 'de-storage-epoch';
   const LEGACY_PREFIX = 'de-';
-  const PERSISTENT_PREF_KEYS = new Set(['de-guide-v1', 'de-audio-v1']);
+  const PERSISTENT_PREF_KEYS = new Set(['de-guide-v1', 'de-audio-v1', 'de-expedition-record-v1']);
   const FRESH_BUTTON_ID = 'btn-fresh-adventure';
   const EQUIPMENT_STYLE_ID = 'de-equipment-art-v13-css';
 
@@ -102,28 +102,13 @@
   // script, so game.js later sees no #btn-new element and cannot bind a second owner.
   claimFreshAdventureButton();
 
-  function enterFreshClassSelect() {
-    if (!autoFresh || typeof document === 'undefined') return;
-    autoFresh = false;
-    try {
-      const event = new KeyboardEvent('keydown', {
-        key: 'Enter',
-        code: 'Enter',
-        bubbles: true,
-        cancelable: true,
-      });
-      document.dispatchEvent(event);
-    } catch (_err) {}
-  }
-
-  if (autoFresh && typeof setTimeout === 'function') {
-    // Production scripts are parser-blocking and ordered. A zero-delay task therefore
-    // runs after game.js has installed the canonical title-screen keyboard command.
-    setTimeout(enterFreshClassSelect, 0);
-  }
+  // Deterministic handoff: external parser-blocking scripts can yield between loads,
+  // so setTimeout(0) is not a safe guarantee that core input is ready. Core consumes
+  // this one-shot flag after its own listeners and title state are fully installed.
+  if (autoFresh) window.__DE_FRESH_CLASS_SELECT_PENDING = true;
 
   const AUTHORITY = Object.freeze({
-    version:'1.3.4',
+    version:'1.3.5',
     renderer:'game/core/game.js',
     gameplayState:'game/core/game.js',
     gameplayInput:'game/core/game.js',
@@ -135,7 +120,7 @@
   });
 
   window.__DE_PRODUCTION_AUTHORITY_V130 = Object.freeze({
-    version:'1.3.4',
+    version:'1.3.5',
     owner:'production-authority',
     renderOwner:'game/core/game.js',
     gameplayStateOwner:'game/core/game.js',
