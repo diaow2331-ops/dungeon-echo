@@ -1054,21 +1054,24 @@ function rr(x,y,w,h,r){const m=Math.min(r,w/2,h/2);ctx.beginPath();ctx.roundRect
 function officeSkyColor(){
   const p=Math.min(1,runDistance/DAY_END_DISTANCE);if(p<.35)return '#dcecf3';if(p<.68)return '#eadfc5';if(p<.90)return '#e7b98f';return '#8d8aa4';
 }
-const SCENE_BACKDROP_ATLAS={
-  src:'assets/sprites/scene-backdrops-v125.webp?v=1250',cellW:512,cellH:256,cols:2,
-  // Source cells: meeting, pantry, gym, workstation. Runtime order remains workstation, meeting, pantry, gym.
-  sceneFrames:[3,0,1,2]
-};
-const sceneBackdropImage=new Image();let sceneBackdropReady=false,sceneBackdropFailed=false;
-sceneBackdropImage.decoding='async';sceneBackdropImage.onload=()=>{sceneBackdropReady=true;sceneBackdropFailed=false;draw()};sceneBackdropImage.onerror=()=>{sceneBackdropFailed=true;sceneBackdropReady=false};sceneBackdropImage.src=SCENE_BACKDROP_ATLAS.src;
+const SCENE_BACKDROPS=[
+  'assets/scenes-v126/workstation.svg?v=1260',
+  'assets/scenes-v126/meeting.svg?v=1260',
+  'assets/scenes-v126/pantry.svg?v=1260',
+  'assets/scenes-v126/gym.svg?v=1260'
+];
+const sceneBackdropImages=SCENE_BACKDROPS.map(src=>{const img=new Image();img.decoding='async';img.src=src;return img});
+let sceneBackdropReady=sceneBackdropImages.map(()=>false),sceneBackdropFailed=sceneBackdropImages.map(()=>false);
+sceneBackdropImages.forEach((img,i)=>{img.onload=()=>{sceneBackdropReady[i]=true;sceneBackdropFailed[i]=false;draw()};img.onerror=()=>{sceneBackdropFailed[i]=true;sceneBackdropReady[i]=false}});
 function drawSceneBackdrop(idx){
-  if(!sceneBackdropReady||sceneBackdropFailed)return false;
-  const frame=SCENE_BACKDROP_ATLAS.sceneFrames[idx]??3,col=frame%SCENE_BACKDROP_ATLAS.cols,row=Math.floor(frame/SCENE_BACKDROP_ATLAS.cols),top=82,h=GROUND-top+1,tileW=Math.round(h*2.24),offset=-((visualScrollPx*.10)%tileW);
-  ctx.save();ctx.fillStyle='#101823';ctx.fillRect(0,0,W,H);ctx.imageSmoothingEnabled=false;ctx.beginPath();ctx.rect(0,top,W,h);ctx.clip();
-  for(let i=-1;i<3;i++)ctx.drawImage(sceneBackdropImage,col*SCENE_BACKDROP_ATLAS.cellW,row*SCENE_BACKDROP_ATLAS.cellH,SCENE_BACKDROP_ATLAS.cellW,SCENE_BACKDROP_ATLAS.cellH,offset+i*tileW,top,tileW,h);
-  const grade=ctx.createLinearGradient(0,top,0,GROUND);grade.addColorStop(0,'rgba(9,18,31,.04)');grade.addColorStop(.72,'rgba(9,18,31,.02)');grade.addColorStop(1,'rgba(255,250,240,.08)');ctx.fillStyle=grade;ctx.fillRect(0,top,W,h);
-  if(stageIndex>=4){ctx.fillStyle='rgba(72,55,78,.10)';ctx.fillRect(0,top,W,h)}
-  ctx.restore();return true
+  const i=Math.max(0,Math.min(3,idx|0)),img=sceneBackdropImages[i];if(!sceneBackdropReady[i]||sceneBackdropFailed[i])return false;
+  const top=82,h=GROUND-top+1,srcW=1920,srcH=820,srcAspect=srcW/srcH,targetAspect=W/h;
+  let sx=0,sy=0,sw=srcW,sh=srcH;
+  if(targetAspect>srcAspect){sh=sw/targetAspect;sy=Math.max(0,(srcH-sh)*.54)}else{sw=sh*targetAspect;sx=Math.max(0,(srcW-sw)*.5)}
+  const panRoom=Math.max(0,srcW-sw),pan=panRoom?panRoom*(.5+.5*Math.sin(visualScrollPx/1050+i*.9)):0;sx=Math.max(0,Math.min(srcW-sw,sx+(pan-panRoom*.5)*.42));
+  ctx.save();ctx.fillStyle='#101823';ctx.fillRect(0,0,W,H);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.beginPath();ctx.rect(0,top,W,h);ctx.clip();ctx.drawImage(img,sx,sy,sw,sh,0,top,W,h);
+  const grade=ctx.createLinearGradient(0,top,0,GROUND);grade.addColorStop(0,'rgba(9,18,31,.01)');grade.addColorStop(.76,'rgba(9,18,31,.015)');grade.addColorStop(1,'rgba(255,250,240,.035)');ctx.fillStyle=grade;ctx.fillRect(0,top,W,h);
+  if(stageIndex>=4){ctx.fillStyle='rgba(72,55,78,.08)';ctx.fillRect(0,top,W,h)}ctx.restore();return true
 }
 function drawAssetRunway(){
   const top=GROUND-25;ctx.save();
@@ -1546,7 +1549,7 @@ function drawPlayerVector(){
 }
 
 const HERO_SPRITE={
-  src:'assets/sprites/hero-v125.webp?v=1250',cell:128,cols:4,baselineY:120,display:112,
+  src:'assets/sprites/hero-v125.webp?v=1260',cell:128,cols:4,baselineY:120,display:112,
   idle:[0,1],run:[2,3,4,5,6,7],jumpStart:8,jump:[9,10],doubleJump:11,fall:12,land:13,hurt:14,victory:15
 };
 const heroSpriteImage=new Image();let heroSpriteReady=false,heroSpriteFailed=false;
@@ -1671,25 +1674,17 @@ function drawObstacle(o){
     drawBossArt(o);
   } else if(o.label==='会议'){
     const panelH=o.panelH,tableY=o.gapBottom-o.y,gapH=o.gapBottom-o.gapTop,pulse=.55+.45*Math.sin(o.gatePulse);
-    if(officeHazardReady){
-      // Keep the full collision width visible as a physical conference-room scanner, while using the earlier door art only as its identity cue.
-      ctx.fillStyle='#d8dde0';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(3,2,o.w-6,panelH,7);ctx.fill();ctx.stroke();
-      ctx.fillStyle='#41484e';rr(8,panelH-13,o.w-16,11,3);ctx.fill();
-      ctx.fillStyle='#eef4f5';rr(12,8,o.w-24,Math.max(18,panelH-27),4);ctx.fill();
-      drawOfficeHazardFrame('meetingOpen',12,6,44,62,.92);
-      ctx.fillStyle='#7c858b';for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(69+i*21,22,5,0,Math.PI*2);ctx.fill()}
-      ctx.strokeStyle='#647781';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(18,40);ctx.lineTo(o.w-18,40);ctx.stroke()
-      ctx.fillStyle='#25292c';ctx.beginPath();ctx.arc(o.w-20,panelH-7,4.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d95a49';ctx.beginPath();ctx.arc(o.w-20,panelH-7,2.1,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#44494d';ctx.strokeStyle='#171717';ctx.lineWidth=2;rr(3,tableY,o.w-6,Math.max(8,o.tableH),4);ctx.fill();ctx.stroke();
-      ctx.globalAlpha=o.firstGate?.42:(.24+.10*pulse);ctx.strokeStyle='#78934d';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(9,panelH+5);ctx.lineTo(9,tableY-5);ctx.moveTo(o.w-9,panelH+5);ctx.lineTo(o.w-9,tableY-5);ctx.stroke();
-      ctx.globalAlpha=.75;ctx.fillStyle='#78934d';for(const x of [18,o.w-18]){ctx.beginPath();ctx.moveTo(x-4,panelH+13);ctx.lineTo(x+4,panelH+13);ctx.lineTo(x,panelH+19);ctx.closePath();ctx.fill()}ctx.globalAlpha=1;
-    }else{
-      ctx.fillStyle='#fffefb';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(3,2,o.w-6,panelH,8);ctx.fill();ctx.stroke();
-      ctx.fillStyle='#d7ecfb';ctx.fillRect(11,10,o.w-22,14);ctx.fillStyle='#171717';ctx.font='900 11px ui-monospace,monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(tr('会议进行中 · 摄像头已开启'),16,17);
-      ctx.fillStyle='#ece6d9';ctx.fillRect(12,31,o.w-24,27);for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(25+i*25,44,7,0,Math.PI*2);ctx.fill()}
-      ctx.fillStyle='#bcb3a4';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(2,tableY,o.w-4,o.tableH,5);ctx.fill();ctx.stroke();
-      ctx.globalAlpha=o.firstGate?.22:(.15+.13*pulse);ctx.fillStyle='#d8ef9f';ctx.fillRect(10,panelH+8,o.w-20,Math.max(12,gapH-16));ctx.globalAlpha=.72;ctx.strokeStyle='#78934d';ctx.lineWidth=2;ctx.strokeRect(10,panelH+8,o.w-20,Math.max(12,gapH-16));ctx.globalAlpha=1;
-    }
+    // v1.26: the meeting gate reads as actual conference-room furniture: a lowered projector screen over a solid AV console.
+    ctx.fillStyle='#343e45';rr(3,1,o.w-6,10,4);ctx.fill();
+    ctx.fillStyle='#f6f3ea';ctx.strokeStyle='#20272c';ctx.lineWidth=2.5;rr(7,9,o.w-14,Math.max(18,panelH-16),5);ctx.fill();ctx.stroke();
+    const innerH=Math.max(12,panelH-34);ctx.fillStyle='#edf5f6';rr(14,16,o.w-28,innerH,3);ctx.fill();
+    ctx.strokeStyle='#6d8996';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(22,23+innerH*.66);ctx.lineTo(43,23+innerH*.42);ctx.lineTo(62,23+innerH*.53);ctx.lineTo(82,23+innerH*.24);ctx.lineTo(o.w-24,23+innerH*.38);ctx.stroke();
+    ctx.fillStyle='#d99955';ctx.beginPath();ctx.arc(43,23+innerH*.42,3.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6e9d7b';ctx.beginPath();ctx.arc(82,23+innerH*.24,3.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#454e54';ctx.fillRect(6,panelH-9,o.w-12,7);ctx.fillStyle='#8b969c';ctx.fillRect(o.w*.5-12,panelH-2,24,4);
+    ctx.fillStyle='#ad7448';ctx.strokeStyle='#20272c';ctx.lineWidth=2.5;rr(2,tableY,o.w-4,12,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#3d474e';rr(5,tableY+11,o.w-10,Math.max(8,o.tableH-11),4);ctx.fill();
+    ctx.fillStyle='#56636b';ctx.fillRect(13,tableY+20,o.w-26,4);ctx.globalAlpha=.42;ctx.strokeStyle='#78934d';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(9,panelH+5);ctx.lineTo(9,tableY-5);ctx.moveTo(o.w-9,panelH+5);ctx.lineTo(o.w-9,tableY-5);ctx.stroke();
+    ctx.globalAlpha=o.firstGate?.78:(.58+.16*pulse);ctx.fillStyle='#78934d';for(const x of [15,o.w-15]){ctx.beginPath();ctx.moveTo(x-4,panelH+12);ctx.lineTo(x+4,panelH+12);ctx.lineTo(x,panelH+18);ctx.closePath();ctx.fill()}ctx.globalAlpha=1;
   } else if(o.label==='BUG'){
     drawBugArt(o);
   } else if(o.label==='临时需求'){
@@ -1765,16 +1760,16 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
 syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();updateDailyUi();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
-  initialized:true,canvas:Boolean(ctx),version:'1.25.0',dayEndDistance:DAY_END_DISTANCE,
+  initialized:true,canvas:Boolean(ctx),version:'1.26.0',dayEndDistance:DAY_END_DISTANCE,
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],visualScrollPx,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
   debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
-  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display,runStep:+heroRunFrameStep().toFixed(2)}),debugHazardAtlas:()=>({ready:officeHazardReady,failed:officeHazardFailed,src:OFFICE_HAZARD_ATLAS.src,frames:{...OFFICE_HAZARD_ATLAS.frames}}),debugSceneBackdrop:()=>({ready:sceneBackdropReady,failed:sceneBackdropFailed,src:SCENE_BACKDROP_ATLAS.src,sceneFrames:[...SCENE_BACKDROP_ATLAS.sceneFrames]}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
+  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display,runStep:+heroRunFrameStep().toFixed(2)}),debugHazardAtlas:()=>({ready:officeHazardReady,failed:officeHazardFailed,src:OFFICE_HAZARD_ATLAS.src,frames:{...OFFICE_HAZARD_ATLAS.frames}}),debugSceneBackdrop:()=>({ready:[...sceneBackdropReady],failed:[...sceneBackdropFailed],src:[...SCENE_BACKDROPS]}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
   debugSpawn:(label)=>spawnObstacle(label),debugSpawnPickup:(kind='coffee')=>{spawnPickup(kind);return pickups[pickups.length-1]},debugStep:(dt=.016)=>{if(state!=='playing'&&state!=='ending')state='playing';update(dt);return window.__GAME_TEST__.getState()},
   debugPassNear:(tier=1,boost=false)=>{riskBoostTimer=boost?7:0;const gap=tier===2?6:18,o={label:'BUG',x:player.x-70,y:player.y+player.h+gap,w:56,h:38,air:false,passed:false,mutationState:'idle'};const before=distance;passObstacle(o);return {delta:distance-before,tier,boost,runNearMisses,runPerfectNearMisses,riskBoostTimer}},
   debugUseLeaveSlip:(label='BUG')=>{leaveSlipHits=1;leaveSlipTimer=LEAVE_SLIP_DURATION;const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};const saved=absorbWithLeaveSlip(o);return {saved,leaveSlipHits,leaveSlipTimer,combo,passed:o.passed,x:o.x}},
   debugClear:()=>{obstacles=[];pickups=[];return true},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,bars:p.mel.length/16,phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)})),debugMusicState:()=>{const p=profile();return {soundOn,musicVolume,sfxVolume,stageIndex,sceneIndex,profile:p.name,bpm:p.bpm,musicStep,bar:Math.floor((musicStep%MUSIC_PHRASE_STEPS)/16)+1,phraseCycle:Math.floor(musicStep/MUSIC_PHRASE_STEPS),phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)}},debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();updateScene(true);updateSceneHalf(true);return {runDistance,stageIndex,sceneIndex,sceneHalf,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugHit:(label='BUG')=>{const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};takeObstacleHit(o);return {state,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,text:overlayText.textContent}},debugPass:(label='BUG',count=1)=>{for(let i=0;i<Math.max(1,Number(count)||1);i++)passObstacle({label,x:player.x-100,y:GROUND-40,w:56,h:38,passed:false,mutationState:'idle'});return {combo,mistakes,sceneIndex,recoveryUsed:[...sceneComboRecoveryUsed]}},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.25.0';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.26.0';
 })();

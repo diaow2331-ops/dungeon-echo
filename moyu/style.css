@@ -199,7 +199,7 @@ html[data-game-state="menu"] .mission-bar,html[data-game-state="menu"] .below,ht
 html[data-game-state="menu"] header{margin-bottom:8px}
 html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{background:#ded9cf}
 html[data-game-state="playing"] .hud,html[data-game-state="ending"] .hud,html[data-game-state="paused"] .hud{filter:drop-shadow(0 1px 0 rgba(255,255,255,.7))}
-html[data-game-state="menu"] .overlay{place-items:center;padding:clamp(30px,4vw,56px);background:radial-gradient(circle at 50% 48%,rgba(243,240,232,.86) 0%,rgba(243,240,232,.69) 40%,rgba(243,240,232,.30) 76%,rgba(243,240,232,.16) 100%);backdrop-filter:blur(1.5px)}
+html[data-game-state="menu"] .overlay{place-items:center;padding:clamp(30px,4vw,56px);background:radial-gradient(circle at 50% 48%,rgba(243,240,232,.76) 0%,rgba(243,240,232,.52) 40%,rgba(243,240,232,.16) 76%,rgba(243,240,232,.06) 100%);backdrop-filter:none}
 html[data-game-state="menu"] .overlay .card{border-width:2px;box-shadow:0 18px 48px rgba(23,23,23,.18),7px 7px 0 rgba(23,23,23,.11)}
 html[data-game-state="menu"] .menu-facts{gap:9px;margin-bottom:14px}
 html[data-game-state="menu"] .menu-fact{border-color:#a9a297;background:rgba(255,253,248,.78)}
