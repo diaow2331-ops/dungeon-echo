@@ -212,8 +212,8 @@ html[data-game-state="menu"] .menu-fact{border-color:#a9a297;background:rgba(255
 @media(max-width:700px) and (orientation:portrait){
   html[data-game-state="playing"] body,html[data-game-state="ending"] body,html[data-game-state="paused"] body{padding-left:max(2px,env(safe-area-inset-left));padding-right:max(2px,env(safe-area-inset-right));padding-bottom:max(4px,env(safe-area-inset-bottom))}
   html[data-game-state="playing"] header,html[data-game-state="ending"] header,html[data-game-state="paused"] header{min-height:42px;margin-bottom:5px}
-  html[data-game-state="menu"] .frame,html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{height:min(322px,calc(100svh - 58px));width:100%;border-width:2px;box-shadow:0 10px 26px rgba(20,20,20,.18);overflow:hidden}
-  html[data-game-state="menu"] .frame canvas,html[data-game-state="playing"] .frame canvas,html[data-game-state="ending"] .frame canvas,html[data-game-state="paused"] .frame canvas{position:absolute;left:0;top:0;width:161.3%;max-width:none;height:auto;aspect-ratio:1200/620}
+  html[data-game-state="menu"] .frame,html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{height:min(54svh,440px);width:100%;border-width:2px;box-shadow:0 10px 26px rgba(20,20,20,.18);overflow:hidden}
+  html[data-game-state="menu"] .frame canvas,html[data-game-state="playing"] .frame canvas,html[data-game-state="ending"] .frame canvas,html[data-game-state="paused"] .frame canvas{position:absolute;left:clamp(-28px,-7vw,-18px);top:0;width:auto;max-width:none;height:100%;aspect-ratio:1200/620}
   html[data-game-state="menu"] .overlay{padding:10px;background:linear-gradient(90deg,rgba(243,240,232,.90),rgba(243,240,232,.48) 72%,rgba(243,240,232,.10))}
   html[data-game-state="menu"] .overlay .card{width:min(280px,78%);margin-right:auto;text-align:left;padding:13px 14px 12px}
   html[data-game-state="menu"] .overlay .card h1,html[data-lang="zh"][data-game-state="menu"] .overlay .card h1{font-size:26px;line-height:.95;margin:2px 0 7px;white-space:nowrap}
