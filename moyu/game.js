@@ -1054,6 +1054,31 @@ function rr(x,y,w,h,r){const m=Math.min(r,w/2,h/2);ctx.beginPath();ctx.roundRect
 function officeSkyColor(){
   const p=Math.min(1,runDistance/DAY_END_DISTANCE);if(p<.35)return '#dcecf3';if(p<.68)return '#eadfc5';if(p<.90)return '#e7b98f';return '#8d8aa4';
 }
+const SCENE_BACKDROP_ATLAS={
+  src:'assets/sprites/scene-backdrops-v125.webp?v=1250',cellW:512,cellH:256,cols:2,
+  // Source cells: meeting, pantry, gym, workstation. Runtime order remains workstation, meeting, pantry, gym.
+  sceneFrames:[3,0,1,2]
+};
+const sceneBackdropImage=new Image();let sceneBackdropReady=false,sceneBackdropFailed=false;
+sceneBackdropImage.decoding='async';sceneBackdropImage.onload=()=>{sceneBackdropReady=true;sceneBackdropFailed=false;draw()};sceneBackdropImage.onerror=()=>{sceneBackdropFailed=true;sceneBackdropReady=false};sceneBackdropImage.src=SCENE_BACKDROP_ATLAS.src;
+function drawSceneBackdrop(idx){
+  if(!sceneBackdropReady||sceneBackdropFailed)return false;
+  const frame=SCENE_BACKDROP_ATLAS.sceneFrames[idx]??3,col=frame%SCENE_BACKDROP_ATLAS.cols,row=Math.floor(frame/SCENE_BACKDROP_ATLAS.cols),top=82,h=GROUND-top+1,tileW=Math.round(h*2.24),offset=-((visualScrollPx*.10)%tileW);
+  ctx.save();ctx.fillStyle='#101823';ctx.fillRect(0,0,W,H);ctx.imageSmoothingEnabled=false;ctx.beginPath();ctx.rect(0,top,W,h);ctx.clip();
+  for(let i=-1;i<3;i++)ctx.drawImage(sceneBackdropImage,col*SCENE_BACKDROP_ATLAS.cellW,row*SCENE_BACKDROP_ATLAS.cellH,SCENE_BACKDROP_ATLAS.cellW,SCENE_BACKDROP_ATLAS.cellH,offset+i*tileW,top,tileW,h);
+  const grade=ctx.createLinearGradient(0,top,0,GROUND);grade.addColorStop(0,'rgba(9,18,31,.04)');grade.addColorStop(.72,'rgba(9,18,31,.02)');grade.addColorStop(1,'rgba(255,250,240,.08)');ctx.fillStyle=grade;ctx.fillRect(0,top,W,h);
+  if(stageIndex>=4){ctx.fillStyle='rgba(72,55,78,.10)';ctx.fillRect(0,top,W,h)}
+  ctx.restore();return true
+}
+function drawAssetRunway(){
+  const top=GROUND-25;ctx.save();
+  const g=ctx.createLinearGradient(0,top,0,H);g.addColorStop(0,'rgba(239,235,226,.18)');g.addColorStop(.22,'rgba(232,228,219,.76)');g.addColorStop(1,'rgba(207,204,198,.96)');ctx.fillStyle=g;ctx.fillRect(0,top,W,H-top);
+  ctx.strokeStyle='rgba(103,99,94,.24)';ctx.lineWidth=1;const tileX=-((visualScrollPx*.82)%150)-150;for(let x=tileX;x<W;x+=150){ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,H);ctx.stroke()}
+  ctx.fillStyle='rgba(255,255,255,.76)';ctx.fillRect(0,GROUND-2,W,2);ctx.fillStyle='rgba(18,24,31,.72)';ctx.fillRect(0,GROUND+2,W,4);ctx.fillStyle='rgba(18,24,31,.18)';ctx.fillRect(0,GROUND+8,W,1);
+  const marker=-((visualScrollPx)%140)-140;ctx.fillStyle='rgba(18,24,31,.22)';for(let x=marker;x<W;x+=140)ctx.fillRect(x,GROUND+18,38,2);
+  ctx.restore()
+}
+function drawAuthenticScene(idx){if(!drawSceneBackdrop(idx))return false;drawAssetRunway();return true}
 function drawEndingDoor(){
   if(endingPhase!=='decision'&&!(state==='ending'&&endingCinematicType==='ontime'))return;const x=exitDoorX,y=GROUND-154;
   ctx.save();ctx.fillStyle='#d8ef9f';ctx.strokeStyle='#171717';ctx.lineWidth=3;ctx.fillRect(x-4,y-31,104,25);ctx.strokeRect(x-4,y-31,104,25);ctx.fillStyle='#171717';ctx.font='950 16px ui-monospace,monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(tr('下 班 出 口'),x+48,y-18);
@@ -1069,7 +1094,10 @@ function drawEndingCinematicFx(){
     ctx.fillStyle='rgba(216,239,159,.82)';ctx.strokeStyle='#171717';ctx.lineWidth=2;ctx.fillRect(W-240,110,176,34);ctx.strokeRect(W-240,110,176,34);ctx.fillStyle='#171717';ctx.font='950 15px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText(tr('18:00 · 下班成功'),W-152,132);
   }else{
     const a=Math.max(0,Math.min(1,1-endingCinematicTimer/1.75));ctx.fillStyle=`rgba(55,48,74,${.10+.24*a})`;ctx.fillRect(0,82,W,GROUND-82);
-    const bx=endingBossX,by=GROUND-92;ctx.fillStyle='#151515';ctx.fillRect(bx+16,by+34,28,38);ctx.fillStyle='#f0cfb2';ctx.beginPath();ctx.arc(bx+30,by+18,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#c74c3d';ctx.beginPath();ctx.moveTo(bx+30,by+35);ctx.lineTo(bx+24,by+56);ctx.lineTo(bx+36,by+56);ctx.closePath();ctx.fill();ctx.fillStyle='#171717';ctx.font='950 16px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText(tr('大家先别走。'),bx+28,by-12);
+    const bx=endingBossX,by=GROUND-104;
+    if(officeHazardReady)drawOfficeHazardFrame('bossRush',bx-18,by,112,112);
+    else{ctx.fillStyle='#151515';ctx.fillRect(bx+16,by+34,28,38);ctx.fillStyle='#f0cfb2';ctx.beginPath();ctx.arc(bx+30,by+18,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#c74c3d';ctx.beginPath();ctx.moveTo(bx+30,by+35);ctx.lineTo(bx+24,by+56);ctx.lineTo(bx+36,by+56);ctx.closePath();ctx.fill()}
+    ctx.fillStyle='#fffdf8';ctx.font='950 16px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText(tr('大家先别走。'),bx+28,by-12);
   }
   ctx.restore()
 }
@@ -1161,6 +1189,7 @@ function drawWallPlant(x,y){
   ctx.save();ctx.fillStyle='#8d7a65';ctx.fillRect(x-13,y-18,26,18);ctx.fillStyle='#5f7f51';for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(x+(i-2)*5,y-27-Math.abs(i-2)*2,6,14,(i-2)*.18,0,Math.PI*2);ctx.fill()}ctx.restore();
 }
 function drawWorkstationScene(){
+  if(drawAuthenticScene(0))return;
   ctx.fillStyle='#e8e3d9';ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#f7f4ed';ctx.fillRect(0,82,W,205);
   drawCeilingDetails(0,'#d4ccbf');
@@ -1196,6 +1225,7 @@ function drawMeetingPod(x,y){
   ctx.restore();
 }
 function drawMeetingRoomScene(){
+  if(drawAuthenticScene(1))return;
   ctx.fillStyle='#e4e1da';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f4f3ee';ctx.fillRect(0,82,W,205);drawCeilingDetails(80,'#d0d2d2');drawSharedFloor();
   // 玻璃会议室应当有固定玻璃隔断、磨砂条和可识别的玻璃门。
   const off=-((visualScrollPx*.16)%460)-460;
@@ -1229,6 +1259,7 @@ function drawPantryPod(x,y){
   ctx.restore();
 }
 function drawPantryScene(){
+  if(drawAuthenticScene(2))return;
   ctx.fillStyle='#ece6dc';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f7f4ed';ctx.fillRect(0,82,W,205);drawCeilingDetails(160,'#d8cdbd');drawSharedFloor();
   // 茶水间后墙：瓷砖挡水墙、吊柜、门。家具和水电关系要看起来合理。
   ctx.fillStyle='#ddd6ca';ctx.fillRect(0,116,W,142);ctx.strokeStyle='rgba(120,112,101,.22)';ctx.lineWidth=1;
@@ -1254,6 +1285,7 @@ function drawGymPod(x,y){
   ctx.restore();
 }
 function drawGymScene(){
+  if(drawAuthenticScene(3))return;
   ctx.fillStyle='#dedee1';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f4f4f1';ctx.fillRect(0,82,W,205);drawCeilingDetails(230,'#cbcdd0');drawSharedFloor();
   // 后墙为镜面 + 墙柱 + 门/储物柜，不再像一整排无尽玻璃窗。
   const off=-((visualScrollPx*.16)%500)-500;
@@ -1514,8 +1546,8 @@ function drawPlayerVector(){
 }
 
 const HERO_SPRITE={
-  src:'assets/sprites/hero-v124.webp?v=1240',cell:80,cols:4,baselineY:76,display:96,
-  idle:[0,1],run:[2,3,6,5,7,4],jumpStart:8,jump:[9,10],doubleJump:11,fall:12,land:13,hurt:14,victory:15
+  src:'assets/sprites/hero-v125.webp?v=1250',cell:128,cols:4,baselineY:120,display:112,
+  idle:[0,1],run:[2,3,4,5,6,7],jumpStart:8,jump:[9,10],doubleJump:11,fall:12,land:13,hurt:14,victory:15
 };
 const heroSpriteImage=new Image();let heroSpriteReady=false,heroSpriteFailed=false;
 heroSpriteImage.decoding='async';heroSpriteImage.onload=()=>{heroSpriteReady=true;heroSpriteFailed=false;draw()};heroSpriteImage.onerror=()=>{heroSpriteFailed=true;heroSpriteReady=false};heroSpriteImage.src=HERO_SPRITE.src;
@@ -1530,12 +1562,14 @@ const OFFICE_HAZARD_ATLAS={
 };
 const officeHazardImage=new Image();let officeHazardReady=false,officeHazardFailed=false;
 officeHazardImage.decoding='async';officeHazardImage.onload=()=>{officeHazardReady=true;officeHazardFailed=false;draw()};officeHazardImage.onerror=()=>{officeHazardFailed=true;officeHazardReady=false};officeHazardImage.src=OFFICE_HAZARD_ATLAS.src;
-function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1){
+function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1,flipX=false){
   if(!officeHazardReady||officeHazardFailed)return false;const frame=OFFICE_HAZARD_ATLAS.frames[name];if(!frame)return false;const [sx,sy,sw,sh]=frame;
-  ctx.save();ctx.globalAlpha*=alpha;ctx.imageSmoothingEnabled=true;ctx.drawImage(officeHazardImage,sx,sy,sw,sh,dx,dy,dw,dh);ctx.restore();return true
+  ctx.save();ctx.globalAlpha*=alpha;ctx.imageSmoothingEnabled=true;
+  if(flipX){ctx.translate(dx+dw,0);ctx.scale(-1,1);ctx.drawImage(officeHazardImage,sx,sy,sw,sh,0,dy,dw,dh)}else ctx.drawImage(officeHazardImage,sx,sy,sw,sh,dx,dy,dw,dh);
+  ctx.restore();return true
 }
 
-function heroRunFrameStep(){return 38+Math.max(0,Math.min(18,(speed-350)*.038))}
+function heroRunFrameStep(){return 44+Math.max(0,Math.min(18,(speed-350)*.038))}
 function heroSpriteFrame(){
   const grounded=player.y>=GROUND-player.h-1;
   if(state==='ending'&&endingCinematicType==='ontime')return HERO_SPRITE.victory;
@@ -1567,9 +1601,10 @@ function drawBossArt(o){
   const rushing=o.rushTriggered&&o.rushTimer>0,warning=o.rushWarnTimer>0,stride=Math.sin(worldTime*(rushing?18:9)+o.x*.026),bob=rushing?0:Math.sin(worldTime*6+o.x*.02)*.8;
   if(officeHazardReady){
     const dw=rushing?104:96,dh=rushing?92:98,dx=o.w*.5-dw*.5,dy=o.h-dh+2+bob;
-    if(rushing){ctx.save();ctx.globalAlpha=.16;ctx.strokeStyle='#9c3f2f';ctx.lineWidth=4;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(dx-12-i*14,dy+31+i*9);ctx.lineTo(dx+18-i*8,dy+31+i*9);ctx.stroke()}ctx.restore()}
-    drawOfficeHazardFrame(rushing?'bossRush':'bossPatrol',dx,dy,dw,dh);
-    if(warning){const wp=.58+.42*Math.abs(Math.sin(worldTime*19));ctx.save();ctx.globalAlpha=wp;ctx.fillStyle='#d95a49';ctx.font='950 24px ui-monospace,monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',o.w*.5-25,dy+12);ctx.restore()}
+    if(rushing){ctx.save();ctx.globalAlpha=.16;ctx.strokeStyle='#9c3f2f';ctx.lineWidth=4;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(dx+dw+14+i*14,dy+31+i*9);ctx.lineTo(dx+dw-18+i*8,dy+31+i*9);ctx.stroke()}ctx.restore()}
+    // Obstacles travel from screen-right toward the player. Mirror the source boss so he visibly confronts/chases the runner instead of commuting beside him.
+    drawOfficeHazardFrame(rushing?'bossRush':'bossPatrol',dx,dy,dw,dh,1,true);
+    if(warning){const wp=.58+.42*Math.abs(Math.sin(worldTime*19));ctx.save();ctx.globalAlpha=wp;ctx.fillStyle='#d95a49';ctx.font='950 24px ui-monospace,monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',o.w*.5,dy+8);ctx.restore()}
     return
   }
   ctx.save();ctx.translate(o.w*.5,o.h+bob);ctx.rotate(rushing?-.105:-.018);
@@ -1618,7 +1653,7 @@ function drawRequestArt(o){
   if(o.dropState==='fall'){ctx.strokeStyle='rgba(23,23,23,.32)';ctx.lineWidth=2;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(18+i*20,-22-i*5);ctx.lineTo(18+i*20,-8);ctx.stroke()}}
 }
 function drawSmallHazardArt(o){
-  if(officeHazardReady&&o.label==='咖啡渍'){const dw=112,dh=52;drawOfficeHazardFrame('coffeeSpill',o.w*.5-dw*.5,o.h-dh+7,dw,dh);return}
+  if(officeHazardReady&&o.label==='咖啡渍'){const dw=102,dh=44;drawOfficeHazardFrame('coffeeSpill',o.w*.5-dw*.5,o.h-dh+8,dw,dh);return}
   if(officeHazardReady&&o.label==='哑铃'){const dw=76,dh=48;drawOfficeHazardFrame('dumbbell',o.w*.5-dw*.5,o.h-dh+5,dw,dh);return}
   if(officeHazardReady&&o.label==='邮件'){const bob=Math.sin(o.wave||0)*2;ctx.save();ctx.translate(o.w*.5,o.h*.5+bob);ctx.rotate(Math.sin((o.wave||0)*.7)*.08);drawOfficeHazardFrame('mail',-27,-34,54,68);ctx.restore();return}
   if(o.label==='咖啡渍'){
@@ -1730,16 +1765,16 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
 syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();updateDailyUi();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
-  initialized:true,canvas:Boolean(ctx),version:'1.24.1',dayEndDistance:DAY_END_DISTANCE,
+  initialized:true,canvas:Boolean(ctx),version:'1.25.0',dayEndDistance:DAY_END_DISTANCE,
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],visualScrollPx,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
   debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
-  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display,runStep:+heroRunFrameStep().toFixed(2)}),debugHazardAtlas:()=>({ready:officeHazardReady,failed:officeHazardFailed,src:OFFICE_HAZARD_ATLAS.src,frames:{...OFFICE_HAZARD_ATLAS.frames}}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
+  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display,runStep:+heroRunFrameStep().toFixed(2)}),debugHazardAtlas:()=>({ready:officeHazardReady,failed:officeHazardFailed,src:OFFICE_HAZARD_ATLAS.src,frames:{...OFFICE_HAZARD_ATLAS.frames}}),debugSceneBackdrop:()=>({ready:sceneBackdropReady,failed:sceneBackdropFailed,src:SCENE_BACKDROP_ATLAS.src,sceneFrames:[...SCENE_BACKDROP_ATLAS.sceneFrames]}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
   debugSpawn:(label)=>spawnObstacle(label),debugSpawnPickup:(kind='coffee')=>{spawnPickup(kind);return pickups[pickups.length-1]},debugStep:(dt=.016)=>{if(state!=='playing'&&state!=='ending')state='playing';update(dt);return window.__GAME_TEST__.getState()},
   debugPassNear:(tier=1,boost=false)=>{riskBoostTimer=boost?7:0;const gap=tier===2?6:18,o={label:'BUG',x:player.x-70,y:player.y+player.h+gap,w:56,h:38,air:false,passed:false,mutationState:'idle'};const before=distance;passObstacle(o);return {delta:distance-before,tier,boost,runNearMisses,runPerfectNearMisses,riskBoostTimer}},
   debugUseLeaveSlip:(label='BUG')=>{leaveSlipHits=1;leaveSlipTimer=LEAVE_SLIP_DURATION;const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};const saved=absorbWithLeaveSlip(o);return {saved,leaveSlipHits,leaveSlipTimer,combo,passed:o.passed,x:o.x}},
   debugClear:()=>{obstacles=[];pickups=[];return true},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,bars:p.mel.length/16,phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)})),debugMusicState:()=>{const p=profile();return {soundOn,musicVolume,sfxVolume,stageIndex,sceneIndex,profile:p.name,bpm:p.bpm,musicStep,bar:Math.floor((musicStep%MUSIC_PHRASE_STEPS)/16)+1,phraseCycle:Math.floor(musicStep/MUSIC_PHRASE_STEPS),phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)}},debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();updateScene(true);updateSceneHalf(true);return {runDistance,stageIndex,sceneIndex,sceneHalf,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugHit:(label='BUG')=>{const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};takeObstacleHit(o);return {state,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,text:overlayText.textContent}},debugPass:(label='BUG',count=1)=>{for(let i=0;i<Math.max(1,Number(count)||1);i++)passObstacle({label,x:player.x-100,y:GROUND-40,w:56,h:38,passed:false,mutationState:'idle'});return {combo,mistakes,sceneIndex,recoveryUsed:[...sceneComboRecoveryUsed]}},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.24.1';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.25.0';
 })();
