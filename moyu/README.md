@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.19.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.20.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -58,6 +58,10 @@ v1.12.3 adds an optional local **Daily Shift** without changing the normal rando
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
 
+
+## v1.20.0 route-choice pass
+
+v1.20.0 turns pickups from mostly opportunistic bonuses into a small route decision. Once per office scene, the run exposes a paired LOW/HIGH pickup gate during a readable window: staying grounded claims the low option, while jumping takes the high option, and choosing one immediately removes the other. The pair changes by room so safety, score and utility compete without adding a new button or menu. Ordinary random pickups remain, the four-minute cadence stays intact, Daily Shift remains deterministic, and the choice gate never spawns while a fresh hazard is entering the screen.
 
 ## v1.19.0 four-minute cadence pass
 
