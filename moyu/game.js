@@ -1516,6 +1516,22 @@ const HERO_SPRITE={
 };
 const heroSpriteImage=new Image();let heroSpriteReady=false,heroSpriteFailed=false;
 heroSpriteImage.decoding='async';heroSpriteImage.onload=()=>{heroSpriteReady=true;heroSpriteFailed=false;draw()};heroSpriteImage.onerror=()=>{heroSpriteFailed=true;heroSpriteReady=false};heroSpriteImage.src=HERO_SPRITE.src;
+const OFFICE_HAZARD_ATLAS={
+  src:'assets/sprites/office-hazards-v123.webp?v=1230',width:192,height:192,
+  // Reused from the earlier office-runner art sheet. Rects are source pixels in the compact runtime atlas.
+  frames:{
+    bugNormal:[8,9,31,37],bugLong:[49,4,45,39],bugTall:[104,1,30,46],bossPatrol:[147,1,42,46],bossRush:[2,53,35,38],
+    request:[55,49,32,46],coffeeSpill:[99,75,42,19],dumbbell:[150,73,37,22],meetingClosed:[11,97,28,46],meetingOpen:[57,97,30,46],
+    coffeePickup:[105,97,30,45],mail:[152,97,32,46],riskPickup:[11,149,30,42],leavePickup:[49,147,46,36]
+  }
+};
+const officeHazardImage=new Image();let officeHazardReady=false,officeHazardFailed=false;
+officeHazardImage.decoding='async';officeHazardImage.onload=()=>{officeHazardReady=true;officeHazardFailed=false;draw()};officeHazardImage.onerror=()=>{officeHazardFailed=true;officeHazardReady=false};officeHazardImage.src=OFFICE_HAZARD_ATLAS.src;
+function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1){
+  if(!officeHazardReady||officeHazardFailed)return false;const frame=OFFICE_HAZARD_ATLAS.frames[name];if(!frame)return false;const [sx,sy,sw,sh]=frame;
+  ctx.save();ctx.globalAlpha*=alpha;ctx.imageSmoothingEnabled=true;ctx.drawImage(officeHazardImage,sx,sy,sw,sh,dx,dy,dw,dh);ctx.restore();return true
+}
+
 function heroSpriteFrame(){
   const grounded=player.y>=GROUND-player.h-1;
   if(state==='ending'&&endingCinematicType==='ontime')return HERO_SPRITE.victory;
@@ -1544,7 +1560,9 @@ function drawObstacleShadow(o){
   ctx.save();ctx.globalAlpha=.10*scale;ctx.fillStyle='#171717';ctx.beginPath();ctx.ellipse(o.x+o.w*.5,GROUND+3,w,Math.max(2.5,6*scale),0,0,Math.PI*2);ctx.fill();ctx.restore();
 }
 function drawBossArt(o){
-  const rushing=o.rushTriggered&&o.rushTimer>0,stride=Math.sin(worldTime*(rushing?19:10)+o.x*.025),lean=rushing?-.10:-.025;
+  const rushing=o.rushTriggered&&o.rushTimer>0;
+  if(officeHazardReady){const dw=rushing?88:82,dh=rushing?96:92,bob=Math.sin(worldTime*(rushing?13:7)+o.x*.025)*1.5;drawOfficeHazardFrame(rushing?'bossRush':'bossPatrol',o.w*.5-dw*.5,o.h-dh+bob,dw,dh);return}
+  const stride=Math.sin(worldTime*(rushing?19:10)+o.x*.025),lean=rushing?-.10:-.025;
   ctx.save();ctx.translate(30,48);ctx.rotate(lean);
   if(rushing){ctx.globalAlpha=.18;ctx.fillStyle='#d86d52';ctx.beginPath();ctx.moveTo(-56,-28);ctx.lineTo(-10,-42);ctx.lineTo(-8,36);ctx.closePath();ctx.fill();ctx.globalAlpha=1}
   ctx.strokeStyle='#171717';ctx.lineCap='round';ctx.lineJoin='round';
@@ -1563,7 +1581,9 @@ function drawBossArt(o){
   ctx.restore()
 }
 function drawBugArt(o){
-  const warn=o.mutationState==='warn',mut=o.mutationState==='done',pulse=warn?(.52+.48*Math.abs(Math.sin(worldTime*16))):1,cx=o.w*.5,cy=o.h*.54,leg=Math.sin(worldTime*15+o.x*.03)*3;
+  const warn=o.mutationState==='warn',mut=o.mutationState==='done',pulse=warn?(.52+.48*Math.abs(Math.sin(worldTime*16))):1,cx=o.w*.5,cy=o.h*.54;
+  if(officeHazardReady){let key='bugNormal',dw=60,dh=68;if(o.mutationState==='grow'||o.mutationState==='done'){if(o.mutation==='long'){key='bugLong';dw=Math.max(112,o.w+12);dh=70}else if(o.mutation==='tall'){key='bugTall';dw=62;dh=Math.max(94,o.h+18)}}const dx=o.w*.5-dw*.5,dy=o.h-dh+3;if(warn){ctx.save();ctx.globalAlpha=.16+.10*pulse;ctx.fillStyle='#d95a49';ctx.beginPath();ctx.ellipse(o.w*.5,o.h*.55,Math.max(30,o.w*.62),Math.max(23,o.h*.84),0,0,Math.PI*2);ctx.fill();ctx.restore()}drawOfficeHazardFrame(key,dx,dy,dw,dh,warn?.72+.28*pulse:1);return}
+  const leg=Math.sin(worldTime*15+o.x*.03)*3;
   ctx.save();ctx.globalAlpha=pulse;
   if(warn){ctx.globalAlpha=.14+.10*pulse;ctx.fillStyle='#d95a49';ctx.beginPath();ctx.ellipse(cx,cy,Math.max(24,o.w*.58),Math.max(18,o.h*.72),0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=pulse}
   ctx.strokeStyle='#171717';ctx.lineWidth=2.6;ctx.lineCap='round';for(const [yy,flip] of [[.33,1],[.56,-1],[.76,1]]){ctx.beginPath();ctx.moveTo(o.w*.24,o.h*yy);ctx.lineTo(-2,o.h*yy+leg*flip);ctx.moveTo(o.w*.76,o.h*yy);ctx.lineTo(o.w+2,o.h*yy-leg*flip);ctx.stroke()}
@@ -1574,6 +1594,7 @@ function drawBugArt(o){
   ctx.globalAlpha=1;if(warn){ctx.fillStyle='#d95a49';ctx.font='950 18px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('!',cx,-8)}ctx.restore()
 }
 function drawRequestArt(o){
+  if(officeHazardReady){if(o.dropState==='warning'){const pulse=.45+.55*Math.abs(Math.sin(o.warningPulse)),target=o.targetY-o.y;ctx.save();ctx.globalAlpha=.12+.08*pulse;ctx.fillStyle='#d95a49';ctx.beginPath();ctx.ellipse(o.w*.5,target+o.h,48+8*pulse,8+2*pulse,0,0,Math.PI*2);ctx.fill();ctx.restore();drawOfficeHazardFrame('request',o.w*.5-33,target-58,66,95,.32+.18*pulse);return}const dw=72,dh=104;drawOfficeHazardFrame('request',o.w*.5-dw*.5,o.h-dh+10,dw,dh);return}
   if(o.dropState==='warning'){const pulse=.45+.55*Math.abs(Math.sin(o.warningPulse));ctx.globalAlpha=.30+.48*pulse;ctx.strokeStyle='#d95a49';ctx.lineWidth=3;ctx.setLineDash([8,7]);ctx.strokeRect(0,GROUND-o.y-o.h,o.w,o.h);ctx.setLineDash([]);ctx.fillStyle='#d95a49';ctx.font='950 22px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText(tr('↓ 临时需求'),o.w/2,GROUND-o.y-o.h-13);ctx.globalAlpha=1;return}
   ctx.fillStyle='#d9d2c6';ctx.strokeStyle='#171717';ctx.lineWidth=2;rr(4,10,58,42,5);ctx.fill();ctx.stroke();ctx.fillStyle='#fffefb';rr(9,5,58,42,5);ctx.fill();ctx.stroke();
   ctx.fillStyle='#f3d9c7';ctx.fillRect(16,13,38,8);ctx.fillStyle='#171717';ctx.fillRect(16,27,32,3);ctx.fillRect(16,35,25,3);ctx.fillRect(16,43,34,3);
@@ -1582,6 +1603,9 @@ function drawRequestArt(o){
   if(o.dropState==='fall'){ctx.strokeStyle='rgba(23,23,23,.32)';ctx.lineWidth=2;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(18+i*20,-22-i*5);ctx.lineTo(18+i*20,-8);ctx.stroke()}}
 }
 function drawSmallHazardArt(o){
+  if(officeHazardReady&&o.label==='咖啡渍'){const dw=126,dh=57;drawOfficeHazardFrame('coffeeSpill',o.w*.5-dw*.5,o.h-dh+9,dw,dh);return}
+  if(officeHazardReady&&o.label==='哑铃'){const dw=78,dh=46;drawOfficeHazardFrame('dumbbell',o.w*.5-dw*.5,o.h-dh+6,dw,dh);return}
+  if(officeHazardReady&&o.label==='邮件'){const bob=Math.sin(o.wave||0)*2;ctx.save();ctx.translate(o.w*.5,o.h*.5+bob);ctx.rotate(Math.sin((o.wave||0)*.7)*.08);drawOfficeHazardFrame('mail',-31,-39,62,78);ctx.restore();return}
   if(o.label==='咖啡渍'){
     ctx.fillStyle='rgba(88,58,39,.90)';ctx.strokeStyle='#171717';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(o.w*.50,o.h*.58,o.w*.47,o.h*.58,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.globalAlpha=.32;ctx.fillStyle='#f2d6bb';ctx.beginPath();ctx.ellipse(o.w*.30,o.h*.35,19,3,0,0,Math.PI*2);ctx.ellipse(o.w*.68,o.h*.67,13,2.4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1
   }else if(o.label==='哑铃'){
@@ -1596,12 +1620,25 @@ function drawObstacle(o){
   if(o.label==='老板'){
     drawBossArt(o);
   } else if(o.label==='会议'){
-    const panelH=o.panelH,tableY=o.gapBottom-o.y,gapH=o.gapBottom-o.gapTop;
-    ctx.fillStyle='#fffefb';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(3,2,o.w-6,panelH,8);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#d7ecfb';ctx.fillRect(11,10,o.w-22,14);ctx.fillStyle='#171717';ctx.font='900 11px ui-monospace,monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(tr('会议进行中 · 摄像头已开启'),16,17);
-    ctx.fillStyle='#ece6d9';ctx.fillRect(12,31,o.w-24,27);for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(25+i*25,44,7,0,Math.PI*2);ctx.fill()}
-    ctx.fillStyle='#bcb3a4';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(2,tableY,o.w-4,o.tableH,5);ctx.fill();ctx.stroke();
-    const pulse=.55+.45*Math.sin(o.gatePulse);ctx.globalAlpha=o.firstGate?.22:(.15+.13*pulse);ctx.fillStyle='#d8ef9f';ctx.fillRect(10,panelH+8,o.w-20,Math.max(12,gapH-16));ctx.globalAlpha=.72;ctx.strokeStyle='#78934d';ctx.lineWidth=2;ctx.strokeRect(10,panelH+8,o.w-20,Math.max(12,gapH-16));ctx.globalAlpha=1;
+    const panelH=o.panelH,tableY=o.gapBottom-o.y,gapH=o.gapBottom-o.gapTop,pulse=.55+.45*Math.sin(o.gatePulse);
+    if(officeHazardReady){
+      // Keep the full collision width visible as a physical conference-room scanner, while using the earlier door art only as its identity cue.
+      ctx.fillStyle='#d8dde0';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(3,2,o.w-6,panelH,7);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#41484e';rr(8,panelH-13,o.w-16,11,3);ctx.fill();
+      ctx.fillStyle='#eef4f5';rr(12,8,o.w-24,Math.max(18,panelH-27),4);ctx.fill();
+      ctx.fillStyle='#7c858b';for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(27+i*22,22,5,0,Math.PI*2);ctx.fill()}
+      ctx.strokeStyle='#647781';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(18,40);ctx.lineTo(o.w-18,40);ctx.stroke()
+      ctx.fillStyle='#25292c';ctx.beginPath();ctx.arc(o.w-20,panelH-7,4.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d95a49';ctx.beginPath();ctx.arc(o.w-20,panelH-7,2.1,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#44494d';ctx.strokeStyle='#171717';ctx.lineWidth=2;rr(3,tableY,o.w-6,Math.max(8,o.tableH),4);ctx.fill();ctx.stroke();
+      ctx.globalAlpha=o.firstGate?.42:(.24+.10*pulse);ctx.strokeStyle='#78934d';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(9,panelH+5);ctx.lineTo(9,tableY-5);ctx.moveTo(o.w-9,panelH+5);ctx.lineTo(o.w-9,tableY-5);ctx.stroke();
+      ctx.globalAlpha=.75;ctx.fillStyle='#78934d';for(const x of [18,o.w-18]){ctx.beginPath();ctx.moveTo(x-4,panelH+13);ctx.lineTo(x+4,panelH+13);ctx.lineTo(x,panelH+19);ctx.closePath();ctx.fill()}ctx.globalAlpha=1;
+    }else{
+      ctx.fillStyle='#fffefb';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(3,2,o.w-6,panelH,8);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#d7ecfb';ctx.fillRect(11,10,o.w-22,14);ctx.fillStyle='#171717';ctx.font='900 11px ui-monospace,monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(tr('会议进行中 · 摄像头已开启'),16,17);
+      ctx.fillStyle='#ece6d9';ctx.fillRect(12,31,o.w-24,27);for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(25+i*25,44,7,0,Math.PI*2);ctx.fill()}
+      ctx.fillStyle='#bcb3a4';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(2,tableY,o.w-4,o.tableH,5);ctx.fill();ctx.stroke();
+      ctx.globalAlpha=o.firstGate?.22:(.15+.13*pulse);ctx.fillStyle='#d8ef9f';ctx.fillRect(10,panelH+8,o.w-20,Math.max(12,gapH-16));ctx.globalAlpha=.72;ctx.strokeStyle='#78934d';ctx.lineWidth=2;ctx.strokeRect(10,panelH+8,o.w-20,Math.max(12,gapH-16));ctx.globalAlpha=1;
+    }
   } else if(o.label==='BUG'){
     drawBugArt(o);
   } else if(o.label==='临时需求'){
@@ -1613,6 +1650,7 @@ function drawObstacle(o){
 }
 function drawPickup(p){
   const yy=p.y+Math.sin(p.spin)*5;ctx.save();ctx.translate(p.x,yy);
+  if(officeHazardReady){const key=p.kind==='leave'?'leavePickup':(p.kind==='risk'?'riskPickup':'coffeePickup'),size=p.kind==='leave'?68:(p.kind==='risk'?58:54);ctx.globalAlpha=.16+.05*Math.sin(p.spin*2);ctx.fillStyle=p.kind==='leave'?'#d8ef9f':'#f0d487';ctx.beginPath();ctx.arc(15,20,25+Math.sin(p.spin)*3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;drawOfficeHazardFrame(key,15-size*.5,20-size*.5,size,size);ctx.restore();return}
   const glow=p.kind==='leave'?'#d8ef9f':(p.kind==='risk'?'#f0d487':'#f0d487');ctx.globalAlpha=.16+.05*Math.sin(p.spin*2);ctx.fillStyle=glow;ctx.beginPath();ctx.arc(15,20,26+Math.sin(p.spin)*3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
   if(p.kind==='leave'){
     ctx.fillStyle='#eef6d9';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(1,5,29,31,3);ctx.fill();ctx.stroke();ctx.fillStyle='#506b2c';ctx.fillRect(6,10,19,4);ctx.fillRect(6,18,13,3);ctx.strokeStyle='#506b2c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(7,29);ctx.lineTo(13,34);ctx.lineTo(25,22);ctx.stroke();ctx.fillStyle='#171717';ctx.font='950 8px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('SAVE',15,2)
@@ -1676,16 +1714,16 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
 syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();updateDailyUi();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
-  initialized:true,canvas:Boolean(ctx),version:'1.22.0',dayEndDistance:DAY_END_DISTANCE,
+  initialized:true,canvas:Boolean(ctx),version:'1.23.0',dayEndDistance:DAY_END_DISTANCE,
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],visualScrollPx,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
   debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
-  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
-  debugSpawn:(label)=>spawnObstacle(label),debugStep:(dt=.016)=>{if(state!=='playing'&&state!=='ending')state='playing';update(dt);return window.__GAME_TEST__.getState()},
+  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display}),debugHazardAtlas:()=>({ready:officeHazardReady,failed:officeHazardFailed,src:OFFICE_HAZARD_ATLAS.src,frames:{...OFFICE_HAZARD_ATLAS.frames}}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
+  debugSpawn:(label)=>spawnObstacle(label),debugSpawnPickup:(kind='coffee')=>{spawnPickup(kind);return pickups[pickups.length-1]},debugStep:(dt=.016)=>{if(state!=='playing'&&state!=='ending')state='playing';update(dt);return window.__GAME_TEST__.getState()},
   debugPassNear:(tier=1,boost=false)=>{riskBoostTimer=boost?7:0;const gap=tier===2?6:18,o={label:'BUG',x:player.x-70,y:player.y+player.h+gap,w:56,h:38,air:false,passed:false,mutationState:'idle'};const before=distance;passObstacle(o);return {delta:distance-before,tier,boost,runNearMisses,runPerfectNearMisses,riskBoostTimer}},
   debugUseLeaveSlip:(label='BUG')=>{leaveSlipHits=1;leaveSlipTimer=8;const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};const saved=absorbWithLeaveSlip(o);return {saved,leaveSlipHits,leaveSlipTimer,combo,passed:o.passed,x:o.x}},
   debugClear:()=>{obstacles=[];pickups=[];return true},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,bars:p.mel.length/16,phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)})),debugMusicState:()=>{const p=profile();return {soundOn,musicVolume,sfxVolume,stageIndex,sceneIndex,profile:p.name,bpm:p.bpm,musicStep,bar:Math.floor((musicStep%MUSIC_PHRASE_STEPS)/16)+1,phraseCycle:Math.floor(musicStep/MUSIC_PHRASE_STEPS),phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)}},debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();updateScene(true);updateSceneHalf(true);return {runDistance,stageIndex,sceneIndex,sceneHalf,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugHit:(label='BUG')=>{const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};takeObstacleHit(o);return {state,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,text:overlayText.textContent}},debugPass:(label='BUG',count=1)=>{for(let i=0;i<Math.max(1,Number(count)||1);i++)passObstacle({label,x:player.x-100,y:GROUND-40,w:56,h:38,passed:false,mutationState:'idle'});return {combo,mistakes,sceneIndex,recoveryUsed:[...sceneComboRecoveryUsed]}},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.22.0';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.23.0';
 })();

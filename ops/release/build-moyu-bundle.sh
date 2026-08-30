@@ -14,7 +14,7 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v node >/dev/null
-release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero.png assets/sprites/hero.json)
+release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero.png assets/sprites/hero.json assets/sprites/office-hazards-v123.webp)
 for rel in "${release_files[@]}"; do
   file="$source_root/$rel"
   test -r "$file" || { echo "missing Moyu release source: $rel" >&2; exit 2; }
@@ -99,8 +99,13 @@ grep -Fq 'function drawBossArt(o)' "$source_root/game.js"
 grep -Fq 'function drawBugArt(o)' "$source_root/game.js"
 grep -Fq 'function drawRequestArt(o)' "$source_root/game.js"
 grep -Fq 'function drawSmallHazardArt(o)' "$source_root/game.js"
+grep -Fq 'const OFFICE_HAZARD_ATLAS=' "$source_root/game.js"
+grep -Fq 'function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1)' "$source_root/game.js"
+grep -Fq 'assets/sprites/office-hazards-v123.webp?v=1230' "$source_root/game.js"
+grep -Fq 'debugHazardAtlas' "$source_root/game.js"
 grep -Fq 'function drawPlayerVector()' "$source_root/game.js"
 test "$(sha256sum "$source_root/assets/sprites/hero.png" | awk '{print $1}')" = '2f147d3df80180c23d32e58d4a33daea52e2a8bd43986fd6f312245f728160fa'
+test "$(sha256sum "$source_root/assets/sprites/office-hazards-v123.webp" | awk '{print $1}')" = '63b800809f6675b5dc28ebc9049b6c65101f2eef9ea57333810116f492acb5f1'
 grep -Fq 'window.visualViewport' "$source_root/game.js"
 grep -Fq 'env(safe-area-inset-bottom)' "$source_root/responsive-v1120.css"
 grep -Fq '@media(max-width:700px) and (orientation:portrait)' "$source_root/responsive-v1120.css"
