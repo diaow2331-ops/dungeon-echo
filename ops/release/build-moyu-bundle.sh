@@ -14,7 +14,7 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v node >/dev/null
-release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero-v125.webp assets/sprites/hero.json assets/sprites/scene-backdrops-v125.webp assets/sprites/scene-backdrops-v125.json assets/sprites/office-hazards-v124.webp)
+release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero-v125.webp assets/sprites/hero.json assets/scenes-v126/workstation.svg assets/scenes-v126/meeting.svg assets/scenes-v126/pantry.svg assets/scenes-v126/gym.svg assets/sprites/office-hazards-v124.webp)
 for rel in "${release_files[@]}"; do
   file="$source_root/$rel"
   test -r "$file" || { echo "missing Moyu release source: $rel" >&2; exit 2; }
@@ -92,7 +92,7 @@ grep -Fq '.run-ledger-grid' "$source_root/style.css"
 grep -Fq 'playfield-first presentation' "$source_root/style.css"
 grep -Fq 'const rise=airborne' "$source_root/game.js"
 grep -Fq 'const cadence=10.5' "$source_root/game.js"
-grep -Fq "assets/sprites/hero-v125.webp?v=1250" "$source_root/game.js"
+grep -Fq "assets/sprites/hero-v125.webp?v=1260" "$source_root/game.js"
 grep -Fq 'function drawPlayerSprite()' "$source_root/game.js"
 grep -Fq 'function heroRunFrameStep()' "$source_root/game.js"
 grep -Fq 'player.jumps>=2&&airBurstTimer>0' "$source_root/game.js"
@@ -109,19 +109,19 @@ grep -Fq 'const OFFICE_HAZARD_ATLAS=' "$source_root/game.js"
 grep -Fq 'function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1,flipX=false)' "$source_root/game.js"
 grep -Fq 'assets/sprites/office-hazards-v124.webp?v=1240' "$source_root/game.js"
 grep -Fq 'debugHazardAtlas' "$source_root/game.js"
-grep -Fq 'assets/sprites/scene-backdrops-v125.webp?v=1250' "$source_root/game.js"
+grep -Fq 'assets/scenes-v126/workstation.svg?v=1260' "$source_root/game.js"
 grep -Fq 'function drawAuthenticScene(idx)' "$source_root/game.js"
 grep -Fq 'function drawAssetRunway()' "$source_root/game.js"
 grep -Fq 'debugSceneBackdrop' "$source_root/game.js"
 grep -Fq 'function drawPlayerVector()' "$source_root/game.js"
 test "$(sha256sum "$source_root/assets/sprites/hero-v125.webp" | awk '{print $1}')" = '5db0e3363678341f6f432d7366c0670bc5a0f42be87417d1c43273710364db37'
-test "$(sha256sum "$source_root/assets/sprites/scene-backdrops-v125.webp" | awk '{print $1}')" = '21bba4b6ddd0dd8736bbb879ee5b10a5063aea18a25e1c979c550d16bd8b9584'
+for f in assets/scenes-v126/workstation.svg assets/scenes-v126/meeting.svg assets/scenes-v126/pantry.svg assets/scenes-v126/gym.svg; do test -s "$source_root/$f"; done
 test "$(sha256sum "$source_root/assets/sprites/office-hazards-v124.webp" | awk '{print $1}')" = '93b2583d42dc79a999ddf7f1761067eb9b516249193bbc33412b9bcd8be9ff56'
 grep -Fq 'window.visualViewport' "$source_root/game.js"
 grep -Fq 'env(safe-area-inset-bottom)' "$source_root/responsive-v1120.css"
 grep -Fq '@media(max-width:700px) and (orientation:portrait)' "$source_root/responsive-v1120.css"
 grep -Fq 'padding-left:max(2px,env(safe-area-inset-left))' "$source_root/responsive-v1120.css"
-mkdir -p "$bundle/public/moyu/assets/sprites" "$bundle/ops"
+mkdir -p "$bundle/public/moyu/assets/sprites" "$bundle/public/moyu/assets/scenes-v126" "$bundle/ops"
 for rel in "${release_files[@]}"; do install -m 0644 "$source_root/$rel" "$bundle/public/moyu/$rel"; done
 cmp -s "$source_root/game.js" "$bundle/public/moyu/game.js"
 cmp -s "$source_root/index.html" "$bundle/public/moyu/index.html"
