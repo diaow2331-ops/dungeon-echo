@@ -7,7 +7,7 @@ const run=(cmd,args,opts={})=>spawnSync(cmd,args,{cwd:root,encoding:'utf8',...op
 const version=read('ops/home-mount/SITE_VERSION').trim();
 const assetRoot='ops/home-mount/public/assets/site-v170';
 assert.equal(read('VERSION').trim(),'1.4.2');
-assert.equal(read('moyu/VERSION').trim(),'1.22.0');
+assert.equal(read('moyu/VERSION').trim(),'1.23.0');
 assert.equal(version,'1.7.0');
 assert.equal(read('ops/home-mount/public/ads.txt').trim(),'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0');
 for(const f of [assetRoot+'/style.css',assetRoot+'/site.js',assetRoot+'/wang-jian-landscape-1668.jpg'])assert(fs.statSync(path.join(root,f)).size>100,'missing asset '+f);
@@ -46,7 +46,7 @@ const [home,de,moyu,about,privacy,contact]=built;
 assert.match(home,/游艺择签/);assert.match(home,/敬请期待/);assert.match(home,/wang-jian-landscape-1668\.jpg/);
 assert.match(home,/data-game-choice="random"/);assert.match(home,/site v1\.7\.0/);
 assert.match(de,/softwareVersion":"1\.4\.2"/);assert.match(de,/1120×460 可步行广场/);
-assert.match(moyu,/softwareVersion":"1\.22\.0"/);assert.match(moyu,/四幕皆有新声/);
+assert.match(moyu,/softwareVersion":"1\.23\.0"/);assert.match(moyu,/四幕皆有新声/);
 assert.match(about,/一方小站，二种玩法。/);assert.match(about,/造物四则/);
 assert.match(privacy,/隐私案卷/);assert.match(privacy,/重置主站偏好/);assert.match(privacy,/不会声称或尝试删除/);
 assert.match(contact,/把问题说清，把回音留下。/);assert.match(contact,/data-copy-email/);

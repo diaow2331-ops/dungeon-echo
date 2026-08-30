@@ -4,7 +4,7 @@ This package owns the product-facing 91hwl.cn homepage, project detail pages and
 
 Presented releases:
 - Dungeon Echo v1.4.2 — a 100-floor browser-native turn-based roguelike with four classes, build choices and safe retreat.
-- Clock Out Alive v1.22.0 — a four-minute office escape with four scenes, two endings and browser-local discoveries.
+- Clock Out Alive v1.23.0 — a four-minute office escape with four scenes, two endings and browser-local discoveries.
 
 site v1.7.0 turns the Chinese styling into a complete cross-site design language. The homepage now uses a public-domain 1668 Wang Jian landscape leaf, folio structure, title slips, cinnabar seals and restrained pattern bands, plus an interactive mood-based game chooser. The two live games remain equally weighted and the third “敬请期待” place remains deliberately open.
 

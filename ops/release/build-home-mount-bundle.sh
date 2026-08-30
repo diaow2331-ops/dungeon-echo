@@ -22,7 +22,7 @@ command -v node >/dev/null
 
 test "$site_version" = '1.7.0' || { echo "unexpected site version: $site_version" >&2; exit 2; }
 test "$game_version" = '1.4.2' || { echo "unexpected Dungeon Echo version: $game_version" >&2; exit 2; }
-test "$moyu_version" = '1.22.0' || { echo "unexpected Moyu version: $moyu_version" >&2; exit 2; }
+test "$moyu_version" = '1.23.0' || { echo "unexpected Moyu version: $moyu_version" >&2; exit 2; }
 git -C "$repo_root" merge-base --is-ancestor "$accepted_site_v133" HEAD || { echo 'accepted site v1.3.3 boundary is not an ancestor of HEAD' >&2; exit 2; }
 
 for file in \
@@ -163,7 +163,7 @@ bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
 grep -Fq "test \"\$version\" = '1.7.0'" "$source_root/deploy.sh"
 grep -Fq 'Dungeon Echo v1.4.2 detail marker missing' "$source_root/deploy.sh"
-grep -Fq 'Clock Out Alive v1.22.0 detail marker missing' "$source_root/deploy.sh"
+grep -Fq 'Clock Out Alive v1.23.0 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'site-v170/style.css' "$source_root/deploy.sh"
 grep -Fq '敬请期待' "$source_root/deploy.sh"
 grep -Fq 'mailto:diaow2331@gmail.com' "$source_root/deploy.sh"

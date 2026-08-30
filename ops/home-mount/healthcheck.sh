@@ -72,7 +72,7 @@ check_home(){
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
   require_fixed "$file" 'v1.4.2' 'homepage Dungeon Echo version' || return 1
-  require_fixed "$file" 'v1.22.0' 'homepage Moyu version' || return 1
+  require_fixed "$file" 'v1.23.0' 'homepage Moyu version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开开发' 'homepage public-development copy' || return 1
   require_fixed "$file" 'site-v170/style.css' 'homepage v1.7.0 shared design' || return 1
@@ -109,7 +109,7 @@ check_de_detail(){
 check_moyu_detail(){
   file="$1"
   require_fixed "$file" 'data-site-version="1.7.0"' 'Moyu detail site version' || return 1
-  require_fixed "$file" 'softwareVersion":"1.22.0"' 'Moyu detail software version' || return 1
+  require_fixed "$file" 'softwareVersion":"1.23.0"' 'Moyu detail software version' || return 1
   require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
   require_fixed "$file" '四幕皆有新声' 'Moyu current Chinese release copy' || return 1
   require_fixed "$file" 'Four scenes, fuller sound' 'Moyu current English release copy' || return 1
@@ -159,7 +159,7 @@ fetch /dev/null --resolve "$PLAY_RESOLVE" "${MOYU_PLAY_URL}?lang=en" || fail 'or
 de_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$DE_VERSION_URL" | tr -d '\r\n[:space:]')"
 moyu_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$MOYU_VERSION_URL" | tr -d '\r\n[:space:]')"
 test "$de_origin" = '1.4.2' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
-test "$moyu_origin" = '1.22.0' || fail "origin Moyu VERSION mismatch: $moyu_origin"
+test "$moyu_origin" = '1.23.0' || fail "origin Moyu VERSION mismatch: $moyu_origin"
 
 public_ok=false
 for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
@@ -174,7 +174,7 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
       && fetch "$work_dir/public-art.jpg" "${ART_URL}?release=$revision" && test -s "$work_dir/public-art.jpg" \
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
       && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.4.2' \
-      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.22.0'; then
+      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.23.0'; then
     public_ok=true
     break
   fi

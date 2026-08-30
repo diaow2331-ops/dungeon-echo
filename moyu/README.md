@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.22.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.23.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -58,6 +58,13 @@ v1.12.3 adds an optional local **Daily Shift** without changing the normal rando
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
 
+
+
+## v1.23.0 reused office art atlas
+
+v1.23.0 reconnects the previously produced office-runner art atlas to the live game instead of redrawing the hazards. Boss patrol/rush, all three BUG silhouettes, last-minute request drops, urgent mail, coffee spills, dumbbells, Coffee, Leave Slip and Risk Form now use compact sprite crops derived from the earlier accepted office art sheet. The runtime atlas is a tracked static asset; no image generation or release-time art reconstruction is involved.
+
+Gameplay geometry remains authoritative: the 44×66 runner body, obstacle hitboxes, mutation sizes, jump physics, four-minute route, three-strike buffer, encounter cadence and endings are unchanged. The former Canvas hazard renderers remain only as an asset-load fallback, so a failed sprite request cannot make the game unplayable. The meeting gate keeps its existing readable safe-gap presentation for now because replacing that wide gameplay geometry with a narrow door sprite would misrepresent the collision space.
 
 ## v1.22.0 four-room soundtrack suite
 
