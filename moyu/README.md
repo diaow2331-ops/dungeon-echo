@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.12.3**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.13.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -44,6 +44,14 @@ v1.12.2 adds replay feedback without adding progression power. Every completed r
 The summary records outcome / cause, clock and scene, score distance, peak Combo, near-miss count, Perfect count and discoveries unlocked during that run. Game-over and both 18:00 endings also surface the run's peak Combo and near-miss line immediately in the result card.
 
 This is the planned P1 replay-value step before any Daily Shift experiment.
+## v1.13.0 playfield-first presentation
+
+v1.13.0 is a presentation/game-feel pass rather than another feature bundle. During active runs the mission brochure, route strip, record panels and non-actionable HUD chips get out of the way; the playfield moves closer to the top of the viewport and the remaining score / Combo / scene / clock HUD is compact enough to stop covering hazards.
+
+The start screen is now a left-weighted launch panel on desktop so the office itself remains visible before play. Scene transition copy no longer duplicates the same stage label in several places, the first-run tutorial is reduced to a small lower-edge hint, and the player visual is 10% larger without changing the 44×66 physics body or hitbox. Portrait mobile hides brochure chrome and redundant live text, leaving only the core HUD plus a rotate/fullscreen hint.
+
+All v1.12.x gameplay systems remain intact: Daily Shift, scene-specific hazards, temporary risk pickups, near-miss scoring, two endings and local run history.
+
 ## v1.12.3 Daily Shift
 
 v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
