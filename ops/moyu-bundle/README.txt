@@ -1,8 +1,8 @@
-Clock Out Alive / 摸鱼到下班 v1.19.0 deployment bundle
+Clock Out Alive / 摸鱼到下班 v1.20.0 deployment bundle
 
 This bundle atomically replaces only `/moyu/` inside the existing `/srv/91hwl-play/current` release tree and preserves Dungeon Echo.
 
-v1.19.0 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
+v1.20.0 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
 - `public/moyu/game.js` is copied byte-for-byte from tracked `moyu/game.js`; release-time source reconstruction is gone.
 - `responsive-v1120.css` keeps phone safe areas, uses nearly the full portrait width for the 1200:620 playfield and exposes a landscape/fullscreen hint.
 - the runtime caps desktop frame width from the real visual viewport height so the complete game frame stays in the first viewport on ordinary browser windows.
@@ -35,7 +35,9 @@ v1.19.0 builds on the canonical-runtime + viewport-first v1.12.x foundation and 
 
 - v1.19.0 retunes the four-minute route into short 3–5 hazard phrases with guaranteed breathing beats, scene-specific curated sequences and larger transition windows, reducing constant-input fatigue without shortening the shift.
 - v1.19.0 lets the first clean 10-obstacle Combo in each scene recover one previously lost mistake buffer; the three-strike cap, physics and endings remain authoritative.
+- v1.20.0 adds one readable LOW/HIGH pickup choice per scene: the low lane can be taken from the ground, the high lane requires a jump, and collecting either removes its sibling.
+- route-choice pairs are scene-specific and only appear when the entry edge is clear, preserving the v1.19 breathing cadence and existing collision authority.
 
 The former v1.11.5 slice/patch/build chain remains in the repository archive only and is not included in this deployment bundle.
 
-The deployer verifies checksums, canonical v1.19.0 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
+The deployer verifies checksums, canonical v1.20.0 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
