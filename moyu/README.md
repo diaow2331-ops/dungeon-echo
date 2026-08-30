@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.12.2**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.12.3**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -44,3 +44,8 @@ v1.12.2 adds replay feedback without adding progression power. Every completed r
 The summary records outcome / cause, clock and scene, score distance, peak Combo, near-miss count, Perfect count and discoveries unlocked during that run. Game-over and both 18:00 endings also surface the run's peak Combo and near-miss line immediately in the result card.
 
 This is the planned P1 replay-value step before any Daily Shift experiment.
+## v1.12.3 Daily Shift
+
+v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
+
+Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
