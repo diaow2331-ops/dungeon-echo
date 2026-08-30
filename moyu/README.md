@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.18.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.19.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -57,6 +57,11 @@ All v1.12.x gameplay systems remain intact: Daily Shift, scene-specific hazards,
 v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
+
+
+## v1.19.0 four-minute cadence pass
+
+v1.19.0 retunes encounter density around the actual ~4 minute route instead of continuously feeding hazards at the older short-run cadence. Normal hazards now arrive in short 3–5 obstacle phrases with guaranteed breathing beats, each room has its own curated two-to-three-hazard phrase vocabulary, scene/half-scene transitions reserve extra read time, and later scenes tighten without returning to constant input spam. A clean 10-obstacle Combo can recover one previously lost mistake buffer once per scene, turning the existing Combo system into a survival reward as well as score. Physics, the 3-strike cap, route length and endings remain unchanged.
 
 ## v1.18.0 forgiving run loop
 
