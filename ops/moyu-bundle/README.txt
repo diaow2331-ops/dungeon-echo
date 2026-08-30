@@ -1,8 +1,8 @@
-Clock Out Alive / 摸鱼到下班 v1.26.2 deployment bundle
+Clock Out Alive / 摸鱼到下班 v1.26.3 deployment bundle
 
 This bundle atomically replaces only `/moyu/` inside the existing `/srv/91hwl-play/current` release tree and preserves Dungeon Echo.
 
-v1.26.2 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
+v1.26.3 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
 - `public/moyu/game.js` is copied byte-for-byte from tracked `moyu/game.js`; release-time source reconstruction is gone.
 - `responsive-v1120.css` keeps phone safe areas, uses nearly the full portrait width for the 1200:620 playfield and exposes a landscape/fullscreen hint.
 - the runtime caps desktop frame width from the real visual viewport height so the complete game frame stays in the first viewport on ordinary browser windows.
@@ -45,7 +45,7 @@ v1.26.2 builds on the canonical-runtime + viewport-first v1.12.x foundation and 
 - v1.24.0 reconnects the previously produced office-runner art atlas: Boss patrol/rush, BUG normal/long/tall, request drops, urgent mail, coffee spills, dumbbells and the three temporary pickup types now render from tracked sprite crops.
 - v1.24.0 keeps every existing collision rectangle, jump constant, route timing and encounter rule unchanged; the older Canvas hazard art remains only as an asset-load fallback.
 - the meeting gate deliberately retains its wide safe-gap presentation because a narrow door sprite would visually contradict the existing collision geometry.
-- v1.26.2 preserves the approved v1.26.1 art, clears the fixed runner corridor, fills the playfield behind the HUD, enlarges the runner presentation without changing physics, replaces card-like runway panels with a continuous parallax speed belt, removes Meeting guide wires, and uses translucent active HUD chips for stronger runner-style visual hierarchy.
+- v1.26.3 preserves the approved v1.26.1 art, clears the fixed runner corridor, fills the playfield behind the HUD, enlarges the runner presentation without changing physics, replaces card-like runway panels with a continuous parallax speed belt, removes Meeting guide wires, and uses translucent active HUD chips for stronger runner-style visual hierarchy.
 - the new 4×4 hero atlas and 2×2 scene atlas record their source title and SHA-256 in manifests, while the 44×66 physics body, hitboxes, jump timing, three-strike buffer, cadence and endings remain unchanged.
 - v1.22.0 gives the four office scenes independent sixteen-bar A/B 8-bit themes with alternate full-phrase variations, keeps half-scene music continuous, and turns the final ten minutes into a Gym-theme reprise rather than another unrelated loop.
 - v1.22.0 fixes English-mode Space input by releasing language-button focus and prioritizing gameplay jump keys while running; the English desktop menu is separately compacted instead of inheriting Chinese line lengths.
@@ -53,4 +53,4 @@ v1.26.2 builds on the canonical-runtime + viewport-first v1.12.x foundation and 
 
 The former v1.11.5 slice/patch/build chain remains in the repository archive only and is not included in this deployment bundle.
 
-The deployer verifies checksums, canonical v1.26.2 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
+The deployer verifies checksums, canonical v1.26.3 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
