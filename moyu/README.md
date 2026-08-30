@@ -1,12 +1,12 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.26.2**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.26.3**. Production route: `https://play.91hwl.cn/moyu/`.
 
-## v1.26.2 runner readability and stage fill
+## v1.26.3 runner readability and stage fill
 
-v1.26.2 keeps the approved v1.26.1 hero/hazard/background assets, but changes how the runner world is composed. The first workstation pod is shifted out of the fixed runner corridor so no desk support can hang directly above the hero. A soft scene-tinted clearance field and runner halo reserve silhouette contrast without changing hitboxes.
+v1.26.3 keeps the approved v1.26.1 hero/hazard/background assets, but changes how the runner world is composed. The first workstation pod is shifted out of the fixed runner corridor so no desk support can hang directly above the hero. A soft scene-tinted clearance field and runner halo reserve silhouette contrast without changing hitboxes.
 
-The scene now fills the playfield behind the HUD instead of leaving an 82px dead header band. The runner sprite is visually enlarged to 136px while its 44×66 physics body stays unchanged. The runway uses scene-specific surface/fascia tones plus a continuous parallax speed belt instead of card-like panels; active HUD chips become translucent game overlays, and the Meeting gate replaces hanging guide wires with chunky gap markers. Workstation, Meeting, Pantry and Gym therefore read as one continuous runner world. Physics, route length, obstacle cadence, three-strike buffer and endings remain unchanged.
+The scene now fills the playfield behind the HUD instead of leaving an 82px dead header band. v1.26.3 also removes the false depth gap between the office set and the runner: each room now uses its own source-floor join (Workstation 604, Meeting 545, Pantry 442, Gym 480) and compresses only that depth strip into the short perspective zone above the physical runway. Furniture, room floor, hero and hazards therefore occupy one continuous space instead of reading as separate stacked images. The 136px runner display still keeps the original 44×66 physics body; route length, obstacle cadence, three-strike buffer and endings remain unchanged.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 

@@ -1055,10 +1055,10 @@ function officeSkyColor(){
   const p=Math.min(1,runDistance/DAY_END_DISTANCE);if(p<.35)return '#dcecf3';if(p<.68)return '#eadfc5';if(p<.90)return '#e7b98f';return '#8d8aa4';
 }
 const SCENE_BACKDROPS=[
-  'assets/scenes-v126/workstation.svg?v=1262',
-  'assets/scenes-v126/meeting.svg?v=1262',
-  'assets/scenes-v126/pantry.svg?v=1262',
-  'assets/scenes-v126/gym.svg?v=1262'
+  'assets/scenes-v126/workstation.svg?v=1263',
+  'assets/scenes-v126/meeting.svg?v=1263',
+  'assets/scenes-v126/pantry.svg?v=1263',
+  'assets/scenes-v126/gym.svg?v=1263'
 ];
 const sceneBackdropImages=SCENE_BACKDROPS.map(src=>{const img=new Image();img.decoding='async';img.src=src;return img});
 let sceneBackdropReady=sceneBackdropImages.map(()=>false),sceneBackdropFailed=sceneBackdropImages.map(()=>false);
@@ -1071,14 +1071,18 @@ function drawRunnerBackdropClearance(i){
 }
 function drawSceneBackdrop(idx){
   const i=Math.max(0,Math.min(3,idx|0)),img=sceneBackdropImages[i];if(!sceneBackdropReady[i]||sceneBackdropFailed[i])return false;
-  // Fill the whole playfield behind the HUD. Mature runners keep UI floating over the world instead of reserving a dead header band.
-  const top=0,h=GROUND+1,srcW=1920,srcH=820,srcTop=82,srcAvailH=srcH-srcTop,targetAspect=W/h;
-  let sh=srcAvailH,sw=sh*targetAspect;if(sw>srcW){sw=srcW;sh=sw/targetAspect}let sx=0,sy=srcTop+Math.max(0,(srcAvailH-sh)*.35);
-  // Keep the left-side runner corridor composition stable; motion is supplied by the track/atmosphere layers, not by sliding hard background pillars through the hero.
-  sx=Math.max(0,Math.min(srcW-sw,sx));
-  ctx.save();ctx.fillStyle='#101823';ctx.fillRect(0,0,W,H);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.beginPath();ctx.rect(0,top,W,h);ctx.clip();ctx.filter='saturate(.88) contrast(.945) brightness(1.005)';ctx.drawImage(img,sx,sy,sw,sh,0,top,W,h);ctx.filter='none';drawRunnerBackdropClearance(i);
-  const grade=ctx.createLinearGradient(0,top,0,GROUND);grade.addColorStop(0,'rgba(255,252,245,.035)');grade.addColorStop(.70,'rgba(9,18,31,.012)');grade.addColorStop(1,'rgba(255,248,235,.06)');ctx.fillStyle=grade;ctx.fillRect(0,top,W,h);
-  if(stageIndex>=4){ctx.fillStyle='rgba(72,55,78,.08)';ctx.fillRect(0,top,W,h)}ctx.restore();return true
+  // v1.26.3: split environment and floor perspective so the runner belongs to the same physical room.
+  const srcW=1920,srcTop=82,srcBottom=820,srcFloor=[604,545,442,480][i],worldJoin=[418,414,408,408][i],runwayJoin=GROUND-34;
+  const targetAspect=W/worldJoin,envH=srcFloor-srcTop;let sw=envH*targetAspect;if(sw>srcW)sw=srcW;const sx=Math.max(0,(srcW-sw)*.5);
+  ctx.save();ctx.fillStyle='#101823';ctx.fillRect(0,0,W,H);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.beginPath();ctx.rect(0,0,W,GROUND+1);ctx.clip();
+  ctx.filter='saturate(.88) contrast(.945) brightness(1.005)';
+  // Environment stays readable and proportionate.
+  ctx.drawImage(img,sx,srcTop,sw,envH,0,0,W,worldJoin);
+  // Compress only the source-floor depth. This removes the dead 110–150px band without moving physics.
+  ctx.drawImage(img,sx,srcFloor,sw,srcBottom-srcFloor,0,worldJoin,W,runwayJoin-worldJoin);
+  ctx.filter='none';drawRunnerBackdropClearance(i);
+  const grade=ctx.createLinearGradient(0,0,0,GROUND);grade.addColorStop(0,'rgba(255,252,245,.025)');grade.addColorStop(.72,'rgba(9,18,31,.01)');grade.addColorStop(1,'rgba(255,248,235,.045)');ctx.fillStyle=grade;ctx.fillRect(0,0,W,GROUND);
+  if(stageIndex>=4){ctx.fillStyle='rgba(72,55,78,.08)';ctx.fillRect(0,0,W,GROUND)}ctx.restore();return true
 }
 function drawAssetRunway(){
   // v1.26.2: scene-tinted runner track with a quieter physical foreground edge.
@@ -1577,7 +1581,7 @@ function drawPlayerVector(){
 }
 
 const HERO_SPRITE={
-  src:'assets/sprites/hero-v125.webp?v=1262',cell:128,cols:4,baselineY:120,display:136,
+  src:'assets/sprites/hero-v125.webp?v=1263',cell:128,cols:4,baselineY:120,display:136,
   idle:[0,1],run:[2,3,4,5,6,7],jumpStart:8,jump:[9,10],doubleJump:11,fall:12,land:13,hurt:14,victory:15
 };
 const heroSpriteImage=new Image();let heroSpriteReady=false,heroSpriteFailed=false;
@@ -1792,7 +1796,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
 syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();updateDailyUi();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
-  initialized:true,canvas:Boolean(ctx),version:'1.26.2',dayEndDistance:DAY_END_DISTANCE,
+  initialized:true,canvas:Boolean(ctx),version:'1.26.3',dayEndDistance:DAY_END_DISTANCE,
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],visualScrollPx,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
   debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
@@ -1803,5 +1807,5 @@ if(DEBUG_MODE)window.__GAME_TEST__={
   debugClear:()=>{obstacles=[];pickups=[];return true},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,bars:p.mel.length/16,phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)})),debugMusicState:()=>{const p=profile();return {soundOn,musicVolume,sfxVolume,stageIndex,sceneIndex,profile:p.name,bpm:p.bpm,musicStep,bar:Math.floor((musicStep%MUSIC_PHRASE_STEPS)/16)+1,phraseCycle:Math.floor(musicStep/MUSIC_PHRASE_STEPS),phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)}},debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();updateScene(true);updateSceneHalf(true);return {runDistance,stageIndex,sceneIndex,sceneHalf,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugHit:(label='BUG')=>{const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};takeObstacleHit(o);return {state,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,text:overlayText.textContent}},debugPass:(label='BUG',count=1)=>{for(let i=0;i<Math.max(1,Number(count)||1);i++)passObstacle({label,x:player.x-100,y:GROUND-40,w:56,h:38,passed:false,mutationState:'idle'});return {combo,mistakes,sceneIndex,recoveryUsed:[...sceneComboRecoveryUsed]}},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.26.2';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.26.3';
 })();
