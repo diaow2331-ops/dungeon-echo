@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.17.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.18.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -57,6 +57,14 @@ All v1.12.x gameplay systems remain intact: Daily Shift, scene-specific hazards,
 v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
+
+## v1.18.0 forgiving run loop
+
+v1.18.0 changes the normal run from one-touch failure to a three-strike structure. The first two ordinary collisions clear Combo, consume one visible buffer point and grant 1.15 seconds of recovery invulnerability; the third collision ends the run. Leave Slip still absorbs a collision before the mistake buffer is consumed. Last Run and Top 5 records now include mistake count.
+
+The first minutes also ramp more deliberately: the opening hazard is a non-mutating BUG, early clear gaps are wider, BUG mutation is held back briefly, and workstation Boss rush behavior cannot trigger immediately. The goal is to let a new player establish the single-jump / double-jump rhythm before the director begins combining mechanics.
+
+The centered v1.17.0 menu presentation is retained. Physics body, jump velocities, four-minute route length, endings, scene order, Daily Shift seed behavior, audio system and existing local saves remain compatible.
 
 ## v1.17.0 portrait focus pass
 
