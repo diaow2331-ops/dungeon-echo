@@ -1,12 +1,12 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.26.1**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.26.2**. Production route: `https://play.91hwl.cn/moyu/`.
 
-## v1.26.1 authentic-art coherence
+## v1.26.2 runner readability and stage fill
 
-v1.26.1 reconnects the runner and all four office rooms to the already approved `办公室跑酷像素素材图集.png`; no new artwork is generated. A tracked 4×4 hero atlas preserves the existing 44×66 physics body while improving the idle, run, jump, fall, hurt and victory silhouettes. A separate tracked 2×2 backdrop atlas supplies Workstation, Meeting, Pantry and Gym scenes with a shared visual language.
+v1.26.2 keeps the approved v1.26.1 hero/hazard/background assets, but changes how the runner world is composed. The first workstation pod is shifted out of the fixed runner corridor so no desk support can hang directly above the hero. A soft scene-tinted clearance field and runner halo reserve silhouette contrast without changing hitboxes.
 
-The backdrop renderer adds only a readable collision runway and slow visual parallax. Jump gravity, hitboxes, route length, obstacle cadence, three-strike buffer and endings remain unchanged. Both manifests record the source title and SHA-256 so releases can verify provenance and exact bytes.
+The scene now fills the playfield behind the HUD instead of leaving an 82px dead header band. The runner sprite is visually enlarged to 136px while its 44×66 physics body stays unchanged. The runway uses scene-specific surface/fascia tones plus a continuous parallax speed belt instead of card-like panels; active HUD chips become translucent game overlays, and the Meeting gate replaces hanging guide wires with chunky gap markers. Workstation, Meeting, Pantry and Gym therefore read as one continuous runner world. Physics, route length, obstacle cadence, three-strike buffer and endings remain unchanged.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 

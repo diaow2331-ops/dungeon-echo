@@ -10,7 +10,7 @@
   "columns": 4,
   "rows": 4,
   "baselineY": 120,
-  "displaySize": 124,
+  "displaySize": 136,
   "physics": { "width": 44, "height": 66, "unchanged": true },
   "animations": {
     "idle": [0, 1],
