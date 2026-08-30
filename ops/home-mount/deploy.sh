@@ -55,7 +55,7 @@ grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage A
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
 grep -Fq 'softwareVersion":"1.4.2"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 detail marker missing'
 grep -Fq '1120×460 可步行广场' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 town copy missing'
-grep -Fq 'softwareVersion":"1.22.0"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.22.0 detail marker missing'
+grep -Fq 'softwareVersion":"1.23.0"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.23.0 detail marker missing'
 grep -Fq '四幕皆有新声' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
 grep -Fq 'Four scenes, fuller sound' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
 grep -Fq 'About 91hwl' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
