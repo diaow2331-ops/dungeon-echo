@@ -131,12 +131,12 @@ html[data-game-state="playing"] .progress>i,html[data-game-state="ending"] .prog
 .overlay{background:linear-gradient(90deg,rgba(243,240,232,.84) 0%,rgba(243,240,232,.48) 47%,rgba(243,240,232,.16) 100%);backdrop-filter:blur(1px)}
 .overlay .card{position:relative}
 @media(min-width:900px){
-  html[data-game-state="menu"] .overlay{place-items:center start;padding:44px 54px}
-  html[data-game-state="menu"] .overlay .card{width:min(520px,43%);margin-left:0;text-align:left;padding:28px 30px}
-  html[data-game-state="menu"] .overlay .tagline{margin-left:0;margin-right:0;max-width:46ch}
-  html[data-game-state="menu"] .overlay .menu-facts{margin-left:0;margin-right:0;max-width:460px}
-  html[data-game-state="menu"] .overlay .ending-actions{justify-content:flex-start}
-  html[data-game-state="menu"] .overlay .controls{text-align:left;max-width:58ch}
+  html[data-game-state="menu"] .overlay{place-items:center;padding:44px 54px}
+  html[data-game-state="menu"] .overlay .card{width:min(660px,56%);margin:0;text-align:center;padding:28px 34px}
+  html[data-game-state="menu"] .overlay .tagline{margin-left:auto;margin-right:auto;max-width:58ch}
+  html[data-game-state="menu"] .overlay .menu-facts{margin-left:auto;margin-right:auto;max-width:520px}
+  html[data-game-state="menu"] .overlay .ending-actions{justify-content:center}
+  html[data-game-state="menu"] .overlay .controls{margin-left:auto;margin-right:auto;text-align:center;max-width:64ch}
 }
 @media(max-width:700px){
   .version-badge{margin-left:.16em}
@@ -199,14 +199,17 @@ html[data-game-state="menu"] .mission-bar,html[data-game-state="menu"] .below,ht
 html[data-game-state="menu"] header{margin-bottom:8px}
 html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{background:#ded9cf}
 html[data-game-state="playing"] .hud,html[data-game-state="ending"] .hud,html[data-game-state="paused"] .hud{filter:drop-shadow(0 1px 0 rgba(255,255,255,.7))}
-html[data-game-state="menu"] .overlay{background:linear-gradient(90deg,rgba(243,240,232,.93) 0%,rgba(243,240,232,.74) 38%,rgba(243,240,232,.10) 72%)}
-html[data-game-state="menu"] .overlay .card{border-width:2px;box-shadow:7px 7px 0 rgba(23,23,23,.13)}
+html[data-game-state="menu"] .overlay{place-items:center;padding:clamp(30px,4vw,56px);background:radial-gradient(circle at 50% 48%,rgba(243,240,232,.86) 0%,rgba(243,240,232,.69) 40%,rgba(243,240,232,.30) 76%,rgba(243,240,232,.16) 100%);backdrop-filter:blur(1.5px)}
+html[data-game-state="menu"] .overlay .card{border-width:2px;box-shadow:0 18px 48px rgba(23,23,23,.18),7px 7px 0 rgba(23,23,23,.11)}
 html[data-game-state="menu"] .menu-facts{gap:9px;margin-bottom:14px}
 html[data-game-state="menu"] .menu-fact{border-color:#a9a297;background:rgba(255,253,248,.78)}
 @media(min-width:900px){
-  html[data-game-state="menu"] .overlay{padding-left:68px}
-  html[data-game-state="menu"] .overlay .card{width:min(500px,40%);padding:25px 27px}
-  html[data-game-state="menu"] .overlay .tagline{font-size:12px;line-height:1.58}
+  html[data-game-state="menu"] .overlay{place-items:center;padding:clamp(30px,4vw,56px)}
+  html[data-game-state="menu"] .overlay .card{width:min(660px,56%);margin:0;text-align:center;padding:29px 36px 27px}
+  html[data-game-state="menu"] .overlay .tagline{max-width:58ch;margin-left:auto;margin-right:auto;font-size:12px;line-height:1.58}
+  html[data-game-state="menu"] .overlay .menu-facts{max-width:520px;margin-left:auto;margin-right:auto}
+  html[data-game-state="menu"] .overlay .ending-actions{justify-content:center}
+  html[data-game-state="menu"] .overlay .controls{max-width:64ch;margin-left:auto;margin-right:auto;text-align:center}
   html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{border-width:2px}
 }
 @media(max-width:700px) and (orientation:portrait){
@@ -214,10 +217,10 @@ html[data-game-state="menu"] .menu-fact{border-color:#a9a297;background:rgba(255
   html[data-game-state="playing"] header,html[data-game-state="ending"] header,html[data-game-state="paused"] header{min-height:42px;margin-bottom:5px}
   html[data-game-state="menu"] .frame,html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{height:min(54svh,440px);width:100%;border-width:2px;box-shadow:0 10px 26px rgba(20,20,20,.18);overflow:hidden}
   html[data-game-state="menu"] .frame canvas,html[data-game-state="playing"] .frame canvas,html[data-game-state="ending"] .frame canvas,html[data-game-state="paused"] .frame canvas{position:absolute;left:clamp(-28px,-7vw,-18px);top:0;width:auto;max-width:none;height:100%;aspect-ratio:1200/620}
-  html[data-game-state="menu"] .overlay{padding:10px;background:linear-gradient(90deg,rgba(243,240,232,.90),rgba(243,240,232,.48) 72%,rgba(243,240,232,.10))}
-  html[data-game-state="menu"] .overlay .card{width:min(280px,78%);margin-right:auto;text-align:left;padding:13px 14px 12px}
-  html[data-game-state="menu"] .overlay .card h1,html[data-lang="zh"][data-game-state="menu"] .overlay .card h1{font-size:26px;line-height:.95;margin:2px 0 7px;white-space:nowrap}
-  html[data-game-state="menu"] .overlay .ending-actions{justify-content:flex-start}
+  html[data-game-state="menu"] .overlay{place-items:center;padding:10px;background:radial-gradient(circle at 50% 48%,rgba(243,240,232,.88),rgba(243,240,232,.54) 72%,rgba(243,240,232,.22))}
+  html[data-game-state="menu"] .overlay .card{width:min(300px,86%);margin:0 auto;text-align:center;padding:14px 15px 13px}
+  html[data-game-state="menu"] .overlay .card h1,html[data-lang="zh"][data-game-state="menu"] .overlay .card h1{font-size:26px;line-height:.95;margin:2px auto 7px;white-space:nowrap}
+  html[data-game-state="menu"] .overlay .ending-actions{justify-content:center}
   html[data-game-state="playing"] body::after,html[data-game-state="ending"] body::after{display:none}
   html[data-game-state="playing"] .hud,html[data-game-state="ending"] .hud,html[data-game-state="paused"] .hud{width:100%;inset:5px 0 auto 0;padding:0 6px;grid-template-columns:1fr auto}
   html[data-game-state="playing"] .hud-group:last-child,html[data-game-state="ending"] .hud-group:last-child,html[data-game-state="paused"] .hud-group:last-child{justify-content:flex-end}
