@@ -5,12 +5,12 @@ const root=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const run=(cmd,args,opts={})=>spawnSync(cmd,args,{cwd:root,encoding:'utf8',...opts});
 const version=read('ops/home-mount/SITE_VERSION').trim();
-const assetRoot='ops/home-mount/public/assets/site-v180';
+const assetRoot='ops/home-mount/public/assets/site-v190';
 assert.equal(read('VERSION').trim(),'1.4.2');
 assert.equal(read('moyu/VERSION').trim(),'1.23.0');
-assert.equal(version,'1.8.0');
+assert.equal(version,'1.9.0');
 assert.equal(read('ops/home-mount/public/ads.txt').trim(),'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0');
-for(const f of [assetRoot+'/style.css',assetRoot+'/site.js',assetRoot+'/wang-jian-landscape-1668.jpg'])assert(fs.statSync(path.join(root,f)).size>100,'missing asset '+f);
+for(const f of [assetRoot+'/style.css',assetRoot+'/site.js',assetRoot+'/wang-jian-landscape-1668.jpg',assetRoot+'/moyu-run-v1230.jpg',assetRoot+'/dungeon-roster.webp'])assert(fs.statSync(path.join(root,f)).size>100,'missing asset '+f);
 assert.match(read(assetRoot+'/style.css'),/\.draw-section/);
 assert.match(read(assetRoot+'/style.css'),/\.page-record/);
 assert.match(read(assetRoot+'/site.js'),/data-game-choice/);
@@ -19,10 +19,10 @@ assert.match(read(assetRoot+'/site.js'),/data-copy-email/);
 for(const f of ['ops/home-mount/deploy.sh','ops/home-mount/healthcheck.sh','ops/release/build-home-mount-bundle.sh']){
  const x=run('bash',['-n',path.join(root,f)]);assert.equal(x.status,0,x.stderr);
 }
-for(const f of ['ops/home-mount/build-v134.cjs','ops/home-mount/build-social-v134.cjs','ops/home-mount/build-trust-v135.cjs','ops/home-mount/build-home-v140.cjs','ops/home-mount/build-home-v150.cjs','ops/home-mount/build-home-v160.cjs','ops/home-mount/build-site-v170.cjs','ops/home-mount/build-site-v180.cjs',assetRoot+'/site.js']){
+for(const f of ['ops/home-mount/build-v134.cjs','ops/home-mount/build-social-v134.cjs','ops/home-mount/build-trust-v135.cjs','ops/home-mount/build-home-v140.cjs','ops/home-mount/build-home-v150.cjs','ops/home-mount/build-home-v160.cjs','ops/home-mount/build-site-v170.cjs','ops/home-mount/build-site-v180.cjs','ops/home-mount/build-site-v190.cjs',assetRoot+'/site.js']){
  const x=run('node',['--check',path.join(root,f)]);assert.equal(x.status,0,x.stderr);
 }
-const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'web-toys-home-v180-'));
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'web-toys-home-v190-'));
 const stage=path.join(tmp,'stage');
 for(const d of ['toys/dungeon-echo','toys/moyu','about','privacy','contact'])fs.mkdirSync(path.join(stage,d),{recursive:true});
 for(const f of ['index.html','toys/dungeon-echo/index.html','toys/moyu/index.html','about/index.html','privacy/index.html','contact/index.html']){
@@ -37,43 +37,45 @@ let x=run('node',[path.join(root,'ops/home-mount/build-site-v170.cjs'),...six]);
 assert.equal(x.status,0,x.stderr);assert.match(x.stdout,/site_v170_build=PASS/);
 x=run('node',[path.join(root,'ops/home-mount/build-site-v180.cjs'),...six]);
 assert.equal(x.status,0,x.stderr);assert.match(x.stdout,/site_v180_build=PASS/);
+x=run('node',[path.join(root,'ops/home-mount/build-site-v190.cjs'),...six]);
+assert.equal(x.status,0,x.stderr);assert.match(x.stdout,/site_v190_build=PASS/);
 const built=six.map(f=>fs.readFileSync(f,'utf8'));
 for(const html of built){
- assert.match(html,/data-site-version="1\.8\.0"/);
- assert.match(html,/site-v180\/style\.css/);
- assert.match(html,/site-v180\/site\.js/);
+ assert.match(html,/data-site-version="1\.9\.0"/);
+ assert.match(html,/site-v190\/style\.css/);
+ assert.match(html,/site-v190\/site\.js/);
  assert.match(html,/class="scroll-progress"/);
 }
 const [home,de,moyu,about,privacy,contact]=built;
-assert.match(home,/游艺择签/);assert.match(home,/敬请期待/);assert.match(home,/wang-jian-landscape-1668\.jpg/);
-assert.match(home,/data-game-choice="random"/);assert.match(home,/site v1\.8\.0/);assert.match(home,/id="navToggle"/);assert.match(home,/game-media-moyu/);assert.match(home,/draw-stick/);
+assert.match(home,/quick-pick/);assert.match(home,/下一款开发中/);assert.match(home,/hero-showcase/);
+assert.match(home,/data-game-choice="random"/);assert.match(home,/site v1\.9\.0/);assert.match(home,/id="navToggle"/);assert.match(home,/game-media-moyu/);assert.match(home,/dungeon-roster\.webp/);assert.match(home,/浏览器游戏/);
 assert.match(de,/softwareVersion":"1\.4\.2"/);assert.match(de,/1120×460 可步行广场/);
 assert.match(moyu,/softwareVersion":"1\.23\.0"/);assert.match(moyu,/四幕皆有新声/);
-assert.match(about,/一方小站，二种玩法。/);assert.match(about,/造物四则/);assert.match(about,/record-about/);
-assert.match(privacy,/隐私案卷/);assert.match(privacy,/重置主站偏好/);assert.match(privacy,/不会声称或尝试删除/);assert.match(privacy,/privacy-emblem/);
-assert.match(contact,/把问题说清，把回音留下。/);assert.match(contact,/data-copy-email/);assert.match(contact,/record-letter/);
+assert.match(about,/这是一个独立浏览器游戏站。/);assert.match(about,/我们怎么做/);assert.match(about,/about-showcase/);
+assert.match(privacy,/隐私说明/);assert.match(privacy,/重置主站偏好/);assert.match(privacy,/不会声称或尝试删除/);assert.match(privacy,/privacy-side/);
+assert.match(contact,/如何提交有效反馈/);assert.match(contact,/data-copy-email/);assert.match(contact,/contact-side/);
 assert.doesNotMatch(privacy,/border-radius:16px/);
 const archive=path.join(tmp,'mount.zip');
 x=run('bash',[path.join(root,'ops/release/build-home-mount-bundle.sh'),archive]);
-assert.equal(x.status,0,x.stderr);assert.match(x.stdout,/site_version=1\.8\.0/);assert.match(x.stdout,/site_bundle_build=PASS/);
+assert.equal(x.status,0,x.stderr);assert.match(x.stdout,/site_version=1\.9\.0/);assert.match(x.stdout,/site_bundle_build=PASS/);
 x=run('unzip',['-Z1',archive]);assert.equal(x.status,0,x.stderr);
 const files=x.stdout.trim().split(/\r?\n/);
-for(const f of ['README.txt','REVISION','VERSION','SHA256SUMS','ops/deploy.sh','ops/healthcheck.sh','public/index.html','public/toys/dungeon-echo/index.html','public/toys/moyu/index.html','public/about/index.html','public/privacy/index.html','public/contact/index.html','public/ads.txt','public/assets/site-v180/style.css','public/assets/site-v180/site.js','public/assets/site-v180/wang-jian-landscape-1668.jpg','public/assets/site-v180/moyu-run-v1230.jpg'])assert(files.includes(f),'bundle missing '+f);
+for(const f of ['README.txt','REVISION','VERSION','SHA256SUMS','ops/deploy.sh','ops/healthcheck.sh','public/index.html','public/toys/dungeon-echo/index.html','public/toys/moyu/index.html','public/about/index.html','public/privacy/index.html','public/contact/index.html','public/ads.txt','public/assets/site-v190/style.css','public/assets/site-v190/site.js','public/assets/site-v190/wang-jian-landscape-1668.jpg','public/assets/site-v190/moyu-run-v1230.jpg','public/assets/site-v190/dungeon-roster.webp'])assert(files.includes(f),'bundle missing '+f);
 const unzip=f=>{const z=run('unzip',['-p',archive,f],{encoding:null});assert.equal(z.status,0,String(z.stderr));return z.stdout};
 const txt=f=>unzip(f).toString('utf8');
-assert.equal(txt('VERSION').trim(),'1.8.0');
-assert.match(txt('public/index.html'),/游艺择签/);
-assert.match(txt('public/privacy/index.html'),/隐私案卷/);
+assert.equal(txt('VERSION').trim(),'1.9.0');
+assert.match(txt('public/index.html'),/quick-pick/);assert.match(txt('public/index.html'),/hero-showcase/);
+assert.match(txt('public/privacy/index.html'),/隐私说明/);
 assert.match(txt('public/contact/index.html'),/data-copy-email/);
-assert.match(txt('public/assets/site-v180/style.css'),/\.folio-art/);
-assert.match(txt('public/assets/site-v180/site.js'),/data-reset-prefs/);assert.match(txt('public/assets/site-v180/site.js'),/navToggle/);assert(unzip('public/assets/site-v180/moyu-run-v1230.jpg').length>50000);
-assert(unzip('public/assets/site-v180/wang-jian-landscape-1668.jpg').length>200000);
+assert.match(txt('public/assets/site-v190/style.css'),/\.folio-art/);
+assert.match(txt('public/assets/site-v190/site.js'),/data-reset-prefs/);assert.match(txt('public/assets/site-v190/site.js'),/navToggle/);assert(unzip('public/assets/site-v190/moyu-run-v1230.jpg').length>50000);
+assert(unzip('public/assets/site-v190/wang-jian-landscape-1668.jpg').length>200000);assert(unzip('public/assets/site-v190/dungeon-roster.webp').length>100000);
 for(const f of ['ops/deploy.sh','ops/healthcheck.sh']){
  const q=path.join(tmp,path.basename(f));fs.writeFileSync(q,txt(f));const z=run('bash',['-n',q]);assert.equal(z.status,0,z.stderr);
 }
-assert.match(txt('ops/deploy.sh'),/web-toys-v180/);
-assert.match(txt('ops/deploy.sh'),/ASSET_REL=assets\/site-v180/);
-assert.match(txt('ops/healthcheck.sh'),/public site v1\.8\.0 check failed/);
-assert.match(txt('ops/healthcheck.sh'),/ART_URL=https:\/\/91hwl\.cn\/assets\/site-v180/);
+assert.match(txt('ops/deploy.sh'),/web-toys-v190/);
+assert.match(txt('ops/deploy.sh'),/ASSET_REL=assets\/site-v190/);
+assert.match(txt('ops/healthcheck.sh'),/public site v1\.9\.0 check failed/);
+assert.match(txt('ops/healthcheck.sh'),/ART_URL=https:\/\/91hwl\.cn\/assets\/site-v190/);
 fs.rmSync(tmp,{recursive:true,force:true});
-console.log('RESULT  91hwl site v1.8.0 polished folio + mobile navigation + distinct record pages contract PASS');
+console.log('RESULT  91hwl site v1.9.0 modern Chinese game-site + denser project imagery contract PASS');

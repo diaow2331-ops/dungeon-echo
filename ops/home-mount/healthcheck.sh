@@ -9,10 +9,11 @@ ABOUT_URL=https://91hwl.cn/about/
 PRIVACY_URL=https://91hwl.cn/privacy/
 CONTACT_URL=https://91hwl.cn/contact/
 ADS_URL=https://91hwl.cn/ads.txt
-STYLE_URL=https://91hwl.cn/assets/site-v180/style.css
-SCRIPT_URL=https://91hwl.cn/assets/site-v180/site.js
-ART_URL=https://91hwl.cn/assets/site-v180/wang-jian-landscape-1668.jpg
-MOYU_COVER_URL=https://91hwl.cn/assets/site-v180/moyu-run-v1230.jpg
+STYLE_URL=https://91hwl.cn/assets/site-v190/style.css
+SCRIPT_URL=https://91hwl.cn/assets/site-v190/site.js
+ART_URL=https://91hwl.cn/assets/site-v190/wang-jian-landscape-1668.jpg
+MOYU_COVER_URL=https://91hwl.cn/assets/site-v190/moyu-run-v1230.jpg
+DE_COVER_URL=https://91hwl.cn/assets/site-v190/dungeon-roster.webp
 DE_PLAY_URL=https://play.91hwl.cn/dungeon-echo/
 MOYU_PLAY_URL=https://play.91hwl.cn/moyu/
 DE_VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
@@ -27,7 +28,7 @@ DELAY=2
 fail(){ echo "WEB_TOYS_HOME_HEALTH_ERROR: $*" >&2; exit 1; }
 revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v180-health.XXXXXX)"
+work_dir="$(mktemp -d /tmp/web-toys-home-v190-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
@@ -42,7 +43,7 @@ check_pref_contract(){
   require_fixed "$file" 'id="themeToggle"' 'theme toggle' || return 1
   require_fixed "$file" 'data-lang-choice="zh"' 'zh language control' || return 1
   require_fixed "$file" 'data-lang-choice="en"' 'en language control' || return 1
-  require_fixed "$file" 'site-v180/site.js' 'shared interaction runtime' || return 1
+  require_fixed "$file" 'site-v190/site.js' 'shared interaction runtime' || return 1
   require_fixed "$file" 'data-carry' 'preference-carry link contract' || return 1
 }
 
@@ -68,7 +69,7 @@ check_adsense_surface(){
 
 check_home(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.8.0"' 'homepage site version' || return 1
+  require_fixed "$file" 'data-site-version="1.9.0"' 'homepage site version' || return 1
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
@@ -76,17 +77,18 @@ check_home(){
   require_fixed "$file" 'v1.23.0' 'homepage Moyu version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开开发' 'homepage public-development copy' || return 1
-  require_fixed "$file" 'site-v180/style.css' 'homepage v1.8.0 shared design' || return 1
-  require_fixed "$file" '游艺择签' 'homepage game chooser' || return 1
-  require_fixed "$file" 'wang-jian-landscape-1668.jpg' 'homepage landscape artwork' || return 1
-  require_fixed "$file" '方寸屏间' 'homepage Chinese hero copy' || return 1
-  require_fixed "$file" '敬请期待' 'homepage future-game slot' || return 1
+  require_fixed "$file" 'site-v190/style.css' 'homepage v1.9.0 shared design' || return 1
+  require_fixed "$file" 'quick-pick' 'homepage quick pick' || return 1
+  require_fixed "$file" 'hero-showcase' 'homepage game-art hero' || return 1
+  require_fixed "$file" '浏览器游戏' 'homepage Chinese hero copy' || return 1
+  require_fixed "$file" '下一款开发中' 'homepage future-game slot' || return 1
   require_fixed "$file" 'game-media-moyu' 'homepage Moyu visual cover hook' || return 1
+  require_fixed "$file" 'dungeon-roster.webp' 'homepage Dungeon visual cover hook' || return 1
   require_fixed "$file" 'id="navToggle"' 'homepage mobile directory control' || return 1
-  require_fixed "$file" '来处、规矩与回音。' 'homepage records heading' || return 1
+  require_fixed "$file" '关于、隐私与联系。' 'homepage records heading' || return 1
   require_fixed "$file" 'mailto:diaow2331@gmail.com' 'homepage visible contact email' || return 1
-  require_fixed "$file" '游戏运行界面本身不作为广告展示面' 'homepage ad-surface disclosure' || return 1
-  grep -Eq 'Small screen\.|方寸屏间' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage Chinese editorial headline' >&2; return 1; }
+  require_fixed "$file" '游戏界面本身不放广告' 'homepage ad-surface disclosure' || return 1
+  grep -Eq 'Browser games|浏览器游戏' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage direct game headline' >&2; return 1; }
   check_social_contract "$file" 'https://91hwl.cn/' '91hwl · Browser Games' || return 1
   check_pref_contract "$file" || return 1
   check_adsense_surface "$file" 'homepage' || return 1
@@ -94,7 +96,7 @@ check_home(){
 
 check_de_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.8.0"' 'Dungeon Echo detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.9.0"' 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.4.2"' 'Dungeon Echo detail software version' || return 1
   require_fixed "$file" '1120×460 可步行广场' 'Dungeon Echo v1.4.2 town release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
@@ -111,7 +113,7 @@ check_de_detail(){
 
 check_moyu_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.8.0"' 'Moyu detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.9.0"' 'Moyu detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.23.0"' 'Moyu detail software version' || return 1
   require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
   require_fixed "$file" '四幕皆有新声' 'Moyu current Chinese release copy' || return 1
@@ -126,9 +128,9 @@ check_trust_page(){
   require_fixed "$file" "$marker" "$label content" || return 1
   require_fixed "$file" "rel=\"canonical\" href=\"$canonical\"" "$label canonical" || return 1
   require_fixed "$file" 'name="robots" content="index,follow"' "$label robots" || return 1
-  require_fixed "$file" 'data-site-version="1.8.0"' "$label site version" || return 1
-  require_fixed "$file" 'site-v180/style.css' "$label shared design" || return 1
-  require_fixed "$file" 'site-v180/site.js' "$label shared interactions" || return 1
+  require_fixed "$file" 'data-site-version="1.9.0"' "$label site version" || return 1
+  require_fixed "$file" 'site-v190/style.css' "$label shared design" || return 1
+  require_fixed "$file" 'site-v190/site.js' "$label shared interactions" || return 1
   require_fixed "$file" "$ADSENSE_CLIENT" "$label AdSense client" || return 1
   require_fixed "$file" 'data-lang-choice="zh"' "$label zh control" || return 1
   require_fixed "$file" 'data-lang-choice="en"' "$label en control" || return 1
@@ -142,13 +144,14 @@ check_main_origin(){
   fetch "$work_dir/origin-home.html" --resolve "$MAIN_RESOLVE" "$HOME_URL" && check_home "$work_dir/origin-home.html" || return 1
   fetch "$work_dir/origin-de.html" --resolve "$MAIN_RESOLVE" "$DE_DETAIL_URL" && check_de_detail "$work_dir/origin-de.html" || return 1
   fetch "$work_dir/origin-moyu.html" --resolve "$MAIN_RESOLVE" "$MOYU_DETAIL_URL" && check_moyu_detail "$work_dir/origin-moyu.html" || return 1
-  fetch "$work_dir/origin-about.html" --resolve "$MAIN_RESOLVE" "$ABOUT_URL" && check_trust_page "$work_dir/origin-about.html" '一方小站，二种玩法。' "$ABOUT_URL" 'About page' || return 1
-  fetch "$work_dir/origin-privacy.html" --resolve "$MAIN_RESOLVE" "$PRIVACY_URL" && check_trust_page "$work_dir/origin-privacy.html" '隐私案卷' "$PRIVACY_URL" 'Privacy page' || return 1
-  fetch "$work_dir/origin-contact.html" --resolve "$MAIN_RESOLVE" "$CONTACT_URL" && check_trust_page "$work_dir/origin-contact.html" '把问题说清，把回音留下。' "$CONTACT_URL" 'Contact page' || return 1
-  fetch "$work_dir/origin-style.css" --resolve "$MAIN_RESOLVE" "$STYLE_URL" && require_fixed "$work_dir/origin-style.css" '.draw-section' 'shared Chinese design CSS' || return 1
+  fetch "$work_dir/origin-about.html" --resolve "$MAIN_RESOLVE" "$ABOUT_URL" && check_trust_page "$work_dir/origin-about.html" '这是一个独立浏览器游戏站。' "$ABOUT_URL" 'About page' || return 1
+  fetch "$work_dir/origin-privacy.html" --resolve "$MAIN_RESOLVE" "$PRIVACY_URL" && check_trust_page "$work_dir/origin-privacy.html" '隐私说明' "$PRIVACY_URL" 'Privacy page' || return 1
+  fetch "$work_dir/origin-contact.html" --resolve "$MAIN_RESOLVE" "$CONTACT_URL" && check_trust_page "$work_dir/origin-contact.html" '如何提交有效反馈' "$CONTACT_URL" 'Contact page' || return 1
+  fetch "$work_dir/origin-style.css" --resolve "$MAIN_RESOLVE" "$STYLE_URL" && require_fixed "$work_dir/origin-style.css" '.hero-showcase' 'shared modern Chinese design CSS' || return 1
   fetch "$work_dir/origin-site.js" --resolve "$MAIN_RESOLVE" "$SCRIPT_URL" && require_fixed "$work_dir/origin-site.js" 'data-game-choice' 'shared interactive chooser runtime' || return 1
   fetch "$work_dir/origin-art.jpg" --resolve "$MAIN_RESOLVE" "$ART_URL" && test -s "$work_dir/origin-art.jpg" || return 1
   fetch "$work_dir/origin-moyu-cover.jpg" --resolve "$MAIN_RESOLVE" "$MOYU_COVER_URL" && test -s "$work_dir/origin-moyu-cover.jpg" || return 1
+  fetch "$work_dir/origin-dungeon-cover.webp" --resolve "$MAIN_RESOLVE" "$DE_COVER_URL" && test -s "$work_dir/origin-dungeon-cover.webp" || return 1
   local ads
   ads="$(curl -fsSL --noproxy '*' --resolve "$MAIN_RESOLVE" "$ADS_URL" | tr -d '\r\n')"
   test "$ads" = "$ADS_LINE" || return 1
@@ -170,13 +173,14 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
   if fetch "$work_dir/public-home.html" "${HOME_URL}?release=$revision" && check_home "$work_dir/public-home.html" \
       && fetch "$work_dir/public-de.html" "${DE_DETAIL_URL}?release=$revision" && check_de_detail "$work_dir/public-de.html" \
       && fetch "$work_dir/public-moyu.html" "${MOYU_DETAIL_URL}?release=$revision" && check_moyu_detail "$work_dir/public-moyu.html" \
-      && fetch "$work_dir/public-about.html" "${ABOUT_URL}?release=$revision" && check_trust_page "$work_dir/public-about.html" '一方小站，二种玩法。' "$ABOUT_URL" 'About page' \
-      && fetch "$work_dir/public-privacy.html" "${PRIVACY_URL}?release=$revision" && check_trust_page "$work_dir/public-privacy.html" '隐私案卷' "$PRIVACY_URL" 'Privacy page' \
-      && fetch "$work_dir/public-contact.html" "${CONTACT_URL}?release=$revision" && check_trust_page "$work_dir/public-contact.html" '把问题说清，把回音留下。' "$CONTACT_URL" 'Contact page' \
-      && fetch "$work_dir/public-style.css" "${STYLE_URL}?release=$revision" && require_fixed "$work_dir/public-style.css" '.draw-section' 'public shared Chinese design CSS' \
+      && fetch "$work_dir/public-about.html" "${ABOUT_URL}?release=$revision" && check_trust_page "$work_dir/public-about.html" '这是一个独立浏览器游戏站。' "$ABOUT_URL" 'About page' \
+      && fetch "$work_dir/public-privacy.html" "${PRIVACY_URL}?release=$revision" && check_trust_page "$work_dir/public-privacy.html" '隐私说明' "$PRIVACY_URL" 'Privacy page' \
+      && fetch "$work_dir/public-contact.html" "${CONTACT_URL}?release=$revision" && check_trust_page "$work_dir/public-contact.html" '如何提交有效反馈' "$CONTACT_URL" 'Contact page' \
+      && fetch "$work_dir/public-style.css" "${STYLE_URL}?release=$revision" && require_fixed "$work_dir/public-style.css" '.hero-showcase' 'public shared modern Chinese design CSS' \
       && fetch "$work_dir/public-site.js" "${SCRIPT_URL}?release=$revision" && require_fixed "$work_dir/public-site.js" 'data-game-choice' 'public chooser runtime' \
       && fetch "$work_dir/public-art.jpg" "${ART_URL}?release=$revision" && test -s "$work_dir/public-art.jpg" \
       && fetch "$work_dir/public-moyu-cover.jpg" "${MOYU_COVER_URL}?release=$revision" && test -s "$work_dir/public-moyu-cover.jpg" \
+      && fetch "$work_dir/public-dungeon-cover.webp" "${DE_COVER_URL}?release=$revision" && test -s "$work_dir/public-dungeon-cover.webp" \
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
       && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.4.2' \
       && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.23.0'; then
@@ -185,7 +189,7 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
   fi
   if (( attempt < ATTEMPTS )); then sleep "$DELAY"; fi
 done
-test "$public_ok" = true || fail "public site v1.8.0 check failed after $ATTEMPTS attempts"
+test "$public_ok" = true || fail "public site v1.9.0 check failed after $ATTEMPTS attempts"
 
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"
