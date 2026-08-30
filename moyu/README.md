@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.14.1**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.15.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -57,6 +57,12 @@ All v1.12.x gameplay systems remain intact: Daily Shift, scene-specific hazards,
 v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
+
+## v1.15.0 experience pass
+
+v1.15.0 addresses the remaining whole-game roughness rather than adding another mechanic. Portrait phones now use a cropped camera-style presentation of the unchanged 1200×620 logical world, increasing the active run view from roughly 382×197 to 382×318 displayed pixels while preserving physics and collision coordinates. The opening screen also drops brochure/archive panels so the playfield becomes the product immediately.
+
+The hero visual grows from 92 to 104 display pixels without changing its 44×66 body. Running scenes gain restrained far/near motion planes and edge depth so the office reads as moving space instead of a static illustration. Desktop menu hierarchy is simplified at the same time.
 
 ## v1.14.1 hazard art pass
 

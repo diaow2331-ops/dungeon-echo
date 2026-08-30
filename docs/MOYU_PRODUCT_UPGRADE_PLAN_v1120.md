@@ -2,7 +2,7 @@
 
 基线：Moyu v1.11.5。目标不是把它改成第二个 Dungeon Echo，而是保留“一看就会、一次只需要跳跃”的办公室跑酷身份，同时把显示、风险决策、场景差异和重玩价值补到可长期留在 91hwl 首页的水平。
 
-实施状态（2026-08-30）：**P0/P1、Daily Shift、v1.13.0 Playfield First、v1.13.1 game-feel pass 与 v1.14.0 sprite art pass 与 v1.14.1 hazard art pass 已完成**——canonical `moyu/game.js`、PC/手机 viewport-first、场景专属判断、风险拾取、分层 near-miss、本地跑局记录与按日期固定 seed 的 Daily Shift 均保留；v1.13.0 将活跃跑局收拢为 playfield-first，v1.13.1 补齐 Perfect Near Miss、Combo Flow、二段跳、落地与老板突击反馈，v1.14.0 再把主角升级为受版本与校验约束的 4×4 透明动作图集，并保持 44×66 物理体、碰撞与跳跃曲线不变。v1.14.1 已完成 Boss/BUG/临时需求/邮件/咖啡渍/哑铃的绘制层统一，碰撞与节奏保持原样。P2 fast-fall 仍后置，避免在没有明确落点控制证据时继续增加输入。
+实施状态（2026-08-30）：**P0/P1、Daily Shift、v1.13.0 Playfield First、v1.13.1 game-feel pass 与 v1.14.0 sprite art pass、v1.14.1 hazard art pass 与 v1.15.0 experience pass 已完成**——canonical `moyu/game.js`、PC/手机 viewport-first、场景专属判断、风险拾取、分层 near-miss、本地跑局记录与按日期固定 seed 的 Daily Shift 均保留；v1.13.0 将活跃跑局收拢为 playfield-first，v1.13.1 补齐 Perfect Near Miss、Combo Flow、二段跳、落地与老板突击反馈，v1.14.0 再把主角升级为受版本与校验约束的 4×4 透明动作图集，并保持 44×66 物理体、碰撞与跳跃曲线不变。v1.14.1 已完成 Boss/BUG/临时需求/邮件/咖啡渍/哑铃的绘制层统一，碰撞与节奏保持原样。P2 fast-fall 仍后置，避免在没有明确落点控制证据时继续增加输入。
 
 ## 1. 真实试玩结论
 
