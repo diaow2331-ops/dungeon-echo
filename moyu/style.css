@@ -233,3 +233,7 @@ html[data-game-state="menu"] .menu-fact{border-color:#a9a297;background:rgba(255
 .mistake-chip{font-weight:900;transition:background .16s ease,transform .16s ease}
 .mistake-chip[data-level=warn]{background:rgba(240,212,135,.94)!important}
 .mistake-chip[data-level=danger]{background:rgba(242,196,173,.96)!important;transform:translateY(-1px)}
+
+/* v1.24 active-buff readability: temporary power-ups stay visible while playing, including portrait mobile. */
+.buff-chip:not(.hidden){display:inline-block!important;background:rgba(240,212,135,.94)!important;font-weight:850}
+@media(max-width:720px){html[data-game-state="playing"] .buff-chip:not(.hidden),html[data-game-state="ending"] .buff-chip:not(.hidden){display:inline-block!important;position:absolute;left:6px;top:30px;max-width:min(218px,72vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(240,212,135,.97)!important;box-shadow:2px 2px 0 rgba(23,23,23,.16)}}

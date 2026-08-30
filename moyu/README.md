@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.23.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.24.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -59,6 +59,10 @@ v1.12.3 adds an optional local **Daily Shift** without changing the normal rando
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
 
 
+
+## v1.24.0 original-art coherence + readable temporary buffs
+
+v1.24.0 keeps the four-minute route and forgiving three-strike loop, but replaces the temporary Canvas redraws with compact runtime crops from the original high-resolution Moyu office-runner art board. Boss patrol/rush, BUG normal/tall/long, request drops, urgent mail, coffee spills, dumbbells, meeting-door identity art and Coffee / Risk Form / Leave Slip pickups now share the same source artwork. Boss and BUG telegraphs are longer, request landing warnings are clearer, pickup collection is slightly more forgiving, and active temporary buffs remain visible in the HUD.
 
 ## v1.23.0 reused office art atlas
 

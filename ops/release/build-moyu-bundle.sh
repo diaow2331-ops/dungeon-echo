@@ -14,7 +14,7 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v node >/dev/null
-release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero.png assets/sprites/hero.json assets/sprites/office-hazards-v123.webp)
+release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero.png assets/sprites/hero.json assets/sprites/office-hazards-v124.webp)
 for rel in "${release_files[@]}"; do
   file="$source_root/$rel"
   test -r "$file" || { echo "missing Moyu release source: $rel" >&2; exit 2; }
@@ -35,10 +35,14 @@ grep -Fq 'id="lastRunSummary"' "$source_root/index.html"
 grep -Fq 'id="topRunHistory"' "$source_root/index.html"
 grep -Fq 'id="dailyBtn"' "$source_root/index.html"
 grep -Fq 'id="dailyBadge"' "$source_root/index.html"
+grep -Fq 'id="buffChip"' "$source_root/index.html"
+grep -Fq 'function syncBuffHud()' "$source_root/game.js"
+grep -Fq 'function pickupGrabBox(p)' "$source_root/game.js"
+grep -Fq 'LEAVE_SLIP_DURATION=12' "$source_root/game.js"
 grep -Fq 'function gameRandom()' "$source_root/game.js"
 grep -Fq 'function drawGameFeelFx()' "$source_root/game.js"
 grep -Fq 'function updateComboHud()' "$source_root/game.js"
-grep -Fq 'rushWarnTimer=.34' "$source_root/game.js"
+grep -Fq 'BOSS_RUSH_WARNING=.48' "$source_root/game.js"
 grep -Fq '.combo-chip:after' "$source_root/style.css"
 grep -Fq 'function setDailyMode(enabled)' "$source_root/game.js"
 grep -Fq 'dailyModifierDefs' "$source_root/game.js"
@@ -62,7 +66,7 @@ grep -Fq "name:'会议室 · 偷偷走神'" "$source_root/game.js"
 grep -Fq "name:'茶水间 · 咖啡续杯'" "$source_root/game.js"
 grep -Fq "name:'健身房 · 下班冲刺'" "$source_root/game.js"
 grep -Fq "if(raw===null||raw==='')return fallback" "$source_root/game.js"
-grep -Fq "o.rush&&!o.rushTriggered&&o.x<545" "$source_root/game.js"
+grep -Fq "o.rush&&!o.rushTriggered&&o.x<610" "$source_root/game.js"
 grep -Fq "unlockDiscovery(def.discovery,true)" "$source_root/game.js"
 grep -Fq 'JUMP_GRAVITY=1750' "$source_root/game.js"
 ! grep -Fq 'spawnPickupChoice' "$source_root/game.js"
@@ -101,11 +105,11 @@ grep -Fq 'function drawRequestArt(o)' "$source_root/game.js"
 grep -Fq 'function drawSmallHazardArt(o)' "$source_root/game.js"
 grep -Fq 'const OFFICE_HAZARD_ATLAS=' "$source_root/game.js"
 grep -Fq 'function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1)' "$source_root/game.js"
-grep -Fq 'assets/sprites/office-hazards-v123.webp?v=1230' "$source_root/game.js"
+grep -Fq 'assets/sprites/office-hazards-v124.webp?v=1240' "$source_root/game.js"
 grep -Fq 'debugHazardAtlas' "$source_root/game.js"
 grep -Fq 'function drawPlayerVector()' "$source_root/game.js"
 test "$(sha256sum "$source_root/assets/sprites/hero.png" | awk '{print $1}')" = '2f147d3df80180c23d32e58d4a33daea52e2a8bd43986fd6f312245f728160fa'
-test "$(sha256sum "$source_root/assets/sprites/office-hazards-v123.webp" | awk '{print $1}')" = '63b800809f6675b5dc28ebc9049b6c65101f2eef9ea57333810116f492acb5f1'
+test "$(sha256sum "$source_root/assets/sprites/office-hazards-v124.webp" | awk '{print $1}')" = '93b2583d42dc79a999ddf7f1761067eb9b516249193bbc33412b9bcd8be9ff56'
 grep -Fq 'window.visualViewport' "$source_root/game.js"
 grep -Fq 'env(safe-area-inset-bottom)' "$source_root/responsive-v1120.css"
 grep -Fq '@media(max-width:700px) and (orientation:portrait)' "$source_root/responsive-v1120.css"
