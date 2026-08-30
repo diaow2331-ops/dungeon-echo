@@ -1514,7 +1514,7 @@ function drawPlayerVector(){
 }
 
 const HERO_SPRITE={
-  src:'assets/sprites/hero.png?v=1140',cell:96,cols:4,baselineY:91,display:96,
+  src:'assets/sprites/hero-v124.webp?v=1240',cell:80,cols:4,baselineY:76,display:96,
   idle:[0,1],run:[2,3,6,5,7,4],jumpStart:8,jump:[9,10],doubleJump:11,fall:12,land:13,hurt:14,victory:15
 };
 const heroSpriteImage=new Image();let heroSpriteReady=false,heroSpriteFailed=false;
@@ -1535,14 +1535,15 @@ function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1){
   ctx.save();ctx.globalAlpha*=alpha;ctx.imageSmoothingEnabled=true;ctx.drawImage(officeHazardImage,sx,sy,sw,sh,dx,dy,dw,dh);ctx.restore();return true
 }
 
+function heroRunFrameStep(){return 38+Math.max(0,Math.min(18,(speed-350)*.038))}
 function heroSpriteFrame(){
   const grounded=player.y>=GROUND-player.h-1;
   if(state==='ending'&&endingCinematicType==='ontime')return HERO_SPRITE.victory;
   if(state==='gameover'||(state==='playing'&&hitFlashTimer>0))return HERO_SPRITE.hurt;
   if(grounded&&player.squash>.025)return HERO_SPRITE.land;
-  if(!grounded){if(player.vy>120)return HERO_SPRITE.fall;if(player.jumps===1&&player.squash>.065&&player.vy<-520)return HERO_SPRITE.jumpStart;return player.vy<-280?HERO_SPRITE.jump[0]:HERO_SPRITE.jump[1]}
+  if(!grounded){if(player.vy>120)return HERO_SPRITE.fall;if(player.jumps>=2&&airBurstTimer>0)return HERO_SPRITE.doubleJump;if(player.jumps===1&&player.squash>.065&&player.vy<-520)return HERO_SPRITE.jumpStart;return player.vy<-280?HERO_SPRITE.jump[0]:HERO_SPRITE.jump[1]}
   if(state==='playing'||state==='ending'){
-    const i=Math.floor(visualScrollPx/38)%HERO_SPRITE.run.length;return HERO_SPRITE.run[i]
+    const i=Math.floor(visualScrollPx/heroRunFrameStep())%HERO_SPRITE.run.length;return HERO_SPRITE.run[i]
   }
   return HERO_SPRITE.idle[Math.floor(worldTime*2)%HERO_SPRITE.idle.length]
 }
@@ -1733,7 +1734,7 @@ if(DEBUG_MODE)window.__GAME_TEST__={
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],visualScrollPx,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
   debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
-  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display}),debugHazardAtlas:()=>({ready:officeHazardReady,failed:officeHazardFailed,src:OFFICE_HAZARD_ATLAS.src,frames:{...OFFICE_HAZARD_ATLAS.frames}}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
+  debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display,runStep:+heroRunFrameStep().toFixed(2)}),debugHazardAtlas:()=>({ready:officeHazardReady,failed:officeHazardFailed,src:OFFICE_HAZARD_ATLAS.src,frames:{...OFFICE_HAZARD_ATLAS.frames}}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
   debugSpawn:(label)=>spawnObstacle(label),debugSpawnPickup:(kind='coffee')=>{spawnPickup(kind);return pickups[pickups.length-1]},debugStep:(dt=.016)=>{if(state!=='playing'&&state!=='ending')state='playing';update(dt);return window.__GAME_TEST__.getState()},
   debugPassNear:(tier=1,boost=false)=>{riskBoostTimer=boost?7:0;const gap=tier===2?6:18,o={label:'BUG',x:player.x-70,y:player.y+player.h+gap,w:56,h:38,air:false,passed:false,mutationState:'idle'};const before=distance;passObstacle(o);return {delta:distance-before,tier,boost,runNearMisses,runPerfectNearMisses,riskBoostTimer}},
   debugUseLeaveSlip:(label='BUG')=>{leaveSlipHits=1;leaveSlipTimer=LEAVE_SLIP_DURATION;const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};const saved=absorbWithLeaveSlip(o);return {saved,leaveSlipHits,leaveSlipTimer,combo,passed:o.passed,x:o.x}},
