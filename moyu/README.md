@@ -1,12 +1,12 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.26.3**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.26.4**. Production route: `https://play.91hwl.cn/moyu/`.
 
-## v1.26.3 runner readability and stage fill
+## v1.26.4 unified world floor and perspective
 
-v1.26.3 keeps the approved v1.26.1 hero/hazard/background assets, but changes how the runner world is composed. The first workstation pod is shifted out of the fixed runner corridor so no desk support can hang directly above the hero. A soft scene-tinted clearance field and runner halo reserve silhouette contrast without changing hitboxes.
+v1.26.4 removes the last "separate platform" look from the runner view. Each room now skips the dead source gap between foreground furniture and the real SVG floor, then projects that floor with a lightweight perspective sampler so tile seams converge toward the office set instead of reading like a flat wall. The artificial white runway is gone; the hero and hazards stand directly on the same scene floor, with only a thin contact edge and a 28px foreground speed lip retained.
 
-The scene now fills the playfield behind the HUD instead of leaving an 82px dead header band. v1.26.3 also removes the false depth gap between the office set and the runner: each room now uses its own source-floor join (Workstation 604, Meeting 545, Pantry 442, Gym 480) and compresses only that depth strip into the short perspective zone above the physical runway. Furniture, room floor, hero and hazards therefore occupy one continuous space instead of reading as separate stacked images. The 136px runner display still keeps the original 44×66 physics body; route length, obstacle cadence, three-strike buffer and endings remain unchanged.
+The runner sprite is visually raised to 148px while the original 44×66 physics body remains unchanged. Ground hazards are also drawn larger for one consistent foreground scale: normal BUG, mutated BUG, request, mail, spill and dumbbell art all gain visual presence without changing collision geometry. Circular runner halos are removed because the unified depth plane now provides readability naturally. Route length, obstacle cadence, three-strike buffer and endings remain unchanged.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 

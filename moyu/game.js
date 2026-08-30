@@ -1055,59 +1055,50 @@ function officeSkyColor(){
   const p=Math.min(1,runDistance/DAY_END_DISTANCE);if(p<.35)return '#dcecf3';if(p<.68)return '#eadfc5';if(p<.90)return '#e7b98f';return '#8d8aa4';
 }
 const SCENE_BACKDROPS=[
-  'assets/scenes-v126/workstation.svg?v=1263',
-  'assets/scenes-v126/meeting.svg?v=1263',
-  'assets/scenes-v126/pantry.svg?v=1263',
-  'assets/scenes-v126/gym.svg?v=1263'
+  'assets/scenes-v126/workstation.svg?v=1264',
+  'assets/scenes-v126/meeting.svg?v=1264',
+  'assets/scenes-v126/pantry.svg?v=1264',
+  'assets/scenes-v126/gym.svg?v=1264'
 ];
 const sceneBackdropImages=SCENE_BACKDROPS.map(src=>{const img=new Image();img.decoding='async';img.src=src;return img});
 let sceneBackdropReady=sceneBackdropImages.map(()=>false),sceneBackdropFailed=sceneBackdropImages.map(()=>false);
 sceneBackdropImages.forEach((img,i)=>{img.onload=()=>{sceneBackdropReady[i]=true;sceneBackdropFailed[i]=false;draw()};img.onerror=()=>{sceneBackdropFailed[i]=true;sceneBackdropReady[i]=false}});
 function drawRunnerBackdropClearance(i){
-  if(state==='menu')return;
-  const cx=player.x+player.w*.5,cy=GROUND-102,tones=[[244,242,233],[243,243,239],[245,240,232],[245,222,187]],tone=tones[Math.max(0,Math.min(3,i))];
-  const glow=ctx.createRadialGradient(cx,cy,18,cx,cy,154);glow.addColorStop(0,`rgba(${tone[0]},${tone[1]},${tone[2]},.46)`);glow.addColorStop(.43,`rgba(${tone[0]},${tone[1]},${tone[2]},.27)`);glow.addColorStop(.76,`rgba(${tone[0]},${tone[1]},${tone[2]},.10)`);glow.addColorStop(1,`rgba(${tone[0]},${tone[1]},${tone[2]},0)`);
-  ctx.fillStyle=glow;ctx.fillRect(cx-170,cy-170,340,325);
+  // v1.26.4: no artificial bubble around the runner; depth and contact shadow provide separation.
+  return
+}
+function drawPerspectiveSceneFloor(img,sx,sw,srcFloor,srcBottom,worldJoin,floorBottom){
+  const steps=44,srcH=srcBottom-srcFloor,dstH=floorBottom-worldJoin;
+  for(let n=0;n<steps;n++){
+    const t0=n/steps,t1=(n+1)/steps,tm=(t0+t1)*.5,s0=Math.sqrt(t0),s1=Math.sqrt(t1);
+    const sy=srcFloor+s0*srcH,sh=Math.max(1,(s1-s0)*srcH+1),floorSw=sw*(1-.18*tm),floorSx=sx+(sw-floorSw)*.5;
+    const dy=worldJoin+t0*dstH,dh=(t1-t0)*dstH+1;
+    ctx.drawImage(img,floorSx,sy,floorSw,sh,0,dy,W,dh)
+  }
 }
 function drawSceneBackdrop(idx){
   const i=Math.max(0,Math.min(3,idx|0)),img=sceneBackdropImages[i];if(!sceneBackdropReady[i]||sceneBackdropFailed[i])return false;
-  // v1.26.3: split environment and floor perspective so the runner belongs to the same physical room.
-  const srcW=1920,srcTop=82,srcBottom=820,srcFloor=[604,545,442,480][i],worldJoin=[418,414,408,408][i],runwayJoin=GROUND-34;
-  const targetAspect=W/worldJoin,envH=srcFloor-srcTop;let sw=envH*targetAspect;if(sw>srcW)sw=srcW;const sx=Math.max(0,(srcW-sw)*.5);
-  ctx.save();ctx.fillStyle='#101823';ctx.fillRect(0,0,W,H);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.beginPath();ctx.rect(0,0,W,GROUND+1);ctx.clip();
+  // v1.26.4: skip dead source depth and let the scene floor continue beneath the runner.
+  const srcW=1920,srcTop=82,srcBottom=820,contentEnd=[604,545,442,480][i],srcFloor=604,worldJoin=[442,438,432,436][i],floorBottom=H-28;
+  const targetAspect=W/worldJoin,envH=contentEnd-srcTop;let sw=envH*targetAspect;if(sw>srcW)sw=srcW;const sx=Math.max(0,(srcW-sw)*.5);
+  ctx.save();ctx.fillStyle='#101823';ctx.fillRect(0,0,W,H);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.beginPath();ctx.rect(0,0,W,floorBottom+1);ctx.clip();
   ctx.filter='saturate(.88) contrast(.945) brightness(1.005)';
-  // Environment stays readable and proportionate.
   ctx.drawImage(img,sx,srcTop,sw,envH,0,0,W,worldJoin);
-  // Compress only the source-floor depth. This removes the dead 110–150px band without moving physics.
-  ctx.drawImage(img,sx,srcFloor,sw,srcBottom-srcFloor,0,worldJoin,W,runwayJoin-worldJoin);
+  drawPerspectiveSceneFloor(img,sx,sw,srcFloor,srcBottom,worldJoin,floorBottom);
   ctx.filter='none';drawRunnerBackdropClearance(i);
-  const grade=ctx.createLinearGradient(0,0,0,GROUND);grade.addColorStop(0,'rgba(255,252,245,.025)');grade.addColorStop(.72,'rgba(9,18,31,.01)');grade.addColorStop(1,'rgba(255,248,235,.045)');ctx.fillStyle=grade;ctx.fillRect(0,0,W,GROUND);
-  if(stageIndex>=4){ctx.fillStyle='rgba(72,55,78,.08)';ctx.fillRect(0,0,W,GROUND)}ctx.restore();return true
+  const grade=ctx.createLinearGradient(0,0,0,floorBottom);grade.addColorStop(0,'rgba(255,252,245,.02)');grade.addColorStop(.74,'rgba(9,18,31,.008)');grade.addColorStop(1,'rgba(255,248,235,.025)');ctx.fillStyle=grade;ctx.fillRect(0,0,W,floorBottom);
+  if(stageIndex>=4){ctx.fillStyle='rgba(72,55,78,.07)';ctx.fillRect(0,0,W,floorBottom)}ctx.restore();return true
 }
 function drawAssetRunway(){
-  // v1.26.2: scene-tinted runner track with a quieter physical foreground edge.
-  const laneTop=GROUND-34,fasciaTop=GROUND+45,pal=[
-    ['#f3f0e8','#ddd9d1','#c9c6bf','#35424a','#76a7bb'],['#f1f0eb','#d9d7d1','#c7c6c2','#303a44','#8795b8'],
-    ['#f4eee6','#dfd5c9','#c9beb2','#4a4239','#b49b70'],['#efefeb','#d4d4d1','#c1c1bf','#39383f','#9b8eb3']
-  ][Math.max(0,Math.min(3,sceneIndex))];ctx.save();
-  const lane=ctx.createLinearGradient(0,laneTop,0,fasciaTop);lane.addColorStop(0,pal[0]);lane.addColorStop(.42,pal[1]);lane.addColorStop(1,pal[2]);ctx.fillStyle=lane;ctx.fillRect(0,laneTop,W,fasciaTop-laneTop);
-  ctx.fillStyle='rgba(255,255,255,.72)';ctx.fillRect(0,laneTop,W,3);ctx.fillStyle='rgba(42,48,53,.18)';ctx.fillRect(0,laneTop+4,W,2);
-  // Tile joints begin below the character's feet so no vertical seam can visually cage the runner.
-  ctx.strokeStyle='rgba(92,91,88,.22)';ctx.lineWidth=1;const seam=-((visualScrollPx*.82)%180)-180;for(let x=seam;x<W;x+=180){ctx.beginPath();ctx.moveTo(x,GROUND+11);ctx.lineTo(x,fasciaTop);ctx.stroke()}
-  ctx.strokeStyle='rgba(255,255,255,.20)';ctx.beginPath();ctx.moveTo(0,GROUND+28.5);ctx.lineTo(W,GROUND+28.5);ctx.stroke();
-  // Strong, simple contact edge: this is the only line the eye needs to read as the collision floor.
-  ctx.fillStyle='rgba(255,255,255,.88)';ctx.fillRect(0,GROUND-2,W,2);ctx.fillStyle='rgba(25,31,36,.82)';ctx.fillRect(0,GROUND+2,W,4);ctx.fillStyle='rgba(25,31,36,.20)';ctx.fillRect(0,GROUND+8,W,1);
-  const marker=-((visualScrollPx*1.02)%150)-150;ctx.fillStyle='rgba(37,43,48,.26)';for(let x=marker;x<W;x+=150)ctx.fillRect(x,GROUND+19,46,3);
-  // Dark foreground fascia occupies the previously empty lower third and provides parallax speed.
-  const fascia=ctx.createLinearGradient(0,fasciaTop,0,H);fascia.addColorStop(0,pal[3]);fascia.addColorStop(.22,'#30373c');fascia.addColorStop(1,'#20272c');ctx.fillStyle=fascia;ctx.fillRect(0,fasciaTop,W,H-fasciaTop);
-  ctx.fillStyle='rgba(17,23,27,.92)';ctx.fillRect(0,fasciaTop,W,5);ctx.fillStyle='rgba(255,255,255,.09)';ctx.fillRect(0,fasciaTop+6,W,2);
-  // Continuous foreground speed belt: no card-shaped panels, so the lower edge reads as world geometry rather than webpage UI.
-  const accent=pal[4],belt=-((visualScrollPx*1.18)%210)-210;
-  ctx.fillStyle=accent;ctx.globalAlpha=.24;for(let x=belt;x<W;x+=210){ctx.beginPath();ctx.moveTo(x,fasciaTop+23);ctx.lineTo(x+72,fasciaTop+23);ctx.lineTo(x+94,fasciaTop+31);ctx.lineTo(x+22,fasciaTop+31);ctx.closePath();ctx.fill()}
-  ctx.globalAlpha=.12;ctx.fillStyle='#fff';const rail=-((visualScrollPx*1.42)%175)-175;for(let x=rail;x<W;x+=175)ctx.fillRect(x,fasciaTop+46,58,2);
-  ctx.globalAlpha=.22;ctx.strokeStyle=accent;ctx.lineWidth=2;const slash=-((visualScrollPx*1.28)%280)-280;for(let x=slash;x<W;x+=280){ctx.beginPath();ctx.moveTo(x,fasciaTop+66);ctx.lineTo(x+88,fasciaTop+66);ctx.lineTo(x+116,fasciaTop+74);ctx.stroke()}
-  ctx.globalAlpha=1;
-  const shade=ctx.createLinearGradient(0,H-42,0,H);shade.addColorStop(0,'rgba(8,12,15,0)');shade.addColorStop(1,'rgba(8,12,15,.34)');ctx.fillStyle=shade;ctx.fillRect(0,H-42,W,42);ctx.restore()
+  // v1.26.4: the runner stands on the scene floor; only contact readability and a thin foreground lip are overlaid.
+  const fasciaTop=H-28,pal=[['#35424a','#76a7bb'],['#303a44','#8795b8'],['#4a4239','#b49b70'],['#39383f','#9b8eb3']][Math.max(0,Math.min(3,sceneIndex))];ctx.save();
+  const contact=ctx.createLinearGradient(0,GROUND-8,0,GROUND+14);contact.addColorStop(0,'rgba(23,23,23,0)');contact.addColorStop(.55,'rgba(23,23,23,.07)');contact.addColorStop(1,'rgba(23,23,23,0)');ctx.fillStyle=contact;ctx.fillRect(0,GROUND-8,W,22);
+  ctx.fillStyle='rgba(255,255,255,.58)';ctx.fillRect(0,GROUND-1,W,1);ctx.fillStyle='rgba(25,31,36,.42)';ctx.fillRect(0,GROUND+2,W,2);
+  const marker=-((visualScrollPx*1.02)%160)-160;ctx.fillStyle='rgba(37,43,48,.16)';for(let x=marker;x<W;x+=160)ctx.fillRect(x,GROUND+24,42,2);
+  const fascia=ctx.createLinearGradient(0,fasciaTop,0,H);fascia.addColorStop(0,pal[0]);fascia.addColorStop(1,'#20272c');ctx.fillStyle=fascia;ctx.fillRect(0,fasciaTop,W,H-fasciaTop);
+  ctx.fillStyle='rgba(17,23,27,.72)';ctx.fillRect(0,fasciaTop,W,3);
+  const accent=pal[1],belt=-((visualScrollPx*1.18)%210)-210;ctx.fillStyle=accent;ctx.globalAlpha=.20;for(let x=belt;x<W;x+=210){ctx.beginPath();ctx.moveTo(x,fasciaTop+10);ctx.lineTo(x+68,fasciaTop+10);ctx.lineTo(x+84,fasciaTop+15);ctx.lineTo(x+16,fasciaTop+15);ctx.closePath();ctx.fill()}
+  ctx.globalAlpha=.10;ctx.fillStyle='#fff';const rail=-((visualScrollPx*1.42)%180)-180;for(let x=rail;x<W;x+=180)ctx.fillRect(x,fasciaTop+21,54,1.5);ctx.globalAlpha=1;ctx.restore()
 }
 function drawAuthenticScene(idx){if(!drawSceneBackdrop(idx))return false;drawAssetRunway();return true}
 function drawEndingDoor(){
@@ -1518,8 +1509,8 @@ function drawPlayerFocus(drawX,footY,altitude){
   const a=Math.max(.035,.075-altitude/4200);ctx.save();ctx.strokeStyle=`rgba(255,253,248,${a+.18})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(drawX+player.w/2,footY-31,26,40,0,0,Math.PI*2);ctx.stroke();ctx.restore();
 }
 function drawRunnerSilhouetteHalo(drawX,footY,altitude){
-  if(state!=='playing'&&state!=='ending')return;const cx=drawX+player.w*.5,cy=footY-58,r=72+Math.min(22,altitude*.08);
-  ctx.save();const g=ctx.createRadialGradient(cx,cy,12,cx,cy,r);g.addColorStop(0,'rgba(255,253,248,.16)');g.addColorStop(.48,'rgba(255,253,248,.075)');g.addColorStop(1,'rgba(255,253,248,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();ctx.restore();
+  // v1.26.4: no circular halo; keeping the sprite in the same visual plane as the room is more important.
+  return
 }
 function drawPlayerVector(){
   const grounded=player.y>=GROUND-player.h-1,airborne=!grounded;
@@ -1581,7 +1572,7 @@ function drawPlayerVector(){
 }
 
 const HERO_SPRITE={
-  src:'assets/sprites/hero-v125.webp?v=1263',cell:128,cols:4,baselineY:120,display:136,
+  src:'assets/sprites/hero-v125.webp?v=1264',cell:128,cols:4,baselineY:120,display:148,
   idle:[0,1],run:[2,3,4,5,6,7],jumpStart:8,jump:[9,10],doubleJump:11,fall:12,land:13,hurt:14,victory:15
 };
 const heroSpriteImage=new Image();let heroSpriteReady=false,heroSpriteFailed=false;
@@ -1668,7 +1659,7 @@ function drawBossArt(o){
 }
 function drawBugArt(o){
   const warn=o.mutationState==='warn',mut=o.mutationState==='done',pulse=warn?(.52+.48*Math.abs(Math.sin(worldTime*16))):1,cx=o.w*.5,cy=o.h*.54;
-  if(officeHazardReady){let key='bugNormal',dw=64,dh=58;if(o.mutationState==='grow'||o.mutationState==='done'){if(o.mutation==='long'){key='bugLong';dw=120;dh=62}else if(o.mutation==='tall'){key='bugTall';dw=68;dh=96}}const dx=o.w*.5-dw*.5,dy=o.h-dh+4;if(warn){ctx.save();ctx.globalAlpha=.16+.10*pulse;ctx.fillStyle='#d95a49';ctx.beginPath();ctx.ellipse(o.w*.5,o.h*.55,Math.max(30,o.w*.62),Math.max(23,o.h*.84),0,0,Math.PI*2);ctx.fill();ctx.restore()}drawOfficeHazardFrame(key,dx,dy,dw,dh,warn?.72+.28*pulse:1);if(warn){ctx.save();ctx.globalAlpha=pulse;ctx.fillStyle='#d95a49';ctx.font='950 18px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('!',o.w*.5,dy+5);ctx.restore()}return}
+  if(officeHazardReady){let key='bugNormal',dw=76,dh=68;if(o.mutationState==='grow'||o.mutationState==='done'){if(o.mutation==='long'){key='bugLong';dw=132;dh=70}else if(o.mutation==='tall'){key='bugTall';dw=78;dh=106}}const dx=o.w*.5-dw*.5,dy=o.h-dh+4;if(warn){ctx.save();ctx.globalAlpha=.16+.10*pulse;ctx.fillStyle='#d95a49';ctx.beginPath();ctx.ellipse(o.w*.5,o.h*.55,Math.max(30,o.w*.62),Math.max(23,o.h*.84),0,0,Math.PI*2);ctx.fill();ctx.restore()}drawOfficeHazardFrame(key,dx,dy,dw,dh,warn?.72+.28*pulse:1);if(warn){ctx.save();ctx.globalAlpha=pulse;ctx.fillStyle='#d95a49';ctx.font='950 18px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('!',o.w*.5,dy+5);ctx.restore()}return}
   const leg=Math.sin(worldTime*15+o.x*.03)*3;
   ctx.save();ctx.globalAlpha=pulse;
   if(warn){ctx.globalAlpha=.14+.10*pulse;ctx.fillStyle='#d95a49';ctx.beginPath();ctx.ellipse(cx,cy,Math.max(24,o.w*.58),Math.max(18,o.h*.72),0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=pulse}
@@ -1680,7 +1671,7 @@ function drawBugArt(o){
   ctx.globalAlpha=1;if(warn){ctx.fillStyle='#d95a49';ctx.font='950 18px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('!',cx,-8)}ctx.restore()
 }
 function drawRequestArt(o){
-  if(officeHazardReady){if(o.dropState==='warning'){const pulse=.45+.55*Math.abs(Math.sin(o.warningPulse)),target=o.targetY-o.y;ctx.save();ctx.globalAlpha=.24+.22*pulse;ctx.strokeStyle='#d95a49';ctx.lineWidth=3;ctx.setLineDash([8,7]);ctx.strokeRect(0,target,o.w,o.h);ctx.setLineDash([]);ctx.restore();drawOfficeHazardFrame('request',o.w*.5-42,target-68,84,104,.28+.18*pulse);return}const dw=86,dh=108;drawOfficeHazardFrame('request',o.w*.5-dw*.5,o.h-dh+8,dw,dh);return}
+  if(officeHazardReady){if(o.dropState==='warning'){const pulse=.45+.55*Math.abs(Math.sin(o.warningPulse)),target=o.targetY-o.y;ctx.save();ctx.globalAlpha=.24+.22*pulse;ctx.strokeStyle='#d95a49';ctx.lineWidth=3;ctx.setLineDash([8,7]);ctx.strokeRect(0,target,o.w,o.h);ctx.setLineDash([]);ctx.restore();drawOfficeHazardFrame('request',o.w*.5-42,target-68,84,104,.28+.18*pulse);return}const dw=94,dh=116;drawOfficeHazardFrame('request',o.w*.5-dw*.5,o.h-dh+10,dw,dh);return}
   if(o.dropState==='warning'){const pulse=.45+.55*Math.abs(Math.sin(o.warningPulse));ctx.globalAlpha=.30+.48*pulse;ctx.strokeStyle='#d95a49';ctx.lineWidth=3;ctx.setLineDash([8,7]);ctx.strokeRect(0,GROUND-o.y-o.h,o.w,o.h);ctx.setLineDash([]);ctx.fillStyle='#d95a49';ctx.font='950 22px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText(tr('↓ 临时需求'),o.w/2,GROUND-o.y-o.h-13);ctx.globalAlpha=1;return}
   ctx.fillStyle='#d9d2c6';ctx.strokeStyle='#171717';ctx.lineWidth=2;rr(4,10,58,42,5);ctx.fill();ctx.stroke();ctx.fillStyle='#fffefb';rr(9,5,58,42,5);ctx.fill();ctx.stroke();
   ctx.fillStyle='#f3d9c7';ctx.fillRect(16,13,38,8);ctx.fillStyle='#171717';ctx.fillRect(16,27,32,3);ctx.fillRect(16,35,25,3);ctx.fillRect(16,43,34,3);
@@ -1689,9 +1680,9 @@ function drawRequestArt(o){
   if(o.dropState==='fall'){ctx.strokeStyle='rgba(23,23,23,.32)';ctx.lineWidth=2;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(18+i*20,-22-i*5);ctx.lineTo(18+i*20,-8);ctx.stroke()}}
 }
 function drawSmallHazardArt(o){
-  if(officeHazardReady&&o.label==='咖啡渍'){const dw=102,dh=44;drawOfficeHazardFrame('coffeeSpill',o.w*.5-dw*.5,o.h-dh+8,dw,dh);return}
-  if(officeHazardReady&&o.label==='哑铃'){const dw=76,dh=48;drawOfficeHazardFrame('dumbbell',o.w*.5-dw*.5,o.h-dh+5,dw,dh);return}
-  if(officeHazardReady&&o.label==='邮件'){const bob=Math.sin(o.wave||0)*2;ctx.save();ctx.translate(o.w*.5,o.h*.5+bob);ctx.rotate(Math.sin((o.wave||0)*.7)*.08);drawOfficeHazardFrame('mail',-27,-34,54,68);ctx.restore();return}
+  if(officeHazardReady&&o.label==='咖啡渍'){const dw=112,dh=48;drawOfficeHazardFrame('coffeeSpill',o.w*.5-dw*.5,o.h-dh+8,dw,dh);return}
+  if(officeHazardReady&&o.label==='哑铃'){const dw=84,dh=52;drawOfficeHazardFrame('dumbbell',o.w*.5-dw*.5,o.h-dh+5,dw,dh);return}
+  if(officeHazardReady&&o.label==='邮件'){const bob=Math.sin(o.wave||0)*2;ctx.save();ctx.translate(o.w*.5,o.h*.5+bob);ctx.rotate(Math.sin((o.wave||0)*.7)*.08);drawOfficeHazardFrame('mail',-31,-38,62,76);ctx.restore();return}
   if(o.label==='咖啡渍'){
     ctx.fillStyle='rgba(88,58,39,.90)';ctx.strokeStyle='#171717';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(o.w*.50,o.h*.58,o.w*.47,o.h*.58,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.globalAlpha=.32;ctx.fillStyle='#f2d6bb';ctx.beginPath();ctx.ellipse(o.w*.30,o.h*.35,19,3,0,0,Math.PI*2);ctx.ellipse(o.w*.68,o.h*.67,13,2.4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1
   }else if(o.label==='哑铃'){
@@ -1796,7 +1787,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
 syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();updateDailyUi();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
-  initialized:true,canvas:Boolean(ctx),version:'1.26.3',dayEndDistance:DAY_END_DISTANCE,
+  initialized:true,canvas:Boolean(ctx),version:'1.26.4',dayEndDistance:DAY_END_DISTANCE,
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],visualScrollPx,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
   debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
@@ -1807,5 +1798,5 @@ if(DEBUG_MODE)window.__GAME_TEST__={
   debugClear:()=>{obstacles=[];pickups=[];return true},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,bars:p.mel.length/16,phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)})),debugMusicState:()=>{const p=profile();return {soundOn,musicVolume,sfxVolume,stageIndex,sceneIndex,profile:p.name,bpm:p.bpm,musicStep,bar:Math.floor((musicStep%MUSIC_PHRASE_STEPS)/16)+1,phraseCycle:Math.floor(musicStep/MUSIC_PHRASE_STEPS),phraseSeconds:+(MUSIC_PHRASE_STEPS*60/p.bpm/4).toFixed(1)}},debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();updateScene(true);updateSceneHalf(true);return {runDistance,stageIndex,sceneIndex,sceneHalf,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugHit:(label='BUG')=>{const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};takeObstacleHit(o);return {state,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,text:overlayText.textContent}},debugPass:(label='BUG',count=1)=>{for(let i=0;i<Math.max(1,Number(count)||1);i++)passObstacle({label,x:player.x-100,y:GROUND-40,w:56,h:38,passed:false,mutationState:'idle'});return {combo,mistakes,sceneIndex,recoveryUsed:[...sceneComboRecoveryUsed]}},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.26.3';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.26.4';
 })();
