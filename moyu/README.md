@@ -1,10 +1,10 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.26.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.26.1**. Production route: `https://play.91hwl.cn/moyu/`.
 
-## v1.26.0 authentic-art coherence
+## v1.26.1 authentic-art coherence
 
-v1.26.0 reconnects the runner and all four office rooms to the already approved `办公室跑酷像素素材图集.png`; no new artwork is generated. A tracked 4×4 hero atlas preserves the existing 44×66 physics body while improving the idle, run, jump, fall, hurt and victory silhouettes. A separate tracked 2×2 backdrop atlas supplies Workstation, Meeting, Pantry and Gym scenes with a shared visual language.
+v1.26.1 reconnects the runner and all four office rooms to the already approved `办公室跑酷像素素材图集.png`; no new artwork is generated. A tracked 4×4 hero atlas preserves the existing 44×66 physics body while improving the idle, run, jump, fall, hurt and victory silhouettes. A separate tracked 2×2 backdrop atlas supplies Workstation, Meeting, Pantry and Gym scenes with a shared visual language.
 
 The backdrop renderer adds only a readable collision runway and slow visual parallax. Jump gravity, hitboxes, route length, obstacle cadence, three-strike buffer and endings remain unchanged. Both manifests record the source title and SHA-256 so releases can verify provenance and exact bytes.
 
