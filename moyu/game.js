@@ -88,7 +88,7 @@ const MESSAGE_ENDPOINT=typeof runtimeConfig.messageEndpoint==='string'?runtimeCo
 const MESSAGE_ENABLED=Boolean(MESSAGE_ENDPOINT);
 const DEBUG_MODE=new URLSearchParams(location.search).get('debug')==='1';
 
-const W=1200,H=620,GROUND=505,DPR_LIMIT=2,DAY_END_DISTANCE=2200,COMBO_WINDOW=6.5;
+const W=1200,H=620,GROUND=505,DPR_LIMIT=2,DAY_END_DISTANCE=2200,RUN_PROGRESS_SCALE=.020,COMBO_WINDOW=6.5;
 const PLAYER_HIT={left:10,right:10,top:7,bottom:6},JUMP_BUFFER_WINDOW=.12;
 let last=0,raf=0,startLock=0,state='menu',distance=0,runDistance=0,speed=350,spawnTimer=0,pickupTimer=0,worldTime=0,tickerTimer=0;
 let obstacles=[],pickups=[],particles=[],floaters=[],speedLines=[];
@@ -851,7 +851,7 @@ function update(dt){
     for(const f of floaters){f.y+=f.vy*dt;f.a-=dt*.9}floaters=floaters.filter(f=>f.a>0);
     if(endingTimer<=0||exitDoorX<player.x+20)resolveEnding('overtime');return;
   }
-  speed=Math.min(820,350+runDistance*.11+(gymRushTimer>0?62:0));const step=speed*dt*.012;runDistance+=step;distance+=step;
+  speed=Math.min(820,350+runDistance*.11+(gymRushTimer>0?62:0));const step=speed*dt*RUN_PROGRESS_SCALE;runDistance+=step;distance+=step;
   scoreEl.textContent=Math.floor(distance);speedEl.textContent=(speed/350).toFixed(1);updateClock();if(endingPhase==='decision')return;updateStage();updateScene();updateSceneHalf();
   comboAge+=dt;updateComboHud();if(combo>0&&comboAge>COMBO_WINDOW){combo=0;comboEl.textContent='0';comboAge=0;updateComboHud();addFloater(player.x+60,player.y-10,tr('连摸断了'),'#6f6a61')}
   leaveSlipTimer=Math.max(0,leaveSlipTimer-dt);if(leaveSlipTimer===0)leaveSlipHits=0;riskBoostTimer=Math.max(0,riskBoostTimer-dt);
@@ -1061,7 +1061,7 @@ function drawWorkstationScene(){
   }
   ctx.fillStyle='#bdb3a4';ctx.fillRect(0,279,W,8);
 
-  const pod=-((runDistance*4.25)%380)-80;for(let i=-1;i<5;i++)drawWorkPod(i*380+pod,335);
+  const pod=-((runDistance*4.25)%380)-80;for(let i=-1;i<5;i++)drawWorkPod(i*380+pod,335);drawWorkstationLife(pod);
 }
 function drawMeetingPod(x,y){
   ctx.save();ctx.translate(x,y);
@@ -1096,7 +1096,7 @@ function drawMeetingRoomScene(){
     if(i%2===0){ctx.fillStyle='#262626';ctx.fillRect(x+56,126,122,48);ctx.fillStyle='#d7ecfb';ctx.fillRect(x+64,134,106,32);ctx.fillStyle='#6d96aa';ctx.fillRect(x+72,143,46,4);ctx.fillRect(x+72,153,70,4)}
     else{ctx.fillStyle='#fffdf8';ctx.strokeStyle='#7a746c';ctx.lineWidth=2;ctx.fillRect(x+62,128,114,44);ctx.strokeRect(x+62,128,114,44);ctx.fillStyle='#787169';ctx.fillRect(x+72,139,62,3);ctx.fillRect(x+72,149,40,3)}
   }
-  const module=-((runDistance*3.0)%500)-120;for(let i=-1;i<4;i++)drawMeetingPod(i*500+module,408);
+  const module=-((runDistance*3.0)%500)-120;for(let i=-1;i<4;i++)drawMeetingPod(i*500+module,408);drawMeetingLife(module);
 }
 function drawPantryPod(x,y){
   ctx.save();ctx.translate(x,y);
@@ -1126,7 +1126,7 @@ function drawPantryScene(){
     else{for(let c=0;c<3;c++){ctx.fillStyle='#c9bead';ctx.strokeStyle='#8e8578';ctx.lineWidth=1.5;ctx.fillRect(x+32+c*86,126,76,48);ctx.strokeRect(x+32+c*86,126,76,48);ctx.fillStyle='#777';ctx.fillRect(x+98+c*86,148,3,5)}}
     ctx.fillStyle='#a79a87';ctx.fillRect(x+300,240,42,34);ctx.fillStyle='#5d7f4d';ctx.fillRect(x+310,218,22,24);
   }
-  const pod=-((runDistance*3.25)%540)-120;for(let i=-1;i<4;i++)drawPantryPod(i*540+pod,370);
+  const pod=-((runDistance*3.25)%540)-120;for(let i=-1;i<4;i++)drawPantryPod(i*540+pod,370);drawPantryLife(pod);
 }
 function drawGymPod(x,y){
   ctx.save();ctx.translate(x,y);
@@ -1150,7 +1150,25 @@ function drawGymScene(){
   }
   // 墙上时钟与饮水提示
   ctx.fillStyle='#fffdf8';ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.beginPath();ctx.arc(96,146,17,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(96,146);ctx.lineTo(96,136);ctx.moveTo(96,146);ctx.lineTo(103,150);ctx.stroke();
-  const pod=-((runDistance*4.0)%520)-100;for(let i=-1;i<4;i++)drawGymPod(i*520+pod,418);
+  const pod=-((runDistance*4.0)%520)-100;for(let i=-1;i<4;i++)drawGymPod(i*520+pod,418);drawGymLife(pod);
+}
+function drawWorkstationLife(pod){
+  ctx.save();const blink=.45+.55*Math.abs(Math.sin(worldTime*3.4));
+  for(let i=-1;i<5;i++){const x=i*380+pod;ctx.globalAlpha=.20+.22*blink;ctx.fillStyle='#7ca2b5';ctx.fillRect(x+96,307,32+((i&1)*12),2);ctx.globalAlpha=.55;ctx.fillStyle='#8ad39c';ctx.fillRect(x+157,377,4,4)}
+  ctx.globalAlpha=.16;ctx.strokeStyle='#171717';ctx.lineWidth=1.5;const drift=(worldTime*34)%160;for(let x=-160+drift;x<W+160;x+=160){ctx.beginPath();ctx.moveTo(x,278);ctx.lineTo(x+26,278);ctx.stroke()}ctx.restore()
+}
+function drawMeetingLife(module){
+  ctx.save();const pulse=.5+.5*Math.sin(worldTime*2.1);
+  ctx.globalAlpha=.045+.025*pulse;ctx.fillStyle='#86a8b6';for(let i=-1;i<4;i++){const x=i*500+module+116;ctx.beginPath();ctx.moveTo(x,132);ctx.lineTo(x-74,366);ctx.lineTo(x+156,366);ctx.closePath();ctx.fill()}
+  ctx.globalAlpha=.26+.12*pulse;ctx.fillStyle='#6d96aa';for(let i=-1;i<5;i++){const x=i*460-((runDistance*1.42)%460)-460;ctx.fillRect(x+72,146,48+((i&1)*18),3)}
+  ctx.restore()
+}
+function drawPantryLife(pod){
+  ctx.save();ctx.strokeStyle='rgba(111,76,47,.34)';ctx.lineWidth=2;for(let i=-1;i<4;i++){const x=i*540+pod+112;for(let k=0;k<2;k++){const phase=(worldTime*32+k*19+i*11)%48;ctx.globalAlpha=Math.max(0,.30-phase/180);ctx.beginPath();ctx.arc(x+k*10,292-phase,7+phase*.08,Math.PI*.18,Math.PI*.82);ctx.stroke()}ctx.globalAlpha=.50;ctx.fillStyle='#f0d487';ctx.fillRect(i*540+pod+92,306,40*(.65+.35*Math.abs(Math.sin(worldTime*2.4+i))),2)}ctx.restore()
+}
+function drawGymLife(pod){
+  ctx.save();const belt=(worldTime*92)%54;ctx.strokeStyle='rgba(255,255,255,.30)';ctx.lineWidth=2;for(let i=-1;i<4;i++){const x=i*520+pod;for(let k=0;k<4;k++){const bx=x+22+((k*48+belt)%170);ctx.beginPath();ctx.moveTo(bx,409);ctx.lineTo(bx+18,409);ctx.stroke()}}
+  ctx.globalAlpha=.10;ctx.fillStyle='#6f7f92';const ghost=-((runDistance*.26)%420);for(let x=-420+ghost;x<W+420;x+=420){ctx.beginPath();ctx.ellipse(x+128,234,14,21,0,0,Math.PI*2);ctx.fill();ctx.fillRect(x+116,254,24,54)}ctx.restore()
 }
 function drawSceneByIndex(idx){if(idx===1)drawMeetingRoomScene();else if(idx===2)drawPantryScene();else if(idx===3)drawGymScene();else drawWorkstationScene()}
 function drawRareMomentFx(){
@@ -1548,7 +1566,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
 syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();updateDailyUi();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
-  initialized:true,canvas:Boolean(ctx),version:'1.15.0',dayEndDistance:DAY_END_DISTANCE,
+  initialized:true,canvas:Boolean(ctx),version:'1.16.0',dayEndDistance:DAY_END_DISTANCE,
   getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
   debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
@@ -1559,5 +1577,5 @@ if(DEBUG_MODE)window.__GAME_TEST__={
   debugClear:()=>{obstacles=[];pickups=[];return true},debugSetRunDistance:(v)=>{runDistance=Number(v)||0;updateStage(true);return runDistance},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,layers:p.layers})),debugMusicState:()=>({soundOn,musicVolume,sfxVolume,stageIndex,profile:profile().name,bpm:profile().bpm,layers:profile().layers,musicStep}),debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();return {runDistance,stageIndex,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.15.0';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.16.0';
 })();
