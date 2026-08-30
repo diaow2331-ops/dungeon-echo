@@ -192,3 +192,36 @@ html[data-game-state="paused"] .progress{left:0;right:0;bottom:0;height:4px;bord
 .combo-chip:after{content:'';position:absolute;left:0;bottom:0;height:3px;width:var(--combo-life);background:#506b2c;opacity:.9;pointer-events:none}
 .combo-chip[data-flow="true"]{background:rgba(216,239,159,.94)!important}
 .combo-chip[data-flow="true"]:after{background:#9c3f2f;height:4px}
+
+
+/* v1.15.0 experience pass: camera-first mobile, stronger gameplay hierarchy. */
+html[data-game-state="menu"] .mission-bar,html[data-game-state="menu"] .below,html[data-game-state="menu"] .route-strip,html[data-game-state="menu"] .game-footer{display:none}
+html[data-game-state="menu"] header{margin-bottom:8px}
+html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{background:#ded9cf}
+html[data-game-state="playing"] .hud,html[data-game-state="ending"] .hud,html[data-game-state="paused"] .hud{filter:drop-shadow(0 1px 0 rgba(255,255,255,.7))}
+html[data-game-state="menu"] .overlay{background:linear-gradient(90deg,rgba(243,240,232,.93) 0%,rgba(243,240,232,.74) 38%,rgba(243,240,232,.10) 72%)}
+html[data-game-state="menu"] .overlay .card{border-width:2px;box-shadow:7px 7px 0 rgba(23,23,23,.13)}
+html[data-game-state="menu"] .menu-facts{gap:9px;margin-bottom:14px}
+html[data-game-state="menu"] .menu-fact{border-color:#a9a297;background:rgba(255,253,248,.78)}
+@media(min-width:900px){
+  html[data-game-state="menu"] .overlay{padding-left:68px}
+  html[data-game-state="menu"] .overlay .card{width:min(500px,40%);padding:25px 27px}
+  html[data-game-state="menu"] .overlay .tagline{font-size:12px;line-height:1.58}
+  html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{border-width:2px}
+}
+@media(max-width:700px) and (orientation:portrait){
+  html[data-game-state="playing"] body,html[data-game-state="ending"] body,html[data-game-state="paused"] body{padding-left:max(2px,env(safe-area-inset-left));padding-right:max(2px,env(safe-area-inset-right));padding-bottom:max(4px,env(safe-area-inset-bottom))}
+  html[data-game-state="playing"] header,html[data-game-state="ending"] header,html[data-game-state="paused"] header{min-height:42px;margin-bottom:5px}
+  html[data-game-state="menu"] .frame,html[data-game-state="playing"] .frame,html[data-game-state="ending"] .frame,html[data-game-state="paused"] .frame{height:min(322px,calc(100svh - 58px));width:100%;border-width:2px;box-shadow:0 10px 26px rgba(20,20,20,.18);overflow:hidden}
+  html[data-game-state="menu"] .frame canvas,html[data-game-state="playing"] .frame canvas,html[data-game-state="ending"] .frame canvas,html[data-game-state="paused"] .frame canvas{position:absolute;left:0;top:0;width:161.3%;max-width:none;height:auto;aspect-ratio:1200/620}
+  html[data-game-state="menu"] .overlay{padding:10px;background:linear-gradient(90deg,rgba(243,240,232,.90),rgba(243,240,232,.48) 72%,rgba(243,240,232,.10))}
+  html[data-game-state="menu"] .overlay .card{width:min(280px,78%);margin-right:auto;text-align:left;padding:13px 14px 12px}
+  html[data-game-state="menu"] .overlay .card h1,html[data-lang="zh"][data-game-state="menu"] .overlay .card h1{font-size:26px;line-height:.95;margin:2px 0 7px;white-space:nowrap}
+  html[data-game-state="menu"] .overlay .ending-actions{justify-content:flex-start}
+  html[data-game-state="playing"] body::after,html[data-game-state="ending"] body::after{display:none}
+  html[data-game-state="playing"] .hud,html[data-game-state="ending"] .hud,html[data-game-state="paused"] .hud{width:100%;inset:5px 0 auto 0;padding:0 6px;grid-template-columns:1fr auto}
+  html[data-game-state="playing"] .hud-group:last-child,html[data-game-state="ending"] .hud-group:last-child,html[data-game-state="paused"] .hud-group:last-child{justify-content:flex-end}
+  html[data-game-state="playing"] .chip,html[data-game-state="ending"] .chip,html[data-game-state="paused"] .chip{font-size:9px;padding:4px 6px;background:rgba(255,253,248,.94)}
+  html[data-game-state="playing"] .tutorial-toast{bottom:12px;left:9px;max-width:48%;font-size:8px;background:rgba(255,253,248,.92)}
+  html[data-game-state="playing"] .progress,html[data-game-state="ending"] .progress,html[data-game-state="paused"] .progress{height:4px;z-index:70}
+}
