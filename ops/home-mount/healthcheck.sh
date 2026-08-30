@@ -23,7 +23,7 @@ DELAY=2
 fail(){ echo "WEB_TOYS_HOME_HEALTH_ERROR: $*" >&2; exit 1; }
 revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v150-health.XXXXXX)"
+work_dir="$(mktemp -d /tmp/web-toys-home-v160-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
@@ -67,7 +67,7 @@ check_adsense_surface(){
 
 check_home(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.5.0"' 'homepage site version' || return 1
+  require_fixed "$file" 'data-site-version="1.6.0"' 'homepage site version' || return 1
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
@@ -75,7 +75,7 @@ check_home(){
   require_fixed "$file" 'v1.22.0' 'homepage Moyu version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开开发' 'homepage public-development copy' || return 1
-  require_fixed "$file" 'site-home-v150' 'homepage v1.5.0 Chinese layout style' || return 1
+  require_fixed "$file" 'site-home-v160' 'homepage v1.6.0 Chinese layout style' || return 1
   require_fixed "$file" '方寸屏间' 'homepage Chinese hero copy' || return 1
   require_fixed "$file" '敬请期待' 'homepage future-game slot' || return 1
   require_fixed "$file" '来处、规矩与回音。' 'homepage records heading' || return 1
@@ -90,7 +90,7 @@ check_home(){
 
 check_de_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.5.0"' 'Dungeon Echo detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.6.0"' 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.4.2"' 'Dungeon Echo detail software version' || return 1
   require_fixed "$file" '1120×460 可步行广场' 'Dungeon Echo v1.4.2 town release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
@@ -107,7 +107,7 @@ check_de_detail(){
 
 check_moyu_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.5.0"' 'Moyu detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.6.0"' 'Moyu detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.22.0"' 'Moyu detail software version' || return 1
   require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
   require_fixed "$file" '四幕皆有新声' 'Moyu current Chinese release copy' || return 1
@@ -170,7 +170,7 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
   fi
   if (( attempt < ATTEMPTS )); then sleep "$DELAY"; fi
 done
-test "$public_ok" = true || fail "public site v1.5.0 check failed after $ATTEMPTS attempts"
+test "$public_ok" = true || fail "public site v1.6.0 check failed after $ATTEMPTS attempts"
 
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"
