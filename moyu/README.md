@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.16.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.16.1**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -57,6 +57,10 @@ All v1.12.x gameplay systems remain intact: Daily Shift, scene-specific hazards,
 v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
+
+## v1.16.1 run-cycle continuity patch
+
+v1.16.1 changes only the six-frame grounded run ordering from `2,3,4,5,6,7` to `2,3,6,5,7,4`. The reviewed sprite sheet bytes, frame count, animation FPS, 104px visual size, 44×66 physics body, hitbox and movement rules are unchanged. The new ordering reduces the largest pose jumps in the loop and makes the stride read more continuously.
 
 ## v1.16.0 four-minute scene-life pass
 
