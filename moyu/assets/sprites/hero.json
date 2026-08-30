@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "image": "hero.png",
+  "sheetWidth": 384,
+  "sheetHeight": 384,
+  "cellWidth": 96,
+  "cellHeight": 96,
+  "columns": 4,
+  "rows": 4,
+  "baselineY": 91,
+  "displaySize": 92,
+  "physics": { "width": 44, "height": 66, "unchanged": true },
+  "animations": {
+    "idle": [0, 1],
+    "run": [2, 3, 4, 5, 6, 7],
+    "jumpStart": [8],
+    "jump": [9, 10],
+    "doubleJump": [11],
+    "fall": [12],
+    "land": [13],
+    "hurt": [14],
+    "victory": [15]
+  }
+}

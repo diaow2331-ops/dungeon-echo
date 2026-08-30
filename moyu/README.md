@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.13.1**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.14.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -57,6 +57,12 @@ All v1.12.x gameplay systems remain intact: Daily Shift, scene-specific hazards,
 v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
+
+## v1.14.0 sprite art pass
+
+v1.14.0 replaces the production runner body with a tracked 4×4 transparent sprite sheet while keeping the accepted 44×66 physics body, hitbox, jump arc and route timing unchanged. The runtime selects idle, six-frame run, jump, double-jump, fall, landing, hurt and victory poses from gameplay state, anchors the visual to the authoritative player foot position and retains the former vector renderer as a load-failure fallback.
+
+The sprite PNG and its frame manifest are release inputs with checksum and bundle-integrity gates, so production cannot silently ship a different art asset than the reviewed source. This is the first asset-backed art pass; boss and obstacle art remain a follow-up rather than being mixed into the same release.
 
 ## v1.13.1 game-feel pass
 

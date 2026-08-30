@@ -12,19 +12,19 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v node >/dev/null
-test "$version" = '1.13.1'
-release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION)
+test "$version" = '1.14.0'
+release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero.png assets/sprites/hero.json)
 for rel in "${release_files[@]}"; do
   file="$source_root/$rel"
   test -r "$file" || { echo "missing Moyu release source: $rel" >&2; exit 2; }
   git -C "$repo_root" ls-files --error-unmatch "moyu/$rel" >/dev/null 2>&1 || { echo "untracked Moyu release source: $rel" >&2; exit 2; }
 done
 node --check "$source_root/game.js" >/dev/null
-grep -Fq '<meta name="version" content="1.13.1"' "$source_root/index.html"
-grep -Fq 'style.css?v=1131' "$source_root/index.html"
-grep -Fq 'visual-v1113.css?v=1131' "$source_root/index.html"
-grep -Fq 'responsive-v1120.css?v=1131' "$source_root/index.html"
-grep -Fq 'game.js?v=1131' "$source_root/index.html"
+grep -Fq '<meta name="version" content="1.14.0"' "$source_root/index.html"
+grep -Fq 'style.css?v=1140' "$source_root/index.html"
+grep -Fq 'visual-v1113.css?v=1140' "$source_root/index.html"
+grep -Fq 'responsive-v1120.css?v=1140' "$source_root/index.html"
+grep -Fq 'game.js?v=1140' "$source_root/index.html"
 grep -Fq 'translate="no"' "$source_root/index.html"
 grep -Fq "(cl==='zh'||cl==='en')?cl:((sl==='zh'||sl==='en')?sl:bl)" "$source_root/index.html"
 grep -Fq 'viewport-hint' "$source_root/index.html"
@@ -39,7 +39,7 @@ grep -Fq 'rushWarnTimer=.34' "$source_root/game.js"
 grep -Fq '.combo-chip:after' "$source_root/style.css"
 grep -Fq 'function setDailyMode(enabled)' "$source_root/game.js"
 grep -Fq 'dailyModifierDefs' "$source_root/game.js"
-grep -Fq "dataset.gameVersion='1.13.1'" "$source_root/game.js"
+grep -Fq "dataset.gameVersion='1.14.0'" "$source_root/game.js"
 grep -Fq 'DAY_END_DISTANCE=2200' "$source_root/game.js"
 grep -Fq 'const groundTakeoff=before===0' "$source_root/game.js"
 grep -Fq 'const storedLang=storageGet(LANG_KEY)' "$source_root/game.js"
@@ -62,11 +62,15 @@ grep -Fq '.run-ledger-grid' "$source_root/style.css"
 grep -Fq 'playfield-first presentation' "$source_root/style.css"
 grep -Fq 'const rise=airborne' "$source_root/game.js"
 grep -Fq 'const cadence=10.5' "$source_root/game.js"
+grep -Fq "assets/sprites/hero.png?v=1140" "$source_root/game.js"
+grep -Fq 'function drawPlayerSprite()' "$source_root/game.js"
+grep -Fq 'function drawPlayerVector()' "$source_root/game.js"
+test "$(sha256sum "$source_root/assets/sprites/hero.png" | awk '{print $1}')" = '2f147d3df80180c23d32e58d4a33daea52e2a8bd43986fd6f312245f728160fa'
 grep -Fq 'window.visualViewport' "$source_root/game.js"
 grep -Fq 'env(safe-area-inset-bottom)' "$source_root/responsive-v1120.css"
 grep -Fq '@media(max-width:700px) and (orientation:portrait)' "$source_root/responsive-v1120.css"
 grep -Fq 'padding-left:max(2px,env(safe-area-inset-left))' "$source_root/responsive-v1120.css"
-mkdir -p "$bundle/public/moyu" "$bundle/ops"
+mkdir -p "$bundle/public/moyu/assets/sprites" "$bundle/ops"
 for rel in "${release_files[@]}"; do install -m 0644 "$source_root/$rel" "$bundle/public/moyu/$rel"; done
 cmp -s "$source_root/game.js" "$bundle/public/moyu/game.js"
 cmp -s "$source_root/index.html" "$bundle/public/moyu/index.html"
