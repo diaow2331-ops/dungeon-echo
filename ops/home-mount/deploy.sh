@@ -34,21 +34,23 @@ test -x "$HEALTHCHECK" || fail 'healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.3.5' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.3.5"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+test "$version" = '1.4.0' || fail "unexpected site version: $version"
+grep -Fq 'data-site-version="1.4.0"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
 grep -Fq 'site-trust-hub-v135' "$PUBLIC_ROOT/index.html" || fail 'homepage visible trust hub missing'
+grep -Fq 'site-home-v140' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.4.0 layout missing'
+grep -Fq '长线构筑，还是四分钟逃班？' "$PUBLIC_ROOT/index.html" || fail 'homepage choice copy missing'
 grep -Fq 'mailto:diaow2331@gmail.com' "$PUBLIC_ROOT/index.html" || fail 'homepage visible contact email missing'
 grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage AdSense client missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
-grep -Fq 'softwareVersion":"1.2.12"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.12 detail marker missing'
-grep -Fq '整轮美术热更新' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.2.12 art-closeout copy missing'
-grep -Fq 'softwareVersion":"1.11.5"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.11.5 detail marker missing'
-grep -Fq '双端更稳' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
-grep -Fq 'Cleaner across screens' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
+grep -Fq 'softwareVersion":"1.4.2"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 detail marker missing'
+grep -Fq '1120×460 可步行广场' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 town copy missing'
+grep -Fq 'softwareVersion":"1.17.0"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.17.0 detail marker missing'
+grep -Fq '四分钟更完整' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
+grep -Fq 'A fuller four-minute run' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
 grep -Fq 'About 91hwl' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
 grep -Fq 'Google AdSense and consent' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy page marker missing'
 grep -Fq 'Bugs and technical feedback' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page content marker missing'
@@ -63,7 +65,7 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v135.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v140.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
@@ -112,7 +114,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v135.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v140.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -131,13 +133,14 @@ install_detail "$ABOUT_REL"
 install_detail "$PRIVACY_REL"
 install_detail "$CONTACT_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v135.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v140.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
 grep -Fq 'site-trust-hub-v135' "$SITE_ROOT/index.html" || fail 'homepage visible trust hub write verification failed'
+grep -Fq 'site-home-v140' "$SITE_ROOT/index.html" || fail 'homepage v1.4.0 layout write verification failed'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$SITE_ROOT/$ADS_REL" || fail 'ads.txt write verification failed'
 nginx -t
 systemctl reload nginx
