@@ -21,7 +21,7 @@ for rel in "${release_files[@]}"; do
 done
 node --check "$source_root/game.js" >/dev/null
 grep -Fq '<meta name="version" content="1.17.0"' "$source_root/index.html"
-grep -Fq 'style.css?v=1170' "$source_root/index.html"
+grep -Fq 'style.css?v=1170c' "$source_root/index.html"
 grep -Fq 'visual-v1113.css?v=1170' "$source_root/index.html"
 grep -Fq 'responsive-v1120.css?v=1170' "$source_root/index.html"
 grep -Fq 'game.js?v=1170' "$source_root/index.html"

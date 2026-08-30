@@ -22,7 +22,7 @@ done < <(unzip -Z1 "$archive")
 
 unzip -q "$archive" -d "$work"
 test -r "$work/SHA256SUMS" || fail 'artifact SHA256SUMS missing'
-test -r "$work/deploy.sh" || fail 'artifact deploy.sh missing'
+test -r "$work/ops/deploy.sh" || fail 'artifact ops/deploy.sh missing'
 
 (
   cd "$work"
@@ -30,9 +30,9 @@ test -r "$work/deploy.sh" || fail 'artifact deploy.sh missing'
 ) || fail 'artifact checksum verification failed'
 
 # The artifact owns all release-specific activation, health checks and rollback.
-# This runner deliberately does not know about Git, source trees, Node, patch,
+# This runner deliberately does not know about Git, source trees, Node, source transforms,
 # builders, semantic versions or cache generations.
-bash "$work/deploy.sh"
+bash "$work/ops/deploy.sh"
 
 echo "artifact=$archive"
 echo 'public_artifact_runner=PASS'
