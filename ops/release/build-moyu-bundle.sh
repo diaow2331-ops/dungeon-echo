@@ -14,7 +14,7 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v node >/dev/null
-release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero.png assets/sprites/hero.json assets/sprites/office-hazards-v124.webp)
+release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero-v124.webp assets/sprites/hero.json assets/sprites/office-hazards-v124.webp)
 for rel in "${release_files[@]}"; do
   file="$source_root/$rel"
   test -r "$file" || { echo "missing Moyu release source: $rel" >&2; exit 2; }
@@ -92,8 +92,10 @@ grep -Fq '.run-ledger-grid' "$source_root/style.css"
 grep -Fq 'playfield-first presentation' "$source_root/style.css"
 grep -Fq 'const rise=airborne' "$source_root/game.js"
 grep -Fq 'const cadence=10.5' "$source_root/game.js"
-grep -Fq "assets/sprites/hero.png?v=1140" "$source_root/game.js"
+grep -Fq "assets/sprites/hero-v124.webp?v=1240" "$source_root/game.js"
 grep -Fq 'function drawPlayerSprite()' "$source_root/game.js"
+grep -Fq 'function heroRunFrameStep()' "$source_root/game.js"
+grep -Fq 'player.jumps>=2&&airBurstTimer>0' "$source_root/game.js"
 grep -Fq 'RUN_PROGRESS_SCALE=.020' "$source_root/game.js"
 grep -Fq 'function drawWorkstationLife(pod)' "$source_root/game.js"
 grep -Fq 'function drawMeetingLife(module)' "$source_root/game.js"
@@ -108,7 +110,7 @@ grep -Fq 'function drawOfficeHazardFrame(name,dx,dy,dw,dh,alpha=1)' "$source_roo
 grep -Fq 'assets/sprites/office-hazards-v124.webp?v=1240' "$source_root/game.js"
 grep -Fq 'debugHazardAtlas' "$source_root/game.js"
 grep -Fq 'function drawPlayerVector()' "$source_root/game.js"
-test "$(sha256sum "$source_root/assets/sprites/hero.png" | awk '{print $1}')" = '2f147d3df80180c23d32e58d4a33daea52e2a8bd43986fd6f312245f728160fa'
+test "$(sha256sum "$source_root/assets/sprites/hero-v124.webp" | awk '{print $1}')" = '31e4c5849b9d00f31b03d77ad87e21090c0749ebaef0ebc169d7f8cc3d5184a7'
 test "$(sha256sum "$source_root/assets/sprites/office-hazards-v124.webp" | awk '{print $1}')" = '93b2583d42dc79a999ddf7f1761067eb9b516249193bbc33412b9bcd8be9ff56'
 grep -Fq 'window.visualViewport' "$source_root/game.js"
 grep -Fq 'env(safe-area-inset-bottom)' "$source_root/responsive-v1120.css"
