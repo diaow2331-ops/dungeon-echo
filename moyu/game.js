@@ -13,7 +13,7 @@ const storageSet=(key,value)=>{try{window.localStorage.setItem(key,String(value)
 const storageRemove=key=>{try{window.localStorage.removeItem(key);return true}catch{return false}};
 const storedNumber=(key,fallback=0)=>{const n=Number(storageGet(key));return Number.isFinite(n)?n:fallback};
 
-const UI_I18N = {"brand":{"zh":"摸鱼到下班","en":"Clock Out Alive"},"brandMeta":{"zh":"91HWL · WEB TOY · 办公室逃班跑酷","en":"91HWL · WEB TOY · OFFICE ESCAPE RUNNER"},"home":{"zh":"← 91hwl 首页","en":"← 91hwl Home"},"settings":{"zh":"设置","en":"Settings"},"audioSettings":{"zh":"声音设置","en":"Audio"},"music":{"zh":"背景音乐","en":"Music"},"sfx":{"zh":"游戏音效","en":"SFX"},"mixPreset":{"zh":"恢复推荐 30 / 85","en":"Recommended 30 / 85"},"mixNote":{"zh":"当前推荐混音：音乐 30%，音效 85%。两者独立保存；按 M 可快速静音/恢复。","en":"Recommended mix: music 30%, SFX 85%. Saved separately. Press M to mute or restore."},"fullscreen":{"zh":"全屏","en":"Fullscreen"},"score":{"zh":"摸鱼","en":"Escape"},"speed":{"zh":"速度","en":"Speed"},"combo":{"zh":"连摸","en":"Combo"},"event":{"zh":"事件","en":"Event"},"scene":{"zh":"场景","en":"Scene"},"best":{"zh":"最高","en":"Best"},"heroTitle":{"zh":"别让老板逮到。","en":"Don't let the boss catch you."},"heroText":{"zh":"从 14:00 撑到 18:00。穿过工位区、会议室、茶水间和员工健身房，躲开工作，喝点咖啡，尽量活着看到下班。普通碰撞有 3 次容错，第三次失误才会真正失败；每个场景会出现一次高/低路线二选一，连续躲过 10 个障碍还能恢复 1 次容错。声音默认关闭，可在右上角开启原创 8-bit / Chiptune BGM。","en":"Survive the office from 14:00 to 18:00. Sprint through workstations, meetings, the pantry and the gym. Ordinary collisions use a 3-strike buffer; the third mistake ends the run. Each scene also offers one low/high route choice for different pickups; the first clean 10-obstacle streak can recover one lost buffer. Original 8-bit / Chiptune audio is off by default."},"start":{"zh":"开始摸鱼","en":"Start escaping"},"leaveMessage":{"zh":"写一句话","en":"Leave a note"},"controls":{"zh":"电脑：空格 / ↑ / 鼠标点击跳跃，空中可二段跳 · P / Esc 暂停 · M 快速静音<br>手机：轻触游戏画面。首次游玩会有两步无打断教学；普通碰撞有 3 次容错；每个场景会出现一次高/低路线道具二选一，连摸 10 次可恢复 1 次已损失容错。18:00 会出现短暂「下班窗口」：及时操作可准点下班，否则将被判定为“自愿”加班。","en":"Desktop: Space / ↑ / click to jump; press again in mid-air for a double jump · P / Esc pause · M mute<br>Mobile: tap the game. First run includes a two-step tutorial; ordinary collisions use a 3-strike buffer. Each scene offers one low/high pickup choice, and the first clean 10-clear streak can recover one lost buffer. At 18:00, react during the short clock-out window—or be marked as “voluntary” overtime."},"localStats":{"zh":"本机战绩","en":"Local record"},"bestRun":{"zh":"最高摸鱼","en":"Best run"},"bestCombo":{"zh":"最佳连摸","en":"Best combo"},"runs":{"zh":"摸鱼次数","en":"Runs"},"onTime":{"zh":"准点下班","en":"On-time exits"},"overtime":{"zh":"“自愿”加班","en":"“Voluntary” OT"},"discoveries":{"zh":"发现档案","en":"Discovery file"},"discoveryNote":{"zh":"发现记录只保存在当前浏览器；未发现项目只显示为 ???。","en":"Discoveries stay in this browser. Locked entries remain ???."},"route0":{"zh":"工位区 · Workstation","en":"Workstation · survive"},"route1":{"zh":"会议室 · Meeting","en":"Meeting · slip out"},"route2":{"zh":"茶水间 · Pantry","en":"Pantry · refuel"},"route3":{"zh":"健身房 · Gym","en":"Gym · final sprint"},"route4":{"zh":"下班门 · Clock out","en":"Exit · clock out"},"messageModeration":{"zh":"提交后需审核 · 不即时公开","en":"Moderated · not published instantly"}};
+const UI_I18N = {"brand":{"zh":"摸鱼到下班","en":"Clock Out Alive"},"brandMeta":{"zh":"91HWL · WEB TOY · 办公室逃班跑酷","en":"91HWL · WEB TOY · OFFICE ESCAPE RUNNER"},"home":{"zh":"← 91hwl 首页","en":"← 91hwl Home"},"settings":{"zh":"设置","en":"Settings"},"audioSettings":{"zh":"声音设置","en":"Audio"},"music":{"zh":"背景音乐","en":"Music"},"sfx":{"zh":"游戏音效","en":"SFX"},"mixPreset":{"zh":"恢复推荐 30 / 85","en":"Recommended 30 / 85"},"mixNote":{"zh":"当前推荐混音：音乐 30%，音效 85%。两者独立保存；按 M 可快速静音/恢复。","en":"Recommended mix: music 30%, SFX 85%. Saved separately. Press M to mute or restore."},"fullscreen":{"zh":"全屏","en":"Fullscreen"},"score":{"zh":"摸鱼","en":"Escape"},"speed":{"zh":"速度","en":"Speed"},"combo":{"zh":"连摸","en":"Combo"},"event":{"zh":"事件","en":"Event"},"scene":{"zh":"场景","en":"Scene"},"best":{"zh":"最高","en":"Best"},"heroTitle":{"zh":"别让老板逮到。","en":"Don't let the boss catch you."},"heroText":{"zh":"从 14:00 撑到 18:00。穿过工位区、会议室、茶水间和员工健身房，躲开工作，喝点咖啡，尽量活着看到下班。普通碰撞有 3 次容错，第三次失误才会真正失败；每个场景首次连续躲过 10 个障碍，还能恢复 1 次容错。声音默认关闭，可在右上角开启原创 8-bit / Chiptune BGM。","en":"Survive the office from 14:00 to 18:00. Sprint through workstations, meetings, the pantry and the gym. Ordinary collisions use a 3-strike buffer; the third mistake ends the run. The first clean 10-obstacle streak in each scene can recover one lost buffer. Original 8-bit / Chiptune audio is off by default."},"start":{"zh":"开始摸鱼","en":"Start escaping"},"leaveMessage":{"zh":"写一句话","en":"Leave a note"},"controls":{"zh":"电脑：空格 / ↑ / 鼠标点击跳跃，空中可二段跳 · P / Esc 暂停 · M 快速静音<br>手机：轻触游戏画面。首次游玩会有两步无打断教学；普通碰撞有 3 次容错，连摸 10 次可在每个场景恢复 1 次已损失容错。18:00 会出现短暂「下班窗口」：及时操作可准点下班，否则将被判定为“自愿”加班。","en":"Desktop: Space / ↑ / click to jump; press again in mid-air for a double jump · P / Esc pause · M mute<br>Mobile: tap the game. First run includes a two-step tutorial; ordinary collisions use a 3-strike buffer. The first clean 10-clear streak in each scene can recover one lost buffer. At 18:00, react during the short clock-out window—or be marked as “voluntary” overtime."},"localStats":{"zh":"本机战绩","en":"Local record"},"bestRun":{"zh":"最高摸鱼","en":"Best run"},"bestCombo":{"zh":"最佳连摸","en":"Best combo"},"runs":{"zh":"摸鱼次数","en":"Runs"},"onTime":{"zh":"准点下班","en":"On-time exits"},"overtime":{"zh":"“自愿”加班","en":"“Voluntary” OT"},"discoveries":{"zh":"发现档案","en":"Discovery file"},"discoveryNote":{"zh":"发现记录只保存在当前浏览器；未发现项目只显示为 ???。","en":"Discoveries stay in this browser. Locked entries remain ???."},"route0":{"zh":"工位区 · Workstation","en":"Workstation · survive"},"route1":{"zh":"会议室 · Meeting","en":"Meeting · slip out"},"route2":{"zh":"茶水间 · Pantry","en":"Pantry · refuel"},"route3":{"zh":"健身房 · Gym","en":"Gym · final sprint"},"route4":{"zh":"下班门 · Clock out","en":"Exit · clock out"},"messageModeration":{"zh":"提交后需审核 · 不即时公开","en":"Moderated · not published instantly"}};
 const TRANSLATIONS = {"正常":"Normal","工位区":"Workstation","会议室":"Meeting room","茶水间":"PANTRY","员工健身房":"Staff gym","工位摸鱼":"Workstation drift","会议室脱身":"Escape the meeting","茶水间喘息":"Pantry breather","健身房冲刺":"Gym sprint","最后十分钟":"Last ten minutes","18:00":"18:00","老板":"Boss","会议":"Meeting","临时需求":"Last-minute request","邮件":"Email","咖啡渍":"Coffee spill","哑铃":"Dumbbell","先把今天的活装作已经做完。":"Pretend today’s work is already done.","工位开始躁动：老板巡视和临时需求正在抬头。":"The floor gets restless: boss patrols and last-minute requests increase.","摄像头开着，人可以不在状态。":"Camera on. Attention optional.","会议开始拉长：邮件和插话明显变多。":"The meeting drags on; emails and interruptions pile up.","咖啡续命，老板也可能突然出现。":"Coffee keeps you alive. The boss may still appear.","喘息结束：咖啡渍更多，老板开始来找人。":"Breather over: more spills, and the boss starts looking for you.","最后一小时，所有人都开始加速。":"Final hour. Everyone speeds up.","冲刺训练：组合障碍和催命邮件开始加密。":"Sprint training: chained hazards and urgent emails intensify.","老板离席":"Boss away","咖啡补货":"Coffee restock","补丁上线":"Patch deployed","工资到账":"Payday","擦边而过":"Near miss","十连摸":"10-hit combo","准点下班":"Clocked out on time","“自愿”加班":"“Voluntary” overtime","全勤受害者":"Full attendance victim","全员开会":"All-hands meeting","投影仪蓝屏":"Projector blue screen","咖啡机暴走":"Coffee machine frenzy","跑步机失控":"Treadmill runaway","教学 1/2 · 空格 / ↑ / 点击：跳跃":"Tutorial 1/2 · Space / ↑ / click: jump","教学 2/2 · 在空中再按一次：二段跳":"Tutorial 2/2 · Press again in mid-air: double jump","教学完成 · 普通碰撞有 3 次容错；看预警、留第二段。":"Tutorial complete · You have a 3-strike buffer. Read warnings and save the second jump.","叮——工资到账。摸鱼意志 +88m。":"Payday! Escape morale +88m.","突发事件：老板被临时叫去开会。短暂安全窗口！":"Event: the boss got pulled into a meeting. Brief safe window!","行政：咖啡机刚补货。接下来几杯来得更勤。":"Admin: coffee restocked. More cups incoming.","开发群：紧急补丁已上线。BUG 暂时不会变异。":"Dev chat: hotfix deployed. BUGs stop mutating for a moment.","稀有场景：全员都被叫去开会了。工位区突然安静得可怕。":"Rare: everyone got called into a meeting. The floor is eerily quiet.","稀有场景：投影仪蓝屏。主持人正在研究 HDMI，会议短暂失去战斗力。":"Rare: projector blue screen. The host is fighting HDMI; the meeting is briefly harmless.","稀有场景：咖啡机开始疯狂出杯。今天至少机器站在你这边。":"Rare: the coffee machine goes berserk. At least one machine is on your side.","稀有场景：跑步机突然加速。办公室健身房决定替老板催你下班。":"Rare: the treadmill accelerates. The gym is now rushing you toward clock-out.","行政：冰箱里过期三天以上的食物今晚统一清理。":"Admin: food expired for 3+ days will be cleared tonight.","同事小窗：你刚刚是不是在看网页？":"Coworker DM: were you browsing just now?","群公告：请大家及时填写今日工时。":"Group notice: please log today’s work hours.","产品经理正在输入中……":"Product manager is typing…","老板撤回了一条消息。":"The boss unsent a message.","开发群：谁动了线上环境？":"Dev chat: who touched production?","测试：我这边有一个“偶现”的问题。":"QA: I have an “occasional” issue here.","同事：晚上有空吗？有个小需求。":"Coworker: free tonight? Tiny request.","你收到一封标题为「紧急」的邮件。":"You received an email titled “URGENT”.","邮箱：未读邮件 99+。":"Inbox: 99+ unread.","HR：今晚的团建问卷还没填。":"HR: you still haven’t filled tonight’s team-building survey.","同事小窗：还有多久下班？":"Coworker DM: how long until clock-out?","群里突然安静了，所有人都在看右下角时间。":"The group chat goes silent. Everyone is watching the clock.","产品经理：下班前最后确认一个小问题。":"PM: one last tiny thing before you leave.","邮箱：未读 99+，但你已经不想知道是什么了。":"Inbox: 99+ unread. You no longer want to know why.","IDE：还有 3 个 warning 被你当作不存在。":"IDE: 3 warnings are still being treated as imaginary.","会议主持人：这个问题我们再展开聊五分钟。":"Host: let’s unpack this for five more minutes.","摄像头提示：检测到你正在走神。":"Camera alert: distraction detected.","咖啡机：今日第 47 杯，建议适量。":"Coffee machine: cup #47 today. Consider moderation.","行政：是谁把咖啡洒地上了？":"Admin: who spilled coffee on the floor?","跑步机：速度已自动提高。":"Treadmill: speed increased automatically.","同事：下班前再练最后一组？":"Coworker: one last set before clock-out?","你被抓住了，但需求依然没有因此减少。":"You got caught. The backlog did not shrink.","老板没有消失，他只是终于滚进了碰撞箱。":"The boss did not vanish. He finally entered your hitbox.","摸鱼失败。建议明天换一个更大的显示器。":"Escape failed. Try a bigger monitor tomorrow.","你试图假装在调试，但控制台甚至没打开。":"You pretended to debug. The console was not even open.","你没挤进会议缝。好消息是，下一场会依然会照常召开。":"You missed the meeting gap. Good news: the next meeting is still happening.","突击检查成功。老板确认你确实有屏幕。":"Spot check successful. The boss confirmed you own a screen.","BUG 完成了变异，你没有。":"The BUG evolved. You did not.","临时需求精准落在了你的下班计划上。":"The last-minute request landed directly on your clock-out plan.","催命邮件成功命中，未读数量仍然是 99+。":"Urgent email hit confirmed. Unread count remains 99+.","你踩进了茶水间最危险的东西：没人愿意擦的咖啡。":"You stepped into the pantry’s deadliest hazard: coffee nobody cleaned.","健身房提醒你：摸鱼也需要核心力量。":"The gym reminds you: slacking also requires core strength.","会议进行中 · 摄像头已开启":"MEETING LIVE · CAMERA ON","第一次：单跳即可":"First one: single jump","从绿色区域穿过去":"Pass through green","↓ 临时需求":"↓ LAST-MINUTE REQUEST","全员开会中 · 工位暂时无人":"ALL-HANDS · FLOOR EMPTY","正在重新连接 HDMI…":"RECONNECTING HDMI…","咖啡机：今日进入超频模式":"COFFEE MACHINE · OVERCLOCKED","跑步机失控 · 节奏加速中":"TREADMILL RUNAWAY · SPEED UP","会议已延长 30 分钟":"MEETING EXTENDED +30 MIN","你 已 被 静 音":"Y O U  A R E  M U T E D","其实也没人发现":"Nobody noticed anyway","今天也辛苦了":"You survived today","下班记得吃饭":"Eat after work","更衣":"LOCKERS"};
 Object.assign(UI_I18N,{
   mission:{zh:'今日任务',en:'Mission'},missionGoal:{zh:'撑到 18:00，别被工作逮住',en:'Reach 18:00 without getting caught'},
@@ -89,7 +89,7 @@ const MESSAGE_ENABLED=Boolean(MESSAGE_ENDPOINT);
 const DEBUG_MODE=new URLSearchParams(location.search).get('debug')==='1';
 
 const W=1200,H=620,GROUND=505,DPR_LIMIT=2,DAY_END_DISTANCE=2200,RUN_PROGRESS_SCALE=.020,COMBO_WINDOW=6.5;
-const PLAYER_HIT={left:10,right:10,top:7,bottom:6},JUMP_BUFFER_WINDOW=.12,MAX_MISTAKES=3,HIT_IFRAME=1.15;
+const PLAYER_HIT={left:10,right:10,top:7,bottom:6},JUMP_BUFFER_WINDOW=.12,MAX_MISTAKES=3,HIT_IFRAME=1.15,JUMP_GRAVITY=1750;
 let last=0,raf=0,startLock=0,state='menu',distance=0,runDistance=0,speed=350,spawnTimer=0,pickupTimer=0,worldTime=0,tickerTimer=0;
 let obstacles=[],pickups=[],particles=[],floaters=[],speedLines=[];
 let combo=0,comboAge=0,stageIndex=-1,screenShake=0,milestone18=false,pausedFrom=null,meetingSpawnCount=0,overtimeFlash=0,directorQueue=[],directorCooldown=0,lastObstacleLabel='',sameObstacleStreak=0,lastSpawnGapPx=0,tightGapStreak=0,spacingHistory=[];
@@ -99,7 +99,7 @@ let endingPhase='none',endingTimer=0,exitDoorX=W+80,endingResolved=false,endingC
 let soundOn=storageGet('91hwl_moyu_sound')==='1',audioCtx=null,sfxGain=null,musicGain=null,musicCompressor=null,musicTimer=null,nextMusicStepAt=0,musicStep=0,noiseBuffer=null,lastMusicStage=-1;
 let jumpBufferTimer=0,lastGrounded=true,leaveSlipHits=0,leaveSlipTimer=0,riskBoostTimer=0,runNearMisses=0,runPerfectNearMisses=0,mistakes=0,hitInvulnTimer=0,hitFlashTimer=0,lastHitCause='';
 let encounterClusterCount=0,encounterClusterTarget=4,encounterBreathers=0,sceneComboRecoveryUsed=[false,false,false,false];
-let pickupChoiceSeq=0,sceneChoiceSpawned=[false,false,false,false],runPickupChoices=0;
+let visualScrollPx=0;
 let musicVolume=Math.max(0,Math.min(100,storedNumber('91hwl_moyu_music_vol',30)));
 let sfxVolume=Math.max(0,Math.min(100,storedNumber('91hwl_moyu_sfx_vol',85)));
 let best=Math.max(0,storedNumber('91hwl_moyu_best',0));
@@ -492,7 +492,7 @@ async function submitMessage(){
 }
 function reset(){
   resetMessageComposer();resetGameRandom();updateDailyUi();
-  distance=0;runDistance=0;speed=350;runPeakCombo=0;runRecordSaved=false;feelFlash=0;feelKind='none';comboBurstTimer=0;comboBurstValue=0;airBurstTimer=0;landingPulse=0;bossWarningTimer=0;sceneIndex=-1;previousSceneIndex=0;sceneToastTimer=0;sceneBlend=0;sceneHalf=0;sceneHalfAnnounced=[false,false,false,false];rareMoment='none';rareMomentTimer=0;rareSceneRolled=[false,false,false,false];meetingSuppressTimer=0;gymRushTimer=0;rareVisualPulse=0;secretMoment='none';secretMomentTimer=0;secretVisualPulse=0;secretSceneRolled=[false,false,false,false];secretSceneThresholds=Array.from({length:4},()=>.24+gameRandom()*.52);spawnTimer=.72+gameRandom()*.72;pickupTimer=2.8;worldTime=0;tickerTimer=7;combo=0;comboAge=0;stageIndex=-1;screenShake=0;milestone18=false;meetingSpawnCount=0;overtimeFlash=0;musicStep=0;lastMusicStage=-1;directorQueue=[];directorCooldown=0;lastObstacleLabel='';sameObstacleStreak=0;lastSpawnGapPx=0;tightGapStreak=0;spacingHistory=[];endingPhase='none';endingTimer=0;exitDoorX=W+80;endingResolved=false;endingCinematicTimer=0;endingCinematicType='none';endingPlayerOffset=0;endingBossX=W+100;jumpBufferTimer=0;lastGrounded=true;leaveSlipHits=0;leaveSlipTimer=0;riskBoostTimer=0;runNearMisses=0;runPerfectNearMisses=0;mistakes=0;hitInvulnTimer=0;hitFlashTimer=0;lastHitCause='';encounterClusterCount=0;encounterClusterTarget=3+Math.floor(gameRandom()*3);encounterBreathers=0;sceneComboRecoveryUsed=[false,false,false,false];pickupChoiceSeq=0;sceneChoiceSpawned=[false,false,false,false];runPickupChoices=0;officeEvent='none';officeEventTimer=0;officeEventCooldown=12;eventRollTimer=8+gameRandom()*5;coffeeRushRemaining=0;bossAwayTimer=0;bugPatchTimer=0;salaryFlash=0;pendingClimaxPattern='';climax17Done=false;climax1750Done=false;setEventHud('正常');tutorialActive=false;tutorialStep=0;tutorialTimer=0;tutorialToast.classList.add('hidden');
+  distance=0;runDistance=0;speed=350;runPeakCombo=0;runRecordSaved=false;feelFlash=0;feelKind='none';comboBurstTimer=0;comboBurstValue=0;airBurstTimer=0;landingPulse=0;bossWarningTimer=0;sceneIndex=-1;previousSceneIndex=0;sceneToastTimer=0;sceneBlend=0;sceneHalf=0;sceneHalfAnnounced=[false,false,false,false];rareMoment='none';rareMomentTimer=0;rareSceneRolled=[false,false,false,false];meetingSuppressTimer=0;gymRushTimer=0;rareVisualPulse=0;secretMoment='none';secretMomentTimer=0;secretVisualPulse=0;secretSceneRolled=[false,false,false,false];secretSceneThresholds=Array.from({length:4},()=>.24+gameRandom()*.52);spawnTimer=.72+gameRandom()*.72;pickupTimer=2.8;worldTime=0;tickerTimer=7;combo=0;comboAge=0;stageIndex=-1;screenShake=0;milestone18=false;meetingSpawnCount=0;overtimeFlash=0;musicStep=0;lastMusicStage=-1;directorQueue=[];directorCooldown=0;lastObstacleLabel='';sameObstacleStreak=0;lastSpawnGapPx=0;tightGapStreak=0;spacingHistory=[];endingPhase='none';endingTimer=0;exitDoorX=W+80;endingResolved=false;endingCinematicTimer=0;endingCinematicType='none';endingPlayerOffset=0;endingBossX=W+100;jumpBufferTimer=0;lastGrounded=true;leaveSlipHits=0;leaveSlipTimer=0;riskBoostTimer=0;runNearMisses=0;runPerfectNearMisses=0;mistakes=0;hitInvulnTimer=0;hitFlashTimer=0;lastHitCause='';encounterClusterCount=0;encounterClusterTarget=3+Math.floor(gameRandom()*3);encounterBreathers=0;sceneComboRecoveryUsed=[false,false,false,false];visualScrollPx=0;officeEvent='none';officeEventTimer=0;officeEventCooldown=12;eventRollTimer=8+gameRandom()*5;coffeeRushRemaining=0;bossAwayTimer=0;bugPatchTimer=0;salaryFlash=0;pendingClimaxPattern='';climax17Done=false;climax1750Done=false;setEventHud('正常');tutorialActive=false;tutorialStep=0;tutorialTimer=0;tutorialToast.classList.add('hidden');
   obstacles=[];pickups=[];particles=[];floaters=[];speedLines=[];
   player.y=GROUND-player.h;player.vy=0;player.jumps=0;player.squash=0;
   scoreEl.textContent='0';speedEl.textContent='1.0';comboEl.textContent='0';updateComboHud();clockEl.textContent='14:00';stageEl.textContent=tr('工位摸鱼');sceneHud.textContent=tr('工位区');dayProgress.style.width='0%';updateRouteStrip();
@@ -520,7 +520,7 @@ function togglePause(){
 }
 function performJump(){
   if(player.jumps>=2)return false;
-  const before=player.jumps;player.vy=before===0?-760:-650;player.jumps++;player.squash=.12;jumpBufferTimer=0;beep(player.jumps===1?520:680,.045);
+  const before=player.jumps;player.vy=before===0?-740:-590;player.jumps++;player.squash=.12;jumpBufferTimer=0;beep(player.jumps===1?520:680,.045);
   if(tutorialActive&&tutorialStep===1&&before===0)setTutorial(2);
   else if(tutorialActive&&tutorialStep===2&&before===1){setTutorial(3);tutorialTimer=3.2;storageSet('91hwl_moyu_tutorial_done','1');tutorialDone=true}
   const groundTakeoff=before===0&&Math.abs((player.y+player.h)-GROUND)<10;
@@ -564,7 +564,7 @@ function chooseObstacle(){
   if(lastObstacleLabel&&weights[lastObstacleLabel]>0){weights[lastObstacleLabel]*=sameObstacleStreak>=2?.16:.46}
   let sum=0;for(const k in weights)sum+=weights[k];let r=gameRandom()*sum,label='BUG';
   for(const k in weights){r-=weights[k];if(r<=0){label=k;break}}
-  if(runDistance<110)label='BUG';else if(runDistance<220&&(label==='会议'||label==='临时需求'||label==='邮件'))label=gameRandom()<.72?'BUG':'老板';
+  if(worldTime<4.5)label='BUG';else if(worldTime<11&&(label==='会议'||label==='临时需求'||label==='邮件'))label=gameRandom()<.62?'BUG':'老板';
   return label;
 }
 function rand(a,b){return a+gameRandom()*(b-a)}
@@ -593,7 +593,7 @@ function sampleNormalGapPx(spawned){
   if(lastSpawnGapPx&&Math.abs(gap-lastSpawnGapPx)<85){gap+=gameRandom()<.5?-rand(90,155):rand(90,175)}
   // 前半略多呼吸，后半略收紧，但保留原有随机带宽与呼吸保护。
   gap+=sceneHalf?-18:32;
-  if(gymRushTimer>0)gap+=125;if(runDistance<180)gap=Math.max(gap,650);gap=Math.max(315,gap);
+  if(gymRushTimer>0)gap+=125;if(worldTime<10)gap=Math.max(gap,650);gap=Math.max(315,gap);
   const tightThreshold=runDistance<900?520:470;tightGapStreak=gap<tightThreshold?tightGapStreak+1:0;
   lastSpawnGapPx=gap;spacingHistory.push(Math.round(gap));if(spacingHistory.length>14)spacingHistory.shift();
   return gap;
@@ -660,8 +660,8 @@ function spawnObstacle(forcedLabel=null){
   if(k.gate){y=286}
   const obstacle={x,y,w:k.w,h:k.h,label,passed:false,air:!!k.air,gate:!!k.gate,drop:!!k.drop,variant:(Math.random()*3)|0};
   if(obstacle.air){obstacle.baseY=y;obstacle.wave=gameRandom()*6.28;obstacle.waveAmp=8+gameRandom()*14;obstacle.waveSpeed=2.1+gameRandom()*1.6}
-  if(label==='老板'){obstacle.rush=sceneIndex===0&&runDistance>180&&gameRandom()<0.46;obstacle.rushTriggered=false;obstacle.rushWarnTimer=0;obstacle.rushTimer=0;obstacle.extraSpeed=210+gameRandom()*90}
-  if(label==='BUG'){obstacle.mutation=(bugPatchTimer>0||runDistance<140)?'none':(gameRandom()<.70?(gameRandom()<.5?'tall':'long'):'none');obstacle.mutationState='idle';obstacle.mutationTimer=0;obstacle.baseW=k.w;obstacle.baseH=k.h;obstacle.targetW=k.w;obstacle.targetH=k.h}
+  if(label==='老板'){obstacle.rush=sceneIndex===0&&worldTime>11&&gameRandom()<0.46;obstacle.rushTriggered=false;obstacle.rushWarnTimer=0;obstacle.rushTimer=0;obstacle.extraSpeed=210+gameRandom()*90}
+  if(label==='BUG'){obstacle.mutation=(bugPatchTimer>0||worldTime<8)?'none':(gameRandom()<.70?(gameRandom()<.5?'tall':'long'):'none');obstacle.mutationState='idle';obstacle.mutationTimer=0;obstacle.baseW=k.w;obstacle.baseH=k.h;obstacle.targetW=k.w;obstacle.targetH=k.h}
   if(label==='临时需求'){obstacle.dropState='warning';obstacle.warning=.62;obstacle.vy=0;obstacle.targetY=GROUND-k.h;obstacle.warningPulse=Math.random()*6.28}
   if(label==='会议'){
     meetingSpawnCount++;const first=meetingSpawnCount===1;
@@ -679,28 +679,11 @@ function choosePickupKind(){
   if(sceneIndex===1)return r<.14?'leave':'coffee';
   return r<.12?'leave':'coffee';
 }
-function pickupKindLabel(kind){return currentLang==='en'?(kind==='leave'?'Leave Slip':(kind==='risk'?'Risk Form':'Coffee')):(kind==='leave'?'请假条':(kind==='risk'?'绩效单':'咖啡'))}
-function pushPickup(kind,x,y,choiceId=0,choiceRole=''){pickups.push({kind,x,y,w:32,h:40,spin:Math.random()*6.28,got:false,choiceId,choiceRole})}
 function spawnPickup(forcedKind=null){
   const kind=forcedKind||choosePickupKind();let y=GROUND-115-gameRandom()*110;
   if(kind==='leave')y=GROUND-145-gameRandom()*85;
   else if(kind==='risk')y=GROUND-245-gameRandom()*62;
-  pushPickup(kind,W+35,y)
-}
-function scenePickupChoice(){
-  if(sceneIndex===0)return {low:'coffee',high:'leave'};
-  if(sceneIndex===1)return {low:'coffee',high:'risk'};
-  if(sceneIndex===2)return {low:'leave',high:'risk'};
-  return {low:'coffee',high:'risk'}
-}
-function spawnPickupChoice(){
-  if(sceneIndex<0||sceneIndex>3)return false;
-  const pair=scenePickupChoice(),id=++pickupChoiceSeq,x=W+42;
-  // LOW is collectible while staying grounded; HIGH requires a deliberate jump. Picking either removes its sibling.
-  pushPickup(pair.low,x,GROUND-74,id,'low');pushPickup(pair.high,x+8,GROUND-205,id,'high');
-  sceneChoiceSpawned[sceneIndex]=true;runPickupChoices++;spawnTimer=Math.max(spawnTimer,1.35);directorCooldown=Math.max(directorCooldown,1.2);
-  tickerEl.textContent=currentLang==='en'?`Route choice: stay low for ${pickupKindLabel(pair.low)}, jump high for ${pickupKindLabel(pair.high)}.`:`路线选择：低路拿「${pickupKindLabel(pair.low)}」，高路跳取「${pickupKindLabel(pair.high)}」。`;tickerTimer=Math.max(tickerTimer,4.8);
-  return true
+  pickups.push({kind,x:W+35,y,w:32,h:40,spin:Math.random()*6.28,got:false})
 }
 function hit(a,b,p=0){return a.x+p<b.x+b.w-p&&a.x+a.w-p>b.x+p&&a.y+p<b.y+b.h-p&&a.y+a.h-p>b.y+p}
 function collisionRects(o){
@@ -769,11 +752,6 @@ function passObstacle(o){
 }
 function collectPickup(p){
   p.got=true;
-  if(p.choiceId){
-    for(const q of pickups)if(q!==p&&q.choiceId===p.choiceId&&!q.got)q.got=true;
-    const lane=p.choiceRole==='high'?(currentLang==='en'?'HIGH':'高路'):(currentLang==='en'?'LOW':'低路');
-    tickerEl.textContent=currentLang==='en'?`Route locked: ${lane} · ${pickupKindLabel(p.kind)}`:`路线已选：${lane} · ${pickupKindLabel(p.kind)}`;tickerTimer=Math.max(tickerTimer,3.4);
-  }
   if(p.kind==='leave'){
     leaveSlipHits=1;leaveSlipTimer=8;distance+=10;addFloater(p.x-10,p.y-10,currentLang==='en'?'Leave slip · 1 save':'请假条 · 挡一次','#506b2c');beep(620,.08,'triangle',.035);screenShake=1.5;return
   }
@@ -906,12 +884,12 @@ function update(dt){
     for(const f of floaters){f.y+=f.vy*dt;f.a-=dt*.9}floaters=floaters.filter(f=>f.a>0);
     if(endingTimer<=0||exitDoorX<player.x+20)resolveEnding('overtime');return;
   }
-  speed=Math.min(820,350+runDistance*.11+(gymRushTimer>0?62:0));const step=speed*dt*RUN_PROGRESS_SCALE;runDistance+=step;distance+=step;
+  speed=Math.min(820,350+runDistance*.11+(gymRushTimer>0?62:0));visualScrollPx+=speed*dt;const step=speed*dt*RUN_PROGRESS_SCALE;runDistance+=step;distance+=step;
   scoreEl.textContent=Math.floor(distance);speedEl.textContent=(speed/350).toFixed(1);updateClock();if(endingPhase==='decision')return;updateStage();updateScene();updateSceneHalf();
   comboAge+=dt;updateComboHud();if(combo>0&&comboAge>COMBO_WINDOW){combo=0;comboEl.textContent='0';comboAge=0;updateComboHud();addFloater(player.x+60,player.y-10,tr('连摸断了'),'#6f6a61')}
   leaveSlipTimer=Math.max(0,leaveSlipTimer-dt);if(leaveSlipTimer===0)leaveSlipHits=0;riskBoostTimer=Math.max(0,riskBoostTimer-dt);hitInvulnTimer=Math.max(0,hitInvulnTimer-dt);hitFlashTimer=Math.max(0,hitFlashTimer-dt);
   jumpBufferTimer=Math.max(0,jumpBufferTimer-dt);lastGrounded=player.y>=GROUND-player.h-1;
-  player.vy+=2150*dt;player.y+=player.vy*dt;
+  player.vy+=JUMP_GRAVITY*dt;player.y+=player.vy*dt;
   if(player.y>=GROUND-player.h){const landed=!lastGrounded,impact=player.vy;player.y=GROUND-player.h;player.vy=0;player.jumps=0;if(landed){player.squash=Math.max(player.squash,impact>760?.105:.082);landingPulse=Math.max(landingPulse,impact>760?.22:.13);if(impact>520){emitPlayerBurst('land',Math.min(12,6+Math.floor((impact-500)/120)));screenShake=Math.max(screenShake,impact>820?2.4:1.2)}}if(jumpBufferTimer>0)performJump()}
   player.squash=Math.max(0,player.squash-dt);
   updateRareMoment(dt);updateSecretMoment(dt);maybeTriggerOfficeEvent(dt);
@@ -930,9 +908,8 @@ function update(dt){
     if(plan&&!directorQueue.length)directorCooldown=Math.max(directorCooldown,7.5)
   }
   pickupTimer-=dt;if(pickupTimer<=0){
-    const entryBusy=obstacles.some(o=>o.x>W-210),choiceEntryBusy=obstacles.some(o=>o.x>W-420),choiceWindow=sceneIndex>=0&&!sceneChoiceSpawned[sceneIndex]&&sceneProgress()>=.27&&sceneProgress()<=.76;
-    if(choiceWindow&&!choiceEntryBusy){spawnPickupChoice();pickupTimer=6.2+gameRandom()*2.2}
-    else if(coffeeRushRemaining>0){
+    const entryBusy=obstacles.some(o=>o.x>W-210);
+    if(coffeeRushRemaining>0){
       if(!entryBusy){spawnPickup('coffee');coffeeRushRemaining--;pickupTimer=.85+gameRandom()*.55}else pickupTimer=.28;
     }else{const teaRoom=sceneIndex===2;const teaEarly=teaRoom&&sceneHalf===0;let chance=teaEarly?.94:(teaRoom?.82:.72);if(dailyMode&&dailyModifierId==='coffee')chance*=.62;if(!entryBusy&&gameRandom()<chance)spawnPickup();pickupTimer=(teaEarly?1.72:(teaRoom?2.35:2.8))+gameRandom()*(teaEarly?1.95:(teaRoom?2.55:3.6))}
   }
@@ -1066,7 +1043,7 @@ function drawCeilingDetails(offset=0,tone='#d9d2c6'){
   ctx.save();
   ctx.fillStyle='#ece7de';ctx.fillRect(0,82,W,20);
   ctx.fillStyle=tone;ctx.fillRect(0,100,W,3);
-  const o=-((runDistance*1.05+offset)%330)-330;
+  const o=-((visualScrollPx*.12+offset)%330)-330;
   for(let i=-1;i<6;i++){
     const x=i*330+o;
     ctx.fillStyle='rgba(255,253,248,.92)';ctx.strokeStyle='rgba(23,23,23,.24)';ctx.lineWidth=1.5;
@@ -1110,7 +1087,7 @@ function drawWorkstationScene(){
   drawSharedFloor();
 
   // 后墙采用“窗 + 墙 + 门”的真实办公结构，而不是无限复制四格大窗。
-  const back=-((runDistance*1.12)%430)-430;
+  const back=-((visualScrollPx*.16)%430)-430;
   for(let i=-1;i<5;i++){
     const x=i*430+back,kind=((i%3)+3)%3;
     if(kind===0){drawOfficeWindow(x+24,116,230,126,i);ctx.fillStyle='#ded7ca';ctx.fillRect(x+276,108,116,154);drawWallPlant(x+334,259)}
@@ -1119,7 +1096,7 @@ function drawWorkstationScene(){
   }
   ctx.fillStyle='#bdb3a4';ctx.fillRect(0,279,W,8);
 
-  const pod=-((runDistance*4.25)%380)-80;for(let i=-1;i<5;i++)drawWorkPod(i*380+pod,335);drawWorkstationLife(pod);
+  const pod=-((visualScrollPx*.46)%380)-80;for(let i=-1;i<5;i++)drawWorkPod(i*380+pod,335);drawWorkstationLife(pod);
 }
 function drawMeetingPod(x,y){
   ctx.save();ctx.translate(x,y);
@@ -1141,7 +1118,7 @@ function drawMeetingPod(x,y){
 function drawMeetingRoomScene(){
   ctx.fillStyle='#e4e1da';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f4f3ee';ctx.fillRect(0,82,W,205);drawCeilingDetails(80,'#d0d2d2');drawSharedFloor();
   // 玻璃会议室应当有固定玻璃隔断、磨砂条和可识别的玻璃门。
-  const off=-((runDistance*1.42)%460)-460;
+  const off=-((visualScrollPx*.16)%460)-460;
   for(let i=-1;i<5;i++){
     const x=i*460+off;
     ctx.fillStyle='rgba(210,230,236,.70)';ctx.strokeStyle='#262626';ctx.lineWidth=3;ctx.fillRect(x+14,112,286,142);ctx.strokeRect(x+14,112,286,142);
@@ -1154,7 +1131,7 @@ function drawMeetingRoomScene(){
     if(i%2===0){ctx.fillStyle='#262626';ctx.fillRect(x+56,126,122,48);ctx.fillStyle='#d7ecfb';ctx.fillRect(x+64,134,106,32);ctx.fillStyle='#6d96aa';ctx.fillRect(x+72,143,46,4);ctx.fillRect(x+72,153,70,4)}
     else{ctx.fillStyle='#fffdf8';ctx.strokeStyle='#7a746c';ctx.lineWidth=2;ctx.fillRect(x+62,128,114,44);ctx.strokeRect(x+62,128,114,44);ctx.fillStyle='#787169';ctx.fillRect(x+72,139,62,3);ctx.fillRect(x+72,149,40,3)}
   }
-  const module=-((runDistance*3.0)%500)-120;for(let i=-1;i<4;i++)drawMeetingPod(i*500+module,408);drawMeetingLife(module);
+  const module=-((visualScrollPx*.44)%500)-120;for(let i=-1;i<4;i++)drawMeetingPod(i*500+module,408);drawMeetingLife(module);
 }
 function drawPantryPod(x,y){
   ctx.save();ctx.translate(x,y);
@@ -1176,15 +1153,15 @@ function drawPantryScene(){
   // 茶水间后墙：瓷砖挡水墙、吊柜、门。家具和水电关系要看起来合理。
   ctx.fillStyle='#ddd6ca';ctx.fillRect(0,116,W,142);ctx.strokeStyle='rgba(120,112,101,.22)';ctx.lineWidth=1;
   for(let y=116;y<258;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
-  for(let x=-((runDistance*1.2)%110)-110;x<W;x+=110){ctx.beginPath();ctx.moveTo(x,116);ctx.lineTo(x,258);ctx.stroke()}
-  const back=-((runDistance*1.15)%520)-520;
+  for(let x=-((visualScrollPx*.15)%110)-110;x<W;x+=110){ctx.beginPath();ctx.moveTo(x,116);ctx.lineTo(x,258);ctx.stroke()}
+  const back=-((visualScrollPx*.16)%520)-520;
   for(let i=-1;i<5;i++){
     const x=i*520+back;
     if(i%3===1){drawOfficeDoor(x+364,108,86,166,'茶水间')}
     else{for(let c=0;c<3;c++){ctx.fillStyle='#c9bead';ctx.strokeStyle='#8e8578';ctx.lineWidth=1.5;ctx.fillRect(x+32+c*86,126,76,48);ctx.strokeRect(x+32+c*86,126,76,48);ctx.fillStyle='#777';ctx.fillRect(x+98+c*86,148,3,5)}}
     ctx.fillStyle='#a79a87';ctx.fillRect(x+300,240,42,34);ctx.fillStyle='#5d7f4d';ctx.fillRect(x+310,218,22,24);
   }
-  const pod=-((runDistance*3.25)%540)-120;for(let i=-1;i<4;i++)drawPantryPod(i*540+pod,370);drawPantryLife(pod);
+  const pod=-((visualScrollPx*.44)%540)-120;for(let i=-1;i<4;i++)drawPantryPod(i*540+pod,370);drawPantryLife(pod);
 }
 function drawGymPod(x,y){
   ctx.save();ctx.translate(x,y);
@@ -1199,7 +1176,7 @@ function drawGymPod(x,y){
 function drawGymScene(){
   ctx.fillStyle='#dedee1';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f4f4f1';ctx.fillRect(0,82,W,205);drawCeilingDetails(230,'#cbcdd0');drawSharedFloor();
   // 后墙为镜面 + 墙柱 + 门/储物柜，不再像一整排无尽玻璃窗。
-  const off=-((runDistance*1.25)%500)-500;
+  const off=-((visualScrollPx*.16)%500)-500;
   for(let i=-1;i<5;i++){
     const x=i*500+off;
     ctx.fillStyle='#dce8ec';ctx.strokeStyle='#262626';ctx.lineWidth=3;ctx.fillRect(x+18,110,270,144);ctx.strokeRect(x+18,110,270,144);ctx.beginPath();ctx.moveTo(x+153,110);ctx.lineTo(x+153,254);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(x+36,120,18,120);
@@ -1208,7 +1185,7 @@ function drawGymScene(){
   }
   // 墙上时钟与饮水提示
   ctx.fillStyle='#fffdf8';ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.beginPath();ctx.arc(96,146,17,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(96,146);ctx.lineTo(96,136);ctx.moveTo(96,146);ctx.lineTo(103,150);ctx.stroke();
-  const pod=-((runDistance*4.0)%520)-100;for(let i=-1;i<4;i++)drawGymPod(i*520+pod,418);drawGymLife(pod);
+  const pod=-((visualScrollPx*.46)%520)-100;for(let i=-1;i<4;i++)drawGymPod(i*520+pod,418);drawGymLife(pod);
 }
 function drawWorkstationLife(pod){
   ctx.save();const blink=.45+.55*Math.abs(Math.sin(worldTime*3.4));
@@ -1218,7 +1195,7 @@ function drawWorkstationLife(pod){
 function drawMeetingLife(module){
   ctx.save();const pulse=.5+.5*Math.sin(worldTime*2.1);
   ctx.globalAlpha=.045+.025*pulse;ctx.fillStyle='#86a8b6';for(let i=-1;i<4;i++){const x=i*500+module+116;ctx.beginPath();ctx.moveTo(x,132);ctx.lineTo(x-74,366);ctx.lineTo(x+156,366);ctx.closePath();ctx.fill()}
-  ctx.globalAlpha=.26+.12*pulse;ctx.fillStyle='#6d96aa';for(let i=-1;i<5;i++){const x=i*460-((runDistance*1.42)%460)-460;ctx.fillRect(x+72,146,48+((i&1)*18),3)}
+  ctx.globalAlpha=.26+.12*pulse;ctx.fillStyle='#6d96aa';for(let i=-1;i<5;i++){const x=i*460-((visualScrollPx*.16)%460)-460;ctx.fillRect(x+72,146,48+((i&1)*18),3)}
   ctx.restore()
 }
 function drawPantryLife(pod){
@@ -1226,7 +1203,7 @@ function drawPantryLife(pod){
 }
 function drawGymLife(pod){
   ctx.save();const belt=(worldTime*92)%54;ctx.strokeStyle='rgba(255,255,255,.30)';ctx.lineWidth=2;for(let i=-1;i<4;i++){const x=i*520+pod;for(let k=0;k<4;k++){const bx=x+22+((k*48+belt)%170);ctx.beginPath();ctx.moveTo(bx,409);ctx.lineTo(bx+18,409);ctx.stroke()}}
-  ctx.globalAlpha=.10;ctx.fillStyle='#6f7f92';const ghost=-((runDistance*.26)%420);for(let x=-420+ghost;x<W+420;x+=420){ctx.beginPath();ctx.ellipse(x+128,234,14,21,0,0,Math.PI*2);ctx.fill();ctx.fillRect(x+116,254,24,54)}ctx.restore()
+  ctx.globalAlpha=.10;ctx.fillStyle='#6f7f92';const ghost=-((visualScrollPx*.08)%420);for(let x=-420+ghost;x<W+420;x+=420){ctx.beginPath();ctx.ellipse(x+128,234,14,21,0,0,Math.PI*2);ctx.fill();ctx.fillRect(x+116,254,24,54)}ctx.restore()
 }
 function drawSceneByIndex(idx){if(idx===1)drawMeetingRoomScene();else if(idx===2)drawPantryScene();else if(idx===3)drawGymScene();else drawWorkstationScene()}
 function drawRareMomentFx(){
@@ -1281,7 +1258,7 @@ function drawSharedFloor(){
   ctx.fillStyle='#c2baae';ctx.fillRect(0,floorTop,W,8);
   // 地砖缝：只负责空间感，不承担落点提示。
   ctx.strokeStyle='rgba(120,112,101,.34)';ctx.lineWidth=1.35;
-  const tileX=-((runDistance*6.2)%150)-150;
+  const tileX=-((visualScrollPx*.82)%150)-150;
   for(let x=tileX;x<W;x+=150){ctx.beginPath();ctx.moveTo(x,floorTop);ctx.lineTo(x,GROUND+58);ctx.stroke()}
   for(let y=floorTop+38;y<H;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
 
@@ -1293,7 +1270,7 @@ function drawSharedFloor(){
   ctx.fillStyle='rgba(23,23,23,.18)';ctx.fillRect(0,GROUND+8,W,1);
 
   // 通道内部增加移动短标记，帮助眼睛感知横向速度，但不与障碍轮廓抢视觉权重。
-  const markerX=-((runDistance*7.4)%140)-140;
+  const markerX=-((visualScrollPx)%140)-140;
   ctx.fillStyle='rgba(23,23,23,.22)';
   for(let x=markerX;x<W;x+=140)ctx.fillRect(x,GROUND+17,38,2);
 
@@ -1359,7 +1336,7 @@ function drawTinyCoworker(x,y,pose='desk',accent='#7f8792',alpha=.34){
 }
 function drawAmbientOfficeLife(){
   if(state==='menu'||rareMoment==='allHands')return;
-  const drift=-((runDistance*.72)%520);
+  const drift=-((visualScrollPx*.18)%520);
   if(sceneIndex===0){
     drawTinyCoworker(360+drift,392,'desk','#8394a3',.23);drawTinyCoworker(880+drift,395,'desk','#a8877c',.20);drawTinyCoworker(1390+drift,392,'walk','#768a73',.18);
   }else if(sceneIndex===1){
@@ -1374,7 +1351,7 @@ function drawRunAtmosphere(){
   const day=Math.max(0,Math.min(1,runDistance/DAY_END_DISTANCE));
   ctx.save();
   // Three subtle motion planes keep the office from reading as a static backdrop.
-  const farShift=(runDistance*1.55)%360,nearShift=(runDistance*5.8)%230,motion=Math.max(0,Math.min(1,(speed-330)/360));
+  const farShift=(visualScrollPx*.11)%360,nearShift=(visualScrollPx*.84)%230,motion=Math.max(0,Math.min(1,(speed-330)/360));
   ctx.globalAlpha=.045+.025*motion;ctx.fillStyle='#7691a0';for(let x=-360-farShift;x<W+360;x+=360)ctx.fillRect(x,118,88,3);
   ctx.globalAlpha=.055+.055*motion;ctx.fillStyle='#171717';for(let x=-230-nearShift;x<W+230;x+=230){ctx.save();ctx.translate(x,GROUND+25);ctx.transform(1,0,-.55,1,0,0);ctx.fillRect(0,0,74,3);ctx.restore()}
   ctx.globalAlpha=.04+.05*motion;const edge=ctx.createLinearGradient(0,0,W,0);edge.addColorStop(0,'rgba(23,23,23,.72)');edge.addColorStop(.08,'rgba(23,23,23,0)');edge.addColorStop(.92,'rgba(23,23,23,0)');edge.addColorStop(1,'rgba(23,23,23,.72)');ctx.fillStyle=edge;ctx.fillRect(0,82,W,GROUND-82);ctx.globalAlpha=1;
@@ -1457,7 +1434,7 @@ function drawPlayerVector(){
 }
 
 const HERO_SPRITE={
-  src:'assets/sprites/hero.png?v=1140',cell:96,cols:4,baselineY:91,display:104,
+  src:'assets/sprites/hero.png?v=1140',cell:96,cols:4,baselineY:91,display:96,
   idle:[0,1],run:[2,3,6,5,7,4],jumpStart:8,jump:[9,10],doubleJump:11,fall:12,land:13,hurt:14,victory:15
 };
 const heroSpriteImage=new Image();let heroSpriteReady=false,heroSpriteFailed=false;
@@ -1469,7 +1446,7 @@ function heroSpriteFrame(){
   if(grounded&&player.squash>.025)return HERO_SPRITE.land;
   if(!grounded){if(player.jumps>=2&&player.vy<170)return HERO_SPRITE.doubleJump;if(player.vy>120)return HERO_SPRITE.fall;if(player.jumps===1&&player.squash>.065&&player.vy<-520)return HERO_SPRITE.jumpStart;return player.vy<-280?HERO_SPRITE.jump[0]:HERO_SPRITE.jump[1]}
   if(state==='playing'||state==='ending'){
-    const fps=8+Math.min(5,(speed-350)/90),i=Math.floor(worldTime*fps)%HERO_SPRITE.run.length;return HERO_SPRITE.run[i]
+    const i=Math.floor(visualScrollPx/38)%HERO_SPRITE.run.length;return HERO_SPRITE.run[i]
   }
   return HERO_SPRITE.idle[Math.floor(worldTime*2)%HERO_SPRITE.idle.length]
 }
@@ -1562,7 +1539,6 @@ function drawObstacle(o){
 function drawPickup(p){
   const yy=p.y+Math.sin(p.spin)*5;ctx.save();ctx.translate(p.x,yy);
   const glow=p.kind==='leave'?'#d8ef9f':(p.kind==='risk'?'#f0d487':'#f0d487');ctx.globalAlpha=.16+.05*Math.sin(p.spin*2);ctx.fillStyle=glow;ctx.beginPath();ctx.arc(15,20,26+Math.sin(p.spin)*3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  if(p.choiceId){ctx.fillStyle='rgba(23,23,23,.82)';rr(-7,-20,44,14,3);ctx.fill();ctx.fillStyle='#fffdf8';ctx.font='950 8px ui-monospace,monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.choiceRole==='high'?(currentLang==='en'?'HIGH':'高路'):(currentLang==='en'?'LOW':'低路'),15,-13)}
   if(p.kind==='leave'){
     ctx.fillStyle='#eef6d9';ctx.strokeStyle='#171717';ctx.lineWidth=3;rr(1,5,29,31,3);ctx.fill();ctx.stroke();ctx.fillStyle='#506b2c';ctx.fillRect(6,10,19,4);ctx.fillRect(6,18,13,3);ctx.strokeStyle='#506b2c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(7,29);ctx.lineTo(13,34);ctx.lineTo(25,22);ctx.stroke();ctx.fillStyle='#171717';ctx.font='950 8px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('SAVE',15,2)
   }else if(p.kind==='risk'){
@@ -1625,16 +1601,16 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 window.addEventListener('blur',()=>{if(state==='playing')togglePause()});
 syncAudioControls();updateMusicHud();resetMessageComposer();reset();renderRunLedger();updateDailyUi();applyLanguage(false);resizeCanvas();draw();
 if(DEBUG_MODE)window.__GAME_TEST__={
-  initialized:true,canvas:Boolean(ctx),version:'1.20.0',dayEndDistance:DAY_END_DISTANCE,
-  getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],sceneChoiceSpawned:[...sceneChoiceSpawned],runPickupChoices,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y,choiceId:p.choiceId||0,choiceRole:p.choiceRole||''}))}),
-  debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false,choiceId:0,choiceRole:''});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
+  initialized:true,canvas:Boolean(ctx),version:'1.21.0',dayEndDistance:DAY_END_DISTANCE,
+  getState:()=>({state,distance,runDistance,speed,stageIndex,combo,runNearMisses,runPerfectNearMisses,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,encounterClusterCount,encounterClusterTarget,encounterBreathers,sceneComboRecoveryUsed:[...sceneComboRecoveryUsed],visualScrollPx,leaveSlipHits,leaveSlipTimer,riskBoostTimer,feelFlash,feelKind,comboBurstTimer,comboBurstValue,airBurstTimer,landingPulse,bossWarningTimer,dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel(),player:{...player},obstacles:obstacles.map(o=>({label:o.label,x:o.x,y:o.y,w:o.w,h:o.h,state:o.dropState||o.mutationState||'',mutation:o.mutation||'',rush:!!o.rush,meetingDrift:!!o.meetingDrift,gymBounce:!!o.gymBounce})),pickups:pickups.map(p=>({kind:p.kind,x:p.x,y:p.y}))}),
+  debugPickup:(kind='coffee')=>{const before={distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer};collectPickup({kind,x:500,y:300,w:32,h:40,spin:0,got:false});return {before,after:{distance,runDistance,leaveSlipHits,leaveSlipTimer,riskBoostTimer}}},debugCoffee:()=>window.__GAME_TEST__.debugPickup('coffee'),debugRunLedger:()=>({last:lastRunRecord?{...lastRunRecord}:null,top:topRuns.map(r=>({...r}))}),debugRecordRun:(patch={})=>{distance=Number(patch.distance)||0;runPeakCombo=Math.max(0,Number(patch.combo)||0);runNearMisses=Math.max(0,Number(patch.near)||0);runPerfectNearMisses=Math.max(0,Number(patch.perfect)||0);runRecordSaved=false;return recordFinishedRun(patch.outcome||'caught',patch.cause||'BUG')},
   debugDaily:(enabled=true)=>{setDailyMode(enabled);reset();return {dailyMode,dailySeedDate,dailySeed,dailyRngState,dailyModifierId,dailyModifier:dailyModifierLabel()}},debugDailySequence:(count=8)=>{resetGameRandom();return Array.from({length:Math.max(1,Math.min(32,Number(count)||8))},()=>gameRandom())},
   debugHeroSprite:()=>({ready:heroSpriteReady,failed:heroSpriteFailed,frame:heroSpriteFrame(),src:HERO_SPRITE.src,display:HERO_SPRITE.display}),debugHeroPose:(patch={},time=null)=>{cancelAnimationFrame(raf);tutorialActive=false;tutorialToast.classList.add('hidden');state='playing';if(Number.isFinite(Number(time)))worldTime=Number(time);Object.assign(player,patch);draw();return {sprite:window.__GAME_TEST__.debugHeroSprite(),player:{...player},ground:GROUND,worldTime}},
   debugSpawn:(label)=>spawnObstacle(label),debugStep:(dt=.016)=>{if(state!=='playing'&&state!=='ending')state='playing';update(dt);return window.__GAME_TEST__.getState()},
   debugPassNear:(tier=1,boost=false)=>{riskBoostTimer=boost?7:0;const gap=tier===2?6:18,o={label:'BUG',x:player.x-70,y:player.y+player.h+gap,w:56,h:38,air:false,passed:false,mutationState:'idle'};const before=distance;passObstacle(o);return {delta:distance-before,tier,boost,runNearMisses,runPerfectNearMisses,riskBoostTimer}},
   debugUseLeaveSlip:(label='BUG')=>{leaveSlipHits=1;leaveSlipTimer=8;const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};const saved=absorbWithLeaveSlip(o);return {saved,leaveSlipHits,leaveSlipTimer,combo,passed:o.passed,x:o.x}},
-  debugClear:()=>{obstacles=[];pickups=[];return true},debugSpawnChoice:()=>{const ok=spawnPickupChoice();return {ok,sceneIndex,choices:pickups.filter(p=>p.choiceId).map(p=>({kind:p.kind,role:p.choiceRole,x:p.x,y:p.y,choiceId:p.choiceId}))}},debugChooseChoice:(role='high')=>{const p=pickups.find(p=>p.choiceId&&!p.got&&p.choiceRole===role);if(p)collectPickup(p);return {picked:p?{kind:p.kind,role:p.choiceRole}:null,remaining:pickups.filter(q=>q.choiceId&&!q.got).length,leaveSlipHits,riskBoostTimer,distance}},
+  debugClear:()=>{obstacles=[];pickups=[];return true},
   debugMeetingGeometry:()=>{const o=spawnObstacle('会议');return {first:o.firstGate,gapTop:o.gapTop,gapBottom:o.gapBottom,gapSize:o.gapBottom-o.gapTop,playerH:player.h,clearance:(o.gapBottom-o.gapTop)-player.h}},
   scenes:scenes.map(s=>({name:s.name,time:s.time,from:s.from,to:s.to,halfTime:s.halfTime})),debugScene:()=>({sceneIndex,previousSceneIndex,scene:scenes[Math.max(0,sceneIndex)]?.name,sceneHalf,progress:sceneProgress(),toastTimer:sceneToastTimer,sceneBlend,rareMoment,rareMomentTimer,secretMoment,secretMomentTimer}),musicProfiles:musicProfiles.map(p=>({name:p.name,bpm:p.bpm,layers:p.layers})),debugMusicState:()=>({soundOn,musicVolume,sfxVolume,stageIndex,profile:profile().name,bpm:profile().bpm,layers:profile().layers,musicStep}),debugAudioLevels:()=>({musicVolume,sfxVolume,musicTarget:musicTargetLevel(),sfxTarget:sfxTargetLevel()}),debugGround:()=>({ground:GROUND,playerBottom:player.y+player.h,delta:(player.y+player.h)-GROUND}),debugHitboxes:()=>({player:playerHitbox(),constants:{...PLAYER_HIT},jumpBufferTimer}),debugSetPlayer:(patch={})=>{Object.assign(player,patch);return {...player}},debugPairGap:(prev,next,gap=0)=>({prev,next,input:Number(gap)||0,minimum:minimumPairGapPx(prev,next),output:enforcePairGapPx(Number(gap)||0,prev,next)}),debugSetRunDistance:(d)=>{runDistance=Number(d)||0;updateStage();updateScene(true);updateSceneHalf(true);return {runDistance,stageIndex,sceneIndex,sceneHalf,stage:stageEl.textContent,pendingClimaxPattern}},debugDirector:()=>({queue:directorQueue.map(x=>x.label),cooldown:directorCooldown,pendingClimaxPattern}),debugOfficeEvent:()=>({officeEvent,officeEventTimer,officeEventCooldown,eventRollTimer,coffeeRushRemaining,bossAwayTimer,bugPatchTimer,rareMoment,rareMomentTimer,meetingSuppressTimer,gymRushTimer}),debugTriggerEvent:(id)=>{triggerOfficeEvent(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerRare:(id)=>{triggerRareMoment(id);return window.__GAME_TEST__.debugOfficeEvent()},debugTriggerSecret:(id)=>{triggerSecretMoment(id);return window.__GAME_TEST__.debugScene()},debugSpacing:()=>({lastGapPx:Math.round(lastSpawnGapPx),tightGapStreak,history:[...spacingHistory],lastObstacleLabel,sameObstacleStreak}),debugEnding:()=>({phase:endingPhase,timer:endingTimer,resolved:endingResolved,exitDoorX,onTimeEndings,overtimeEndings,state,endingCinematicTimer,endingCinematicType,endingPlayerOffset,endingBossX}),debugTriggerEnding:()=>{triggerEndingWindow();return window.__GAME_TEST__.debugEnding()},debugResolveEnding:(type)=>{resolveEnding(type);return window.__GAME_TEST__.debugEnding()},debugAdvanceEnding:(dt=.25)=>{if(state==='ending')updateEndingCinematic(dt);return window.__GAME_TEST__.debugEnding()},debugTutorial:()=>({tutorialDone,tutorialActive,tutorialStep,tutorialTimer,text:tutorialToast.textContent,hidden:tutorialToast.classList.contains('hidden')}),debugResetTutorial:()=>{tutorialDone=false;storageRemove('91hwl_moyu_tutorial_done');beginTutorial();return window.__GAME_TEST__.debugTutorial()},debugDiscoveries:()=>({count:discoveries.size,total:discoveryDefs.length,ids:[...discoveries]}),debugUnlock:(id)=>{unlockDiscovery(id,true);return window.__GAME_TEST__.debugDiscoveries()},debugDeathCounts:()=>({...deathCounts}),debugJump:()=>{jump();return window.__GAME_TEST__.debugTutorial()},debugHit:(label='BUG')=>{const o={label,x:player.x,y:player.y,w:56,h:38,passed:false};takeObstacleHit(o);return {state,mistakes,maxMistakes:MAX_MISTAKES,hitInvulnTimer,text:overlayText.textContent}},debugPass:(label='BUG',count=1)=>{for(let i=0;i<Math.max(1,Number(count)||1);i++)passObstacle({label,x:player.x-100,y:GROUND-40,w:56,h:38,passed:false,mutationState:'idle'});return {combo,mistakes,sceneIndex,recoveryUsed:[...sceneComboRecoveryUsed]}},debugGameOver:(cause)=>{gameOver(cause);return {state,deathCounts:{...deathCounts},text:overlayText.textContent}}
-};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.20.0';
+};document.documentElement.dataset.gameReady='true';document.documentElement.dataset.messageEnabled=MESSAGE_ENABLED?'true':'false';document.documentElement.dataset.gameVersion='1.21.0';
 })();

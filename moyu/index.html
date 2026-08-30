@@ -9,20 +9,20 @@
 <script>(()=>{try{const r=document.documentElement,q=new URLSearchParams(location.search),c=n=>{const x=document.cookie.split('; ').find(v=>v.startsWith(n+'='));return x?decodeURIComponent(x.slice(n.length+1)):''};let l=q.get('lang'),cl=c('91hwl_lang'),sl=localStorage.getItem('91hwl_lang'),bl=(navigator.language||'').toLowerCase().startsWith('zh')?'zh':'en';if(l!=='zh'&&l!=='en')l=(cl==='zh'||cl==='en')?cl:((sl==='zh'||sl==='en')?sl:bl);r.dataset.lang=l;r.lang=l==='en'?'en':'zh-CN';r.classList.add('notranslate');r.setAttribute('translate','no')}catch(_){}})();</script>
 <meta name="description" content="摸鱼到下班 / Clock Out Alive：从 14:00 撑到 18:00 的办公室跑酷 Web Toy，支持中文与 English。" />
 <meta name="application-name" content="Clock Out Alive" />
-<meta name="version" content="1.20.0" />
+<meta name="version" content="1.21.0" />
 <link rel="canonical" href="https://play.91hwl.cn/moyu/" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="摸鱼到下班 · Clock Out Alive" />
 <meta property="og:description" content="Survive the office from 14:00 to 18:00. Dodge bosses, meetings, bugs and last-minute requests." />
 <title>摸鱼到下班 · Clock Out Alive · 91HWL</title>
-<link rel="stylesheet" href="style.css?v=1200" />
-<link rel="stylesheet" href="visual-v1113.css?v=1200" />
-<link rel="stylesheet" href="responsive-v1120.css?v=1200" />
+<link rel="stylesheet" href="style.css?v=1210" />
+<link rel="stylesheet" href="visual-v1113.css?v=1210" />
+<link rel="stylesheet" href="responsive-v1120.css?v=1210" />
 </head>
 <body>
 <main class="wrap">
 <header>
-  <div class="brand"><span data-i18n="brand">摸鱼到下班</span><span class="version-badge">v1.20.0</span><small data-i18n="brandMeta">91HWL · WEB TOY · OFFICE ESCAPE RUNNER</small></div>
+  <div class="brand"><span data-i18n="brand">摸鱼到下班</span><span class="version-badge">v1.21.0</span><small data-i18n="brandMeta">91HWL · WEB TOY · OFFICE ESCAPE RUNNER</small></div>
   <div class="top-actions">
     <a class="icon-btn home-link" id="homeLink" href="https://91hwl.cn/" data-i18n="home">← 91hwl 首页</a>
     <button class="icon-btn lang-btn" id="langBtn" type="button" aria-label="Switch language">EN</button>
@@ -70,7 +70,7 @@
     <div class="card">
       <div class="menu-kicker" data-i18n="shiftKicker">今日工时 14:00 → 18:00</div>
       <h1 id="overlayTitle" data-i18n="heroTitle">别让老板逮到。</h1>
-      <p class="tagline" id="overlayText" data-i18n="heroText">从 14:00 撑到 18:00。穿过工位区、会议室、茶水间和员工健身房，躲开工作，喝点咖啡，尽量活着看到下班。普通碰撞有 3 次容错，第三次失误才会真正失败；每个场景会出现一次高/低路线二选一，连续躲过 10 个障碍还能恢复 1 次容错。声音默认关闭，可在右上角开启原创 8-bit / Chiptune BGM。</p>
+      <p class="tagline" id="overlayText" data-i18n="heroText">从 14:00 撑到 18:00。穿过工位区、会议室、茶水间和员工健身房，躲开工作，喝点咖啡，尽量活着看到下班。普通碰撞有 3 次容错，第三次失误才会真正失败；每个场景首次连续躲过 10 个障碍，还能恢复 1 次容错。声音默认关闭，可在右上角开启原创 8-bit / Chiptune BGM。</p>
       <div class="menu-facts" aria-label="Game features"><div class="menu-fact"><b>4</b><small data-i18n="factScenes">办公室场景</small></div><div class="menu-fact"><b>2×</b><small data-i18n="factJump">跳跃层级</small></div><div class="menu-fact"><b>3</b><small data-i18n="factBuffer">容错次数</small></div><div class="menu-fact"><b>2</b><small data-i18n="factEnds">不同结局</small></div></div>
       <div class="ending-actions"><button class="primary" id="startBtn" type="button" data-i18n="start">开始摸鱼</button><button class="secondary daily-btn" id="dailyBtn" type="button">今日挑战</button><button class="secondary hidden" id="messageBtn" type="button" data-i18n="leaveMessage">写一句话</button></div>
       <div class="viewport-hint" aria-live="polite"><span class="vh-zh">手机横屏或点右上角全屏，可获得更大的跑酷画面。</span><span class="vh-en">Rotate your phone or use Fullscreen for a larger playfield.</span></div>
@@ -97,8 +97,8 @@
     </div>
   </div>
 </div>
-<footer class="game-footer"><span data-i18n="footerPrivacy">本地存档 · 无需账号 · 无需安装</span><span>91HWL / CLOCK OUT ALIVE / v1.20.0</span></footer>
+<footer class="game-footer"><span data-i18n="footerPrivacy">本地存档 · 无需账号 · 无需安装</span><span>91HWL / CLOCK OUT ALIVE / v1.21.0</span></footer>
 </main>
-<script src="game.js?v=1200"></script>
+<script src="game.js?v=1210"></script>
 </body>
 </html>

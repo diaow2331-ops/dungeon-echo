@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.20.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.21.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -58,6 +58,14 @@ v1.12.3 adds an optional local **Daily Shift** without changing the normal rando
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
 
+
+## v1.21.0 motion coherence pass
+
+v1.21.0 focuses on why the runner still felt visually strange after the v1.18–v1.20 rule changes. The four-minute route uses a deliberately slow progression distance, but the office background had been scrolling from that same progression variable while hazards moved in physical canvas pixels. At 14:00, hazards crossed the screen at roughly 350 px/s while the ground texture moved only around 40–50 px/s. The result looked like skating: the runner and hazards moved in one world while the office floor and furniture belonged to another.
+
+A separate `visualScrollPx` now accumulates actual `speed × dt`. Floor markers travel at physical runner speed, tile seams use near-ground parallax, furniture uses mid-depth parallax, and wall/ceiling structures use slow far-depth parallax. Route progress, clock timing, spawn pacing and collision geometry still use the existing four-minute progression model. The hero render is reduced from 104 to 96 logical pixels and its six-frame running cycle is advanced by visual travel distance rather than wall-clock FPS, so gait cadence follows speed changes instead of sliding over the floor.
+
+The v1.20 LOW/HIGH pickup-pair experiment is intentionally removed from active play. In a one-button runner the floating lane labels read like debug UI rather than an organic office decision, and they competed with hazard readability. Coffee, Leave Slip and Risk Form remain as ordinary pickups. The opening safety rules are also moved from four-minute route-distance thresholds to real run time, and the first jump arc is lengthened slightly (lower gravity, similar peak height) so a visually reasonable reaction to a ground BUG does not land the runner on the obstacle's trailing edge.
 
 ## v1.20.0 route-choice pass
 
