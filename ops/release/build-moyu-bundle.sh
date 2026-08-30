@@ -3,6 +3,8 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 source_root="$repo_root/moyu"
 version="$(tr -d '\r\n' < "$source_root/VERSION")"
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "invalid Moyu version: $version" >&2; exit 2; }
+asset_tag="$(printf '%s' "$version" | tr -d '.')"
 revision="$(git -C "$repo_root" rev-parse HEAD)"
 output="${1:-$repo_root/91hwl-play-moyu-v$version.zip}"
 stage_root="$(mktemp -d)"
@@ -12,7 +14,6 @@ trap cleanup EXIT
 command -v zip >/dev/null
 command -v sha256sum >/dev/null
 command -v node >/dev/null
-test "$version" = '1.17.0'
 release_files=(index.html style.css visual-v1113.css responsive-v1120.css game.js VERSION assets/sprites/hero.png assets/sprites/hero.json)
 for rel in "${release_files[@]}"; do
   file="$source_root/$rel"
@@ -20,11 +21,11 @@ for rel in "${release_files[@]}"; do
   git -C "$repo_root" ls-files --error-unmatch "moyu/$rel" >/dev/null 2>&1 || { echo "untracked Moyu release source: $rel" >&2; exit 2; }
 done
 node --check "$source_root/game.js" >/dev/null
-grep -Fq '<meta name="version" content="1.17.0"' "$source_root/index.html"
-grep -Fq 'style.css?v=1170c' "$source_root/index.html"
-grep -Fq 'visual-v1113.css?v=1170' "$source_root/index.html"
-grep -Fq 'responsive-v1120.css?v=1170' "$source_root/index.html"
-grep -Fq 'game.js?v=1170' "$source_root/index.html"
+grep -Fq "<meta name=\"version\" content=\"$version\"" "$source_root/index.html"
+grep -Fq "style.css?v=$asset_tag" "$source_root/index.html"
+grep -Fq "visual-v1113.css?v=$asset_tag" "$source_root/index.html"
+grep -Fq "responsive-v1120.css?v=$asset_tag" "$source_root/index.html"
+grep -Fq "game.js?v=$asset_tag" "$source_root/index.html"
 grep -Fq 'height:min(54svh,440px)' "$source_root/style.css"
 grep -Fq 'left:clamp(-28px,-7vw,-18px)' "$source_root/style.css"
 grep -Fq 'translate="no"' "$source_root/index.html"
@@ -41,7 +42,11 @@ grep -Fq 'rushWarnTimer=.34' "$source_root/game.js"
 grep -Fq '.combo-chip:after' "$source_root/style.css"
 grep -Fq 'function setDailyMode(enabled)' "$source_root/game.js"
 grep -Fq 'dailyModifierDefs' "$source_root/game.js"
-grep -Fq "dataset.gameVersion='1.17.0'" "$source_root/game.js"
+grep -Fq "dataset.gameVersion='$version'" "$source_root/game.js"
+grep -Fq 'MAX_MISTAKES=3' "$source_root/game.js"
+grep -Fq 'function takeObstacleHit(o)' "$source_root/game.js"
+grep -Fq 'function applyEncounterCadence(gapPx,plan)' "$source_root/game.js"
+grep -Fq 'sceneComboRecoveryUsed' "$source_root/game.js"
 grep -Fq 'DAY_END_DISTANCE=2200' "$source_root/game.js"
 grep -Fq 'const groundTakeoff=before===0' "$source_root/game.js"
 grep -Fq 'const storedLang=storageGet(LANG_KEY)' "$source_root/game.js"
