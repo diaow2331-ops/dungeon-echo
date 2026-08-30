@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.21.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.21.1**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -58,6 +58,12 @@ v1.12.3 adds an optional local **Daily Shift** without changing the normal rando
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
 
+
+## v1.21.1 play-readability polish
+
+v1.21.1 is a targeted player-facing cleanup after reviewing the live v1.21 run frame by frame. The compact double-jump sprite is now only a brief impulse pose, then returns to the same airborne silhouette scale as the first jump; the compact frame receives horizontal-only compensation so the character does not appear to shrink between jump stages. Boss spot-check warning timing now arrives near the real reaction window instead of far ahead of it, the boss collision silhouette is slightly inset, and the coach copy no longer tells players to jump too early.
+
+The first meeting gate keeps its readable safe opening but drops the oversized diagonal tutorial line and embedded instructions. Rare office moments now use the event HUD plus ticker as their text channel instead of stacking duplicate discovery floaters over the playfield. Core physics, the three-strike loop, four-minute route, Daily Shift, endings and v1.21 motion-coherence model remain unchanged.
 
 ## v1.21.0 motion coherence pass
 
