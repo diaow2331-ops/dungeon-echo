@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.21.1**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.22.0**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -58,6 +58,14 @@ v1.12.3 adds an optional local **Daily Shift** without changing the normal rando
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
 
+
+## v1.22.0 four-room soundtrack suite
+
+v1.22.0 replaces the former 16-step shared chiptune hook with four independent sixteen-bar A/B scores: **Workstation / Afternoon Drift**, **Meeting / Quiet Daydream**, **Pantry / Coffee Refill**, and **Gym / Clock-out Sprint**. Each room owns its own melody, harmony, bass motion, arpeggio direction and drum pattern. Each A/B score runs roughly 32–40 seconds before its melody returns, while the next full pass flips arpeggio direction and cadence so the exact texture does not repeat for roughly 64–80 seconds—long enough to cover a full room instead of repeating every few seconds. Scene-half changes now continue the current score with a small tempo/arrangement lift rather than restarting bar one; the final ten minutes are a faster reprise of the Gym theme.
+
+The English presentation is also treated as its own composition: the desktop menu uses a wider, shorter card with a single-line title and tighter copy, HUD labels are shortened, and gameplay jump keys now take priority after UI-button interaction so Space can no longer reactivate the language toggle.
+
+The pass also fixes fresh-browser audio defaults: an absent saved volume is no longer parsed as numeric zero, so the first explicit sound enable correctly starts at the new music-forward 42% music / 72% SFX mix. The compact double-jump atlas frame is removed from runtime pose selection entirely; first and second jumps share the same airborne silhouette while the existing air-burst effect communicates the second impulse. The final-ten-minute exit hint also replaces the older Gym half-stage text instead of overlapping it.
 
 ## v1.21.1 play-readability polish
 
