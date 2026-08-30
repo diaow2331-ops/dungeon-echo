@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "image": "scene-backdrops-v125.webp",
+  "sourceTitle": "办公室跑酷像素素材图集.png",
+  "sourceSha256": "06e881d5185c5513edd96dbd00eecae53169dc46ce7d9a0662d8d029644c3f24",
+  "sheetWidth": 1024,
+  "sheetHeight": 512,
+  "cellWidth": 512,
+  "cellHeight": 256,
+  "columns": 2,
+  "rows": 2,
+  "frames": {
+    "meeting": 0,
+    "pantry": 1,
+    "gym": 2,
+    "workstation": 3
+  },
+  "runtimeSceneOrder": ["workstation", "meeting", "pantry", "gym"]
+}
