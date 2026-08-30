@@ -1,8 +1,8 @@
-Clock Out Alive / 摸鱼到下班 v1.21.0 deployment bundle
+Clock Out Alive / 摸鱼到下班 v1.21.1 deployment bundle
 
 This bundle atomically replaces only `/moyu/` inside the existing `/srv/91hwl-play/current` release tree and preserves Dungeon Echo.
 
-v1.21.0 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
+v1.21.1 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
 - `public/moyu/game.js` is copied byte-for-byte from tracked `moyu/game.js`; release-time source reconstruction is gone.
 - `responsive-v1120.css` keeps phone safe areas, uses nearly the full portrait width for the 1200:620 playfield and exposes a landscape/fullscreen hint.
 - the runtime caps desktop frame width from the real visual viewport height so the complete game frame stays in the first viewport on ordinary browser windows.
@@ -39,8 +39,9 @@ v1.21.0 builds on the canonical-runtime + viewport-first v1.12.x foundation and 
 - v1.21.0 replaces progression-scaled backdrop drift with a physical visual-scroll clock: floor markers now move at runner speed, furniture uses mid-depth parallax and walls/ceiling move slowly, so the office no longer appears detached from fast hazards.
 - v1.21.0 also shrinks the rendered runner from 104 to 96 logical pixels and drives the six-frame run cycle from travelled visual distance, reducing the oversized / skating look while keeping the 44×66 collision body unchanged.
 - the v1.20 LOW/HIGH pickup gate experiment is removed from active gameplay; ordinary Coffee / Leave Slip / Risk Form pickups remain, avoiding floating route labels in the one-button runner.
-- route-choice pairs are scene-specific and only appear when the entry edge is clear, preserving the v1.19 breathing cadence and existing collision authority.
+
+- v1.21.1 normalizes first-jump / double-jump visual scale, aligns boss warning and collider timing with the real jump window, removes meeting-gate tutorial clutter, and deduplicates rare-event text overlays.
 
 The former v1.11.5 slice/patch/build chain remains in the repository archive only and is not included in this deployment bundle.
 
-The deployer verifies checksums, canonical v1.21.0 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
+The deployer verifies checksums, canonical v1.21.1 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
