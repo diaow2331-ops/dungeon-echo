@@ -1,8 +1,8 @@
-Clock Out Alive / 摸鱼到下班 v1.21.1 deployment bundle
+Clock Out Alive / 摸鱼到下班 v1.22.0 deployment bundle
 
 This bundle atomically replaces only `/moyu/` inside the existing `/srv/91hwl-play/current` release tree and preserves Dungeon Echo.
 
-v1.21.1 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
+v1.22.0 builds on the canonical-runtime + viewport-first v1.12.x foundation and the v1.13.x playfield/game-feel passes while preserving the existing gameplay layer:
 - `public/moyu/game.js` is copied byte-for-byte from tracked `moyu/game.js`; release-time source reconstruction is gone.
 - `responsive-v1120.css` keeps phone safe areas, uses nearly the full portrait width for the 1200:620 playfield and exposes a landscape/fullscreen hint.
 - the runtime caps desktop frame width from the real visual viewport height so the complete game frame stays in the first viewport on ordinary browser windows.
@@ -42,6 +42,10 @@ v1.21.1 builds on the canonical-runtime + viewport-first v1.12.x foundation and 
 
 - v1.21.1 normalizes first-jump / double-jump visual scale, aligns boss warning and collider timing with the real jump window, removes meeting-gate tutorial clutter, and deduplicates rare-event text overlays.
 
+- v1.22.0 gives the four office scenes independent sixteen-bar A/B 8-bit themes with alternate full-phrase variations, keeps half-scene music continuous, and turns the final ten minutes into a Gym-theme reprise rather than another unrelated loop.
+- v1.22.0 fixes English-mode Space input by releasing language-button focus and prioritizing gameplay jump keys while running; the English desktop menu is separately compacted instead of inheriting Chinese line lengths.
+- v1.22.0 fixes fresh-browser audio defaults to the music-forward 42% music / 72% SFX, removes the compact double-jump sprite from runtime pose selection, and prevents the final exit hint from overlapping the older Gym-half message.
+
 The former v1.11.5 slice/patch/build chain remains in the repository archive only and is not included in this deployment bundle.
 
-The deployer verifies checksums, canonical v1.21.1 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
+The deployer verifies checksums, canonical v1.22.0 fingerprints, viewport-fit guards, language ownership and the accepted gameplay-quality markers before activation. Failures after switching current trigger rollback.
