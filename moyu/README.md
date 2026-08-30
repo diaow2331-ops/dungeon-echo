@@ -1,6 +1,6 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.13.0**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.13.1**. Production route: `https://play.91hwl.cn/moyu/`.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
@@ -57,3 +57,10 @@ All v1.12.x gameplay systems remain intact: Daily Shift, scene-specific hazards,
 v1.12.3 adds an optional local **Daily Shift** without changing the normal random mode. Enabling it fixes gameplay-affecting randomness to the player’s local calendar date, so obstacle order, spacing, pickups, office events and rare gameplay moments are reproducible for that day while cosmetic particles remain free to vary.
 
 Each date also selects one office modifier: **Meeting Marathon** raises meeting pressure, **Buggy Build** raises BUG pressure, or **Coffee Shortage** reduces pickup opportunities. Daily runs are marked in Last Run / Top 5 with their date and modifier. There is no login, streak reward or permanent stat bonus.
+
+## v1.13.1 game-feel pass
+
+v1.13.1 keeps the v1.13.0 Playfield First layout and focuses on moment-to-moment feedback. Perfect Near Miss now produces a short burst, flash and layered cue; every fifth Combo produces a compact Flow milestone; the Combo HUD exposes its remaining lifetime instead of dropping without warning.
+
+Ground takeoff, double jump and hard landing now have separate visual signatures without changing the 44×66 collision body. Boss spot-check rushes use a slightly longer readable warning and edge alert before acceleration. Combo 5+ also enables a subtle Flow motion layer so strong runs feel visibly different without adding permanent stats or a new control. The runner itself is now drawn as a right-facing 3/4 profile: the grounded gait uses opposing arm/leg motion around the hips and shoulders, while airborne posture blends continuously from ascent to tuck to landing preparation based on vertical velocity instead of snapping between front-facing puppet poses.
+

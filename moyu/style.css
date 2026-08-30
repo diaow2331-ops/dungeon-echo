@@ -185,3 +185,10 @@ html[data-game-state="paused"] .progress{left:0;right:0;bottom:0;height:4px;bord
   html[data-game-state="paused"] .daily-badge{display:none!important}
   html[data-game-state="paused"] .scene-badge{max-width:94px;overflow:hidden;text-overflow:ellipsis}
 }
+
+
+/* v1.13.1 game-feel feedback: readable combo lifetime without adding controls. */
+.combo-chip{position:relative;overflow:hidden;--combo-life:0%}
+.combo-chip:after{content:'';position:absolute;left:0;bottom:0;height:3px;width:var(--combo-life);background:#506b2c;opacity:.9;pointer-events:none}
+.combo-chip[data-flow="true"]{background:rgba(216,239,159,.94)!important}
+.combo-chip[data-flow="true"]:after{background:#9c3f2f;height:4px}
