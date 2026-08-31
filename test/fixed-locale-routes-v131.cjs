@@ -13,7 +13,7 @@ const scripts=html=>[...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g
 const expectedScripts=[
   'game/core/production-bootstrap.js','profiles/classic-100.profile.js','game/locale/locale-data-v134.js',
   'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js','game/domain/inventory/set-rules-v180.js',
-  'game/domain/economy/economy-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/expedition/expedition-rules-v170.js','game/domain/progression/progression-rules-v130.js',
+  'game/domain/economy/economy-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/town/town-growth-rules-v180.js','game/domain/expedition/expedition-rules-v170.js','game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js','game/core/game.js','game/locale/core-locale-data-v139.js',
   'game/input/desktop-controls.js','game/core/runtime-bootstrap.js',
 ];

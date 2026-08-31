@@ -26,6 +26,7 @@ for(const set of rules.SETS){
 }
 assert.equal(rules.namedChance(2),0,'rare and below must remain ordinary gear');
 assert(rules.namedChance(3)>0&&rules.namedChance(4)>rules.namedChance(3),'Epic/Legendary named relic chance must be bounded and rarity-sensitive');
+assert.equal(Number((rules.namedChance(3,.09)-rules.namedChance(3)).toFixed(2)),.09,'Relic Hall may add at most a bounded +9% named chance');
 
 const set=rules.SETS[0];
 const equip={};

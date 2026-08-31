@@ -1,0 +1,30 @@
+# Dungeon Echo v1.8.0 — Living Town II + Named Relics
+
+## Goal
+Make returning to town materially meaningful and make equipment feel like authored objects rather than anonymous stat bundles.
+
+## Pillar 1 — Persistent town construction
+The plaza now exposes four bounded three-stage projects:
+- **Rekindled Smithy** — reduces forge cost by 5% / 10% / 15%.
+- **East-Gate Trade Road** — adds +1 / +2 / +3 stock to each town supply line.
+- **Relic Hall Expansion** — adds +3% / +6% / +9% Epic/Legendary named-relic discovery chance; later stages require catalogue progress as well as Gold.
+- **Ember Tavern** — expands the per-character permanent toast cap from 8 to 9 / 10 / 11.
+
+Projects are gated by town tier and Gold. Their levels persist in the existing v130 Greedy meta record and are clamped by the pure town-growth policy on load.
+
+## Pillar 2 — Town visibly remembers investment
+Town project levels are shown in walkable NPC nameplates. The town Canvas also gains bounded project landmarks (smithy fire/furnace detail, market awning/crates, tavern lanterns, deeper Relic Hall framing), so investment changes the home base rather than only numbers in a panel.
+
+## Pillar 3 — Fixed named six-piece sets
+Named relics use the existing six equipment slots and activate at 2 / 4 / 6 pieces. Each fixed piece has its own name, lore and signature stats. Named relics keep at most one random secondary affix so identity remains primary.
+
+## Authority boundaries
+- `game/domain/town/town-growth-rules-v180.js`: project definitions, requirements and bounded deterministic effects.
+- `game/domain/inventory/set-rules-v180.js`: named-set identities, lore, signatures, set thresholds.
+- `game/domain/economy/economy-rules-v130.js`: canonical forge and stock pricing algorithms, accepting bounded project modifiers as inputs.
+- `game/core/game.js`: sole mutation owner for Gold, project levels, safe-return relic ledger, RNG, combat, persistence, UI, Canvas and input.
+
+## Compatibility
+- Storage epoch stays `v130`.
+- Missing `townWorks` sanitizes to zero levels.
+- Current public release remains v1.7.0 / cache generation 181 until v1.8 is explicitly frozen and released.

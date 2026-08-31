@@ -41,6 +41,8 @@ assert.equal(rules.townSupplyStock('escape', 4), 1);
 assert.equal(rules.townSupplyStock('escape', 5), 2);
 assert.equal(rules.townSupplyStock('key', 8), 4);
 assert.equal(rules.townSupplyStock('insurance', 10), 1);
+assert.equal(rules.townSupplyStock('potion', 1, 2), 6);
+assert.equal(rules.townSupplyStock('insurance', 10, 3), 4);
 
 assert.equal(rules.dungeonTier(1), 1);
 assert.equal(rules.dungeonTier(100), 10);
@@ -51,6 +53,8 @@ assert.equal(rules.dungeonHealPrice(100, 100, 100, 24), 0);
 
 assert.equal(rules.forgeCost(100, 0), 150);
 assert.equal(rules.forgeCost(100, 4), 630);
+assert.equal(rules.forgeCost(100, 0, .05), 143);
+assert.equal(rules.forgeCost(100, 4, .15), 536);
 assert.equal(rules.sellPrice(100, 0), 45);
 assert.equal(rules.sellPrice(100, 3), 90);
 assert.equal(rules.quickDiveCost(10, 5), 240);

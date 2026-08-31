@@ -58,6 +58,7 @@ Cross-responsibility boundaries are strict:
 - town domain owns checkpoint unlocks and expedition-readiness thresholds; core owns town movement, purchases, selection state, persistence and presentation;
 - expedition domain owns deterministic contract availability/modifiers, dungeon-event specifications and elite-affix eligibility; core consumes RNG, spawns actors, mutates combat/reward state and persists the selected contract;
 - inventory set policy owns fixed named-set definitions, six-piece identities, lore, signatures and 2/4/6 threshold bonuses; core owns deterministic item-generation attachment, relic-ledger mutation on safe return, live stat consumption and town presentation;
+- town growth policy owns fixed project definitions, tier/relic/Gold requirements and bounded project-effect values; economy consumes smithy/market modifiers as explicit inputs while core remains the sole owner of Gold spending, project persistence, market invalidation, UI and Canvas state;
 - combat owns the canonical critical-damage multiplier; live monster threat scaling, engagement strikes, defense, damage application and turn consequences remain core-owned.
 
 ## Restoring a quarantined feature

@@ -180,6 +180,31 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 .town-growth .town-readiness.ready b { color: #86d4a6; }
 .town-growth .town-readiness.warn { border-left-color: #c87346; }
 .town-growth .town-readiness.warn b { color: #efa26d; }
+.town-works {
+  grid-column: 1 / -1;
+  padding: 10px 11px;
+  border: 1px solid rgba(139,104,53,.46);
+  border-left: 3px solid #b1803f;
+  background: linear-gradient(135deg, rgba(28,19,14,.86), rgba(14,10,9,.9));
+}
+.town-works > header { display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:8px; }
+.town-works > header div { min-width:0; }
+.town-works > header b, .town-works > header span { display:block; }
+.town-works > header b { color:#f0d49b; font-size:12px; margin-bottom:2px; }
+.town-works > header span, .town-works > header small { color:var(--dim); font-size:10px; line-height:1.35; }
+.town-work-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+.town-work-card {
+  min-width:0; padding:9px 9px 8px; border:1px solid rgba(104,79,50,.56);
+  background:rgba(12,9,8,.72); display:grid; gap:5px; align-content:start;
+}
+.town-work-card.complete { border-color:rgba(100,148,104,.55); background:rgba(12,22,15,.55); }
+.town-work-title { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.town-work-title b { color:#dec39a; font-size:11px; }
+.town-work-title em { color:#b49361; font-size:9px; font-style:normal; }
+.town-work-card p { margin:0; color:#cab89f; font-size:10px; line-height:1.4; }
+.town-work-card small { color:#8e8172; font-size:9px; line-height:1.35; }
+.town-work-card button { min-height:28px; margin-top:2px; padding:4px 7px; font-size:10px; }
+.town-work-card button:not(:disabled) { border-color:rgba(215,166,64,.65); color:#f3d69b; }
 .town-ready-action {
   width: 100%;
   min-height: 30px;
@@ -310,7 +335,7 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 .town-plaza-page {
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 9px;
-  overflow: hidden;
+  overflow: auto;
 }
 .town-plaza-page.active { display: grid; }
 .town-plaza-stage {
@@ -423,6 +448,7 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 }
 @media (max-width: 560px) {
   .town-contract-grid { grid-template-columns: 1fr; }
+  .town-work-grid { grid-template-columns: 1fr; }
   .town-contract-grid button { min-height: 58px; }
 }
 @media (max-width: 760px) {
@@ -435,7 +461,9 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
   .town-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #town-screen .town-tabs button { min-height: 31px; padding: 4px 5px; }
   .town-cols, .town-growth { grid-template-columns: 1fr; }
-  .town-growth { overflow: auto; }
+  .town-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .town-works > header { align-items:flex-start; flex-direction:column; gap:4px; }
+  .town-growth { overflow: visible; }
   .town-growth span { white-space: normal; }
   .town-plaza-page { grid-template-rows: auto minmax(0, 1fr); overflow: auto; }
   .town-plaza-stage { place-items: start center; align-content: start; }

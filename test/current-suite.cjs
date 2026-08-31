@@ -41,6 +41,7 @@ const tests = [
   'dungeon-v170-living-expedition.cjs',
   'monster-threat-v170.cjs',
   'named-relic-sets-v180.cjs',
+  'town-growth-v180.cjs',
   'single-authority-v140.cjs',
   'postlaunch-ux-v140.cjs',
   'postlaunch-gameplay-regressions-v134.cjs',

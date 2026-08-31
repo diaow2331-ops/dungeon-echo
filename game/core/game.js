@@ -149,6 +149,7 @@ function defaultMeta(classId) {
     wheelSpins: 0, wheelResets: 0, wheelSlots: null,
     market: null,
     contractId: 'none',
+    townWorks: TOWN_GROWTH_RULES.sanitizeLevels({}),
     relicLedger: {}, lastReturnDepth: 0,
     tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
@@ -201,6 +202,7 @@ function sanitizeMeta(raw) {
     base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock } };
   }
   base.contractId = EXPEDITION_RULES.normalizeContractId(raw.contractId);
+  base.townWorks = TOWN_GROWTH_RULES.sanitizeLevels(raw.townWorks);
   base.relicLedger = {};
   if (raw.relicLedger && typeof raw.relicLedger === 'object' && !Array.isArray(raw.relicLedger)) {
     for (const set of SET_RULES.SETS) for (const slot of SET_RULES.SLOTS) {
@@ -209,7 +211,7 @@ function sanitizeMeta(raw) {
     }
   }
   base.lastReturnDepth = num(raw.lastReturnDepth, 0);
-  base.tavernVisits = Math.min(8, num(raw.tavernVisits, 0));
+  base.tavernVisits = Math.min(TOWN_GROWTH_RULES.tavernToastCap(base.townWorks), num(raw.tavernVisits, 0));
   base.tavernLastRun = Number.isInteger(raw.tavernLastRun) && raw.tavernLastRun >= -1 ? raw.tavernLastRun : -1;
   const tavernRewardIds = ['hearth', 'edge', 'fortune', 'prosperity'];
   base.tavernHistory = (Array.isArray(raw.tavernHistory) ? raw.tavernHistory : [])
@@ -2052,7 +2054,15 @@ if (!ECONOMY_RULES || ECONOMY_RULES.authority !== 'economy-pricing')
 const TOWN_RULES = typeof window !== 'undefined' ? window.DE_TOWN_RULES_V130 : null;
 if (!TOWN_RULES || TOWN_RULES.authority !== 'town-checkpoint-readiness-policy')
   throw new Error('Dungeon Echo town-checkpoint-readiness-policy authority missing');
-const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueScore(it), it.forge || 0);
+const TOWN_GROWTH_RULES = typeof window !== 'undefined' ? window.DE_TOWN_GROWTH_RULES_V180 : null;
+if (!TOWN_GROWTH_RULES || TOWN_GROWTH_RULES.authority !== 'town-growth-policy')
+  throw new Error('Dungeon Echo town-growth-policy authority missing');
+const currentTownWorks = () => greedyMode && meta && meta.townWorks ? meta.townWorks : {};
+const townWorkLevel = id => TOWN_GROWTH_RULES.level(currentTownWorks(), id);
+const relicLedgerCount = () => meta && meta.relicLedger
+  ? Object.keys(meta.relicLedger).filter(key => meta.relicLedger[key]).length : 0;
+const forgeCost = it => ECONOMY_RULES.forgeCost(
+  itemValueScore(it), it.forge || 0, TOWN_GROWTH_RULES.forgeDiscount(currentTownWorks()));
 const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);
 function genEquip(d, minRarity = 0) {
   const roll = rng();
@@ -2069,7 +2079,8 @@ function genEquip(d, minRarity = 0) {
   const rarity = rollRarity(minRarity);
   const namedHash = hashSeed([RUN_SEED, d, slot, rarity, base && base.name, classId].join('|'));
   const namedRoll = (namedHash >>> 0) / 4294967295;
-  const namedSet = namedRoll < SET_RULES.namedChance(rarity) ? SET_RULES.chooseSet(d, namedHash) : null;
+  const namedSet = namedRoll < SET_RULES.namedChance(rarity, TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()))
+    ? SET_RULES.chooseSet(d, namedHash) : null;
   // Named set weapons are relics for the active hero, not anonymous world weapon-family noise.
   if (namedSet && slot === 'weapon') {
     const own = WEAPON_BASES.filter(b => b.cls === classId && d >= b.min);
@@ -5463,7 +5474,8 @@ function townMarketPrice(id, tier) {
 }
 function freshTownMarket(tier = townTierForArt()) {
   const stock = {};
-  for (const id of TOWN_MARKET_IDS) stock[id] = ECONOMY_RULES.townSupplyStock(id, tier);
+  const projectBonus = TOWN_GROWTH_RULES.marketStockBonus(currentTownWorks());
+  for (const id of TOWN_MARKET_IDS) stock[id] = ECONOMY_RULES.townSupplyStock(id, tier, projectBonus);
   return { v:1, cycleRun:Math.max(0, Math.floor(Number(meta && meta.runs) || 0)), tier, stock };
 }
 function validTownMarket(row) {
@@ -5514,9 +5526,9 @@ function buyTownReadiness() {
   return true;
 }
 
-// 酒馆是受控的长期成长金币池：每次远征归来至多一杯，每个角色档最多八杯。
+// 酒馆是受控的长期成长金币池：每次远征归来至多一杯；基础上限八杯，城镇工程最多扩到十一杯。
 // 小幅永久收益让“活着回城”更有意义，但低权重攻击成长与硬上限避免刷酒取代装备。
-const TAVERN_MAX_TOASTS = 8;
+const tavernMaxToasts = () => TOWN_GROWTH_RULES.tavernToastCap(currentTownWorks());
 const TAVERN_REWARDS = Object.freeze([
   { id:'hearth', weight:50, zh:'炉火麦酒', en:'Hearth Ale', zhEffect:'生命上限永久 +2', enEffect:'Permanent Max HP +2', apply:m => { m.hpBase += 2; } },
   { id:'edge', weight:10, zh:'猎人烈酒', en:"Hunter's Spirit", zhEffect:'基础攻击永久 +1', enEffect:'Permanent Base ATK +1', apply:m => { m.atkBase += 1; } },
@@ -5528,12 +5540,12 @@ function tavernCost() {
 }
 function tavernRewardById(id) { return TAVERN_REWARDS.find(row => row.id === id) || null; }
 function tavernAvailable() {
-  if (!meta || (meta.tavernVisits || 0) >= TAVERN_MAX_TOASTS) return false;
+  if (!meta || (meta.tavernVisits || 0) >= tavernMaxToasts()) return false;
   return (meta.tavernLastRun ?? -1) < (meta.runs || 0);
 }
 function drinkAtTavern() {
   if (state !== 'town' || !meta) return false;
-  if ((meta.tavernVisits || 0) >= TAVERN_MAX_TOASTS) {
+  if ((meta.tavernVisits || 0) >= tavernMaxToasts()) {
     msg(ui('酒馆老板摇头：你的回响已经足够浓烈了。', 'The innkeeper shakes his head: your echo is strong enough already.'), 'gold');
     return false;
   }
@@ -5572,6 +5584,7 @@ const TOWN_HOTSPOTS = Object.freeze([
   { id:'records', cell:TOWN_NPC_ART.recordsClerk, x:.82, y:.83, face:-1, service:'relics', zh:'遗物书记', en:'Relic Curator' },
   { id:'portal', cell:TOWN_NPC_ART.portalWarden, activeCell:TOWN_NPC_ART.portalTechnician, x:.92, y:.82, face:-1, action:'portal', zh:'传送守卫', en:'Portal Warden' },
 ]);
+const TOWN_WORK_FOR_HOTSPOT = Object.freeze({ smith:'smithy', innkeeper:'tavern', merchant:'market', records:'relics' });
 let selectedTownCheckpoint = 1;
 let townActiveService = 'plaza';
 let townPendingHotspot = '';
@@ -6160,7 +6173,9 @@ function drawTownHeroFigure(ctx, x, baseY, now, facing = 1, scale = 1) {
   ctx.restore();
 }
 function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
-  const label = ui(row.zh, row.en);
+  const workId = TOWN_WORK_FOR_HOTSPOT[row.id];
+  const workLevel = workId ? townWorkLevel(workId) : 0;
+  const label = ui(row.zh, row.en) + (workLevel ? ui(` · 建设 ${workLevel}`, ` · Lv ${workLevel}`) : '');
   ctx.save();
   ctx.font = `600 ${Math.round(10 * scale)}px "Segoe UI", "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -6217,7 +6232,44 @@ function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
     drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby, artScale);
   }
 }
+function drawTownProjectLandmarks(ctx, now, W, H) {
+  const smithy=townWorkLevel('smithy'), market=townWorkLevel('market'), tavern=townWorkLevel('tavern'), relics=townWorkLevel('relics');
+  ctx.save();
+  if (smithy) {
+    const x=W*.27, y=H*.61, pulse=.45+.18*Math.sin(now/180);
+    ctx.fillStyle='rgba(35,20,14,.88)'; ctx.fillRect(x-22,y-10,44,18);
+    ctx.strokeStyle='rgba(202,128,54,.78)'; ctx.strokeRect(x-21.5,y-9.5,43,17);
+    ctx.fillStyle=`rgba(255,132,42,${pulse.toFixed(2)})`; ctx.fillRect(x-8,y-4,16,8);
+    ctx.fillStyle='rgba(46,38,35,.9)'; ctx.fillRect(x+12,y-22,7,13);
+    if (smithy>=2) { ctx.fillStyle='rgba(242,170,73,.82)'; ctx.fillRect(x-19,y-15,5,5); ctx.fillRect(x+14,y-16,5,5); }
+    if (smithy>=3) { ctx.strokeStyle='rgba(246,209,126,.7)'; ctx.beginPath(); ctx.moveTo(x-26,y+11); ctx.lineTo(x+26,y+11); ctx.stroke(); }
+  }
+  if (market) {
+    const x=W*.59, y=H*.63;
+    ctx.fillStyle='rgba(82,48,30,.88)'; ctx.fillRect(x-27,y-4,54,13);
+    ctx.fillStyle=market>=2?'rgba(153,61,50,.88)':'rgba(112,76,45,.82)';
+    ctx.beginPath(); ctx.moveTo(x-31,y-5); ctx.lineTo(x-20,y-19); ctx.lineTo(x+25,y-19); ctx.lineTo(x+31,y-5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#8b673b'; for(let i=0;i<market+1;i++) ctx.fillRect(x-25+i*15,y+10,9,7);
+    if(market>=3){ ctx.fillStyle='rgba(242,210,123,.78)'; ctx.fillRect(x+22,y-17,3,3); ctx.fillRect(x-25,y-17,3,3); }
+  }
+  if (tavern) {
+    const x=W*.43, y=H*.60, pulse=.62+.16*Math.sin(now/260);
+    for(let i=0;i<tavern+1;i++){
+      const lx=x+(i-(tavern/2))*14;
+      ctx.strokeStyle='rgba(96,68,42,.85)'; ctx.beginPath(); ctx.moveTo(lx,y-13); ctx.lineTo(lx,y-5); ctx.stroke();
+      ctx.fillStyle=`rgba(255,190,83,${pulse.toFixed(2)})`; ctx.fillRect(lx-3,y-5,6,7);
+    }
+  }
+  if (relics>=2) {
+    const x=W*.82, y=H*.58;
+    ctx.strokeStyle=relics>=3?'rgba(238,202,118,.86)':'rgba(173,131,73,.68)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x-35,y-24); ctx.lineTo(x-35,y+17); ctx.moveTo(x+35,y-24); ctx.lineTo(x+35,y+17); ctx.stroke();
+    if(relics>=3){ ctx.fillStyle='rgba(219,178,91,.72)'; ctx.fillRect(x-38,y-27,76,3); }
+  }
+  ctx.restore();
+}
 function drawTownGrowthVisual(ctx, now, W, H, G) {
+  drawTownProjectLandmarks(ctx, now, W, H);
   const tier = townTierForArt();
   const glow = .72 + .22 * Math.sin(now / 260);
   for (let i = 0; i < tier; i++) {
@@ -6472,6 +6524,61 @@ function chooseForgeRefinement(pathId) {
 }
 
 
+function townProjectContext() {
+  return { tier:townTierForArt(), gold:meta ? (meta.gold || 0) : 0, relics:relicLedgerCount() };
+}
+function upgradeTownWork(id) {
+  if (state !== 'town' || !meta) return false;
+  const row = TOWN_GROWTH_RULES.project(id);
+  if (!row) return false;
+  const check = TOWN_GROWTH_RULES.canUpgrade(meta.townWorks || {}, id, townProjectContext());
+  if (!check.ok || !check.next) {
+    const next = check.next;
+    if (check.reason === 'max') msg(ui(`${row.zh}已经完成全部扩建。`, `${row.en} is fully upgraded.`), 'good');
+    else if (check.reason === 'tier') msg(ui(`需要城镇阶段 ${next.tier}。`, `Requires Town Tier ${next.tier}.`), 'bad');
+    else if (check.reason === 'relics') msg(ui(`需要遗物馆藏 ${next.relics} 件。`, `Requires ${next.relics} catalogued relics.`), 'bad');
+    else if (check.reason === 'gold') msg(ui(`建设需要 ${next.cost} G，金库不足。`, `Construction costs ${next.cost} Gold; the vault is short.`), 'bad');
+    return false;
+  }
+  meta.gold -= check.next.cost;
+  const current = TOWN_GROWTH_RULES.level(meta.townWorks || {}, id);
+  meta.townWorks = { ...(meta.townWorks || {}), [id]:current + 1 };
+  if (id === 'market') meta.market = null;
+  saveMeta();
+  sfx.levelup();
+  msg(ui(
+    `城镇工程完成：【${row.zh}】${check.next.zh}。${check.next.effectZh}`,
+    `Town project completed: [${row.en}] ${check.next.en}. ${check.next.effectEn}`
+  ), 'epic');
+  renderTown();
+  return true;
+}
+function renderTownWorks() {
+  const host = $('town-works');
+  if (!host || !meta) return;
+  const context = townProjectContext();
+  host.innerHTML =
+    `<header><div><b>${ui('城镇工程','Town Works')}</b><span>${ui('金库不只是存钱：把远征所得真正变成一个更强、更繁荣的据点。','The vault is not just storage: turn expedition wealth into a stronger, busier home base.')}</span></div>` +
+    `<small>${ui(`可用金库 ${meta.gold || 0} G`, `Vault ${meta.gold || 0} G`)}</small></header>` +
+    `<div class="town-work-grid">${TOWN_GROWTH_RULES.PROJECTS.map(row => {
+      const level = TOWN_GROWTH_RULES.level(meta.townWorks || {}, row.id);
+      const current = TOWN_GROWTH_RULES.currentEffect(meta.townWorks || {}, row.id);
+      const check = TOWN_GROWTH_RULES.canUpgrade(meta.townWorks || {}, row.id, context);
+      const next = check.next;
+      let label = ui('已全部完工','Fully Built');
+      if (next) {
+        if (check.reason === 'tier') label = ui(`阶段 ${next.tier} 解锁`, `Unlocks at Tier ${next.tier}`);
+        else if (check.reason === 'relics') label = ui(`馆藏 ${context.relics}/${next.relics}`, `Relics ${context.relics}/${next.relics}`);
+        else if (check.reason === 'gold') label = ui(`需要 ${next.cost} G`, `Need ${next.cost} G`);
+        else label = ui(`建设 ${next.cost} G`, `Build ${next.cost} G`);
+      }
+      const effect = current ? ui(current.effectZh,current.effectEn) : ui('尚未建设','Not yet built');
+      const nextName = next ? ui(next.zh,next.en) : ui('最终形态','Final form');
+      return `<article class="town-work-card${level >= row.levels.length ? ' complete' : ''}"><div class="town-work-title"><b>${esc(ui(row.zh,row.en))}</b><em>Lv ${level}/${row.levels.length}</em></div>` +
+        `<p>${esc(effect)}</p><small>${ui('下一步','Next')}: ${esc(nextName)}</small>` +
+        `<button type="button" data-townwork="${row.id}"${check.ok ? '' : ' disabled'}>${esc(label)}</button></article>`;
+    }).join('')}</div>`;
+}
 function renderTownRelics() {
   const host = $('town-relics');
   if (!host || !meta) return;
@@ -6535,10 +6642,12 @@ function renderTown() {
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
       `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物馆 ${relicFound}/${SET_RULES.SETS.length * 6} · 已记录出发点 ${checkpointCount} · 市集阶段 ${tier}`, `Relic Hall ${relicFound}/${SET_RULES.SETS.length * 6} · Departure records ${checkpointCount} · Market Tier ${tier}`)}</span></div>` +
-      `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>`;
+      `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>` +
+      `<section id="town-works" class="town-works" aria-live="polite"></section>`;
   }
   renderTownCheckpoints();
   renderTownContracts();
+  renderTownWorks();
   renderTownRelics();
   const itemTag = it => {
     const f = it.forge || 0;
@@ -6604,15 +6713,16 @@ function renderTown() {
     const visits = Math.max(0, meta.tavernVisits || 0);
     const cost = tavernCost();
     const available = tavernAvailable();
-    const complete = visits >= TAVERN_MAX_TOASTS;
+    const toastCap = tavernMaxToasts();
+    const complete = visits >= toastCap;
     const history = (meta.tavernHistory || []).map(tavernRewardById).filter(Boolean);
     const historyText = history.length
       ? history.map(row => ui(row.zhEffect, row.enEffect)).join(' · ')
       : ui('尚未留下酒馆回响', 'No tavern echoes yet');
     tavernEl.innerHTML =
-      `<div class="tavern-offer"><b>${ui('回响祝酒','Echo Toast')}</b><span>${ui('每次远征归来限一杯 · 每档最多八杯','One after each expedition · eight per character')}</span></div>` +
+      `<div class="tavern-offer"><b>${ui('回响祝酒','Echo Toast')}</b><span>${ui(`每次远征归来限一杯 · 当前上限 ${toastCap} 杯`, `One after each expedition · current cap ${toastCap}`)}</span></div>` +
       `<p class="dim-note">${ui('不是免费刷属性：酒价递增、结果随机、攻击成长低权重，并有永久硬上限。','Not a free stat farm: rising price, random result, low-weight ATK, and a permanent hard cap.')}</p>` +
-      `<div class="tavern-history"><small>${ui(`已饮 ${visits}/${TAVERN_MAX_TOASTS}`, `Toasts ${visits}/${TAVERN_MAX_TOASTS}`)}</small><span>${esc(historyText)}</span></div>` +
+      `<div class="tavern-history"><small>${ui(`已饮 ${visits}/${toastCap}`, `Toasts ${visits}/${toastCap}`)}</small><span>${esc(historyText)}</span></div>` +
       `<button type="button" class="tavern-drink" data-taverndrink="1"${(!available || meta.gold < cost) ? ' disabled' : ''}>` +
       `${complete ? ui('回响已满','Echo Complete') : available ? ui(`举杯 ${cost} G`,`Raise a Toast ${cost} G`) : ui('完成下一次远征后再来','Return from another expedition')}</button>`;
   }
@@ -7098,6 +7208,8 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (checkpoint) { ensureAudio(); selectTownCheckpoint(+checkpoint.dataset.checkpoint); return; }
   const contract = e.target.closest('[data-contract]');
   if (contract) { ensureAudio(); selectTownContract(contract.dataset.contract); return; }
+  const townWork = e.target.closest('[data-townwork]');
+  if (townWork) { ensureAudio(); upgradeTownWork(townWork.dataset.townwork); return; }
   const dep = e.target.closest('[data-deposit]');
   if (dep) { ensureAudio(); depositStash(+dep.dataset.deposit); return; }
   const depAll = e.target.closest('[data-depositall]');
