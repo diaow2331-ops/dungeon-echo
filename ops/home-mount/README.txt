@@ -1,13 +1,13 @@
-91hwl home mount · site v1.11.2
+91hwl home mount · site v1.11.3
 
 This package owns the product-facing 91hwl.cn homepage, project detail pages and public trust surfaces. Playable game runtimes remain independently versioned under play.91hwl.cn.
 
 Presented releases:
 - Dungeon Echo v1.5.0 — a 100-floor browser-native turn-based roguelike with four classes, build choices and safe retreat.
 - Clock Out Alive v1.26.5 — a four-minute office runner with readable desktop/fullscreen/mobile UI, four scenes and two endings.
-- Board Trio / 方寸棋局 v0.1.1 — Gomoku, Xiangqi and Go in one responsive local two-player board-game shell.
+- Board Trio / 方寸棋局 v0.2.0 — Gomoku, Xiangqi and Go in one responsive local two-player board-game shell.
 
-site v1.11.2 keeps the Board Trio v0.1.1 rule-integrity patch and refreshes Dungeon Echo to v1.5.0 across the homepage and project detail. The hero, quick chooser and playable-games section present the same live three-game set.
+site v1.11.3 keeps the current three-game composition, preserves Dungeon Echo v1.5.0 and refreshes Board Trio to v0.2.0 with its interaction-quality release. The hero, quick chooser and playable-games section present the same live three-game set.
 
 Board Trio links directly to its playable route; Dungeon Echo and Clock Out Alive retain their project-detail records. About, Privacy and Contact keep their distinct plain-language layouts and existing privacy, consent and feedback contracts.
 
@@ -15,6 +15,7 @@ The shared CSS and JavaScript remain under /assets/site-v1110/ because this patc
 
 Release safety packages final static bytes plus isolated versioned assets, verifies SHA256 before writing, backs up all owned page and asset paths, validates Nginx, checks all public surfaces plus the three live game routes, and rolls back owned paths if validation fails.
 
+- v1.11.3 refreshes Board Trio to v0.2.0 while preserving Dungeon Echo v1.5.0.
 - v1.11.2 refreshes Dungeon Echo to v1.5.0 while preserving Board Trio v0.1.1.
 - v1.11.1 synchronizes the homepage with Board Trio v0.1.1.
 - v1.11.0 introduced Board Trio as the third playable game and removed the old placeholder.
