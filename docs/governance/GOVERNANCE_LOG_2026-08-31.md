@@ -33,3 +33,11 @@ Deployment provenance is intentionally not appended by mutating the repository a
 - The stale assertions made an unrelated Dungeon Echo release fail even though Board Trio itself was current.
 - Replaced the stale version/cache literals with contract checks that bind HTML/runtime markers to `board-games/VERSION` and the page-declared cache generation. Historical behavior assertions remain unchanged.
 - This repair is repository governance only: no Board Trio gameplay source was modified.
+
+## Cross-component release pointer coherence
+
+- After Dungeon Echo v1.6.0 and Board Trio v0.6.1 were both on `main`, the canonical version files were current but `docs/CURRENT_RELEASES.md` still listed Board Trio as v0.5.0. This was documentation drift, not a product rollback.
+- Corrected the Board Trio release pointer to v0.6.1 without changing Board runtime code.
+- Added `test/current-release-pointers.cjs` to verify every game in `games.json` plus the public-site version against its canonical version file.
+- Added that gate to `test/current-suite.cjs` and codified component version files as the sole machine-readable release authorities.
+- This closes a repository-level failure mode where a focused release for one game could silently publish stale metadata for another game.
