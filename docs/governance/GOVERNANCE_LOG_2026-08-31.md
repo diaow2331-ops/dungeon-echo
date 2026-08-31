@@ -85,3 +85,7 @@ A player-facing expansion was implemented after the v1.6 modular-authority audit
 - New `contractId` sanitizes to `none` for existing saves.
 - Release metadata advances to Dungeon Echo `v1.7.0`, cache generation `181`, runtime bootstrap `v33`.
 - Component release root policy and cross-game source boundaries remain unchanged.
+
+
+### Remote-tree executable-bit correction
+Exact codeload verification of the rebased v1.7 release candidate exposed that the Dungeon builder/deployer shell files had lost their executable Git modes during an earlier Git-data reconstruction. The bytes were correct, but the repository gate correctly rejected the release boundary. Restored `100755` modes for the Dungeon bundle builder, deployer and healthcheck before merge/deployment.
