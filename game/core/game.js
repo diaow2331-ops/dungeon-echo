@@ -149,6 +149,7 @@ function defaultMeta(classId) {
     wheelSpins: 0, wheelResets: 0, wheelSlots: null,
     market: null,
     contractId: 'none',
+    relicLedger: {}, lastReturnDepth: 0,
     tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
     bag: [], stash: [],
@@ -200,6 +201,14 @@ function sanitizeMeta(raw) {
     base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock } };
   }
   base.contractId = EXPEDITION_RULES.normalizeContractId(raw.contractId);
+  base.relicLedger = {};
+  if (raw.relicLedger && typeof raw.relicLedger === 'object' && !Array.isArray(raw.relicLedger)) {
+    for (const set of SET_RULES.SETS) for (const slot of SET_RULES.SLOTS) {
+      const key = set.id + ':' + slot;
+      if (raw.relicLedger[key]) base.relicLedger[key] = 1;
+    }
+  }
+  base.lastReturnDepth = num(raw.lastReturnDepth, 0);
   base.tavernVisits = Math.min(8, num(raw.tavernVisits, 0));
   base.tavernLastRun = Number.isInteger(raw.tavernLastRun) && raw.tavernLastRun >= -1 ? raw.tavernLastRun : -1;
   const tavernRewardIds = ['hearth', 'edge', 'fortune', 'prosperity'];
@@ -1938,6 +1947,9 @@ function weaponBaseForDrop(d) {
 const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null;
 if (!INVENTORY_RULES || INVENTORY_RULES.authority !== 'equipment-stat-scoring')
   throw new Error('Dungeon Echo equipment-stat-scoring authority missing');
+const SET_RULES = typeof window !== 'undefined' ? window.DE_SET_RULES_V180 : null;
+if (!SET_RULES || SET_RULES.authority !== 'named-set-policy')
+  throw new Error('Dungeon Echo named-set-policy authority missing');
 const eqScoreOf = stats => INVENTORY_RULES.equipmentStatScore(stats);
 function starterWeaponForClass(targetClass) {
   const base = WEAPON_BASES.find(b => b.cls === targetClass && Number(b.min) <= 1) || WEAPON_BASES.find(b => b.cls === targetClass);
@@ -2052,29 +2064,49 @@ function genEquip(d, minRarity = 0) {
     slot === 'boots' ? BOOT_BASES :
     slot === 'ring' ? RING_BASES : AMULET_BASES;
   const pool = slot === 'weapon' ? null : bases.filter(b => d >= b.min);
-  const base = slot === 'weapon' ? weaponBaseForDrop(d) :
+  let base = slot === 'weapon' ? weaponBaseForDrop(d) :
     pool[Math.max(0, pool.length - 1 - rnd(Math.min(2, pool.length)))];
   const rarity = rollRarity(minRarity);
+  const namedHash = hashSeed([RUN_SEED, d, slot, rarity, base && base.name, classId].join('|'));
+  const namedRoll = (namedHash >>> 0) / 4294967295;
+  const namedSet = namedRoll < SET_RULES.namedChance(rarity) ? SET_RULES.chooseSet(d, namedHash) : null;
+  // Named set weapons are relics for the active hero, not anonymous world weapon-family noise.
+  if (namedSet && slot === 'weapon') {
+    const own = WEAPON_BASES.filter(b => b.cls === classId && d >= b.min);
+    if (own.length) base = own[Math.max(0, own.length - 1 - (Math.abs(namedHash) % Math.min(2, own.length)))];
+  }
   const stats = {};
   if (base.atk) stats.atk = base.atk;
   if (base.def) stats.def = base.def;
   if (base.hp)  stats.hp = base.hp;
   if (base.crit) stats.crit = base.crit;
   const affixes = [];
-  for (let i = 0; i < RARITIES[rarity].affixes; i++) {
+  // A named relic leads with its identity and fixed signature; keep at most one random secondary affix
+  // so the item does not collapse back into a stack of unrelated stat lines.
+  const affixCount = namedSet ? Math.min(1, RARITIES[rarity].affixes) : RARITIES[rarity].affixes;
+  for (let i = 0; i < affixCount; i++) {
     const a = genAffix(d);
     affixes.push(a);
     stats[a.k] = (stats[a.k] || 0) + a.v;
   }
+  const signatureStats = namedSet ? SET_RULES.signatureStats(namedSet.id, slot, d) : null;
+  if (signatureStats) for (const [k, v] of Object.entries(signatureStats)) stats[k] = (stats[k] || 0) + (Number(v) || 0);
   const spr = slot === 'weapon'
     ? (WEAPON_SPR_BY_ICON[base.icon] || 'sword')
     : slot === 'armor' ? 'armor' : slot === 'ring' ? 'ring' : 'trinket';
-  const mechanic = mechanicForFreshItem(slot, rarity, d, base, affixes);
+  const mechanic = namedSet ? null : mechanicForFreshItem(slot, rarity, d, base, affixes);
   const mechanicName = mechanic ? ` · ${MECHANIC_TRAITS[mechanic.id].name}` : '';
+  const namedPiece = namedSet ? SET_RULES.piece(namedSet.id, slot, classId) : null;
   return {
     slot, base, rarity, affixes, stats, spr, icon: base.icon,
     ...(mechanic ? { mechanic: mechanic.id, mechanicPower: mechanic.power } : {}),
-    name: `${RARITIES[rarity].name}·${base.name}${mechanicName}`,
+    ...(namedPiece ? {
+      namedSet:true, setId:namedPiece.setId, setPiece:namedPiece.slot,
+      namedEn:namedPiece.en, loreZh:namedPiece.zhLore, loreEn:namedPiece.enLore,
+      setNameZh:namedPiece.setNameZh, setNameEn:namedPiece.setNameEn,
+      signatureStats:{ ...(signatureStats || {}) },
+    } : {}),
+    name: namedPiece ? namedPiece.zh : `${RARITIES[rarity].name}·${base.name}${mechanicName}`,
     score: eqScoreOf(stats),
   };
 }
@@ -2125,12 +2157,14 @@ function armReprisal() {
 
 const eqStat = k => ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet']
   .reduce((s, sl) => s + (player.equip[sl] ? (player.equip[sl].stats[k] || 0) : 0), 0);
+const namedSetStats = () => SET_RULES.statBonuses(player && player.equip ? player.equip : {});
+const setStat = k => Number(namedSetStats()[k]) || 0;
 const pMaxHp = () => player.hpBase + eqStat('hp');
 const pAtk   = () => player.atkBase + eqStat('atk');
 // 战士被动「坚甲」：天生扁平减伤，随等级成长（1级+1，每5级+1）——近战换血的生存根基
 const warriorDr = () => (classId === 'warrior' ? 1 + Math.floor((player.lvl - 1) / 5) : 0);
 const pArmor = () => eqStat('def');
-const pFixedDr = () => (player.flatDr || 0) + warriorDr();
+const pFixedDr = () => (player.flatDr || 0) + warriorDr() + setStat('fixedDr');
 const pDef = () => pArmor() + pFixedDr();
 const mitigatePlayerHit = (raw, armorScale = 1, ignoreArmor = false) => {
   const armor = ignoreArmor ? 0 : Math.floor(pArmor() * Math.max(0, armorScale));
@@ -2139,16 +2173,16 @@ const mitigatePlayerHit = (raw, armorScale = 1, ignoreArmor = false) => {
 const pCrit  = () => {
   const crisis = mechanicPower('crisis');
   const crisisBonus = crisis && player.hp <= pMaxHp() * 0.40 ? (crisis >= 2 ? 20 : 12) : 0;
-  return 5 + (classDef().critBase || 0) + (player.critBase || 0) + eqStat('crit') + crisisBonus;
+  return 5 + (classDef().critBase || 0) + (player.critBase || 0) + eqStat('crit') + setStat('crit') + crisisBonus;
 };
-const pLeech = () => (player.leechBase || 0) + eqStat('leech');
+const pLeech = () => (player.leechBase || 0) + eqStat('leech') + setStat('leech');
 const pGoldBonus = () => (player.goldFind || 0) + eqStat('gold');
 const pThorns   = () => (player.thornsBase || 0) + eqStat('thorns');
-const pKillHeal = () => (player.regenBase || 0) + eqStat('regen');
+const pKillHeal = () => (player.regenBase || 0) + eqStat('regen') + setStat('regen');
 const COMBAT_RULES = typeof window !== 'undefined' ? window.DE_COMBAT_RULES_V130 : null;
 if (!COMBAT_RULES || COMBAT_RULES.authority !== 'critical-damage-multiplier')
   throw new Error('Dungeon Echo critical-damage-multiplier authority missing');
-const pCritMul  = () => COMBAT_RULES.criticalMultiplier(player.critPower || 0);
+const pCritMul  = () => COMBAT_RULES.criticalMultiplier((player.critPower || 0) + setStat('critPower'));
 const pPlunder  = () => 1 + (player.plunder || 0) / 100;
 // —— 可读反制：隐藏随机穿甲已移除 ——
 // 普通攻击永远按护甲结算；高 DEF 不再提高任何隐藏的无视护甲概率。
@@ -3299,7 +3333,7 @@ function usePotion() {
   // 回复量随最大生命保底（18%），修正深层「药水越来越不解渴」的衰减
   const heal = Math.min(pMaxHp() - player.hp,
     Math.round(Math.max(14 + depth * 2, pMaxHp() * 0.18)
-      * (1 + (player.potionBoost || 0) / 100) * healMult()));
+      * (1 + ((player.potionBoost || 0) + setStat('potionBoost')) / 100) * healMult()));
   player.hp += heal;
   player.poison = 0;
   const clarity = mechanicPower('clarity');
@@ -3431,7 +3465,7 @@ function useBaseSkill() {
   if (echo) player.echoEdgeTurn = turns + 1;
   const afterimage = mechanicPower('afterimage');
   if (afterimage) player.afterimageTurn = turns + 1;
-  player.skillCd = Math.max(2, sk.cd - (player.skillHaste || 0));
+  player.skillCd = Math.max(2, sk.cd - (player.skillHaste || 0) - setStat('skillHaste'));
   const overclock = mechanicPower('overclock');
   if (overclock && monsters.length < mobsBeforeSkill) {
     const refund = overclock >= 2 ? 2 : 1;
@@ -3899,7 +3933,20 @@ function renderEquip() {
 
 function tooltipHtml(it, compareSlot) {
   const r = RARITIES[it.rarity];
-  let html = `<div class="tname r${it.rarity}">${esc(visibleItemName(it))}</div>`;
+  let html = `<div class="tname r${it.rarity}${it.namedSet ? ' named-relic-name' : ''}">${esc(visibleItemName(it))}</div>`;
+  if (it.namedSet) {
+    const set = SET_RULES.setById(it.setId);
+    const count = (SET_RULES.equippedCounts(player && player.equip || {})[it.setId] || 0);
+    const lore = ui(it.loreZh || '', it.loreEn || '');
+    const sig = Object.entries(it.signatureStats || {}).map(([k,v]) => {
+      const label = AFFIX_LABEL[k];
+      return label ? label(v) : `${k} +${v}`;
+    }).join(' · ');
+    html += `<div class="named-relic-set">${esc(ui(it.setNameZh || (set && set.zh) || '', it.setNameEn || (set && set.en) || ''))} · ${count}/6 ${ui('已装备','equipped')}</div>`;
+    if (lore) html += `<div class="named-relic-lore">“${esc(lore)}”</div>`;
+    if (sig) html += `<div class="named-relic-signature">${ui('遗物固有','Relic signature')} · ${esc(sig)}</div>`;
+    if (set) html += `<div class="named-relic-bonuses">${set.bonuses.map(b => `<span class="${count >= b.pieces ? 'active' : ''}">${b.pieces}/6 · ${esc(ui(b.zh,b.en))}</span>`).join('')}</div>`;
+  }
   if (it.stats.atk) html += `<div>${esc(AFFIX_LABEL.atk(it.stats.atk))}</div>`;
   if (it.stats.def) html += `<div>${esc(AFFIX_LABEL.def(it.stats.def))}</div>`;
   if (it.stats.hp)  html += `<div>${esc(AFFIX_LABEL.hp(it.stats.hp))}</div>`;
@@ -5522,7 +5569,7 @@ const TOWN_HOTSPOTS = Object.freeze([
   { id:'innkeeper', cell:TOWN_NPC_ART.innkeeper, x:.43, y:.84, face:-1, service:'tavern', zh:'酒馆老板', en:'Innkeeper' },
   { id:'merchant', cell:TOWN_NPC_ART.travellingMerchant, x:.59, y:.82, face:-1, service:'market', zh:'行商', en:'Merchant' },
   { id:'oracle', cell:TOWN_NPC_ART.oracle, activeCell:TOWN_NPC_ART.oracleRitual, x:.72, y:.82, face:1, service:'wheel', zh:'占卜师', en:'Oracle' },
-  { id:'records', cell:TOWN_NPC_ART.recordsClerk, x:.82, y:.83, face:-1, action:'records', zh:'远征书记', en:'Records Clerk' },
+  { id:'records', cell:TOWN_NPC_ART.recordsClerk, x:.82, y:.83, face:-1, service:'relics', zh:'遗物书记', en:'Relic Curator' },
   { id:'portal', cell:TOWN_NPC_ART.portalWarden, activeCell:TOWN_NPC_ART.portalTechnician, x:.92, y:.82, face:-1, action:'portal', zh:'传送守卫', en:'Portal Warden' },
 ]);
 let selectedTownCheckpoint = 1;
@@ -5553,10 +5600,10 @@ function updateTownPrompt() {
     : ui('WASD / 方向键在广场漫步 · 点击角色自动走近 · E / Enter 交互', 'Walk the plaza with WASD / arrows · click a character to approach · E / Enter interacts');
 }
 const TOWN_PAGE_FOR_SERVICE = Object.freeze({
-  plaza:'plaza', bag:'gear', stash:'gear', market:'market', tavern:'tavern', wheel:'wheel', portal:'depart',
+  plaza:'plaza', bag:'gear', stash:'gear', market:'market', tavern:'tavern', wheel:'wheel', relics:'relics', portal:'depart',
 });
 const TOWN_DEFAULT_SERVICE_FOR_PAGE = Object.freeze({
-  plaza:'plaza', gear:'stash', market:'market', tavern:'tavern', wheel:'wheel', depart:'portal',
+  plaza:'plaza', gear:'stash', market:'market', tavern:'tavern', wheel:'wheel', relics:'relics', depart:'portal',
 });
 function townPageForService(service) { return TOWN_PAGE_FOR_SERVICE[service] || 'plaza'; }
 function selectTownPage(page, focusTab = false) {
@@ -5587,11 +5634,6 @@ function renderTownFocus(focusTab = false) {
 function activateTownHotspot(row, focusTab = true) {
   if (!row || state !== 'town') return false;
   townPendingHotspot = '';
-  if (row.action === 'records') {
-    const button = $('btn-achv-town');
-    if (button) button.click();
-    return true;
-  }
   if (row.action === 'portal') {
     townActiveService = 'portal';
     renderTownFocus(focusTab);
@@ -5715,6 +5757,19 @@ function renderTownCheckpoints() {
       ? ui('基础补给齐备，可以直接出发。','Core supplies are ready for departure.')
       : ui('仍可冒险出发，但建议至少准备 2 瓶药水和 1 张回城卷轴。','You may still depart, but 2 Potions and 1 Return Scroll are recommended.');
   }
+}
+function registerReturnedRelics(items) {
+  if (!meta) return [];
+  meta.relicLedger = meta.relicLedger && typeof meta.relicLedger === 'object' ? meta.relicLedger : {};
+  const newly = [];
+  for (const item of (Array.isArray(items) ? items : [])) {
+    const key = SET_RULES.collectionKey(item);
+    if (!key || meta.relicLedger[key]) continue;
+    meta.relicLedger[key] = 1;
+    const piece = SET_RULES.piece(item.setId, item.setPiece, meta.classId);
+    if (piece) newly.push(piece);
+  }
+  return newly;
 }
 function syncMetaFromPlayer(died) {
   if (!player) return;
@@ -6129,6 +6184,10 @@ function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
     { min:3, cell:TOWN_NPC_ART.apothecaryApprentice, x:.65, y:.91, face:-1, scale:.72 },
     { min:4, cell:TOWN_NPC_ART.townWatch, x:.035, y:.88, face:1, scale:.76 },
     { min:5, cell:TOWN_NPC_ART.expeditionScout, x:.975, y:.91, face:-1, scale:.74 },
+    { min:6, cell:TOWN_NPC_ART.townWatch, x:.19, y:.91, face:-1, scale:.70 },
+    { min:7, cell:TOWN_NPC_ART.portalTechnician, x:.90, y:.91, face:1, scale:.70 },
+    { min:8, cell:TOWN_NPC_ART.alchemist, x:.66, y:.90, face:1, scale:.70 },
+    { min:9, cell:TOWN_NPC_ART.provisionerCrate, x:.50, y:.92, face:-1, scale:.68 },
   ];
   for (const row of extras) if (tier >= row.min)
     actors.push({ type:'extra', row, x:W * row.x, baseY:H * row.y });
@@ -6168,6 +6227,30 @@ function drawTownGrowthVisual(ctx, now, W, H, G) {
     ctx.beginPath(); ctx.moveTo(x, 11); ctx.lineTo(x, 25 + (i % 2) * 4); ctx.stroke();
     ctx.fillStyle = `rgba(255,181,74,${glow.toFixed(2)})`;
     ctx.fillRect(x - 3, 24 + (i % 2) * 4, 6, 8);
+  }
+  if (tier >= 3) {
+    const relicCount = meta && meta.relicLedger
+      ? Object.keys(meta.relicLedger).filter(k => meta.relicLedger[k]).length : 0;
+    const ax = W * .82, ay = H * .58;
+    const pulse = .55 + .18 * Math.sin(now / 430);
+    ctx.save();
+    ctx.fillStyle = 'rgba(28,18,13,.88)';
+    ctx.strokeStyle = relicCount ? `rgba(226,177,82,${pulse.toFixed(2)})` : 'rgba(124,96,60,.58)';
+    ctx.lineWidth = 1.2;
+    ctx.fillRect(ax - 28, ay - 19, 56, 31);
+    ctx.strokeRect(ax - 27.5, ay - 18.5, 55, 30);
+    ctx.fillStyle = relicCount ? '#e4be6d' : '#8d7657';
+    ctx.font = '700 12px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('◇', ax, ay - 7);
+    ctx.font = '600 9px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.fillText(ui('遗物馆','RELICS'), ax, ay + 4);
+    if (relicCount) {
+      ctx.fillStyle = '#f3d98e';
+      ctx.font = '700 8px "Segoe UI", sans-serif';
+      ctx.fillText(String(relicCount), ax + 21, ay - 13);
+    }
+    ctx.restore();
   }
   drawTownNpcPopulation(ctx, now, W, H, G, tier);
   if (tier >= 4) {
@@ -6389,6 +6472,36 @@ function chooseForgeRefinement(pathId) {
 }
 
 
+function renderTownRelics() {
+  const host = $('town-relics');
+  if (!host || !meta) return;
+  const ledger = meta.relicLedger || {};
+  const equipped = SET_RULES.equippedCounts(meta.equip || {});
+  const totalFound = Object.keys(ledger).filter(k => ledger[k]).length;
+  const totalPieces = SET_RULES.SETS.length * SET_RULES.SLOTS.length;
+  host.innerHTML =
+    `<div class="relic-summary"><b>${ui('馆藏进度','Archive Progress')} ${totalFound}/${totalPieces}</b><span>${ui('只有安全带回小镇的具名遗物才会永久留下记录。','Only named relics safely returned to town are permanently catalogued.')}</span></div>` +
+    SET_RULES.SETS.map(set => {
+      const progress = SET_RULES.collectionProgress(ledger, set.id);
+      const worn = equipped[set.id] || 0;
+      const known = progress.found > 0 || (meta.bestDepth || 0) >= set.minDepth;
+      const story = known
+        ? ui(set.zhStory,set.enStory)
+        : ui(`书记只知道这批遗物大约出现在第 ${set.minDepth} 层以后。`, `The curator only knows these relics begin appearing around Floor ${set.minDepth}.`);
+      const pieces = SET_RULES.SLOTS.map(slot => {
+        const piece = SET_RULES.piece(set.id, slot, meta.classId);
+        const found = !!ledger[set.id + ':' + slot];
+        const active = !!(meta.equip && meta.equip[slot] && meta.equip[slot].setId === set.id);
+        const pieceName = found ? ui(piece.zh,piece.en) : ui(`未归档的${visibleSlotName(slot)}`, `Uncatalogued ${visibleSlotName(slot)}`);
+        const lore = found ? ui(piece.zhLore,piece.enLore) : ui('故事仍留在地牢里。','Its story is still somewhere below.');
+        return `<article class="relic-piece${found ? ' found' : ''}${active ? ' equipped' : ''}"><div class="relic-piece-head"><span>${esc(visibleSlotName(slot))}</span><b>${esc(pieceName)}</b>${active ? `<em>${ui('穿戴中','Equipped')}</em>` : ''}</div><p>${esc(lore)}</p></article>`;
+      }).join('');
+      const bonuses = set.bonuses.map(b =>
+        `<span class="${worn >= b.pieces ? 'active' : ''}"><b>${b.pieces}/6</b>${esc(ui(b.zh,b.en))}</span>`
+      ).join('');
+      return `<section class="relic-set-card${known ? '' : ' rumor'}"><header><div><p class="kicker">${ui('具名六件套','Named Six-Piece Set')}</p><h3>${esc(ui(set.zh,set.en))}</h3></div><strong>${ui(`馆藏 ${progress.found}/6 · 穿戴 ${worn}/6`, `Archive ${progress.found}/6 · Equipped ${worn}/6`)}</strong></header><p class="relic-set-story">${esc(story)}</p><div class="relic-piece-grid">${pieces}</div><div class="relic-set-bonuses">${bonuses}</div></section>`;
+    }).join('');
+}
 function renderTown() {
   if (!meta) return;
   const head = $('town-head');
@@ -6412,14 +6525,21 @@ function renderTown() {
     const kitButton = ready
       ? `<button type="button" class="town-ready-action" disabled>${ui('基础补给齐备','Core Kit Ready')}</button>`
       : `<button type="button" class="town-ready-action" data-townready="1"${(!readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
+    const relicFound = Object.keys(meta.relicLedger || {}).filter(k => meta.relicLedger[k]).length;
+    const checkpointCount = unlockedTownCheckpoints().length;
+    const returnNote = (meta.lastReturnDepth || 0) > 0
+      ? ui(`最近一次有人从第 ${meta.lastReturnDepth} 层活着回来，酒馆里还在谈这件事。`, `Someone returned alive from Floor ${meta.lastReturnDepth}; the tavern is still talking about it.`)
+      : ui('镇上的人还没有等到你的第一次平安归来。','The town is still waiting for your first safe return.');
     growth.innerHTML =
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
-      `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('可交互广场 · 安全仓库 · 限量市集 · 锻造强化 · 余烬酒馆 · 远征委托 · 已征服区出发','Walkable Plaza · Safe Stash · Limited Market · Forge Upgrades · Ember Tavern · Expedition Contracts · Conquered-Depth Departures')}</span></div>`;
+      `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物馆 ${relicFound}/${SET_RULES.SETS.length * 6} · 已记录出发点 ${checkpointCount} · 市集阶段 ${tier}`, `Relic Hall ${relicFound}/${SET_RULES.SETS.length * 6} · Departure records ${checkpointCount} · Market Tier ${tier}`)}</span></div>` +
+      `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>`;
   }
   renderTownCheckpoints();
   renderTownContracts();
+  renderTownRelics();
   const itemTag = it => {
     const f = it.forge || 0;
     const forgeTag = f ? ` +${f}` : '';
@@ -6430,7 +6550,10 @@ function renderTown() {
     const fitText = delta === null
       ? ui(`职业适配 ${fit}`, `Class fit ${fit}`)
       : ui(`职业适配 ${fit} · 较当前 ${delta >= 0 ? '+' : ''}${delta}`, `Class fit ${fit} · ${delta >= 0 ? '+' : ''}${delta} vs equipped`);
-    return `${esc(visibleItemName(it))}${forgeTag}<small>${ui(`${it.score} 分`, `Score ${it.score}`)} · ${esc(fitText)}</small>`;
+    const identity = it.namedSet
+      ? `<small class="town-item-identity">${esc(ui(it.setNameZh || '', it.setNameEn || ''))} · ${ui('具名遗物','Named Relic')}</small>`
+      : '';
+    return `<span class="${it.namedSet ? 'town-named-item' : ''}">${esc(visibleItemName(it))}${forgeTag}${identity}<small>${ui(`${it.score} 分`, `Score ${it.score}`)} · ${esc(fitText)}</small></span>`;
   };
   const tradeBtns = (where, i, it) => {
     const fc = forgeCost(it);
@@ -6691,8 +6814,19 @@ function useEscape() {
   const banked = player.gold;
   recordSafeReturn();
   syncMetaFromPlayer(false);
+  meta.lastReturnDepth = Math.max(0, Number(depth) || 0);
+  const returnedRelics = registerReturnedRelics([
+    ...(meta.bag || []),
+    ...Object.values(meta.equip || {}).filter(Boolean),
+  ]);
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
+  if (returnedRelics.length) {
+    msg(ui(
+      `遗物书记登记了 ${returnedRelics.length} 件新的具名遗物：${returnedRelics.map(p => p.zh).join('、')}。`,
+      `The relic curator catalogued ${returnedRelics.length} new named relic${returnedRelics.length === 1 ? '' : 's'}: ${returnedRelics.map(p => p.en).join(', ')}.`
+    ), 'epic');
+  }
 }
 function greedyDeathReturn(lostInv, lostGold) {
   syncMetaFromPlayer(true);

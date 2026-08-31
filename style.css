@@ -277,7 +277,7 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 }
 .town-tabs {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 5px;
   padding: 5px;
   background: rgba(11, 7, 6, .72);
@@ -357,6 +357,69 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
   border-color: rgba(232,183,80,.9);
   background: linear-gradient(145deg, rgba(69,43,21,.94), rgba(30,18,12,.95));
   box-shadow: inset 0 0 0 1px rgba(242,210,123,.16);
+}
+.town-rumor { border-color: rgba(106,88,145,.45) !important; background: linear-gradient(135deg, rgba(34,25,46,.72), rgba(18,13,22,.84)); }
+.town-relic-page { text-align:left; }
+.town-relic-head {
+  margin: 12px 0 14px;
+  padding: 18px 20px;
+  border: 1px solid rgba(153,116,63,.52);
+  border-left: 4px solid #a77a38;
+  background: linear-gradient(135deg, rgba(35,24,17,.94), rgba(16,11,10,.96));
+}
+.town-relic-head h3 { margin: 5px 0 7px; color:#f1d7a4; font-size:18px; }
+.town-relic-head p:last-child { margin:0; color:#b9a68b; line-height:1.6; font-size:12px; }
+.town-relics { display:grid; gap:14px; padding-bottom:8px; }
+.relic-summary {
+  display:flex; align-items:baseline; justify-content:space-between; gap:14px;
+  padding:10px 12px; border:1px solid rgba(139,104,53,.4); background:rgba(13,9,8,.72);
+}
+.relic-summary b { color:#e7c57f; }
+.relic-summary span { color:var(--dim); font-size:11px; }
+.relic-set-card {
+  border:1px solid rgba(139,104,53,.48);
+  background:linear-gradient(150deg, rgba(29,20,15,.96), rgba(12,9,10,.97));
+  padding:14px;
+}
+.relic-set-card.rumor { opacity:.72; }
+.relic-set-card > header { display:flex; justify-content:space-between; gap:14px; align-items:flex-end; padding-bottom:8px; border-bottom:1px solid rgba(139,104,53,.3); }
+.relic-set-card h3 { margin:2px 0 0; color:#f0cb7d; font-size:18px; letter-spacing:1px; }
+.relic-set-card header strong { color:#bca783; font-size:11px; font-weight:600; }
+.relic-set-story { margin:10px 0 12px; color:#cbb99d; font-size:12px; line-height:1.65; font-style:italic; }
+.relic-piece-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.relic-piece {
+  min-height:92px; padding:10px; border:1px solid rgba(91,73,56,.5); background:rgba(15,12,13,.74);
+}
+.relic-piece.found { border-color:rgba(196,143,58,.58); background:linear-gradient(150deg, rgba(44,29,16,.76), rgba(17,12,12,.82)); }
+.relic-piece.equipped { box-shadow:inset 0 0 0 1px rgba(241,196,92,.55),0 0 18px rgba(192,129,40,.12); }
+.relic-piece-head { display:grid; grid-template-columns:auto 1fr auto; gap:7px; align-items:baseline; }
+.relic-piece-head > span { color:#8f7d68; font-size:10px; text-transform:uppercase; }
+.relic-piece-head b { color:#dcc29a; font-size:12px; }
+.relic-piece-head em { color:#f2d27b; font-size:10px; font-style:normal; }
+.relic-piece p { margin:7px 0 0; color:#8f8274; font-size:11px; line-height:1.5; }
+.relic-piece.found p { color:#bcae9b; }
+.relic-set-bonuses { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin-top:10px; }
+.relic-set-bonuses span {
+  display:grid; gap:3px; padding:8px 9px; border:1px solid rgba(76,64,56,.6); color:#7f756c; background:rgba(7,6,7,.48); font-size:10px;
+}
+.relic-set-bonuses span b { color:#9a8a78; font-size:11px; }
+.relic-set-bonuses span.active { border-color:rgba(215,166,64,.74); color:#d7c5aa; background:rgba(57,39,20,.58); }
+.relic-set-bonuses span.active b { color:#f2d27b; }
+.named-relic-name { letter-spacing:.3px; }
+.named-relic-set { margin-top:4px; color:#d9ad58; font-size:11px; font-weight:700; }
+.named-relic-lore { margin:7px 0; padding:7px 9px; border-left:2px solid rgba(201,151,65,.68); color:#c9b9a2; background:rgba(41,29,19,.48); font-style:italic; line-height:1.5; }
+.named-relic-signature { color:#e4c37e; font-size:11px; }
+.named-relic-bonuses { display:grid; gap:3px; margin:6px 0; }
+.named-relic-bonuses span { color:#756e67; font-size:10px; }
+.named-relic-bonuses span.active { color:#efce85; }
+.town-named-item { display:grid; gap:2px; color:#efd08b; }
+.town-named-item > small { display:block; }
+.town-item-identity { color:#c69245 !important; font-size:10px !important; letter-spacing:.2px; }
+
+@media (max-width: 760px) {
+  .relic-piece-grid { grid-template-columns:1fr; }
+  .relic-set-bonuses { grid-template-columns:1fr; }
+  .relic-set-card > header, .relic-summary { align-items:flex-start; flex-direction:column; }
 }
 @media (max-width: 560px) {
   .town-contract-grid { grid-template-columns: 1fr; }

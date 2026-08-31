@@ -128,7 +128,10 @@
   }
   function itemName(item) {
     if(!item)return '';
-    const parts=[`${rarityName(item.rarity)}·${baseName(item)}`];
+    const primary=item.namedSet
+      ? (isEnglish ? String(item.namedEn||item.name||'') : String(item.name||''))
+      : `${rarityName(item.rarity)}·${baseName(item)}`;
+    const parts=[primary];
     if(item.mechanic)parts.push(mechanicName(item.mechanic));
     if(item.refinePath)parts.push(refineName(item.refinePath));
     if(item.masterworked)parts.push(pick('淬炼','Masterwork'));

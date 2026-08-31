@@ -14,7 +14,7 @@ for(const [name,html] of [['zh',zh],['en',en]]){
   const versions=[...html.matchAll(/\?v=(\d+)/g)].map(m=>m[1]),scripts=scriptSrcs(html);
   ok(versions.length>0&&versions.every(v=>v===generation),`${name} authored entry uses only cache generation ${generation}`);
   ok(html.includes(`style.css?v=${generation}`),`${name} stylesheet uses generation ${generation}`);
-  ok(scripts.length===14&&scripts.every(src=>src.endsWith(`?v=${generation}`)),`${name} boots 14 current-generation synchronous scripts`);
+  ok(scripts.length===15&&scripts.every(src=>src.endsWith(`?v=${generation}`)),`${name} boots 15 current-generation synchronous scripts`);
   for(const rel of ['game/locale/locale-data-v134.js','game/domain/combat/combat-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/expedition/expedition-rules-v170.js'])
     ok(html.indexOf(`${rel}?v=${generation}`)<html.indexOf(`game/core/game.js?v=${generation}`),`${name} ${rel} boots before core`);
   ok(scripts[scripts.length-1]===`game/core/runtime-bootstrap.js?v=${generation}`,`${name} runtime bootstrap is final synchronous script`);

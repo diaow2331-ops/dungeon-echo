@@ -1,0 +1,65 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
+const rules=require(path.join(root,'game/domain/inventory/set-rules-v180.js'));
+const core=read('game/core/game.js'),zh=read('index.html'),en=read('en/index.html'),css=read('style.css');
+const locale=read('game/locale/locale-data-v134.js');
+const manifest=read('ops/release/static-files.txt');
+const authority=JSON.parse(read('docs/authority-map-v130.json'));
+
+assert.equal(rules.authority,'named-set-policy');
+assert.equal(rules.version,'v1.8.0-development');
+assert.deepEqual(rules.SLOTS,['weapon','armor','helmet','boots','ring','amulet']);
+assert(rules.SETS.length>=3,'v1.8 must launch with multiple authored named sets');
+for(const set of rules.SETS){
+  assert.deepEqual(set.bonuses.map(b=>b.pieces),[2,4,6],set.id+' must use 2/4/6 activation');
+  assert(set.zh&&set.en&&set.zhStory&&set.enStory,set.id+' must own set identity and story');
+  const names=[];
+  for(const slot of rules.SLOTS){
+    const p=rules.piece(set.id,slot,'warrior');
+    assert(p&&p.zh&&p.en&&p.zhLore&&p.enLore,set.id+':'+slot+' must be a named lore-bearing relic');
+    names.push(p.zh);
+    assert(Object.keys(rules.signatureStats(set.id,slot,Math.max(1,set.minDepth))).length>0,set.id+':'+slot+' must have a fixed signature');
+  }
+  assert.equal(new Set(names).size,6,set.id+' piece names must be individually memorable');
+}
+assert.equal(rules.namedChance(2),0,'rare and below must remain ordinary gear');
+assert(rules.namedChance(3)>0&&rules.namedChance(4)>rules.namedChance(3),'Epic/Legendary named relic chance must be bounded and rarity-sensitive');
+
+const set=rules.SETS[0];
+const equip={};
+for(const slot of rules.SLOTS.slice(0,4)) equip[slot]={setId:set.id,setPiece:slot};
+assert.equal(rules.equippedCounts(equip)[set.id],4);
+assert.equal(rules.activeBonuses(equip).filter(x=>x.setId===set.id).length,2,'four pieces activate 2/4 but not 6');
+const ledger={}; ledger[set.id+':weapon']=1; ledger[set.id+':ring']=1;
+assert.equal(rules.collectionProgress(ledger,set.id).found,2);
+
+assert(core.includes("window.DE_SET_RULES_V180")&&core.includes("authority !== 'named-set-policy'"),'core must consume the pure named-set authority');
+assert(core.includes("const affixCount = namedSet ? Math.min(1, RARITIES[rarity].affixes)"),'named relics must not be drowned in random affixes');
+assert(core.includes('function registerReturnedRelics(items)'),'core must own safe-return collection mutation');
+const escapeStart=core.indexOf('function useEscape()'),deathStart=core.indexOf('function greedyDeathReturn(',escapeStart);
+const escapeBlock=core.slice(escapeStart,deathStart);
+assert(escapeBlock.includes('registerReturnedRelics(['),'safe return must catalog relics');
+const deathBlock=core.slice(deathStart,core.indexOf('const fullscreenElement',deathStart));
+assert(!deathBlock.includes('registerReturnedRelics('),'death must not create permanent relic discoveries');
+assert(core.includes("service:'relics', zh:'遗物书记', en:'Relic Curator'"),'walkable town must have a Relic Curator hotspot');
+assert(core.includes("ui('遗物馆','RELICS')"),'town growth art must visibly gain a Relic Hall marker');
+assert(core.includes('function renderTownRelics()'),'town must render a persistent relic archive');
+assert(core.includes("setStat('fixedDr')")&&core.includes("setStat('crit')")&&core.includes("setStat('skillHaste')"),'set bonuses must affect canonical combat/stat paths');
+
+for(const [name,html] of [['zh',zh],['en',en]]){
+  const town=html.slice(html.indexOf('id="town-screen"'),html.indexOf('id="achv-screen"'));
+  assert.equal((town.match(/data-town-page="/g)||[]).length,7,name+' must expose seven town tabs');
+  assert.equal((town.match(/data-town-page-panel="/g)||[]).length,7,name+' must expose seven town panels');
+  assert(town.includes('data-town-page="relics"')&&town.includes('id="town-relics"'),name+' must expose Relic Hall');
+  assert(html.includes('game/domain/inventory/set-rules-v180.js?v=181'),name+' must boot set policy before core');
+}
+assert(!/[\u3400-\u9fff]/.test(en),'English authored route must remain CJK-free');
+assert(locale.includes('item.namedEn'),'locale must preserve fixed English relic names');
+assert(css.includes('.relic-set-card')&&css.includes('.named-relic-lore'),'relic archive and lore require dedicated presentation');
+assert(manifest.includes('game/domain/inventory/set-rules-v180.js'),'release allowlist must ship set policy');
+assert.equal(authority.authorities.namedRelicSetPolicy,'game/domain/inventory/set-rules-v180.js');
+assert.equal(authority.authorities.relicCollectionPersistence,'game/core/game.js');
+
+console.log('named_relic_sets_v180=PASS');
