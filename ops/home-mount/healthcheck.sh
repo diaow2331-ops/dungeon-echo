@@ -5,6 +5,7 @@ BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOME_URL=https://91hwl.cn/
 DE_DETAIL_URL=https://91hwl.cn/toys/dungeon-echo/
 MOYU_DETAIL_URL=https://91hwl.cn/toys/moyu/
+BOARD_DETAIL_URL=https://91hwl.cn/toys/board-games/
 ABOUT_URL=https://91hwl.cn/about/
 PRIVACY_URL=https://91hwl.cn/privacy/
 CONTACT_URL=https://91hwl.cn/contact/
@@ -14,6 +15,9 @@ SCRIPT_URL=https://91hwl.cn/assets/site-v1110/site.js
 ART_URL=https://91hwl.cn/assets/site-v1110/wang-jian-landscape-1668.jpg
 MOYU_COVER_URL=https://91hwl.cn/assets/site-v1110/moyu-run-v1265.jpg
 DE_COVER_URL=https://91hwl.cn/assets/site-v1110/dungeon-roster.webp
+BOARD_SHOT_URL=https://91hwl.cn/assets/site-v1118/board-xiangqi.webp
+MOYU_ART_URL=https://91hwl.cn/assets/site-v1118/moyu-scenes.webp
+DE_ART_URL=https://91hwl.cn/assets/site-v1118/dungeon-town.webp
 DE_PLAY_URL=https://play.91hwl.cn/dungeon-echo/
 MOYU_PLAY_URL=https://play.91hwl.cn/moyu/
 BOARD_PLAY_URL=https://play.91hwl.cn/board-games/
@@ -33,7 +37,7 @@ version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
 expected_de="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/DUNGEON_VERSION")"
 expected_moyu="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/MOYU_VERSION")"
 expected_board="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/BOARD_VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v1117-health.XXXXXX)"
+work_dir="$(mktemp -d /tmp/web-toys-home-v1118-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
@@ -90,6 +94,8 @@ check_home(){
   require_fixed "$file" '浏览器游戏' 'homepage Chinese hero copy' || return 1
   require_fixed "$file" 'game-card-board' 'homepage Board Trio visual card' || return 1
   require_fixed "$file" 'https://play.91hwl.cn/board-games/' 'homepage Board Trio play link' || return 1
+  require_fixed "$file" 'href="/toys/board-games/"' 'homepage Board Trio detail link' || return 1
+  require_fixed "$file" 'board-xiangqi.webp' 'homepage Board Trio real art' || return 1
   ! grep -Fq '下一款开发中' "$file" || return 1
   require_fixed "$file" 'game-media-moyu' 'homepage Moyu visual cover hook' || return 1
   require_fixed "$file" 'dungeon-roster.webp' 'homepage Dungeon visual cover hook' || return 1
@@ -107,11 +113,12 @@ check_de_detail(){
   file="$1"
   require_fixed "$file" "data-site-version=\"$version\"" 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" "softwareVersion\":\"$expected_de\"" 'Dungeon Echo detail software version' || return 1
-  require_fixed "$file" '强化战斗打击反馈' 'Dungeon Echo release copy' || return 1
+  require_fixed "$file" '单一规则权威' 'Dungeon Echo v1.6 release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
   require_fixed "$file" 'class-roster.webp' 'Dungeon Echo roster art' || return 1
-  require_fixed "$file" 'town-backdrop-v11.webp' 'Dungeon Echo town art' || return 1
-  require_fixed "$file" 'final-boss-v11.png' 'Dungeon Echo final boss art' || return 1
+  require_fixed "$file" 'dungeon-town.webp' 'Dungeon Echo town art' || return 1
+  require_fixed "$file" 'dungeon-guardians.webp' 'Dungeon Echo guardian art' || return 1
+  require_fixed "$file" 'dungeon-final.webp' 'Dungeon Echo final boss art' || return 1
   require_fixed "$file" 'href="https://play.91hwl.cn/dungeon-echo/" data-carry' 'Dungeon Echo play link' || return 1
   require_fixed "$file" 'GitHub / Source' 'Dungeon Echo source CTA' || return 1
   require_fixed "$file" 'MIT · OPEN SOURCE' 'Dungeon Echo open-source identity' || return 1
@@ -128,8 +135,28 @@ check_moyu_detail(){
   require_fixed "$file" '画面与信息都更清楚' 'Moyu current Chinese release copy' || return 1
   require_fixed "$file" 'Clearer world, readable UI' 'Moyu current English release copy' || return 1
   require_fixed "$file" 'href="https://play.91hwl.cn/moyu/" data-carry' 'Moyu play link' || return 1
+  require_fixed "$file" 'detail-moyu-hero' 'Moyu real gameplay hero' || return 1
+  require_fixed "$file" 'moyu-scenes.webp' 'Moyu scene art' || return 1
+  require_fixed "$file" 'moyu-hazards.webp' 'Moyu hazard art' || return 1
   check_pref_contract "$file" || return 1
   check_adsense_surface "$file" 'Moyu detail' || return 1
+}
+
+
+check_board_detail(){
+  file="$1"
+  require_fixed "$file" "data-site-version=\"$version\"" 'Board Trio detail site version' || return 1
+  require_fixed "$file" "softwareVersion\":\"$expected_board\"" 'Board Trio detail software version' || return 1
+  require_fixed "$file" '方寸棋局' 'Board Trio detail title' || return 1
+  require_fixed "$file" '三种棋，一张桌' 'Board Trio game overview' || return 1
+  require_fixed "$file" 'board-gomoku.webp' 'Board Trio Gomoku art' || return 1
+  require_fixed "$file" 'board-xiangqi.webp' 'Board Trio Xiangqi art' || return 1
+  require_fixed "$file" 'board-go.webp' 'Board Trio Go art' || return 1
+  require_fixed "$file" '三档本地 AI' 'Board Trio local AI detail' || return 1
+  require_fixed "$file" 'href="https://play.91hwl.cn/board-games/" data-carry' 'Board Trio play link' || return 1
+  check_social_contract "$file" 'https://91hwl.cn/toys/board-games/' 'Board Trio · Gomoku / Xiangqi / Go' || return 1
+  check_pref_contract "$file" || return 1
+  check_adsense_surface "$file" 'Board detail' || return 1
 }
 
 check_trust_page(){
@@ -153,6 +180,7 @@ check_main_origin(){
   fetch "$work_dir/origin-home.html" --resolve "$MAIN_RESOLVE" "$HOME_URL" && check_home "$work_dir/origin-home.html" || return 1
   fetch "$work_dir/origin-de.html" --resolve "$MAIN_RESOLVE" "$DE_DETAIL_URL" && check_de_detail "$work_dir/origin-de.html" || return 1
   fetch "$work_dir/origin-moyu.html" --resolve "$MAIN_RESOLVE" "$MOYU_DETAIL_URL" && check_moyu_detail "$work_dir/origin-moyu.html" || return 1
+  fetch "$work_dir/origin-board.html" --resolve "$MAIN_RESOLVE" "$BOARD_DETAIL_URL" && check_board_detail "$work_dir/origin-board.html" || return 1
   fetch "$work_dir/origin-about.html" --resolve "$MAIN_RESOLVE" "$ABOUT_URL" && check_trust_page "$work_dir/origin-about.html" '这是一个独立浏览器游戏站。' "$ABOUT_URL" 'About page' || return 1
   fetch "$work_dir/origin-privacy.html" --resolve "$MAIN_RESOLVE" "$PRIVACY_URL" && check_trust_page "$work_dir/origin-privacy.html" '隐私说明' "$PRIVACY_URL" 'Privacy page' || return 1
   fetch "$work_dir/origin-contact.html" --resolve "$MAIN_RESOLVE" "$CONTACT_URL" && check_trust_page "$work_dir/origin-contact.html" '如何提交有效反馈' "$CONTACT_URL" 'Contact page' || return 1
@@ -161,6 +189,9 @@ check_main_origin(){
   fetch "$work_dir/origin-art.jpg" --resolve "$MAIN_RESOLVE" "$ART_URL" && test -s "$work_dir/origin-art.jpg" || return 1
   fetch "$work_dir/origin-moyu-cover.jpg" --resolve "$MAIN_RESOLVE" "$MOYU_COVER_URL" && test -s "$work_dir/origin-moyu-cover.jpg" || return 1
   fetch "$work_dir/origin-dungeon-cover.webp" --resolve "$MAIN_RESOLVE" "$DE_COVER_URL" && test -s "$work_dir/origin-dungeon-cover.webp" || return 1
+  fetch "$work_dir/origin-board-shot.webp" --resolve "$MAIN_RESOLVE" "$BOARD_SHOT_URL" && test -s "$work_dir/origin-board-shot.webp" || return 1
+  fetch "$work_dir/origin-moyu-art.webp" --resolve "$MAIN_RESOLVE" "$MOYU_ART_URL" && test -s "$work_dir/origin-moyu-art.webp" || return 1
+  fetch "$work_dir/origin-de-art.webp" --resolve "$MAIN_RESOLVE" "$DE_ART_URL" && test -s "$work_dir/origin-de-art.webp" || return 1
   local ads
   ads="$(curl -fsSL --noproxy '*' --resolve "$MAIN_RESOLVE" "$ADS_URL" | tr -d '\r\n')"
   test "$ads" = "$ADS_LINE" || return 1
@@ -185,6 +216,7 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
   if fetch "$work_dir/public-home.html" "${HOME_URL}?release=$revision" && check_home "$work_dir/public-home.html" \
       && fetch "$work_dir/public-de.html" "${DE_DETAIL_URL}?release=$revision" && check_de_detail "$work_dir/public-de.html" \
       && fetch "$work_dir/public-moyu.html" "${MOYU_DETAIL_URL}?release=$revision" && check_moyu_detail "$work_dir/public-moyu.html" \
+      && fetch "$work_dir/public-board.html" "${BOARD_DETAIL_URL}?release=$revision" && check_board_detail "$work_dir/public-board.html" \
       && fetch "$work_dir/public-about.html" "${ABOUT_URL}?release=$revision" && check_trust_page "$work_dir/public-about.html" '这是一个独立浏览器游戏站。' "$ABOUT_URL" 'About page' \
       && fetch "$work_dir/public-privacy.html" "${PRIVACY_URL}?release=$revision" && check_trust_page "$work_dir/public-privacy.html" '隐私说明' "$PRIVACY_URL" 'Privacy page' \
       && fetch "$work_dir/public-contact.html" "${CONTACT_URL}?release=$revision" && check_trust_page "$work_dir/public-contact.html" '如何提交有效反馈' "$CONTACT_URL" 'Contact page' \
@@ -193,6 +225,9 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
       && fetch "$work_dir/public-art.jpg" "${ART_URL}?release=$revision" && test -s "$work_dir/public-art.jpg" \
       && fetch "$work_dir/public-moyu-cover.jpg" "${MOYU_COVER_URL}?release=$revision" && test -s "$work_dir/public-moyu-cover.jpg" \
       && fetch "$work_dir/public-dungeon-cover.webp" "${DE_COVER_URL}?release=$revision" && test -s "$work_dir/public-dungeon-cover.webp" \
+      && fetch "$work_dir/public-board-shot.webp" "${BOARD_SHOT_URL}?release=$revision" && test -s "$work_dir/public-board-shot.webp" \
+      && fetch "$work_dir/public-moyu-art.webp" "${MOYU_ART_URL}?release=$revision" && test -s "$work_dir/public-moyu-art.webp" \
+      && fetch "$work_dir/public-de-art.webp" "${DE_ART_URL}?release=$revision" && test -s "$work_dir/public-de-art.webp" \
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
       && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = "$expected_de" \
       && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = "$expected_moyu" \
@@ -207,6 +242,7 @@ test "$public_ok" = true || fail "public site v$version check failed after $ATTE
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"
 echo "moyu_detail=$MOYU_DETAIL_URL"
+echo "board_trio_detail=$BOARD_DETAIL_URL"
 echo "board_trio=$BOARD_PLAY_URL"
 echo "about=$ABOUT_URL"
 echo "privacy=$PRIVACY_URL"
