@@ -12,6 +12,7 @@ const root = path.resolve(__dirname, '..');
 const compat = path.join(__dirname, 'layout-compat.cjs');
 const tests = [
   'repository-event-safety.cjs',
+  'games-catalog.cjs',
   'current-production-entry-v132.cjs',
   'equipment-art-recovery-v131.cjs',
   'static-art-polish-v131.cjs',

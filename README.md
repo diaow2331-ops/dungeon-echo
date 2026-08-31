@@ -84,20 +84,19 @@ J Attack, K Skill and their Mana/ranged semantics are integrated directly in the
 
 ```text
 .
-├── index.html / en/index.html      # fixed production routes
-├── game/core/                      # authoritative game runtime
-├── game/input/                     # transport-only adapters
-├── game/locale/                    # fixed-route data/navigation
-├── game/ui/                        # approved DOM/CSS-only followers
-├── art/                            # canonical production art
-├── archive/quarantine-v130/        # preserved inactive implementations/assets
-├── docs/                           # architecture + maintenance contracts
-├── test/                           # authority/release contracts
-├── ops/release/                    # immutable bundle construction
-└── ops/site-bundle/                # atomic deployment + health checks
+├── games.json                      # repository-level game catalog authority
+├── index.html / game/ / art/       # Dungeon Echo legacy source root
+├── moyu/                           # Clock Out Alive source root
+├── board-games/                    # Board Trio source root
+├── docs/                           # game + repository architecture contracts
+├── test/                           # focused and aggregate contracts
+├── ops/release/                    # immutable component/aggregate builders
+├── ops/site-bundle/                # Dungeon Echo deployment
+├── ops/moyu-bundle/                # Clock Out Alive deployment
+└── ops/board-games-bundle/         # Board Trio deployment
 ```
 
-Production membership is explicit in `ops/release/static-files.txt`. Files outside that allowlist are not part of the deployed game.
+`games.json` defines the three playable products and their version/build authorities. See [`docs/GAMES_REPOSITORY.md`](docs/GAMES_REPOSITORY.md). Dungeon Echo keeps its legacy root layout for compatibility; new games use self-contained directories.
 
 ## Development and restoration workflow
 
