@@ -52,4 +52,23 @@ for(const slot of rules.SLOTS){
   const share=slotCounts[slot]/named;
   assert(share>.13&&share<.20,slot+' named relic share must stay near one-sixth; got '+share.toFixed(3));
 }
+
+// Removing three random affixes must not make authored relics vendor trash. In the actual Epic+
+// loot mix, fixed signatures should keep named pieces around ordinary-item value before set bonuses.
+function valueRatio(depth,minRarity){
+  T.setSeed('v180-relic-value-'+depth+'-'+minRarity);
+  let namedSum=0,namedN=0,ordinarySum=0,ordinaryN=0;
+  for(let i=0;i<2400;i++){
+    const item=T.genEquip(depth,minRarity), value=T.itemValueScore(item);
+    if(item.namedSet){namedSum+=value;namedN++;} else {ordinarySum+=value;ordinaryN++;}
+  }
+  assert(namedN>300&&ordinaryN>300,'value audit needs both named and ordinary samples');
+  return (namedSum/namedN)/(ordinarySum/ordinaryN);
+}
+for(const depth of [20,50,80]){
+  const ratio=valueRatio(depth,3);
+  assert(ratio>.88&&ratio<1.18,'Epic+ named relics should be competitive without dominating at depth '+depth+'; ratio '+ratio.toFixed(3));
+}
+const legendaryRatio=valueRatio(80,4);
+assert(legendaryRatio>.70&&legendaryRatio<.92,'single Legendary named pieces should leave room for six-piece bonuses; ratio '+legendaryRatio.toFixed(3));
 console.log('named_relic_capstones_runtime_v180=PASS');

@@ -25,7 +25,7 @@ for(const set of rules.SETS){
     const p=rules.piece(set.id,slot,'warrior');
     assert(p&&p.zh&&p.en&&p.zhLore&&p.enLore,set.id+':'+slot+' must be a named lore-bearing relic');
     names.push(p.zh);
-    assert(Object.keys(rules.signatureStats(set.id,slot,Math.max(1,set.minDepth))).length>0,set.id+':'+slot+' must have a fixed signature');
+    assert(Object.keys(rules.signatureStats(set.id,slot,Math.max(1,set.minDepth))).length>=2,set.id+':'+slot+' must have a multi-stat fixed signature package that replaces random-affix volume');
   }
   assert.equal(new Set(names).size,6,set.id+' piece names must be individually memorable');
 }

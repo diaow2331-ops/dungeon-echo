@@ -45,7 +45,12 @@ Post-fix probe, 12,000 Legendary-equivalent generated items at Floor 80:
 
 This is close to the intended one-sixth distribution.
 
-### 5. Tooltip hierarchy still let the affix compete with identity
+### 5. Fewer random affixes initially made named relics numerically cheap
+A Legendary-value probe exposed a second-order problem: suppressing three random affixes protected identity, but the old one-stat signatures did not replace enough of their power. Before correction, named Legendary items averaged only about 62%–68% of ordinary Legendary item value through much of the dungeon.
+
+The fix is not to restore random affix spam. Every named piece now carries a stronger authored **multi-stat fixed signature package** scaled with depth and set theme. In an 8,000-item probe after tuning, named Legendary items sit at roughly 75%–84% of ordinary Legendary value from early to deep progression; in the actual Epic+ rarity mix, named pieces average roughly parity with ordinary pieces before 2/4/6 bonuses. This leaves ordinary high-roll Legendaries valuable while making a named relic credible equipment rather than museum junk.
+
+### 6. Tooltip hierarchy still let the affix compete with identity
 Named relic tooltip hierarchy now reads:
 1. fixed piece name;
 2. set identity and equipped count;

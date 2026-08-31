@@ -225,55 +225,76 @@
     }));
     return Object.freeze(rows);
   }
-  function signatureStats(setId,slot,depth) {
+  function signatureScale(depth) {
     const d=Math.max(1,Math.floor(Number(depth)||1));
+    return Object.freeze({
+      atk:3+Math.floor(d/3),
+      def:2+Math.floor(d/5),
+      hp:18+Math.round(d*1.4),
+      crit:5+Math.floor(d/12),
+      leech:4+Math.floor(d/15),
+      regen:3+Math.floor(d/6),
+      thorns:3+Math.floor(d/8),
+    });
+  }
+  const RELIC_SIGNATURE_MULT=1.45;
+  function signaturePack(source) {
+    const out={};
+    for(const [key,value] of Object.entries(source||{})){
+      const n=Math.max(0,Math.round((Number(value)||0)*RELIC_SIGNATURE_MULT));
+      if(n>0) out[key]=n;
+    }
+    return Object.freeze(out);
+  }
+  function signatureStats(setId,slot,depth) {
+    const s=signatureScale(depth);
     if(setId==='ashen_watch'){
-      if(slot==='weapon') return Object.freeze({atk:1+Math.floor(d/20)});
-      if(slot==='armor') return Object.freeze({def:1+Math.floor(d/30)});
-      if(slot==='helmet') return Object.freeze({def:1});
-      if(slot==='boots') return Object.freeze({hp:8+Math.floor(d/4)});
-      if(slot==='ring') return Object.freeze({hp:10+Math.floor(d/3)});
-      if(slot==='amulet') return Object.freeze({regen:2});
+      if(slot==='weapon') return signaturePack({atk:s.atk*.70,hp:s.hp*.45});
+      if(slot==='armor') return signaturePack({def:s.def,hp:s.hp*.90});
+      if(slot==='helmet') return signaturePack({def:s.def*.85,hp:s.hp*.65,regen:s.regen*.60});
+      if(slot==='boots') return signaturePack({def:s.def*.50,hp:s.hp});
+      if(slot==='ring') return signaturePack({hp:s.hp*.90,thorns:s.thorns*.90});
+      if(slot==='amulet') return signaturePack({hp:s.hp*.75,regen:s.regen});
     }
     if(setId==='drowned_bell'){
-      if(slot==='weapon') return Object.freeze({atk:1+Math.floor(d/22)});
-      if(slot==='armor') return Object.freeze({def:1});
-      if(slot==='helmet') return Object.freeze({hp:7+Math.floor(d/5)});
-      if(slot==='boots') return Object.freeze({hp:9+Math.floor(d/4)});
-      if(slot==='ring') return Object.freeze({leech:2});
-      if(slot==='amulet') return Object.freeze({regen:2});
+      if(slot==='weapon') return signaturePack({atk:s.atk*.75,hp:s.hp*.25,leech:s.leech});
+      if(slot==='armor') return signaturePack({def:s.def*.70,hp:s.hp});
+      if(slot==='helmet') return signaturePack({hp:s.hp*.85,leech:s.leech});
+      if(slot==='boots') return signaturePack({hp:s.hp,regen:s.regen*.80});
+      if(slot==='ring') return signaturePack({hp:s.hp*.70,leech:s.leech*1.40});
+      if(slot==='amulet') return signaturePack({hp:s.hp*.65,regen:s.regen*.90,leech:s.leech*.80});
     }
     if(setId==='star_hunt'){
-      if(slot==='weapon') return Object.freeze({atk:2+Math.floor(d/18)});
-      if(slot==='armor') return Object.freeze({def:1});
-      if(slot==='helmet') return Object.freeze({crit:3});
-      if(slot==='boots') return Object.freeze({crit:2});
-      if(slot==='ring') return Object.freeze({crit:4});
-      if(slot==='amulet') return Object.freeze({atk:1+Math.floor(d/25)});
+      if(slot==='weapon') return signaturePack({atk:s.atk,crit:s.crit});
+      if(slot==='armor') return signaturePack({def:s.def*.55,hp:s.hp*.75,crit:s.crit*.70});
+      if(slot==='helmet') return signaturePack({hp:s.hp*.60,crit:s.crit*1.50});
+      if(slot==='boots') return signaturePack({hp:s.hp*.65,atk:s.atk*.45,crit:s.crit});
+      if(slot==='ring') return signaturePack({hp:s.hp*.45,atk:s.atk*.40,crit:s.crit*1.60});
+      if(slot==='amulet') return signaturePack({hp:s.hp*.50,atk:s.atk*.65,crit:s.crit*1.20});
     }
     if(setId==='rust_saints'){
-      if(slot==='weapon') return Object.freeze({atk:2+Math.floor(d/20)});
-      if(slot==='armor') return Object.freeze({def:2});
-      if(slot==='helmet') return Object.freeze({def:1});
-      if(slot==='boots') return Object.freeze({hp:12+Math.floor(d/4)});
-      if(slot==='ring') return Object.freeze({crit:3});
-      if(slot==='amulet') return Object.freeze({regen:3});
+      if(slot==='weapon') return signaturePack({atk:s.atk*.80,thorns:s.thorns});
+      if(slot==='armor') return signaturePack({def:s.def,hp:s.hp*.75,thorns:s.thorns*.70});
+      if(slot==='helmet') return signaturePack({def:s.def*.90,hp:s.hp*.60,regen:s.regen*.80});
+      if(slot==='boots') return signaturePack({hp:s.hp,thorns:s.thorns});
+      if(slot==='ring') return signaturePack({hp:s.hp*.55,crit:s.crit*.80,thorns:s.thorns*.90});
+      if(slot==='amulet') return signaturePack({hp:s.hp*.65,def:s.def*.55,regen:s.regen});
     }
     if(setId==='void_court'){
-      if(slot==='weapon') return Object.freeze({atk:3+Math.floor(d/15)});
-      if(slot==='armor') return Object.freeze({def:2+Math.floor(d/35)});
-      if(slot==='helmet') return Object.freeze({crit:4});
-      if(slot==='boots') return Object.freeze({leech:3});
-      if(slot==='ring') return Object.freeze({leech:4});
-      if(slot==='amulet') return Object.freeze({crit:5});
+      if(slot==='weapon') return signaturePack({atk:s.atk,leech:s.leech*1.20});
+      if(slot==='armor') return signaturePack({def:s.def*.90,hp:s.hp*.80,leech:s.leech*.70});
+      if(slot==='helmet') return signaturePack({hp:s.hp*.55,crit:s.crit*1.20,leech:s.leech});
+      if(slot==='boots') return signaturePack({hp:s.hp*.70,leech:s.leech*1.50});
+      if(slot==='ring') return signaturePack({hp:s.hp*.45,crit:s.crit*1.10,leech:s.leech*1.60});
+      if(slot==='amulet') return signaturePack({hp:s.hp*.45,atk:s.atk*.55,crit:s.crit*1.50});
     }
     if(setId==='shattered_moon'){
-      if(slot==='weapon') return Object.freeze({atk:3+Math.floor(d/16)});
-      if(slot==='armor') return Object.freeze({hp:18+Math.floor(d/3)});
-      if(slot==='helmet') return Object.freeze({crit:5});
-      if(slot==='boots') return Object.freeze({crit:3});
-      if(slot==='ring') return Object.freeze({crit:6});
-      if(slot==='amulet') return Object.freeze({leech:4});
+      if(slot==='weapon') return signaturePack({atk:s.atk*.90,crit:s.crit*1.20});
+      if(slot==='armor') return signaturePack({hp:s.hp,crit:s.crit*.80});
+      if(slot==='helmet') return signaturePack({hp:s.hp*.60,crit:s.crit*1.60});
+      if(slot==='boots') return signaturePack({hp:s.hp*.85,crit:s.crit*1.20});
+      if(slot==='ring') return signaturePack({hp:s.hp*.45,crit:s.crit*1.80,leech:s.leech*.80});
+      if(slot==='amulet') return signaturePack({hp:s.hp*.55,crit:s.crit*1.30,leech:s.leech*1.40});
     }
     return Object.freeze({});
   }
