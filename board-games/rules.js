@@ -52,6 +52,7 @@ function xiangqiMove(b,fx,fy,tx,ty){
 function xiangqiTargets(b,x,y){const p=b[y]&&b[y][x],out=[];if(!p)return out;for(let yy=0;yy<10;yy++)for(let xx=0;xx<9;xx++)if(xiangqiMove(b,x,y,xx,yy))out.push({x:xx,y:yy});return out}
 function xiangqiHasMove(b,c){for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=b[y][x];if(p&&p.c===c&&xiangqiTargets(b,x,y).length)return true}return false}
 function xiangqiTerminal(b,c){if(xiangqiHasMove(b,c))return null;return xiangqiInCheck(b,c)?'checkmate':'stalemate'}
+function xiangqiKey(b,turn=''){return b.map(row=>row.map(p=>p?(p.c+':'+p.t):'..').join(',')).join('/')+'|'+turn}
 
 function goBoard(size=19){return empty(size,size)}
 function neighbors(b,x,y){return [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(([xx,yy])=>inside(b,xx,yy))}
@@ -74,5 +75,5 @@ function goScore(b,komi=7.5){
   }
   return{black,white,winner:black>white?'b':'w',margin:Math.abs(black-white)};
 }
-return{X,clone,gomokuBoard,gomokuWin,gomokuFull,xiangqiBoard,xiangqiMove,xiangqiTargets,xiangqiInCheck,xiangqiHasMove,xiangqiTerminal,goBoard,goPlay,goScore,boardKey,group};
+return{X,clone,gomokuBoard,gomokuWin,gomokuFull,xiangqiBoard,xiangqiMove,xiangqiTargets,xiangqiInCheck,xiangqiHasMove,xiangqiTerminal,xiangqiKey,goBoard,goPlay,goScore,boardKey,group};
 });

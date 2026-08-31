@@ -8,16 +8,18 @@ const R=require('../board-games/rules.js');
 const AI=require('../board-games/ai.js');
 const levels=['easy','normal','hard'];
 
-assert.strictEqual(read('board-games/VERSION').trim(),'0.5.0');
+assert.strictEqual(read('board-games/VERSION').trim(),'0.6.1');
 const html=read('board-games/index.html'),game=read('board-games/game.js'),worker=read('board-games/ai-worker.js'),source=read('board-games/ai.js');
 assert(html.includes('id="opponentMode"')&&html.includes('id="difficulty"')&&html.includes('id="humanSeat"'),'AI match controls missing');
 assert(html.includes('value="easy"')&&html.includes('value="normal"')&&html.includes('value="hard"'),'three difficulty levels missing');
-assert(html.includes('ai.js?v=050')&&html.includes('game.js?v=050'),'AI cache generation missing');
-assert(game.includes("new Worker('ai-worker.js?v=050')"),'AI must run off the UI thread when workers are available');
+assert(html.includes('ai.js?v=061')&&html.includes('game.js?v=061'),'AI cache generation missing');
+assert(game.includes("new Worker('ai-worker.js?v=061')"),'AI must run off the UI thread when workers are available');
 assert(game.includes('function queueAI(')&&game.includes('function applyAiMove('),'AI turn coordinator missing');
+assert(game.includes("mode==='xiangqi'")&&game.includes('repeatKeys:history.map'),'Xiangqi AI history context missing');
+assert(source.includes('repeatLoss')&&source.includes('safeMoves'),'Xiangqi AI must avoid a known perpetual-check loss when alternatives exist');
 assert(game.includes("opponent==='ai'")&&game.includes("humanSeat==='first'"),'opponent and side selection state missing');
 assert(game.includes('已悔棋，回到你上次落子前'),'AI round undo feedback missing');
-assert(worker.includes("importScripts('rules.js?v=050','ai.js?v=050')")&&worker.includes('self.postMessage'),'worker bridge missing');
+assert(worker.includes("importScripts('rules.js?v=061','ai.js?v=061')")&&worker.includes('self.postMessage'),'worker bridge missing');
 assert(!/\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|\/v1\/|api[-_.]/iu.test(source+worker),'local AI must not contain API/network calls');
 assert.deepStrictEqual(Object.keys(AI.LEVELS),levels);
 

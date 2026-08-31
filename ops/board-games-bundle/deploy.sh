@@ -6,7 +6,7 @@ test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'; test "$#" -eq 0 || fail 
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'checksum verification failed'
 version="$(tr -d '
 ' < "$BUNDLE_ROOT/VERSION")"; revision="$(tr -d '
-' < "$BUNDLE_ROOT/REVISION")"; test "$version" = '0.6.0' || fail "unexpected version $version"
+' < "$BUNDLE_ROOT/REVISION")"; test "$version" = '0.6.1' || fail "unexpected version $version"
 previous="$(readlink -f "$CURRENT_LINK")"; [[ "$previous" == "$RELEASES_DIR"/* ]] || fail 'invalid current release'; test -r "$previous/dungeon-echo/index.html" || fail 'Dungeon Echo missing'; test -r "$previous/moyu/index.html" || fail 'Moyu missing'
 release="$RELEASES_DIR/$(date -u +%Y%m%dT%H%M%SZ)-board-games-${revision:0:12}"; tmp="$(mktemp -d "$RELEASES_DIR/.board-games.XXXXXX")"; next="$SITE_ROOT/.current-board-games-${revision:0:12}"; switched=false
 rollback(){ rc=$?; if test "$rc" -ne 0; then if test "$switched" = true; then r="$SITE_ROOT/.rollback-board-games-${revision:0:12}"; ln -s "$previous" "$r"; mv -Tf "$r" "$CURRENT_LINK"; systemctl reload nginx >/dev/null 2>&1 || true; fi; rm -rf "$tmp"; rm -f "$next"; echo board_games_deploy=ROLLED_BACK >&2; fi; exit "$rc"; }; trap rollback EXIT

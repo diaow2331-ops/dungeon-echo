@@ -110,16 +110,17 @@ function xiangqiEval(board,color){
   if(R.xiangqiInCheck(board,other(color)))score+=45;
   return score;
 }
-function xiangqiMoves(board,color){
+function xiangqiMoves(board,color,options={}){
   const moves=[];
   for(let y=0;y<10;y++)for(let x=0;x<9;x++){
     const moving=board[y][x];if(!moving||moving.c!==color)continue;
     for(const target of R.xiangqiTargets(board,x,y)){
       const result=R.xiangqiMove(board,x,y,target.x,target.y);if(!result)continue;
-      let order=(pieceValue[result.captured?.t.toUpperCase()]||0)*12-(pieceValue[moving.t.toUpperCase()]||0);
+      let order=(pieceValue[result.captured?.t.toUpperCase()]||0)*12-(pieceValue[moving.t.toUpperCase()]||0),repeatLoss=false;
       if(result.captured?.t.toUpperCase()==='K')order+=XIANGQI_MATE;
-      if(R.xiangqiInCheck(result.board,other(color)))order+=900;
-      moves.push({fx:x,fy:y,tx:target.x,ty:target.y,board:result.board,captured:result.captured,order});
+      const checks=R.xiangqiInCheck(result.board,other(color));if(checks)order+=900;
+      if(options.repeatKeys&&R.xiangqiKey){const key=R.xiangqiKey(result.board,other(color)),seen=options.repeatKeys.reduce((n,k)=>n+(k===key?1:0),0);repeatLoss=checks&&seen>=2;if(repeatLoss)order-=XIANGQI_MATE*2}
+      moves.push({fx:x,fy:y,tx:target.x,ty:target.y,board:result.board,captured:result.captured,order,repeatLoss});
     }
   }
   moves.sort((a,b)=>b.order-a.order);
@@ -137,7 +138,7 @@ function xiangqiSearch(board,color,depth,alpha,beta,deadline,ply=0){
   return best;
 }
 function xiangqi(board,color='b',level='normal',options={}){
-  level=levelOf(level);const cfg=LEVELS[level],random=randomFor(options),moves=xiangqiMoves(board,color);
+  level=levelOf(level);const cfg=LEVELS[level],random=randomFor(options),allMoves=xiangqiMoves(board,color,options),safeMoves=allMoves.filter(move=>!move.repeatLoss),moves=safeMoves.length?safeMoves:allMoves;
   if(!moves.length)return null;
   const immediate=moves.find(move=>move.captured?.t.toUpperCase()==='K'||R.xiangqiTerminal(move.board,other(color)));
   if(immediate)return{fx:immediate.fx,fy:immediate.fy,tx:immediate.tx,ty:immediate.ty};

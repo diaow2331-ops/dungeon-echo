@@ -2,15 +2,15 @@
 <html lang="zh-CN" translate="no">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="version" content="0.6.0"><meta name="google" content="notranslate"><meta name="theme-color" content="#efe6d2">
+<meta name="version" content="0.6.1"><meta name="google" content="notranslate"><meta name="theme-color" content="#efe6d2">
 <title>方寸棋局 · Board Trio</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%237d281e%27/%3E%3Ctext x=%2732%27 y=%2743%27 text-anchor=%27middle%27 font-size=%2736%27 fill=%27%23fff7e8%27%3E%E6%A3%8B%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=060">
+<link rel="stylesheet" href="style.css?v=061">
 </head>
 <body>
 <header class="topbar">
   <a class="brand" href="https://91hwl.cn/" aria-label="91hwl home">91hwl</a>
-  <div class="title-lockup"><strong data-zh="方寸棋局" data-en="Board Trio">方寸棋局</strong><small>GOMOKU · XIANGQI · GO · v0.6.0</small></div>
+  <div class="title-lockup"><strong data-zh="方寸棋局" data-en="Board Trio">方寸棋局</strong><small>GOMOKU · XIANGQI · GO · v0.6.1</small></div>
   <div class="top-actions">
     <a class="top-action home-action" href="https://91hwl.cn/"><span data-zh="返回主站" data-en="Home">返回主站</span></a>
     <button id="langBtn" class="top-action" type="button" aria-label="Switch language">EN</button>
@@ -25,12 +25,12 @@
 <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 <div class="ai-setup" aria-label="Match settings"><label><span data-zh="对局" data-en="Mode">对局</span> <select id="opponentMode"><option value="ai" selected data-zh="人机对弈" data-en="Vs AI">人机对弈</option><option value="local" data-zh="双人同屏" data-en="Local 2P">双人同屏</option></select></label><label><span data-zh="难度" data-en="Level">难度</span> <select id="difficulty"><option value="easy" data-zh="入门" data-en="Easy">入门</option><option value="normal" selected data-zh="标准" data-en="Normal">标准</option><option value="hard" data-zh="困难" data-en="Hard">困难</option></select></label><label><span data-zh="执子" data-en="Side">执子</span> <select id="humanSeat"><option value="first" selected data-zh="我方先手" data-en="Play first">我方先手</option><option value="second" data-zh="我方后手" data-en="Play second">我方后手</option></select></label><span id="aiState" class="ai-state">本地 AI · 无需联网</span></div>
 <div class="matchbar"><label class="time-control"><span data-zh="计时" data-en="Clock">计时</span> <select id="timeControl"><option value="0" selected data-zh="不限时" data-en="Unlimited">不限时</option><option value="300" data-zh="5 分钟" data-en="5 min">5 分钟</option><option value="600" data-zh="10 分钟" data-en="10 min">10 分钟</option></select></label><div class="clock-pair" aria-label="Chess clocks"><div id="clockA" class="clock"><span id="clockALabel">黑方</span><strong id="clockATime">∞</strong></div><div id="clockB" class="clock"><span id="clockBLabel">白方</span><strong id="clockBTime">∞</strong></div></div></div>
-<div class="board-wrap"><canvas id="board" width="900" height="900" tabindex="0" aria-label="Board"></canvas></div>
+<div class="board-wrap"><canvas id="board" width="900" height="900" tabindex="0" aria-label="Board"></canvas><div id="captureFx" class="capture-fx" aria-hidden="true">吃</div><div id="checkFx" class="check-fx" aria-hidden="true">将</div></div>
 <div class="foot"><span id="ruleHint">自由规则：先连成五子者胜。</span><span class="foot-meta"><span id="sessionHint">先选落点，再点“落子”确认</span><span id="moveCount">0 手</span></span></div>
 <div class="record-panel"><div class="record-head"><div><b data-zh="棋谱与复盘" data-en="Record & Review">棋谱与复盘</b><span id="reviewLabel">实战 · 0 手</span></div><div class="review-actions"><button id="reviewPrevBtn" type="button" disabled><span data-zh="上一手" data-en="Previous">上一手</span></button><button id="reviewNextBtn" type="button" disabled><span data-zh="下一手" data-en="Next">下一手</span></button><button id="reviewLiveBtn" type="button" disabled><span data-zh="回到实战" data-en="Live">回到实战</span></button><button id="reviewBranchBtn" type="button" disabled><span data-zh="从此继续" data-en="Continue here">从此继续</span></button></div></div><ol id="recordList" class="record-list"><li class="record-empty" data-zh="落子后生成逐手棋谱" data-en="Moves will appear here">落子后生成逐手棋谱</li></ol></div>
 </section>
-<section class="notes"><article><b><span data-zh="五子棋" data-en="Gomoku">五子棋</span></b><p><span data-zh="15×15，自由规则，横竖斜五连即胜。" data-en="15×15 freestyle. First line of five wins.">15×15，自由规则，横竖斜五连即胜。</span></p></article><article><b><span data-zh="中国象棋" data-en="Xiangqi">中国象棋</span></b><p><span data-zh="完整基础走子、蹩马腿、塞象眼、炮架、九宫、过河兵与将帅照面约束。" data-en="Core Xiangqi movement, horse-leg and elephant-eye blocks, cannon screens, palace, river and flying-general rules.">完整基础走子、蹩马腿、塞象眼、炮架、九宫、过河兵与将帅照面约束。</span></p></article><article><b><span data-zh="围棋" data-en="Go">围棋</span></b><p><span data-zh="9/13/19 路，提子、禁自杀、整盘重复校验；两次停一手后进入死子确认与中国面积计分，贴目 7.5。" data-en="9/13/19 lines, captures, suicide prevention and whole-board repetition checks; two passes enter dead-stone review and Chinese area scoring with 7.5 komi.">9/13/19 路，提子、禁自杀、整盘重复校验；两次停一手后进入死子确认与中国面积计分，贴目 7.5。</span></p></article></section>
+<section class="notes"><article><b><span data-zh="五子棋" data-en="Gomoku">五子棋</span></b><p><span data-zh="15×15，自由规则，横竖斜五连即胜。" data-en="15×15 freestyle. First line of five wins.">15×15，自由规则，横竖斜五连即胜。</span></p></article><article><b><span data-zh="中国象棋" data-en="Xiangqi">中国象棋</span></b><p><span data-zh="完整基础走子、蹩马腿、塞象眼、炮架、九宫、过河兵、将帅照面，并处理重复局面。" data-en="Core Xiangqi movement, horse-leg and elephant-eye blocks, cannon screens, palace, river, flying generals and repetition handling.">完整基础走子、蹩马腿、塞象眼、炮架、九宫、过河兵、将帅照面，并处理重复局面。</span></p></article><article><b><span data-zh="围棋" data-en="Go">围棋</span></b><p><span data-zh="9/13/19 路，提子、禁自杀、整盘重复校验；两次停一手后进入死子确认与中国面积计分，贴目 7.5。" data-en="9/13/19 lines, captures, suicide prevention and whole-board repetition checks; two passes enter dead-stone review and Chinese area scoring with 7.5 komi.">9/13/19 路，提子、禁自杀、整盘重复校验；两次停一手后进入死子确认与中国面积计分，贴目 7.5。</span></p></article></section>
 <p class="control-hint"><span data-zh="人机模式提供入门、标准、困难三档，全部在浏览器本地计算；全屏模式会收起说明区，专注棋盘与对局信息。" data-en="AI offers Easy, Normal and Hard levels, all computed locally in your browser. Fullscreen hides the explanatory sections and focuses on the board and match controls.">人机模式提供入门、标准、困难三档，全部在浏览器本地计算；全屏模式会收起说明区，专注棋盘与对局信息。</span></p>
 </main>
-<script src="ui.js?v=060"></script><script src="rules.js?v=060"></script><script src="ai.js?v=060"></script><script src="game.js?v=060"></script>
+<script src="ui.js?v=061"></script><script src="rules.js?v=061"></script><script src="ai.js?v=061"></script><script src="game.js?v=061"></script>
 </body></html>
