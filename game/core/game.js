@@ -2392,8 +2392,10 @@ function randomFloorIn(rooms, minDistFromPlayer) {
 
 function monsterThreatScale(d, elite=false, bossLike=false) {
   if (bossLike) return 1;
-  const depthThreat = 0.05 + Math.min(0.13, Math.max(0, Number(d) - 1) * 0.00135);
-  return 1 + depthThreat + (elite ? 0.04 : 0);
+  // v1.7 threat pass: keep ordinary enemies relevant through the whole descent
+  // without touching authored guardian/final-boss ATK.
+  const depthThreat = 0.07 + Math.min(0.17, Math.max(0, Number(d) - 1) * 0.00175);
+  return 1 + depthThreat + (elite ? 0.06 : 0);
 }
 function makeMonster(base, p, options={}) {
   const FR = RUN_PROFILE.floorRules;
@@ -4071,7 +4073,7 @@ function engagementStrike(m) {
   if (!m || m.hp <= 0 || state !== 'playing') return false;
   if (Math.abs(m.x - player.x) + Math.abs(m.y - player.y) !== 1) return false;
   floater(m, ui('追击!','PRESS!'), '#e0a73a');
-  const pressureScale = (m.boss || m.midBoss) ? 0.62 : m.elite ? 0.68 : 0.55;
+  const pressureScale = (m.boss || m.midBoss) ? 0.66 : m.elite ? 0.74 : 0.60;
   monsterAttack(m, false, pressureScale);
   return true;
 }

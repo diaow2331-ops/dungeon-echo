@@ -75,8 +75,9 @@ A player-facing expansion was implemented after the v1.6 modular-authority audit
 - Town-tier-gated expedition contracts.
 - Optional Blood Offering, Cursed Cache and Elite Trial encounters.
 - Frenzied, Vampiric and Volatile elite identities.
-- Modest ordinary-monster ATK pressure scaling with depth.
-- Engagement pressure increased to make adjacency and positioning consequential while preserving telegraphed counterplay.
+- Ordinary-monster ATK pressure now rises from +7% at Floor 1 to +24% at Floor 100; elites add +6%, while guardian/final-boss authored ATK remains exempt.
+- Engagement pressure is 60% normal / 74% elite / 66% guardian or boss.
+- Six heavy ordinary enemy lines reuse the existing one-turn telegraphed Armor Break runtime, adding counterplay through spacing and line-of-sight rather than hidden armor bypass.
 - Guardian/final-boss authored ATK values remain outside the ordinary-monster pressure multiplier.
 
 ### Compatibility and release
@@ -84,3 +85,7 @@ A player-facing expansion was implemented after the v1.6 modular-authority audit
 - New `contractId` sanitizes to `none` for existing saves.
 - Release metadata advances to Dungeon Echo `v1.7.0`, cache generation `181`, runtime bootstrap `v33`.
 - Component release root policy and cross-game source boundaries remain unchanged.
+
+
+### Remote-tree executable-bit correction
+Exact codeload verification of the rebased v1.7 release candidate exposed that the Dungeon builder/deployer shell files had lost their executable Git modes during an earlier Git-data reconstruction. The bytes were correct, but the repository gate correctly rejected the release boundary. Restored `100755` modes for the Dungeon bundle builder, deployer and healthcheck before merge/deployment.
