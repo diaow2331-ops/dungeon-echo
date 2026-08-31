@@ -29,6 +29,7 @@ let b=R.goBoard(5);
 b[1][1]='w'; b[0][1]='b'; b[1][0]='b'; b[2][1]='b';
 let take=R.goPlay(b,2,1,'b');
 assert(take.ok&&take.captured===1&&take.board[1][1]===null);
+assert.deepStrictEqual(take.capturedStones,[{x:1,y:1,color:'w'}]);
 let s=R.goBoard(3);
 s[0][1]='w'; s[1][0]='w'; s[1][2]='w'; s[2][1]='w';
 assert.strictEqual(R.goPlay(s,1,1,'b').reason,'suicide');

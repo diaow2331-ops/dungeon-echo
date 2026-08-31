@@ -21,6 +21,9 @@ assert(html.includes('死子确认')&&html.includes('中国面积计分'),'Go sc
 
 assert(html.includes('id="startMatchBtn"')&&html.includes('id="clearDataBtn"'),'AI start / data-reset controls missing');
 assert(html.includes('id="volumeRange"')&&html.includes('id="volumeValue"'),'music volume control missing');
+assert(html.includes('id="goCaptureStats"')&&html.includes('id="goCaptureLayer"')&&html.includes('id="goCaptureText"'),'Go capture feedback surface missing');
+assert(game.includes('function showGoCaptureFx(')&&game.includes('res.capturedStones'),'Go capture animation runtime missing');
+assert(rules.includes('capturedStones.push'),'Go rule engine must expose removed-stone coordinates');
 assert(game.includes('function startMatch()')&&game.includes('if(!matchStarted||!aiEnabled()'),'AI must not open before explicit match start');
 assert(game.includes('function clearBoardData()'),'Board Trio runtime reset missing');
 const ui=read('board-games/ui.js');
