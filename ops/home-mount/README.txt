@@ -1,25 +1,12 @@
-91hwl home mount · site v1.11.6
+91hwl home mount · site v1.11.7
 
-This package owns the product-facing 91hwl.cn homepage, project detail pages and public trust surfaces. Playable game runtimes remain independently versioned under play.91hwl.cn.
+This bundle owns only the 91hwl.cn presentation surface. Component game versions are read from their canonical version files and written into the bundle as DUNGEON_VERSION, MOYU_VERSION and BOARD_VERSION.
 
-Presented releases:
-- Dungeon Echo v1.5.0 — a 100-floor browser-native turn-based roguelike with four classes, build choices and safe retreat.
-- Clock Out Alive v1.26.5 — a four-minute office runner with readable desktop/fullscreen/mobile UI, four scenes and two endings.
-- Board Trio / 方寸棋局 v0.4.0 — Gomoku, Xiangqi and Go in one responsive local two-player board-game shell.
+v1.11.7 removes personal contact identifiers from the public site, routes sensitive vulnerability reports through the repository Security Policy, and synchronizes the homepage/detail version labels from the component authorities.
 
-site v1.11.6 keeps the current three-game composition, preserves Dungeon Echo v1.5.0 and refreshes Board Trio to v0.4.0 with per-move records, replay/branching and optional per-side clocks while retaining the v0.3.0 match-mechanics rules loop.
+The playable games remain separately deployed under play.91hwl.cn. The home-mount deployer must not rewrite those game trees.
 
-Board Trio links directly to its playable route; Dungeon Echo and Clock Out Alive retain their project-detail records. About, Privacy and Contact keep their distinct plain-language layouts and existing privacy, consent and feedback contracts.
+Build:
+  bash ops/release/build-home-mount-bundle.sh
 
-The shared CSS and JavaScript remain under /assets/site-v1110/ because this patch changes product/version content rather than the visual runtime. Language and theme continue through explicit query parameters, non-sensitive .91hwl.cn preference cookies and localStorage.
-
-Release safety packages final static bytes plus isolated versioned assets, verifies SHA256 before writing, backs up all owned page and asset paths, validates Nginx, checks all public surfaces plus the three live game routes, and rolls back owned paths if validation fails.
-
-- v1.11.6 refreshes Board Trio to v0.4.0 while preserving Dungeon Echo v1.5.0.
-- v1.11.5 refreshes Board Trio to v0.3.0 while preserving Dungeon Echo v1.5.0.
-- v1.11.4 refreshes Board Trio to v0.2.1 while preserving Dungeon Echo v1.5.0.
-- v1.11.3 refreshes Board Trio to v0.2.0 while preserving Dungeon Echo v1.5.0.
-- v1.11.2 refreshes Dungeon Echo to v1.5.0 while preserving Board Trio v0.1.1.
-- v1.11.1 synchronizes the homepage with Board Trio v0.1.1.
-- v1.11.0 introduced Board Trio as the third playable game and removed the old placeholder.
-- v1.10.0 refreshed Clock Out Alive to v1.26.5 and its current gameplay cover.
+Deploy only the immutable, checksummed bundle and let its healthcheck verify both 91hwl.cn and the live component versions.

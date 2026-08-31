@@ -6,7 +6,7 @@
 
 - Promotes About, Privacy and Contact from a tiny footer-only navigation into a full-width homepage information hub.
 - Gives site identity, privacy/advertising behavior and contact channels normal reading hierarchy instead of 12px legal-link treatment.
-- Shows `diaow2331@gmail.com` directly in the homepage Contact card while keeping GitHub Issues as the preferred public channel for reproducible game bugs.
+- The homepage originally exposed a personal contact address; the current public tree removes personal addresses and keeps GitHub Issues as the preferred public channel for reproducible game bugs.
 - States clearly that the playable interfaces on `play.91hwl.cn` are not advertising surfaces.
 - Keeps the visible hub bilingual and responsive: three columns on desktop, two on tablet and one on narrow screens.
 - Retains the existing About, Privacy, Contact, `ads.txt`, AdSense client, social cards, language/theme carry and rollback-safe main-site deployment.

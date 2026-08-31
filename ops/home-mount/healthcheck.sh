@@ -30,7 +30,10 @@ DELAY=2
 fail(){ echo "WEB_TOYS_HOME_HEALTH_ERROR: $*" >&2; exit 1; }
 revision="$(tr -d '\r\n' < "$BUNDLE_ROOT/REVISION")"
 version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v190-health.XXXXXX)"
+expected_de="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/DUNGEON_VERSION")"
+expected_moyu="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/MOYU_VERSION")"
+expected_board="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/BOARD_VERSION")"
+work_dir="$(mktemp -d /tmp/web-toys-home-v1117-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
@@ -71,17 +74,17 @@ check_adsense_surface(){
 
 check_home(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.11.6"' 'homepage site version' || return 1
+  require_fixed "$file" "data-site-version=\"$version\"" 'homepage site version' || return 1
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
   require_fixed "$file" '方寸棋局 · Board Trio' 'homepage Board Trio card' || return 1
-  require_fixed "$file" 'v1.5.0' 'homepage Dungeon Echo version' || return 1
-  require_fixed "$file" 'v1.26.5' 'homepage Moyu version' || return 1
-  require_fixed "$file" 'v0.4.0' 'homepage Board Trio version' || return 1
+  require_fixed "$file" "v$expected_de" 'homepage Dungeon Echo version' || return 1
+  require_fixed "$file" "v$expected_moyu" 'homepage Moyu version' || return 1
+  require_fixed "$file" "v$expected_board" 'homepage Board Trio version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开开发' 'homepage public-development copy' || return 1
-  require_fixed "$file" 'site-v1110/style.css' 'homepage v1.11.6 shared design' || return 1
+  require_fixed "$file" 'site-v1110/style.css' 'homepage shared design' || return 1
   require_fixed "$file" 'quick-pick' 'homepage quick pick' || return 1
   require_fixed "$file" 'hero-showcase' 'homepage game-art hero' || return 1
   require_fixed "$file" '浏览器游戏' 'homepage Chinese hero copy' || return 1
@@ -92,7 +95,7 @@ check_home(){
   require_fixed "$file" 'dungeon-roster.webp' 'homepage Dungeon visual cover hook' || return 1
   require_fixed "$file" 'id="navToggle"' 'homepage mobile directory control' || return 1
   require_fixed "$file" '关于、隐私与联系。' 'homepage records heading' || return 1
-  require_fixed "$file" 'mailto:diaow2331@gmail.com' 'homepage visible contact email' || return 1
+  require_fixed "$file" 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' 'homepage private security route' || return 1
   require_fixed "$file" '游戏界面本身不放广告' 'homepage ad-surface disclosure' || return 1
   grep -Eq 'Browser games|浏览器游戏' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage direct game headline' >&2; return 1; }
   check_social_contract "$file" 'https://91hwl.cn/' '91hwl · Browser Games' || return 1
@@ -102,9 +105,9 @@ check_home(){
 
 check_de_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.11.6"' 'Dungeon Echo detail site version' || return 1
-  require_fixed "$file" 'softwareVersion":"1.5.0"' 'Dungeon Echo detail software version' || return 1
-  require_fixed "$file" '强化战斗打击反馈' 'Dungeon Echo v1.5.0 release copy' || return 1
+  require_fixed "$file" "data-site-version=\"$version\"" 'Dungeon Echo detail site version' || return 1
+  require_fixed "$file" "softwareVersion\":\"$expected_de\"" 'Dungeon Echo detail software version' || return 1
+  require_fixed "$file" '强化战斗打击反馈' 'Dungeon Echo release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
   require_fixed "$file" 'class-roster.webp' 'Dungeon Echo roster art' || return 1
   require_fixed "$file" 'town-backdrop-v11.webp' 'Dungeon Echo town art' || return 1
@@ -119,8 +122,8 @@ check_de_detail(){
 
 check_moyu_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.11.6"' 'Moyu detail site version' || return 1
-  require_fixed "$file" 'softwareVersion":"1.26.5"' 'Moyu detail software version' || return 1
+  require_fixed "$file" "data-site-version=\"$version\"" 'Moyu detail site version' || return 1
+  require_fixed "$file" "softwareVersion\":\"$expected_moyu\"" 'Moyu detail software version' || return 1
   require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
   require_fixed "$file" '画面与信息都更清楚' 'Moyu current Chinese release copy' || return 1
   require_fixed "$file" 'Clearer world, readable UI' 'Moyu current English release copy' || return 1
@@ -134,7 +137,7 @@ check_trust_page(){
   require_fixed "$file" "$marker" "$label content" || return 1
   require_fixed "$file" "rel=\"canonical\" href=\"$canonical\"" "$label canonical" || return 1
   require_fixed "$file" 'name="robots" content="index,follow"' "$label robots" || return 1
-  require_fixed "$file" 'data-site-version="1.11.6"' "$label site version" || return 1
+  require_fixed "$file" "data-site-version=\"$version\"" "$label site version" || return 1
   require_fixed "$file" 'site-v1110/style.css' "$label shared design" || return 1
   require_fixed "$file" 'site-v1110/site.js' "$label shared interactions" || return 1
   require_fixed "$file" "$ADSENSE_CLIENT" "$label AdSense client" || return 1
@@ -173,9 +176,9 @@ fetch /dev/null --resolve "$PLAY_RESOLVE" "${BOARD_PLAY_URL}?game=xiangqi" || fa
 de_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$DE_VERSION_URL" | tr -d '\r\n[:space:]')"
 moyu_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$MOYU_VERSION_URL" | tr -d '\r\n[:space:]')"
 board_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$BOARD_VERSION_URL" | tr -d '\r\n[:space:]')"
-test "$de_origin" = '1.5.0' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
-test "$moyu_origin" = '1.26.5' || fail "origin Moyu VERSION mismatch: $moyu_origin"
-test "$board_origin" = '0.4.0' || fail "origin Board Trio VERSION mismatch: $board_origin"
+test "$de_origin" = "$expected_de" || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
+test "$moyu_origin" = "$expected_moyu" || fail "origin Moyu VERSION mismatch: $moyu_origin"
+test "$board_origin" = "$expected_board" || fail "origin Board Trio VERSION mismatch: $board_origin"
 
 public_ok=false
 for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
@@ -191,15 +194,15 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
       && fetch "$work_dir/public-moyu-cover.jpg" "${MOYU_COVER_URL}?release=$revision" && test -s "$work_dir/public-moyu-cover.jpg" \
       && fetch "$work_dir/public-dungeon-cover.webp" "${DE_COVER_URL}?release=$revision" && test -s "$work_dir/public-dungeon-cover.webp" \
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
-      && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.5.0' \
-      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.26.5' \
-      && test "$(curl -fsSL "${BOARD_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '0.4.0'; then
+      && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = "$expected_de" \
+      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = "$expected_moyu" \
+      && test "$(curl -fsSL "${BOARD_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = "$expected_board"; then
     public_ok=true
     break
   fi
   if (( attempt < ATTEMPTS )); then sleep "$DELAY"; fi
 done
-test "$public_ok" = true || fail "public site v1.11.6 check failed after $ATTEMPTS attempts"
+test "$public_ok" = true || fail "public site v$version check failed after $ATTEMPTS attempts"
 
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"

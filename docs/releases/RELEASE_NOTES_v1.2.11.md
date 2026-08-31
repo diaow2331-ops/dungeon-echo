@@ -8,7 +8,7 @@ Dungeon Echo v1.2.11 is a gameplay-clarity patch on public runtime cache generat
 - The return action continues to delegate to the canonical extraction owner rather than introducing a second retreat path.
 - Underground shop cards now expose bilingual class-fit comparisons against currently equipped gear.
 - The v1.2.11 expedition-pressure follower is part of the immutable release manifest and public cache generation 156.
-- 91hwl's companion trust surfaces remain in the same public release chain; Contact now exposes diaow2331@gmail.com while GitHub Issues stays the preferred public bug channel.
+- 91hwl's companion trust surfaces remain in the same public release chain; personal contact details are no longer retained in the public source tree, while GitHub Issues remains the preferred public bug channel.
 
 ## Compatibility
 

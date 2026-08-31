@@ -25,6 +25,7 @@ grep -Fq "dataset.gameVersion='0.6.2'" "$bundle/public/board-games/game.js"
 node --check "$bundle/public/board-games/ui.js"; node --check "$bundle/public/board-games/rules.js"; node --check "$bundle/public/board-games/ai.js"; node --check "$bundle/public/board-games/ai-worker.js"; node --check "$bundle/public/board-games/game.js"
 install -m 0755 "$repo_root/ops/board-games-bundle/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$repo_root/ops/board-games-bundle/healthcheck.sh" "$bundle/ops/healthcheck.sh"
+install -m 0644 "$repo_root/ops/release/play-release-root-policy.sh" "$bundle/ops/play-release-root-policy.sh"
 printf '%s\n' "$version" > "$bundle/VERSION"; printf '%s\n' "$revision" > "$bundle/REVISION"
 (cd "$bundle" && find REVISION VERSION ops public -type f -print0 | sort -z | while IFS= read -r -d '' f; do sha256sum "$f"; done > SHA256SUMS)
 mkdir -p "$(dirname "$output")"; rm -f "$output"; (cd "$bundle" && zip -q -r "$output" .)

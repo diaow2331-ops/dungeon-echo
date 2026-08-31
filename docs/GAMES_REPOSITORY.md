@@ -24,3 +24,9 @@ Game source roots are isolation boundaries, not convenience folders. `moyu/` and
 Shared runtime code is not created merely to reduce duplication. A future `shared/` module requires a separate authority decision, pure/stateless behavior unless explicitly approved, at least two real consumers, and a repository-boundary test updated in the same change. Until then, duplicate small presentation helpers are preferable to cross-game coupling.
 
 Run `bash ops/repo/check-game-boundaries.sh` before merging any change that touches game source roots, `games.json`, or release builders.
+
+## Shared play-root composition
+
+The three game source roots are independent even though they are mounted under one public host. ops/release/play-release-root-policy.sh is the repository-level authority for composition of the shared play.91hwl.cn root. Individual deployers must copy only approved root entries from the previous immutable release and replace only their own route.
+
+Never use a whole-root carry-forward as a convenience. That pattern can make unrelated archives, authentication utilities or old rollback directories persist indefinitely and turns deployment history into an accidental source of truth.
