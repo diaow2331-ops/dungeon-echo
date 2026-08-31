@@ -6,6 +6,7 @@ source_root="$repo_root/ops/home-mount"
 site_version="$(tr -d '\r\n' < "$source_root/SITE_VERSION")"
 game_version="$(tr -d '\r\n' < "$repo_root/VERSION")"
 moyu_version="$(tr -d '\r\n' < "$repo_root/moyu/VERSION")"
+board_version="$(tr -d '\r\n' < "$repo_root/board-games/VERSION")"
 revision="$(git -C "$repo_root" rev-parse HEAD)"
 output="${1:-$repo_root/91hwl-home-web-toys-v$site_version.zip}"
 stage_root="$(mktemp -d)"
@@ -20,9 +21,10 @@ command -v sha256sum >/dev/null
 command -v bash >/dev/null
 command -v node >/dev/null
 
-test "$site_version" = '1.10.0' || { echo "unexpected site version: $site_version" >&2; exit 2; }
+test "$site_version" = '1.11.0' || { echo "unexpected site version: $site_version" >&2; exit 2; }
 test "$game_version" = '1.4.2' || { echo "unexpected Dungeon Echo version: $game_version" >&2; exit 2; }
 test "$moyu_version" = '1.26.5' || { echo "unexpected Moyu version: $moyu_version" >&2; exit 2; }
+test "$board_version" = '0.1.0' || { echo "unexpected Board Trio version: $board_version" >&2; exit 2; }
 git -C "$repo_root" merge-base --is-ancestor "$accepted_site_v133" HEAD || { echo 'accepted site v1.3.3 boundary is not an ancestor of HEAD' >&2; exit 2; }
 
 for file in \
@@ -40,8 +42,9 @@ for file in \
   "$source_root/build-site-v180.cjs" \
   "$source_root/build-site-v190.cjs" \
   "$source_root/build-site-v1100.cjs" \
-  "$source_root/public/assets/site-v1100/style.css" \
-  "$source_root/public/assets/site-v1100/site.js" \
+  "$source_root/build-site-v1110.cjs" \
+  "$source_root/public/assets/site-v1110/style.css" \
+  "$source_root/public/assets/site-v1110/site.js" \
   "$source_root/public/assets/site-v1100/wang-jian-landscape-1668.jpg" \
   "$source_root/public/assets/site-v1100/moyu-run-v1265.jpg" \
   "$source_root/public/assets/site-v1100/dungeon-roster.webp" \
@@ -62,7 +65,7 @@ mkdir -p \
   "$stage_root/site/public/about" \
   "$stage_root/site/public/privacy" \
   "$stage_root/site/public/contact" \
-  "$stage_root/site/public/assets/site-v1100"
+  "$stage_root/site/public/assets/site-v1110"
 cp "$source_root/public/index.html" "$stage_root/site/public/index.html"
 cp "$source_root/public/toys/dungeon-echo/index.html" "$stage_root/site/public/toys/dungeon-echo/index.html"
 cp "$source_root/public/toys/moyu/index.html" "$stage_root/site/public/toys/moyu/index.html"
@@ -70,7 +73,11 @@ cp "$source_root/public/about/index.html" "$stage_root/site/public/about/index.h
 cp "$source_root/public/privacy/index.html" "$stage_root/site/public/privacy/index.html"
 cp "$source_root/public/contact/index.html" "$stage_root/site/public/contact/index.html"
 cp "$source_root/public/ads.txt" "$stage_root/site/public/ads.txt"
-cp "$source_root/public/assets/site-v1100/"* "$stage_root/site/public/assets/site-v1100/"
+cp "$source_root/public/assets/site-v1110/style.css" "$stage_root/site/public/assets/site-v1110/style.css"
+cp "$source_root/public/assets/site-v1110/site.js" "$stage_root/site/public/assets/site-v1110/site.js"
+cp "$source_root/public/assets/site-v1100/wang-jian-landscape-1668.jpg" "$stage_root/site/public/assets/site-v1110/wang-jian-landscape-1668.jpg"
+cp "$source_root/public/assets/site-v1100/moyu-run-v1265.jpg" "$stage_root/site/public/assets/site-v1110/moyu-run-v1265.jpg"
+cp "$source_root/public/assets/site-v1100/dungeon-roster.webp" "$stage_root/site/public/assets/site-v1110/dungeon-roster.webp"
 node "$source_root/build-v134.cjs" \
   "$stage_root/site/public/index.html" \
   "$stage_root/site/public/toys/dungeon-echo/index.html" \
@@ -123,6 +130,13 @@ node "$source_root/build-site-v1100.cjs" \
   "$stage_root/site/public/about/index.html" \
   "$stage_root/site/public/privacy/index.html" \
   "$stage_root/site/public/contact/index.html"
+node "$source_root/build-site-v1110.cjs" \
+  "$stage_root/site/public/index.html" \
+  "$stage_root/site/public/toys/dungeon-echo/index.html" \
+  "$stage_root/site/public/toys/moyu/index.html" \
+  "$stage_root/site/public/about/index.html" \
+  "$stage_root/site/public/privacy/index.html" \
+  "$stage_root/site/public/contact/index.html"
 
 home="$stage_root/site/public/index.html"
 de_detail="$stage_root/site/public/toys/dungeon-echo/index.html"
@@ -132,7 +146,7 @@ privacy="$stage_root/site/public/privacy/index.html"
 contact="$stage_root/site/public/contact/index.html"
 ads_txt="$stage_root/site/public/ads.txt"
 
-grep -Fq 'data-site-version="1.10.0"' "$home"
+grep -Fq 'data-site-version="1.11.0"' "$home"
 grep -Fq 'name="google" content="notranslate"' "$home"
 grep -Fq 'window.__91HWL_PREFS' "$home"
 grep -Fq -- '--fs-body:16px' "$home"
@@ -142,7 +156,9 @@ grep -Fq '公开开发' "$home"
 grep -Fq 'site-home-v160' "$home"
 ! grep -Fq 'site-home-v150' "$home"
 grep -Fq '浏览器游戏' "$home"
-grep -Fq '下一款开发中' "$home"
+grep -Fq '方寸棋局 · Board Trio' "$home"
+grep -Fq 'https://play.91hwl.cn/board-games/' "$home"
+! grep -Fq '下一款开发中' "$home"
 grep -Fq 'Browser games.' "$home"
 grep -Fq '关于、隐私与联系。' "$home"
 ! grep -Fq 'site-home-v140' "$home"
@@ -156,8 +172,8 @@ grep -Fq 'ca-pub-2648680835467283' "$home"
 grep -Fq 'href="/privacy/"' "$home"
 grep -Fq 'quick-pick' "$home"
 grep -Fq 'moyu-run-v1265.jpg' "$home"
-grep -Fq 'site-v1100/style.css' "$home"
-grep -Fq 'site-v1100/site.js' "$home"
+grep -Fq 'site-v1110/style.css' "$home"
+grep -Fq 'site-v1110/site.js' "$home"
 grep -Fq 'id="navToggle"' "$home"
 grep -Fq 'hero-showcase' "$home"
 grep -Fq 'quick-pick' "$home"
@@ -165,7 +181,7 @@ grep -Fq '浏览器游戏' "$home"
 grep -Fq 'dungeon-roster.webp' "$home"
 grep -Fq 'game-media-moyu' "$home"
 grep -Fq 'quick-result' "$home"
-grep -Fq 'data-site-version="1.10.0"' "$de_detail"
+grep -Fq 'data-site-version="1.11.0"' "$de_detail"
 grep -Fq "softwareVersion\":\"$game_version\"" "$de_detail"
 grep -Fq '1120×460 可步行广场' "$de_detail"
 grep -Fq 'property="og:url" content="https://91hwl.cn/toys/dungeon-echo/"' "$de_detail"
@@ -173,7 +189,7 @@ grep -Fq 'name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguel
 grep -Fq 'GitHub / Source' "$de_detail"
 grep -Fq 'MIT · OPEN SOURCE' "$de_detail"
 grep -Fq 'ca-pub-2648680835467283' "$de_detail"
-grep -Fq 'data-site-version="1.10.0"' "$moyu_detail"
+grep -Fq 'data-site-version="1.11.0"' "$moyu_detail"
 grep -Fq "softwareVersion\":\"$moyu_version\"" "$moyu_detail"
 grep -Fq '画面与信息都更清楚' "$moyu_detail"
 grep -Fq 'Clearer world, readable UI' "$moyu_detail"
@@ -197,20 +213,20 @@ grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$ads_txt
 
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
-grep -Fq "test \"\$version\" = '1.10.0'" "$source_root/deploy.sh"
+grep -Fq "test \"\$version\" = '1.11.0'" "$source_root/deploy.sh"
 grep -Fq 'Dungeon Echo v1.4.2 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'Clock Out Alive v1.26.5 detail marker missing' "$source_root/deploy.sh"
-grep -Fq 'site-v1100/style.css' "$source_root/deploy.sh"
-grep -Fq '下一款开发中' "$source_root/deploy.sh"
+grep -Fq 'site-v1110/style.css' "$source_root/deploy.sh"
+grep -Fq 'homepage Board Trio card missing' "$source_root/deploy.sh"
 grep -Fq 'mailto:diaow2331@gmail.com' "$source_root/deploy.sh"
-grep -Fq 'web-toys-v1100' "$source_root/deploy.sh"
+grep -Fq 'web-toys-v1110' "$source_root/deploy.sh"
 grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$source_root/deploy.sh"
 grep -Fq 'previous_home_sha256=' "$source_root/deploy.sh"
 ! grep -Fq 'EXPECTED_INDEX_SHA256' "$source_root/deploy.sh"
 ! grep -Fq 'live homepage changed unexpectedly' "$source_root/deploy.sh"
-grep -Fq 'public site v1.10.0 check failed' "$source_root/healthcheck.sh"
-grep -Fq 'site-v1100/style.css' "$source_root/healthcheck.sh"
-grep -Fq '下一款开发中' "$source_root/healthcheck.sh"
+grep -Fq 'public site v1.11.0 check failed' "$source_root/healthcheck.sh"
+grep -Fq 'site-v1110/style.css' "$source_root/healthcheck.sh"
+grep -Fq 'homepage Board Trio card' "$source_root/healthcheck.sh"
 grep -Fq '隐私说明' "$source_root/healthcheck.sh"
 grep -Fq 'mailto:diaow2331@gmail.com' "$source_root/healthcheck.sh"
 grep -Fq 'pub-2648680835467283' "$source_root/healthcheck.sh"
@@ -222,7 +238,7 @@ mkdir -p \
   "$bundle/public/about" \
   "$bundle/public/privacy" \
   "$bundle/public/contact" \
-  "$bundle/public/assets/site-v1100" \
+  "$bundle/public/assets/site-v1110" \
   "$bundle/ops"
 install -m 0644 "$home" "$bundle/public/index.html"
 install -m 0644 "$de_detail" "$bundle/public/toys/dungeon-echo/index.html"
@@ -231,11 +247,11 @@ install -m 0644 "$about" "$bundle/public/about/index.html"
 install -m 0644 "$privacy" "$bundle/public/privacy/index.html"
 install -m 0644 "$contact" "$bundle/public/contact/index.html"
 install -m 0644 "$ads_txt" "$bundle/public/ads.txt"
-install -m 0644 "$stage_root/site/public/assets/site-v1100/style.css" "$bundle/public/assets/site-v1100/style.css"
-install -m 0644 "$stage_root/site/public/assets/site-v1100/site.js" "$bundle/public/assets/site-v1100/site.js"
-install -m 0644 "$stage_root/site/public/assets/site-v1100/wang-jian-landscape-1668.jpg" "$bundle/public/assets/site-v1100/wang-jian-landscape-1668.jpg"
-install -m 0644 "$stage_root/site/public/assets/site-v1100/moyu-run-v1265.jpg" "$bundle/public/assets/site-v1100/moyu-run-v1265.jpg"
-install -m 0644 "$stage_root/site/public/assets/site-v1100/dungeon-roster.webp" "$bundle/public/assets/site-v1100/dungeon-roster.webp"
+install -m 0644 "$stage_root/site/public/assets/site-v1110/style.css" "$bundle/public/assets/site-v1110/style.css"
+install -m 0644 "$stage_root/site/public/assets/site-v1110/site.js" "$bundle/public/assets/site-v1110/site.js"
+install -m 0644 "$stage_root/site/public/assets/site-v1110/wang-jian-landscape-1668.jpg" "$bundle/public/assets/site-v1110/wang-jian-landscape-1668.jpg"
+install -m 0644 "$stage_root/site/public/assets/site-v1110/moyu-run-v1265.jpg" "$bundle/public/assets/site-v1110/moyu-run-v1265.jpg"
+install -m 0644 "$stage_root/site/public/assets/site-v1110/dungeon-roster.webp" "$bundle/public/assets/site-v1110/dungeon-roster.webp"
 install -m 0755 "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
@@ -259,5 +275,6 @@ echo "bundle=$output"
 echo "site_version=$site_version"
 echo "game_version=$game_version"
 echo "moyu_version=$moyu_version"
+echo "board_games_version=$board_version"
 echo "revision=$revision"
 echo 'site_bundle_build=PASS'
