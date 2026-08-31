@@ -150,6 +150,7 @@ function defaultMeta(classId) {
     market: null,
     contractId: 'none',
     townWorks: TOWN_GROWTH_RULES.sanitizeLevels({}),
+    townEvent: null,
     relicLedger: {}, lastReturnDepth: 0,
     tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
@@ -203,6 +204,17 @@ function sanitizeMeta(raw) {
   }
   base.contractId = EXPEDITION_RULES.normalizeContractId(raw.contractId);
   base.townWorks = TOWN_GROWTH_RULES.sanitizeLevels(raw.townWorks);
+  base.townEvent = null;
+  if (raw.townEvent && typeof raw.townEvent === 'object' && !Array.isArray(raw.townEvent) && TOWN_GROWTH_RULES.eventById(raw.townEvent.id)) {
+    const effect = raw.townEvent.effect && typeof raw.townEvent.effect === 'object' ? raw.townEvent.effect : {};
+    base.townEvent = {
+      id:String(raw.townEvent.id), cost:Math.min(9999, num(raw.townEvent.cost, 0)),
+      effect:{
+        gold:Math.min(9999, num(effect.gold, 0)), marketRestock:effect.marketRestock ? 1 : 0,
+        escapes:Math.min(9, num(effect.escapes, 0)), keys:Math.min(9, num(effect.keys, 0)),
+      },
+    };
+  }
   base.relicLedger = {};
   if (raw.relicLedger && typeof raw.relicLedger === 'object' && !Array.isArray(raw.relicLedger)) {
     for (const set of SET_RULES.SETS) for (const slot of SET_RULES.SLOTS) {
@@ -5644,9 +5656,18 @@ function renderTownFocus(focusTab = false) {
     if (active && focusTab && typeof tab.focus === 'function') tab.focus({ preventScroll:true });
   });
 }
+function townNpcLine(row) {
+  if (!row || !meta) return null;
+  return TOWN_GROWTH_RULES.npcLine(row.id, {
+    tier:townTierForArt(), bestDepth:meta.bestDepth || 0, lastReturnDepth:meta.lastReturnDepth || 0,
+    relics:relicLedgerCount(), works:meta.townWorks || {},
+  });
+}
 function activateTownHotspot(row, focusTab = true) {
   if (!row || state !== 'town') return false;
   townPendingHotspot = '';
+  const line = townNpcLine(row);
+  if (focusTab && line) msg(ui(`${row.zh}：${line.zh}`, `${row.en}: ${line.en}`), 'good');
   if (row.action === 'portal') {
     townActiveService = 'portal';
     renderTownFocus(focusTab);
@@ -6268,8 +6289,29 @@ function drawTownProjectLandmarks(ctx, now, W, H) {
   }
   ctx.restore();
 }
+function drawTownEventNotice(ctx, now, W, H) {
+  if (!meta || !meta.townEvent) return;
+  const pulse=.68+.22*Math.sin(now/210);
+  const x=W*.51, y=H*.62;
+  ctx.save();
+  ctx.fillStyle='rgba(47,31,18,.92)';
+  ctx.fillRect(x-18,y-14,36,25);
+  ctx.strokeStyle='rgba(212,157,74,.78)';
+  ctx.strokeRect(x-17.5,y-13.5,35,24);
+  ctx.fillStyle='rgba(232,196,124,.82)';
+  ctx.fillRect(x-11,y-7,22,2);
+  ctx.fillRect(x-9,y-1,18,2);
+  ctx.fillStyle='rgba(111,78,42,.95)';
+  ctx.fillRect(x-2,y+11,4,17);
+  ctx.font='700 16px "Segoe UI", sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(255,207,104,'+pulse.toFixed(2)+')';
+  ctx.fillText('!',x,y-23);
+  ctx.restore();
+}
 function drawTownGrowthVisual(ctx, now, W, H, G) {
   drawTownProjectLandmarks(ctx, now, W, H);
+  drawTownEventNotice(ctx, now, W, H);
   const tier = townTierForArt();
   const glow = .72 + .22 * Math.sin(now / 260);
   for (let i = 0; i < tier; i++) {
@@ -6579,6 +6621,75 @@ function renderTownWorks() {
         `<button type="button" data-townwork="${row.id}"${check.ok ? '' : ' disabled'}>${esc(label)}</button></article>`;
     }).join('')}</div>`;
 }
+function stageTownReturnEvent(newRelics = 0) {
+  if (!meta || meta.townEvent) return null;
+  const tier = ECONOMY_RULES.townTier(Math.max(meta.bestDepth || 0, Number(depth) || 0));
+  const offer = TOWN_GROWTH_RULES.eventForReturn({
+    tier,
+    relics:relicLedgerCount(),
+    newRelics:Math.max(0, Number(newRelics) || 0),
+    runs:meta.runs || 0,
+    lastReturnDepth:Math.max(meta.lastReturnDepth || 0, Number(depth) || 0),
+  });
+  if (!offer) return null;
+  meta.townEvent = {
+    id:offer.id,
+    cost:Math.max(0, Number(offer.cost) || 0),
+    effect:{ ...(offer.effect || {}) },
+  };
+  return meta.townEvent;
+}
+function currentTownEventOffer() {
+  if (!meta || !meta.townEvent) return null;
+  const row = TOWN_GROWTH_RULES.eventById(meta.townEvent.id);
+  if (!row) return null;
+  return {
+    ...row,
+    cost:Math.max(0, Number(meta.townEvent.cost) || 0),
+    effect:{ ...(meta.townEvent.effect || {}) },
+  };
+}
+function townEventEffectText(offer) {
+  if (!offer) return '';
+  const effect = offer.effect || {};
+  if (effect.gold) return ui('镇民捐赠与门票可收入 ' + effect.gold + ' G。', 'Donations and admission will add ' + effect.gold + ' Gold to the vault.');
+  if (effect.marketRestock) return ui('立即补满本轮市集补给库存。', 'Immediately restock the current town market.');
+  if (effect.escapes || effect.keys) return ui('获得回城卷轴 +' + (effect.escapes || 0) + '、钥匙 +' + (effect.keys || 0) + '。', 'Gain Return Scroll +' + (effect.escapes || 0) + ' and Key +' + (effect.keys || 0) + '.');
+  return ui('这件事会改变今天的城镇。', 'This will change the town today.');
+}
+function townEventHtml() {
+  const offer = currentTownEventOffer();
+  if (!offer) return '';
+  const affordable = !offer.cost || (meta.gold || 0) >= offer.cost;
+  const costText = offer.cost ? ui('花费 ' + offer.cost + ' G', 'Cost ' + offer.cost + ' G') : ui('无需花费', 'No cost');
+  const label = ui(offer.actionZh, offer.actionEn) + (offer.cost ? ' · ' + offer.cost + ' G' : '');
+  return '<section class="town-event-card"><div class="town-event-copy"><p class="kicker">' +
+    ui('今日镇务', 'Town Event') + '</p><h3>' + esc(ui(offer.zh, offer.en)) + '</h3><p>' +
+    esc(ui(offer.zhStory, offer.enStory)) + '</p><small>' + esc(townEventEffectText(offer)) + ' · ' +
+    esc(costText) + '</small></div><button type="button" data-townevent="resolve"' +
+    (affordable ? '' : ' disabled') + '>' + esc(label) + '</button></section>';
+}
+function resolveTownEvent() {
+  if (state !== 'town' || !meta) return false;
+  const offer = currentTownEventOffer();
+  if (!offer) return false;
+  if (offer.cost && (meta.gold || 0) < offer.cost) {
+    msg(ui('金库不足，暂时处理不了这件镇务。', 'The vault is too low to handle this town event yet.'), 'bad');
+    return false;
+  }
+  if (offer.cost) meta.gold -= offer.cost;
+  const effect = offer.effect || {};
+  if (effect.gold) meta.gold += Math.max(0, Number(effect.gold) || 0);
+  if (effect.marketRestock) meta.market = freshTownMarket(townTierForArt());
+  if (effect.escapes) meta.escapes = (meta.escapes || 0) + Math.max(0, Number(effect.escapes) || 0);
+  if (effect.keys) meta.keys = (meta.keys || 0) + Math.max(0, Number(effect.keys) || 0);
+  meta.townEvent = null;
+  saveMeta();
+  sfx.pickup();
+  msg(ui('镇务已经处理完毕。小镇今天和昨天有了一点不同。', 'The town matter is settled. Today the town is a little different from yesterday.'), 'good');
+  renderTown();
+  return true;
+}
 function renderTownRelics() {
   const host = $('town-relics');
   if (!host || !meta) return;
@@ -6643,6 +6754,7 @@ function renderTown() {
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
       `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物馆 ${relicFound}/${SET_RULES.SETS.length * 6} · 已记录出发点 ${checkpointCount} · 市集阶段 ${tier}`, `Relic Hall ${relicFound}/${SET_RULES.SETS.length * 6} · Departure records ${checkpointCount} · Market Tier ${tier}`)}</span></div>` +
       `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>` +
+      townEventHtml() +
       `<section id="town-works" class="town-works" aria-live="polite"></section>`;
   }
   renderTownCheckpoints();
@@ -6929,6 +7041,7 @@ function useEscape() {
     ...(meta.bag || []),
     ...Object.values(meta.equip || {}).filter(Boolean),
   ]);
+  const stagedTownEvent = stageTownReturnEvent(returnedRelics.length);
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
   if (returnedRelics.length) {
@@ -6936,6 +7049,10 @@ function useEscape() {
       `遗物书记登记了 ${returnedRelics.length} 件新的具名遗物：${returnedRelics.map(p => p.zh).join('、')}。`,
       `The relic curator catalogued ${returnedRelics.length} new named relic${returnedRelics.length === 1 ? '' : 's'}: ${returnedRelics.map(p => p.en).join(', ')}.`
     ), 'epic');
+  }
+  if (stagedTownEvent) {
+    const row = TOWN_GROWTH_RULES.eventById(stagedTownEvent.id);
+    if (row) msg(ui(`镇上有新动静：【${row.zh}】。`, `Something is happening in town: [${row.en}].`), 'good');
   }
 }
 function greedyDeathReturn(lostInv, lostGold) {
@@ -7210,6 +7327,8 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (contract) { ensureAudio(); selectTownContract(contract.dataset.contract); return; }
   const townWork = e.target.closest('[data-townwork]');
   if (townWork) { ensureAudio(); upgradeTownWork(townWork.dataset.townwork); return; }
+  const townEvent = e.target.closest('[data-townevent]');
+  if (townEvent) { ensureAudio(); resolveTownEvent(); return; }
   const dep = e.target.closest('[data-deposit]');
   if (dep) { ensureAudio(); depositStash(+dep.dataset.deposit); return; }
   const depAll = e.target.closest('[data-depositall]');

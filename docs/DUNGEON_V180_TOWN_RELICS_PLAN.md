@@ -18,6 +18,11 @@ Town project levels are shown in walkable NPC nameplates. The town Canvas also g
 ## Pillar 3 — Fixed named six-piece sets
 Named relics use the existing six equipment slots and activate at 2 / 4 / 6 pieces. Each fixed piece has its own name, lore and signature stats. Named relics keep at most one random secondary affix so identity remains primary.
 
+## Pillar 4 — A town that reacts to returns
+Safe return may stage one deterministic town event instead of treating the town as a static menu. The first slice includes Relic Exhibition, Caravan Surplus and Scout Reserve Crate. Events persist until handled, can consume or add real town resources, and are surfaced both in the plaza ledger and by a visible notice marker.
+
+Walkable NPC dialogue now reacts to construction level, archive progress and recent return depth. The smith talks differently after furnace reconstruction, the merchant reflects trade-road investment, the innkeeper remembers a recent deep return, and the Relic Curator changes tone as the archive fills. Death does not create positive safe-return events.
+
 ## Authority boundaries
 - `game/domain/town/town-growth-rules-v180.js`: project definitions, requirements and bounded deterministic effects.
 - `game/domain/inventory/set-rules-v180.js`: named-set identities, lore, signatures, set thresholds.
