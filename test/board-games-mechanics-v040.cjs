@@ -10,9 +10,9 @@ const rules=read('board-games/rules.js');
 const css=read('board-games/style.css');
 const version=read('board-games/VERSION').trim();
 
-assert.strictEqual(version,'0.4.0','Board Trio semantic version must be 0.4.0');
-assert(html.includes('<meta name="version" content="0.4.0">'),'HTML version marker missing');
-assert(html.includes('style.css?v=040')&&html.includes('rules.js?v=040')&&html.includes('game.js?v=040'),'cache generation v040 incomplete');
+assert.strictEqual(version,'0.5.0','Board Trio semantic version must be 0.5.0');
+assert(html.includes('<meta name="version" content="0.5.0">'),'HTML version marker missing');
+assert(html.includes('style.css?v=050')&&html.includes('rules.js?v=050')&&html.includes('game.js?v=050'),'cache generation v050 incomplete');
 assert(html.includes('id="confirmBtn"')&&html.includes('>落子</button>'),'pointer-confirm placement contract missing');
 assert(html.includes('id="resumeBtn"')&&html.includes('>继续下棋</button>'),'Go scoring resume action missing');
 assert(html.includes('id="resignBtn"')&&html.includes('>认输</button>'),'resign action missing');
@@ -37,11 +37,11 @@ assert(game.includes('全局同形：不能形成此前出现过的整盘局面'
 
 assert(game.includes('function armResign()')&&game.includes("resignBtn.textContent='确认认输'"),'guarded resign flow missing');
 assert(game.includes("resultNote=loser+'认输'")&&game.includes('winner=opponentWinner()'),'resignation must award the game to the opponent');
-assert(game.includes('resignBtn.disabled=inReview||!!winner||scoring'),'resign must be unavailable after game end or during Go scoring agreement');
+assert(game.includes('resignBtn.disabled=inReview||aiTurn||aiBusy||!!winner||scoring'),'resign must be unavailable after game end or during Go scoring agreement');
 
 assert(css.includes('.actions #confirmBtn:not(:disabled)'),'placement/scoring confirmation visual state missing');
 assert(css.includes('.actions #resumeBtn:not(:disabled)'),'resume-play visual state missing');
 assert(css.includes('.actions #resignBtn:not(:disabled)'),'resign visual state missing');
-assert(game.includes("dataset.gameVersion='0.4.0'"),'runtime version marker missing');
+assert(game.includes("dataset.gameVersion='0.5.0'"),'runtime version marker missing');
 
-console.log('board_games_mechanics_v040=PASS');
+console.log('board_games_mechanics_v050=PASS');

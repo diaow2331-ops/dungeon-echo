@@ -14,6 +14,7 @@ const tests = [
   'repository-event-safety.cjs',
   'games-catalog.cjs',
   'board-games-rules.cjs',
+  'board-games-ai-v050.cjs',
   'board-games-mechanics-v040.cjs',
   'board-games-record-clock-v040.cjs',
   'current-production-entry-v132.cjs',
