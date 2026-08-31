@@ -2,8 +2,16 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.6.1**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.6.2**. Planned production route: `https://play.91hwl.cn/board-games/`.
 
+
+## v0.6.2 settings and audio control release
+
+- AI matches now wait at a setup gate instead of letting a persisted “play second” preference trigger an immediate computer opening move. Choose mode, difficulty, side and clock first, then press Start match.
+- A one-time match-settings schema migration discards pre-v0.6.2 side/mode preferences that could conflict with the new start flow.
+- Clear data is a guarded two-click action scoped to `board-trio-*` storage; it also clears in-page saved matches and restores AI / Normal / play-first defaults.
+- Background music now has a persistent 0–100% volume slider. The existing Music On/Off control remains, and move sounds follow the same volume level.
+- Fullscreen keeps the setup row visible while an AI match is waiting to start, then returns to the compact immersive layout after Start match.
 
 ## v0.6.1 fullscreen / Xiangqi polish
 

@@ -20,7 +20,7 @@ assert(html.includes('id="reviewLiveBtn"')&&html.includes('id="reviewBranchBtn"'
 
 assert(game.includes('clockLimit,clocks:{...clocks},recordLabel'),'clock and record data must live in canonical history snapshots');
 assert(game.includes('function settleClock()')&&game.includes('clocks[turn]=Math.max'),'per-side countdown engine missing');
-assert(game.includes("return clockLimit>0&&!winner&&!scoring&&reviewing===null"),'clock must pause during scoring, review and terminal states');
+assert(game.includes("return matchStarted&&clockLimit>0&&!winner&&!scoring&&reviewing===null"),'clock must pause during scoring, review and terminal states');
 assert(game.includes("resultNote=loser+T('超时'")&&game.includes('winner=opponentWinner()'),'timeout loss result flow missing');
 assert(game.includes("timeSelect.disabled=setupLocked||aiBusy"),'time control must lock after play begins');
 assert(game.includes('setInterval(tickClocks,250)'),'bounded clock ticker missing');
