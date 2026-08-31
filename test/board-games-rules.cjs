@@ -32,3 +32,19 @@ assert.strictEqual(R.goPlay(s,1,1,'b').reason,'suicide');
 let score=R.goScore([['b','b',null],['b',null,'w'],[null,'w','w']],0);
 assert(score.black>0&&score.white>0);
 console.log('board_games_rules=PASS');
+// Whole-board repetition guard: a legal candidate that recreates any earlier
+// position must be rejected even when it is not the immediate simple-ko board.
+let repeatBase=R.goBoard(3);
+let repeatCandidate=R.goPlay(repeatBase,1,1,'b');
+assert(repeatCandidate.ok);
+let repeated=R.goPlay(repeatBase,1,1,'b',null,new Set([repeatCandidate.key]));
+assert.strictEqual(repeated.ok,false);
+assert.strictEqual(repeated.reason,'repeat');
+
+// Group exposure is used by the scoring phase to mark connected dead stones
+// as one unit rather than requiring stone-by-stone cleanup.
+let grp=R.goBoard(4);
+grp[1][1]='w'; grp[1][2]='w'; grp[2][2]='w';
+const connected=R.group(grp,1,1);
+assert.strictEqual(connected.stones.length,3);
+assert(connected.libs.size>0);

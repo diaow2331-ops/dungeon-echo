@@ -2,7 +2,16 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.2.1**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.3.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+
+## v0.3.0 game-mechanics release
+
+- Go no longer ends immediately after two passes. It enters a scoring phase where connected dead groups can be marked or restored.
+- Black and White confirm the scoring position in sequence; any dead-group change resets the approval cycle.
+- Either side can resume play before final score confirmation without consuming a move-history slot.
+- Go rejects recreation of any earlier whole-board position in the current game, while preserving the immediate-ko explanation for direct recapture.
+- All three games now support guarded resignation; the side to move resigns and the opponent receives the result.
+- The v0.2.1 pointer-first placement model remains unchanged for Gomoku and Go; Xiangqi remains piece-then-destination.
 
 ## v0.2.1 pointer-confirm patch
 

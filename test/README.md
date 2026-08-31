@@ -13,7 +13,7 @@ node test/current-suite.cjs
 
 The `tests` array inside `current-suite.cjs` is the sole machine-readable list of current gates.
 The current multi-game release gate contains 38 focused contracts, including repository/catalog,
-Board Trio rules and interaction, Dungeon production entry, single-authority, save/control, 1→100/Endless,
+Board Trio rules and mechanics, Dungeon production entry, single-authority, save/control, 1→100/Endless,
 town, art, audio, release and repository governance.
 
 Run the authority layer independently with:
