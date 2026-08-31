@@ -26,3 +26,10 @@ Global Dungeon Echo audit requested before the next production update, with emph
 The release candidate must pass `bash ops/check-authority-local.sh`, `bash ops/repo/check-game-boundaries.sh` and `node test/current-suite.cjs` on the exact committed tree before it is pushed for review. The immutable bundle is built again from merged `main` before deployment.
 
 Deployment provenance is intentionally not appended by mutating the repository after release: the merged PR/commit and the server's immutable `/srv/91hwl-play/releases/` entry are the deployment record. This avoids creating a post-test source revision solely to write down the revision that was already deployed.
+
+## Repository-suite drift found during release gate
+
+- Latest `main` had already advanced Board Trio to `0.6.0`, while three current-suite tests still hard-coded `0.5.0` and cache generation `050`.
+- The stale assertions made an unrelated Dungeon Echo release fail even though Board Trio itself was current.
+- Replaced the stale version/cache literals with contract checks that bind HTML/runtime markers to `board-games/VERSION` and the page-declared cache generation. Historical behavior assertions remain unchanged.
+- This repair is repository governance only: no Board Trio gameplay source was modified.

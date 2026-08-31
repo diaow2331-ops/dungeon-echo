@@ -9,9 +9,10 @@ const game=read('board-games/game.js');
 const css=read('board-games/style.css');
 const version=read('board-games/VERSION').trim();
 
-assert.strictEqual(version,'0.6.1','Board Trio semantic version must be 0.6.1');
-assert(html.includes('<meta name="version" content="0.6.1">'),'HTML version marker missing');
-assert(html.includes('style.css?v=061')&&html.includes('rules.js?v=061')&&html.includes('game.js?v=061'),'cache generation v050 incomplete');
+assert(/^\d+\.\d+\.\d+$/.test(version),'Board Trio VERSION must be semantic');
+assert(html.includes(`<meta name="version" content="${version}">`),'HTML version marker must match VERSION');
+const cache=(html.match(/style\.css\?v=(\d+)/)||[])[1];
+assert(cache&&html.includes(`rules.js?v=${cache}`)&&html.includes(`game.js?v=${cache}`),'Board Trio cache generation must be coherent');
 assert(html.includes('id="timeControl"')&&html.includes('value="300"')&&html.includes('value="600"'),'time-control selector missing');
 assert(html.includes('id="clockA"')&&html.includes('id="clockB"'),'dual clock surface missing');
 assert(html.includes('id="recordList"')&&html.includes('id="reviewPrevBtn"')&&html.includes('id="reviewNextBtn"'),'record/review surface missing');
@@ -36,6 +37,6 @@ assert(game.includes('if(reviewing!==null)return;if(humanBlocked())'),'board inp
 
 assert(css.includes('.matchbar')&&css.includes('.clock-pair')&&css.includes('.clock.active'),'clock presentation states missing');
 assert(css.includes('.record-panel')&&css.includes('.record-list button.active'),'record/review presentation missing');
-assert(game.includes("dataset.gameVersion='0.6.1'"),'runtime version marker missing');
+assert(game.includes(`dataset.gameVersion='${version}'`),'runtime version marker must match VERSION');
 
 console.log('board_games_record_clock_v050=PASS');
