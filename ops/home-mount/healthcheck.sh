@@ -9,11 +9,11 @@ ABOUT_URL=https://91hwl.cn/about/
 PRIVACY_URL=https://91hwl.cn/privacy/
 CONTACT_URL=https://91hwl.cn/contact/
 ADS_URL=https://91hwl.cn/ads.txt
-STYLE_URL=https://91hwl.cn/assets/site-v190/style.css
-SCRIPT_URL=https://91hwl.cn/assets/site-v190/site.js
-ART_URL=https://91hwl.cn/assets/site-v190/wang-jian-landscape-1668.jpg
-MOYU_COVER_URL=https://91hwl.cn/assets/site-v190/moyu-run-v1230.jpg
-DE_COVER_URL=https://91hwl.cn/assets/site-v190/dungeon-roster.webp
+STYLE_URL=https://91hwl.cn/assets/site-v1100/style.css
+SCRIPT_URL=https://91hwl.cn/assets/site-v1100/site.js
+ART_URL=https://91hwl.cn/assets/site-v1100/wang-jian-landscape-1668.jpg
+MOYU_COVER_URL=https://91hwl.cn/assets/site-v1100/moyu-run-v1265.jpg
+DE_COVER_URL=https://91hwl.cn/assets/site-v1100/dungeon-roster.webp
 DE_PLAY_URL=https://play.91hwl.cn/dungeon-echo/
 MOYU_PLAY_URL=https://play.91hwl.cn/moyu/
 DE_VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
@@ -43,7 +43,7 @@ check_pref_contract(){
   require_fixed "$file" 'id="themeToggle"' 'theme toggle' || return 1
   require_fixed "$file" 'data-lang-choice="zh"' 'zh language control' || return 1
   require_fixed "$file" 'data-lang-choice="en"' 'en language control' || return 1
-  require_fixed "$file" 'site-v190/site.js' 'shared interaction runtime' || return 1
+  require_fixed "$file" 'site-v1100/site.js' 'shared interaction runtime' || return 1
   require_fixed "$file" 'data-carry' 'preference-carry link contract' || return 1
 }
 
@@ -69,15 +69,15 @@ check_adsense_surface(){
 
 check_home(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.9.0"' 'homepage site version' || return 1
+  require_fixed "$file" 'data-site-version="1.10.0"' 'homepage site version' || return 1
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
   require_fixed "$file" 'v1.4.2' 'homepage Dungeon Echo version' || return 1
-  require_fixed "$file" 'v1.23.0' 'homepage Moyu version' || return 1
+  require_fixed "$file" 'v1.26.5' 'homepage Moyu version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开开发' 'homepage public-development copy' || return 1
-  require_fixed "$file" 'site-v190/style.css' 'homepage v1.9.0 shared design' || return 1
+  require_fixed "$file" 'site-v1100/style.css' 'homepage v1.10.0 shared design' || return 1
   require_fixed "$file" 'quick-pick' 'homepage quick pick' || return 1
   require_fixed "$file" 'hero-showcase' 'homepage game-art hero' || return 1
   require_fixed "$file" '浏览器游戏' 'homepage Chinese hero copy' || return 1
@@ -96,7 +96,7 @@ check_home(){
 
 check_de_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.9.0"' 'Dungeon Echo detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.10.0"' 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.4.2"' 'Dungeon Echo detail software version' || return 1
   require_fixed "$file" '1120×460 可步行广场' 'Dungeon Echo v1.4.2 town release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
@@ -113,11 +113,11 @@ check_de_detail(){
 
 check_moyu_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.9.0"' 'Moyu detail site version' || return 1
-  require_fixed "$file" 'softwareVersion":"1.23.0"' 'Moyu detail software version' || return 1
+  require_fixed "$file" 'data-site-version="1.10.0"' 'Moyu detail site version' || return 1
+  require_fixed "$file" 'softwareVersion":"1.26.5"' 'Moyu detail software version' || return 1
   require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
-  require_fixed "$file" '四幕皆有新声' 'Moyu current Chinese release copy' || return 1
-  require_fixed "$file" 'Four scenes, fuller sound' 'Moyu current English release copy' || return 1
+  require_fixed "$file" '画面与信息都更清楚' 'Moyu current Chinese release copy' || return 1
+  require_fixed "$file" 'Clearer world, readable UI' 'Moyu current English release copy' || return 1
   require_fixed "$file" 'href="https://play.91hwl.cn/moyu/" data-carry' 'Moyu play link' || return 1
   check_pref_contract "$file" || return 1
   check_adsense_surface "$file" 'Moyu detail' || return 1
@@ -128,9 +128,9 @@ check_trust_page(){
   require_fixed "$file" "$marker" "$label content" || return 1
   require_fixed "$file" "rel=\"canonical\" href=\"$canonical\"" "$label canonical" || return 1
   require_fixed "$file" 'name="robots" content="index,follow"' "$label robots" || return 1
-  require_fixed "$file" 'data-site-version="1.9.0"' "$label site version" || return 1
-  require_fixed "$file" 'site-v190/style.css' "$label shared design" || return 1
-  require_fixed "$file" 'site-v190/site.js' "$label shared interactions" || return 1
+  require_fixed "$file" 'data-site-version="1.10.0"' "$label site version" || return 1
+  require_fixed "$file" 'site-v1100/style.css' "$label shared design" || return 1
+  require_fixed "$file" 'site-v1100/site.js' "$label shared interactions" || return 1
   require_fixed "$file" "$ADSENSE_CLIENT" "$label AdSense client" || return 1
   require_fixed "$file" 'data-lang-choice="zh"' "$label zh control" || return 1
   require_fixed "$file" 'data-lang-choice="en"' "$label en control" || return 1
@@ -166,7 +166,7 @@ fetch /dev/null --resolve "$PLAY_RESOLVE" "${MOYU_PLAY_URL}?lang=en" || fail 'or
 de_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$DE_VERSION_URL" | tr -d '\r\n[:space:]')"
 moyu_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$MOYU_VERSION_URL" | tr -d '\r\n[:space:]')"
 test "$de_origin" = '1.4.2' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
-test "$moyu_origin" = '1.23.0' || fail "origin Moyu VERSION mismatch: $moyu_origin"
+test "$moyu_origin" = '1.26.5' || fail "origin Moyu VERSION mismatch: $moyu_origin"
 
 public_ok=false
 for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
@@ -183,13 +183,13 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
       && fetch "$work_dir/public-dungeon-cover.webp" "${DE_COVER_URL}?release=$revision" && test -s "$work_dir/public-dungeon-cover.webp" \
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
       && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.4.2' \
-      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.23.0'; then
+      && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.26.5'; then
     public_ok=true
     break
   fi
   if (( attempt < ATTEMPTS )); then sleep "$DELAY"; fi
 done
-test "$public_ok" = true || fail "public site v1.9.0 check failed after $ATTEMPTS attempts"
+test "$public_ok" = true || fail "public site v1.10.0 check failed after $ATTEMPTS attempts"
 
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"
