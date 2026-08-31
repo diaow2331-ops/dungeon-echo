@@ -59,4 +59,4 @@ Remediation:
 - added `test/play-release-root-policy.cjs` and packaged the same policy into every component release bundle;
 - advanced the public-site presentation version to v1.11.7 and synchronized component labels from their canonical version files instead of hard-coded duplicate versions.
 
-Pre-merge verification on the working tree: `node test/current-suite.cjs` completed 44 current gates with 0 failures; repository event safety, public-repository safety, cross-game boundaries and release-root policy all passed.
+Pre-merge verification on the rebased working tree: `node test/current-suite.cjs` completed 45 current gates with 0 failures; repository event safety, public-repository safety, cross-game boundaries and release-root policy all passed.
