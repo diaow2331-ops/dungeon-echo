@@ -10,7 +10,7 @@ MOYU_REL=toys/moyu
 ABOUT_REL=about
 PRIVACY_REL=privacy
 CONTACT_REL=contact
-ASSET_REL=assets/site-v190
+ASSET_REL=assets/site-v1100
 ADS_REL=ads.txt
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 
@@ -29,7 +29,7 @@ for file in \
   "$PUBLIC_ROOT/$ASSET_REL/style.css" \
   "$PUBLIC_ROOT/$ASSET_REL/site.js" \
   "$PUBLIC_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" \
-  "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1230.jpg" \
+  "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1265.jpg" \
   "$PUBLIC_ROOT/$ASSET_REL/dungeon-roster.webp" \
   "$PUBLIC_ROOT/$ADS_REL" \
   "$BUNDLE_ROOT/VERSION" \
@@ -40,13 +40,13 @@ test -x "$HEALTHCHECK" || fail 'healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.9.0' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.9.0"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+test "$version" = '1.10.0' || fail "unexpected site version: $version"
+grep -Fq 'data-site-version="1.10.0"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
-grep -Fq 'site-v190/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.9.0 shared design missing'
+grep -Fq 'site-v1100/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.10.0 shared design missing'
 grep -Fq 'quick-pick' "$PUBLIC_ROOT/index.html" || fail 'homepage quick-pick interaction missing'
 grep -Fq 'hero-showcase' "$PUBLIC_ROOT/index.html" || fail 'homepage game-art hero missing'
 grep -Fq '浏览器游戏' "$PUBLIC_ROOT/index.html" || fail 'homepage Chinese hero copy missing'
@@ -60,9 +60,9 @@ grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage A
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
 grep -Fq 'softwareVersion":"1.4.2"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 detail marker missing'
 grep -Fq '1120×460 可步行广场' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 town copy missing'
-grep -Fq 'softwareVersion":"1.23.0"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.23.0 detail marker missing'
-grep -Fq '四幕皆有新声' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
-grep -Fq 'Four scenes, fuller sound' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
+grep -Fq 'softwareVersion":"1.26.5"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.26.5 detail marker missing'
+grep -Fq '画面与信息都更清楚' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
+grep -Fq 'Clearer world, readable UI' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
 grep -Fq '这是一个独立浏览器游戏站。' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
 grep -Fq 'about-showcase' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page identity missing'
 grep -Fq '隐私说明' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy page marker missing'
@@ -80,7 +80,7 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v190.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1100.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
@@ -96,7 +96,7 @@ if test -e "$SITE_ROOT/$MOYU_REL"; then cp -a "$SITE_ROOT/$MOYU_REL" "$backup_di
 if test -e "$SITE_ROOT/$ABOUT_REL"; then cp -a "$SITE_ROOT/$ABOUT_REL" "$backup_dir/about"; about_existed=true; fi
 if test -e "$SITE_ROOT/$PRIVACY_REL"; then cp -a "$SITE_ROOT/$PRIVACY_REL" "$backup_dir/privacy"; privacy_existed=true; fi
 if test -e "$SITE_ROOT/$CONTACT_REL"; then cp -a "$SITE_ROOT/$CONTACT_REL" "$backup_dir/contact"; contact_existed=true; fi
-if test -e "$SITE_ROOT/$ASSET_REL"; then cp -a "$SITE_ROOT/$ASSET_REL" "$backup_dir/site-v190"; assets_existed=true; fi
+if test -e "$SITE_ROOT/$ASSET_REL"; then cp -a "$SITE_ROOT/$ASSET_REL" "$backup_dir/site-v1100"; assets_existed=true; fi
 if test -e "$SITE_ROOT/$ADS_REL"; then cp -a "$SITE_ROOT/$ADS_REL" "$backup_dir/ads.txt"; ads_existed=true; fi
 
 restore_dir(){
@@ -123,7 +123,7 @@ rollback(){
     restore_dir "$ABOUT_REL" "$backup_dir/about" "$about_existed"
     restore_dir "$PRIVACY_REL" "$backup_dir/privacy" "$privacy_existed"
     restore_dir "$CONTACT_REL" "$backup_dir/contact" "$contact_existed"
-    restore_dir "$ASSET_REL" "$backup_dir/site-v190" "$assets_existed"
+    restore_dir "$ASSET_REL" "$backup_dir/site-v1100" "$assets_existed"
     restore_file "$ADS_REL" "$backup_dir/ads.txt" "$ads_existed"
     nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
     echo 'web_toys_home_mount=ROLLED_BACK' >&2
@@ -132,7 +132,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v190.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v1100.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -156,18 +156,18 @@ rm -rf -- "$SITE_ROOT/$ASSET_REL"
 cp -a "$PUBLIC_ROOT/$ASSET_REL" "$SITE_ROOT/$ASSET_REL"
 chown -R --reference="$SITE_ROOT/index.html" "$SITE_ROOT/$ASSET_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v190.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1100.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
-grep -Fq 'site-v190/style.css' "$SITE_ROOT/index.html" || fail 'homepage v1.9.0 design write verification failed'
+grep -Fq 'site-v1100/style.css' "$SITE_ROOT/index.html" || fail 'homepage v1.10.0 design write verification failed'
 grep -Fq 'quick-pick' "$SITE_ROOT/index.html" || fail 'homepage quick-pick write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/style.css" "$SITE_ROOT/$ASSET_REL/style.css" || fail 'shared CSS write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/site.js" "$SITE_ROOT/$ASSET_REL/site.js" || fail 'shared interaction write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" "$SITE_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" || fail 'landscape asset write verification failed'
-cmp -s "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1230.jpg" "$SITE_ROOT/$ASSET_REL/moyu-run-v1230.jpg" || fail 'Moyu cover write verification failed'
+cmp -s "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1265.jpg" "$SITE_ROOT/$ASSET_REL/moyu-run-v1265.jpg" || fail 'Moyu cover write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/dungeon-roster.webp" "$SITE_ROOT/$ASSET_REL/dungeon-roster.webp" || fail 'Dungeon cover write verification failed'
 grep -Fq '下一款开发中' "$SITE_ROOT/index.html" || fail 'homepage future-game slot write verification failed'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$SITE_ROOT/$ADS_REL" || fail 'ads.txt write verification failed'
