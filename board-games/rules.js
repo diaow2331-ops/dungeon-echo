@@ -57,12 +57,13 @@ function goBoard(size=19){return empty(size,size)}
 function neighbors(b,x,y){return [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(([xx,yy])=>inside(b,xx,yy))}
 function group(b,x,y){const color=b[y][x];if(!color)return{stones:[],libs:new Set};const todo=[[x,y]],seen=new Set,stones=[],libs=new Set;while(todo.length){const [cx,cy]=todo.pop(),key=cx+','+cy;if(seen.has(key))continue;seen.add(key);stones.push([cx,cy]);for(const [nx,ny] of neighbors(b,cx,cy)){if(!b[ny][nx])libs.add(nx+','+ny);else if(b[ny][nx]===color&&!seen.has(nx+','+ny))todo.push([nx,ny])}}return{stones,libs}}
 function boardKey(b){return b.map(r=>r.map(v=>v||'.').join('')).join('/')}
-function goPlay(b,x,y,color,koKey=null){
+function goPlay(b,x,y,color,koKey=null,repeatKeys=null){
   if(!inside(b,x,y)||b[y][x])return{ok:false,reason:'occupied'};
   const next=clone(b),opp=color==='b'?'w':'b';next[y][x]=color;let captured=0;
   for(const [nx,ny] of neighbors(next,x,y)){if(next[ny][nx]!==opp)continue;const g=group(next,nx,ny);if(g.libs.size===0){for(const [sx,sy] of g.stones)next[sy][sx]=null;captured+=g.stones.length}}
   if(group(next,x,y).libs.size===0)return{ok:false,reason:'suicide'};
   const key=boardKey(next);if(koKey&&key===koKey)return{ok:false,reason:'ko'};
+  if(repeatKeys){const repeated=typeof repeatKeys.has==='function'?repeatKeys.has(key):Array.isArray(repeatKeys)&&repeatKeys.includes(key);if(repeated)return{ok:false,reason:'repeat'}}
   return{ok:true,board:next,captured,key};
 }
 function goScore(b,komi=7.5){
@@ -73,5 +74,5 @@ function goScore(b,komi=7.5){
   }
   return{black,white,winner:black>white?'b':'w',margin:Math.abs(black-white)};
 }
-return{X,clone,gomokuBoard,gomokuWin,gomokuFull,xiangqiBoard,xiangqiMove,xiangqiTargets,xiangqiInCheck,xiangqiHasMove,xiangqiTerminal,goBoard,goPlay,goScore,boardKey};
+return{X,clone,gomokuBoard,gomokuWin,gomokuFull,xiangqiBoard,xiangqiMove,xiangqiTargets,xiangqiInCheck,xiangqiHasMove,xiangqiTerminal,goBoard,goPlay,goScore,boardKey,group};
 });
