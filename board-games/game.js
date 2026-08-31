@@ -1,11 +1,11 @@
 (()=>{
 'use strict';
-const R=window.BoardRules,AI=window.BoardAI,U=window.BoardUI||{lang:()=>'zh',t:(zh)=>zh,musicEnabled:()=>true},T=(zh,en)=>U.t(zh,en),canvas=document.getElementById('board'),ctx=canvas.getContext('2d'),playcard=document.querySelector('.playcard'),boardWrap=canvas.parentElement,captureFx=document.getElementById('captureFx'),checkFx=document.getElementById('checkFx');
+const R=window.BoardRules,AI=window.BoardAI,U=window.BoardUI||{lang:()=>'zh',t:(zh)=>zh,musicEnabled:()=>true,volume:()=>1,resetLocalData:()=>{}},T=(zh,en)=>U.t(zh,en),canvas=document.getElementById('board'),ctx=canvas.getContext('2d'),playcard=document.querySelector('.playcard'),boardWrap=canvas.parentElement,captureFx=document.getElementById('captureFx'),checkFx=document.getElementById('checkFx');
 const statusEl=document.getElementById('status'),gameName=document.getElementById('gameName'),hint=document.getElementById('ruleHint'),moveCount=document.getElementById('moveCount'),noticeEl=document.getElementById('notice'),sessionHint=document.getElementById('sessionHint');
 const restartBtn=document.getElementById('restartBtn'),undoBtn=document.getElementById('undoBtn'),confirmBtn=document.getElementById('confirmBtn'),resumeBtn=document.getElementById('resumeBtn'),resignBtn=document.getElementById('resignBtn'),passBtn=document.getElementById('passBtn'),sizeWrap=document.getElementById('goSizeWrap'),sizeSelect=document.getElementById('goSize');
 const timeSelect=document.getElementById('timeControl'),clockA=document.getElementById('clockA'),clockB=document.getElementById('clockB'),clockALabel=document.getElementById('clockALabel'),clockBLabel=document.getElementById('clockBLabel'),clockATime=document.getElementById('clockATime'),clockBTime=document.getElementById('clockBTime');
 const recordList=document.getElementById('recordList'),reviewLabel=document.getElementById('reviewLabel'),reviewPrevBtn=document.getElementById('reviewPrevBtn'),reviewNextBtn=document.getElementById('reviewNextBtn'),reviewLiveBtn=document.getElementById('reviewLiveBtn'),reviewBranchBtn=document.getElementById('reviewBranchBtn');
-const opponentSelect=document.getElementById('opponentMode'),difficultySelect=document.getElementById('difficulty'),seatSelect=document.getElementById('humanSeat'),aiState=document.getElementById('aiState');
+const opponentSelect=document.getElementById('opponentMode'),difficultySelect=document.getElementById('difficulty'),seatSelect=document.getElementById('humanSeat'),aiState=document.getElementById('aiState'),startMatchBtn=document.getElementById('startMatchBtn'),clearDataBtn=document.getElementById('clearDataBtn');
 const names={gomoku:{zh:'五子棋',en:'Gomoku'},xiangqi:{zh:'中国象棋',en:'Xiangqi'},go:{zh:'围棋',en:'Go'}},nameOf=key=>names[key][U.lang()]||names[key].zh,sessions=Object.create(null),coordLetters='ABCDEFGHJKLMNOPQRST';
 const sideName=color=>mode==='xiangqi'?(color==='r'?T('红方','Red'):T('黑方','Black')):(color==='b'?T('黑方','Black'):T('白方','White'));
 const sideShort=color=>mode==='xiangqi'?(color==='r'?T('红','R'):T('黑','B')):(color==='b'?T('黑','B'):T('白','W'));
@@ -13,21 +13,23 @@ const levelName=level=>level==='easy'?T('入门','Easy'):level==='hard'?T('困�
 function displayNote(note){if(!note)return'';const fixed={'电脑无合法着法':'AI has no legal move','将帅被吃':'general captured','困毙':'stalemate','将死':'checkmate','长将违规':'perpetual check violation','三次重复局面':'threefold repetition'};if(U.lang()==='en'&&fixed[note])return fixed[note];if(U.lang()==='en')return note.replace('认输',' resigned').replace('超时',' timed out').replace('终局 ','Final · ').replace(' 目（黑 ',' pts (Black ').replace(' / 白 ',' / White ').replace('）',')');return note}
 function recordDisplay(label){if(U.lang()!=='en'||!label)return label||T('局面','position');return label.replace(/^黑 /,'B ').replace(/^白 /,'W ').replace(/^红 /,'R ').replace('停一手','Pass').replace(/ · 提(\d+)/,' · capture $1')}
 let mode='gomoku',board,turn='b',winner=null,resultNote='',selected=null,targets=[],history=[],last=null,passes=0,captures={b:0,w:0},cursor=null,pending=null,scoring=false,dead=new Set(),scoreApprover='b',activeKey='',audio=null,noticeTimer=0,restartArmed=false,restartTimer=0,resignArmed=false,resignTimer=0;
-let recordLabel='',reviewing=null,clockLimit=0,clocks={b:0,w:0,r:0},clockStamp=performance.now();
+let recordLabel='',reviewing=null,clockLimit=0,clocks={b:0,w:0,r:0},clockStamp=performance.now(),matchStarted=false,clearArmed=false,clearTimer=0;
+migrateMatchSettings();
 let opponent=readMatchSetting('opponent','ai'),difficulty=readMatchSetting('difficulty','normal'),humanSeat=readMatchSetting('seat','first');
 let aiBusy=false,aiTimer=0,aiWorker=null,aiRequest=0;
 
+function migrateMatchSettings(){try{if(localStorage.getItem('board-trio-match-schema')!=='2'){for(const key of ['opponent','difficulty','seat'])localStorage.removeItem('board-trio-'+key+'-v1');localStorage.setItem('board-trio-match-schema','2')}}catch{}}
 function readMatchSetting(key,fallback){try{return localStorage.getItem('board-trio-'+key+'-v1')||fallback}catch{return fallback}}
-function saveMatchSettings(){try{localStorage.setItem('board-trio-opponent-v1',opponent);localStorage.setItem('board-trio-difficulty-v1',difficulty);localStorage.setItem('board-trio-seat-v1',humanSeat)}catch{}}
+function saveMatchSettings(){try{localStorage.setItem('board-trio-match-schema','2');localStorage.setItem('board-trio-opponent-v1',opponent);localStorage.setItem('board-trio-difficulty-v1',difficulty);localStorage.setItem('board-trio-seat-v1',humanSeat)}catch{}}
 function firstColor(){return mode==='xiangqi'?'r':'b'}
 function secondColor(){return mode==='xiangqi'?'b':'w'}
 function humanColor(){return humanSeat==='first'?firstColor():secondColor()}
 function aiColor(){return humanSeat==='first'?secondColor():firstColor()}
 function aiEnabled(){return opponent==='ai'}
 function aiOwns(side=turn){return aiEnabled()&&side===aiColor()}
-function humanBlocked(){return aiBusy||(!scoring&&aiOwns())||(scoring&&aiEnabled()&&scoreApprover===aiColor())}
+function humanBlocked(){return(aiEnabled()&&!matchStarted)||aiBusy||(!scoring&&aiOwns())||(scoring&&aiEnabled()&&scoreApprover===aiColor())}
 function humanSideName(){return sideName(humanColor())}
-function clickSound(freq=240,dur=.045){if(!U.musicEnabled())return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(.035,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+dur);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+dur)}catch{}}
+function clickSound(freq=240,dur=.045){if(!U.musicEnabled())return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(Math.max(.0001,.035*Math.max(0,Math.min(1,U.volume?U.volume():1))),audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+dur);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+dur)}catch{}}
 function showBoardFx(el,x,y){if(!el||mode!=='xiangqi')return;const g=geom(),cr=canvas.getBoundingClientRect(),wr=boardWrap.getBoundingClientRect();el.style.left=(cr.left-wr.left+(g.m+x*g.sx)*(cr.width/g.w))+'px';el.style.top=(cr.top-wr.top+(g.m+y*g.sy)*(cr.height/g.h))+'px';el.classList.remove('play');void el.offsetWidth;el.classList.add('play')}
 function xiangqiOccurrence(nextBoard,nextTurn){const key=R.xiangqiKey(nextBoard,nextTurn);return 1+history.reduce((n,s)=>n+(R.xiangqiKey(s.board,s.turn)===key?1:0),0)}
 function cancelAI(){
@@ -51,7 +53,7 @@ function fallbackAI(id,payload){
   catch(error){finishAI({id,error:String(error&&error.message||error)})}
 }
 function queueAI(delay=220){
-  if(!aiEnabled()||winner||reviewing!==null)return;
+  if(!matchStarted||!aiEnabled()||winner||reviewing!==null)return;
   const scoringTurn=scoring&&scoreApprover===aiColor(),playingTurn=!scoring&&turn===aiColor();
   if((!scoringTurn&&!playingTurn)||aiBusy)return;
   aiBusy=true;const id=++aiRequest;sync();
@@ -61,7 +63,7 @@ function queueAI(delay=220){
     const payload={game:mode,board:R.clone(board),color:turn,level:difficulty,options:aiOptions()};
     if(typeof Worker!=='function'){fallbackAI(id,payload);return}
     try{
-      aiWorker=aiWorker||new Worker('ai-worker.js?v=061');
+      aiWorker=aiWorker||new Worker('ai-worker.js?v=062');
       aiWorker.onmessage=event=>finishAI(event.data);
       aiWorker.onerror=()=>{if(id!==aiRequest||!aiBusy)return;aiWorker.terminate();aiWorker=null;fallbackAI(id,payload)};
       aiWorker.postMessage({id,...payload});
@@ -82,10 +84,10 @@ function applyAiMove(move){
   }else onGo(move.x,move.y,true);
 }
 function sessionKey(){const base=mode==='go'?`go:${sizeSelect.value}`:mode;return base+':'+opponent+(opponent==='ai'?':'+humanSeat:'')}
-function saveSession(key=activeKey){if(!key||!board)return;if(reviewing===null){settleClock();replaceTopSnapshot()}sessions[key]={board,turn,winner,resultNote,selected,targets,history,last,passes,captures,cursor,scoring,dead:new Set(dead),scoreApprover,clockLimit,clocks:{...clocks},recordLabel}}
-function loadSession(key){const s=sessions[key];if(!s)return false;board=s.board;turn=s.turn;winner=s.winner;resultNote=s.resultNote||'';selected=s.selected;targets=s.targets;history=s.history;last=s.last;passes=s.passes;captures=s.captures;cursor=s.cursor;pending=null;scoring=!!s.scoring;dead=new Set(s.dead||[]);scoreApprover=s.scoreApprover||'b';clockLimit=Number(s.clockLimit)||0;clocks={b:0,w:0,r:0,...s.clocks};recordLabel=s.recordLabel||'';reviewing=null;timeSelect.value=String(clockLimit);clockStamp=performance.now();return true}
+function saveSession(key=activeKey){if(!key||!board)return;if(reviewing===null){settleClock();replaceTopSnapshot()}sessions[key]={board,turn,winner,resultNote,selected,targets,history,last,passes,captures,cursor,scoring,dead:new Set(dead),scoreApprover,clockLimit,clocks:{...clocks},recordLabel,matchStarted}}
+function loadSession(key){const s=sessions[key];if(!s)return false;board=s.board;turn=s.turn;winner=s.winner;resultNote=s.resultNote||'';selected=s.selected;targets=s.targets;history=s.history;last=s.last;passes=s.passes;captures=s.captures;cursor=s.cursor;pending=null;scoring=!!s.scoring;dead=new Set(s.dead||[]);scoreApprover=s.scoreApprover||'b';clockLimit=Number(s.clockLimit)||0;clocks={b:0,w:0,r:0,...s.clocks};recordLabel=s.recordLabel||'';matchStarted=s.matchStarted!==undefined?!!s.matchStarted:(opponent!=='ai'||history.length>1);reviewing=null;timeSelect.value=String(clockLimit);clockStamp=performance.now();return true}
 function initClocks(limit){clockLimit=Number(limit)||0;clocks={b:clockLimit,w:clockLimit,r:clockLimit};clockStamp=performance.now()}
-function freshBoard(){winner=null;resultNote='';selected=null;targets=[];history=[];last=null;passes=0;captures={b:0,w:0};cursor=null;pending=null;scoring=false;dead=new Set();scoreApprover='b';reviewing=null;recordLabel='';turn=mode==='xiangqi'?'r':'b';board=mode==='gomoku'?R.gomokuBoard():mode==='xiangqi'?R.xiangqiBoard():R.goBoard(+sizeSelect.value);initClocks(+timeSelect.value);snapshot()}
+function freshBoard(){matchStarted=opponent!=='ai';winner=null;resultNote='';selected=null;targets=[];history=[];last=null;passes=0;captures={b:0,w:0};cursor=null;pending=null;scoring=false;dead=new Set();scoreApprover='b';reviewing=null;recordLabel='';turn=mode==='xiangqi'?'r':'b';board=mode==='gomoku'?R.gomokuBoard():mode==='xiangqi'?R.xiangqiBoard():R.goBoard(+sizeSelect.value);initClocks(+timeSelect.value);snapshot()}
 function reset(){cancelAI();freshBoard();cancelRestart();cancelResign();clearNotice();saveSession();sync();draw();queueAI()}
 function stateSnapshot(){return{board:R.clone(board),turn,winner,resultNote,selected:selected&&{...selected},last:last&&{...last},passes,captures:{...captures},scoring,dead:[...dead],scoreApprover,clockLimit,clocks:{...clocks},recordLabel}}
 function snapshot(){history.push(stateSnapshot())}
@@ -100,7 +102,7 @@ function cancelResign(){clearTimeout(resignTimer);resignArmed=false;resignBtn.cl
 function currentSideName(){return sideName(turn)}
 function opponentWinner(){if(mode==='xiangqi')return turn==='r'?'b':'r';return turn==='b'?'w':'b'}
 function armResign(){if(winner||scoring||reviewing!==null||humanBlocked())return;if(resignArmed){if(!settleClock())return;const loser=currentSideName();winner=opponentWinner();resultNote=loser+T('认输',' resigned');pending=null;cancelResign();replaceTopSnapshot();showNotice(resultNote,'ok',2600);sync();draw();return}resignArmed=true;resignBtn.classList.add('armed');resignBtn.textContent=T('确认认输','Confirm resign');showNotice(T('再次点击“认输”才会结束本局','Press Resign again to end the game.'),'warn',2200);resignTimer=setTimeout(cancelResign,2200)}
-function clockRunning(){return clockLimit>0&&!winner&&!scoring&&reviewing===null}
+function clockRunning(){return matchStarted&&clockLimit>0&&!winner&&!scoring&&reviewing===null}
 function settleClock(){const now=performance.now(),dt=Math.max(0,(now-clockStamp)/1000);clockStamp=now;if(!clockRunning())return true;clocks[turn]=Math.max(0,(clocks[turn]??clockLimit)-dt);if(clocks[turn]<=0){clocks[turn]=0;handleTimeout();return false}return true}
 function handleTimeout(){if(winner||scoring||reviewing!==null)return;const loser=currentSideName();winner=opponentWinner();resultNote=loser+T('超时',' timed out');pending=null;cancelResign();replaceTopSnapshot();showNotice(resultNote,'warn',3000);sync();draw()}
 function formatClock(value){if(!clockLimit)return '∞';const s=Math.max(0,Math.ceil(value||0)),m=Math.floor(s/60),r=s%60;return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0')}
@@ -111,23 +113,24 @@ function scorePreview(){return R.goScore(scoringBoard())}
 function goWinnerText(){if(!winner)return'';return sideName(winner)+T('胜',' wins')+(resultNote?' · '+displayNote(resultNote):'')}
 function syncUrl(){const url=new URL(location.href);url.searchParams.set('game',mode);if(mode==='go')url.searchParams.set('size',sizeSelect.value);else url.searchParams.delete('size');url.searchParams.set('opponent',opponent);if(opponent==='ai'){url.searchParams.set('difficulty',difficulty);url.searchParams.set('seat',humanSeat)}else{url.searchParams.delete('difficulty');url.searchParams.delete('seat')}window.history.replaceState(null,'',url)}
 function sync(){
-  const inReview=reviewing!==null,aiTurn=aiEnabled()&&((scoring&&scoreApprover===aiColor())||(!scoring&&turn===aiColor())),setupLocked=inReview||history.length>1||scoring||!!winner;
+  const inReview=reviewing!==null,waitingStart=aiEnabled()&&!matchStarted,aiTurn=matchStarted&&aiEnabled()&&((scoring&&scoreApprover===aiColor())||(!scoring&&turn===aiColor())),setupLocked=inReview||history.length>1||scoring||!!winner||(aiEnabled()&&matchStarted);
   gameName.textContent=nameOf(mode);moveCount.textContent=T(Math.max(0,history.length-1)+' 手',Math.max(0,history.length-1)+' moves');
-  sizeWrap.hidden=mode!=='go';passBtn.hidden=mode!=='go'||scoring||!!winner;resumeBtn.hidden=mode!=='go'||!scoring||!!winner;
+  sizeWrap.hidden=mode!=='go';passBtn.hidden=mode!=='go'||scoring||!!winner;resumeBtn.hidden=mode!=='go'||!scoring||!!winner;startMatchBtn.hidden=opponent!=='ai'||matchStarted||history.length>1||scoring||!!winner;
   confirmBtn.hidden=mode==='xiangqi'||!!winner;confirmBtn.textContent=scoring?sideName(scoreApprover)+T('确认',' confirm'):T('落子','Play');
-  confirmBtn.disabled=inReview||aiTurn||aiBusy||!!winner||mode==='xiangqi'||(!scoring&&!pending);passBtn.disabled=inReview||aiTurn||aiBusy;resumeBtn.disabled=inReview||aiBusy;
-  undoBtn.disabled=inReview||scoring||!!winner||(!aiBusy&&!pending&&history.length<=1);restartBtn.disabled=inReview||(history.length<=1&&!pending&&!scoring);resignBtn.disabled=inReview||aiTurn||aiBusy||!!winner||scoring;
-  sizeSelect.disabled=setupLocked;timeSelect.disabled=setupLocked||aiBusy;opponentSelect.disabled=setupLocked||aiBusy;seatSelect.disabled=opponent!=='ai'||setupLocked||aiBusy;difficultySelect.disabled=opponent!=='ai'||inReview||aiBusy;
+  confirmBtn.disabled=waitingStart||inReview||aiTurn||aiBusy||!!winner||mode==='xiangqi'||(!scoring&&!pending);passBtn.disabled=waitingStart||inReview||aiTurn||aiBusy;resumeBtn.disabled=waitingStart||inReview||aiBusy;startMatchBtn.disabled=inReview||aiBusy;
+  undoBtn.disabled=inReview||scoring||!!winner||(!aiBusy&&!pending&&history.length<=1);restartBtn.disabled=inReview||(history.length<=1&&!pending&&!scoring);resignBtn.disabled=waitingStart||inReview||aiTurn||aiBusy||!!winner||scoring;
+  sizeSelect.disabled=setupLocked;timeSelect.disabled=setupLocked||aiBusy;opponentSelect.disabled=setupLocked||aiBusy;seatSelect.disabled=opponent!=='ai'||setupLocked||aiBusy;difficultySelect.disabled=opponent!=='ai'||setupLocked||aiBusy;
   if(mode==='gomoku'){hint.textContent=T('自由规则：先连成五子者胜。','Freestyle: first line of five wins.');statusEl.textContent=winner?(winner==='draw'?T('和棋','Draw'):sideName(winner)+T('胜',' wins')+(resultNote?' · '+displayNote(resultNote):'')):sideName(turn)+T('落子',' to move');sessionHint.textContent=T('先选落点，再点“落子”确认','Select an intersection, then press Play to confirm.')}
   if(mode==='xiangqi'){hint.textContent=T('完整基础走子，并处理将帅照面、将死、困毙与重复局面。','Core Xiangqi movement with flying generals, checkmate, stalemate and repetition handling.');statusEl.textContent=winner?(winner==='draw'?T('和棋','Draw')+(resultNote?' · '+displayNote(resultNote):''):sideName(winner)+T('胜',' wins')+(resultNote?' · '+displayNote(resultNote):'')):sideName(turn)+(R.xiangqiInCheck(board,turn)?T(' · 将军',' · check'):T('走棋',' to move'));sessionHint.textContent=T('选棋子，再点目标位置','Select a piece, then its destination.')}
   if(mode==='go'){if(scoring&&!winner){const s=scorePreview();hint.textContent=T(`计分阶段：点棋子可标记/取消整组死子 · 当前估算 黑 ${s.black.toFixed(1)} / 白 ${s.white.toFixed(1)}`,`Scoring: tap a group to mark/unmark dead stones · Estimate Black ${s.black.toFixed(1)} / White ${s.white.toFixed(1)}`);statusEl.textContent=sideName(scoreApprover)+T('确认计分',' confirm score');sessionHint.textContent=T('双方确认前可继续调整死子，或恢复下棋','Adjust dead stones before both players confirm, or resume play.')}else{hint.textContent=T(`中国面积计分 · 贴目 7.5 · 黑提 ${captures.b} · 白提 ${captures.w} · 禁止重复整盘局面`,`Chinese area scoring · komi 7.5 · Black captures ${captures.b} · White captures ${captures.w} · whole-board repetition forbidden`);statusEl.textContent=winner?goWinnerText():sideName(turn)+T('落子',' to move');sessionHint.textContent=T('先选落点，再点“落子”确认','Select an intersection, then press Play to confirm.')}}
   if(pending&&!winner&&!scoring&&mode!=='xiangqi')statusEl.textContent+=T(' · 待确认',' · pending');
-  if(aiBusy&&!winner){statusEl.textContent=T('电脑思考中…','AI thinking…');sessionHint.textContent=T('本地计算进行中，页面仍可正常响应','Local calculation in progress; the page remains responsive.')}
+  if(waitingStart&&!winner){statusEl.textContent=T('等待开始对局','Ready to start');sessionHint.textContent=T('先选择执子、难度与计时，再点击“开始对局”','Choose side, difficulty and clock, then press Start match.')}
+  else if(aiBusy&&!winner){statusEl.textContent=T('电脑思考中…','AI thinking…');sessionHint.textContent=T('本地计算进行中，页面仍可正常响应','Local calculation in progress; the page remains responsive.')}
   else if(aiTurn&&!winner)sessionHint.textContent=T('请等待电脑落子','Waiting for the AI move.');
   if(inReview)statusEl.textContent=T(`复盘 · 第 ${reviewing}/${Math.max(0,history.length-1)} 手`,`Review · move ${reviewing}/${Math.max(0,history.length-1)}`);
   const levelLabel=levelName(difficulty);
-  aiState.textContent=opponent==='local'?T('双人同屏','Local 2P'):aiBusy?T(`电脑思考中 · ${levelLabel}`,`AI thinking · ${levelLabel}`):T(`本地 AI · ${levelLabel} · 你执${humanSideName()}`,`Local AI · ${levelLabel} · You are ${humanSideName()}`);
-  aiState.dataset.busy=String(aiBusy);playcard.dataset.aiTurn=String(aiTurn||aiBusy);
+  aiState.textContent=opponent==='local'?T('双人同屏','Local 2P'):waitingStart?T(`本地 AI · 待开始 · 你执${humanSideName()}`,`Local AI · Ready · You are ${humanSideName()}`):aiBusy?T(`电脑思考中 · ${levelLabel}`,`AI thinking · ${levelLabel}`):T(`本地 AI · ${levelLabel} · 你执${humanSideName()}`,`Local AI · ${levelLabel} · You are ${humanSideName()}`);
+  aiState.dataset.busy=String(aiBusy);playcard.dataset.aiTurn=String(aiTurn||aiBusy);playcard.dataset.waitingStart=String(waitingStart);
     canvas.setAttribute('aria-label',inReview?T(`${nameOf(mode)}复盘，第 ${reviewing} 手。`,`${nameOf(mode)} review, move ${reviewing}.`):scoring?T('围棋计分阶段。点击棋子组标记死子，双方依次确认计分。','Go scoring. Tap a group to mark dead stones; both sides confirm in turn.'):mode==='xiangqi'?T(`${nameOf(mode)}棋盘。${statusEl.textContent}。选择己方棋子后选择目标位置。`,`${nameOf(mode)} board. ${statusEl.textContent}. Select your piece, then its destination.`):T(`${nameOf(mode)}棋盘。${statusEl.textContent}。先选择落点，再确认落子。`,`${nameOf(mode)} board. ${statusEl.textContent}. Select a point, then confirm the move.`));
   renderClocks();renderRecord();
 }
@@ -206,12 +209,16 @@ function undoMove(){
   while(steps-->0&&history.length>1)history.pop();
   restore(history[history.length-1]);showNotice(aiEnabled()?T('已悔棋，回到你上次落子前','Undo complete; returned to before your previous move.'):T('已悔棋','Move undone.'),'ok');queueAI();
 }
+function startMatch(){
+  if(opponent!=='ai'||matchStarted||winner||reviewing!==null)return;cancelAI();cancelRestart();cancelResign();clearNotice();matchStarted=true;saveMatchSettings();saveSession();syncUrl();sync();draw();showNotice(humanSeat==='second'?T('对局开始，电脑先行','Match started. AI moves first.'):T('对局开始，你先行','Match started. You move first.'),'ok',2200);queueAI(260)
+}
+function cancelClearData(){clearTimeout(clearTimer);clearArmed=false;clearDataBtn.classList.remove('armed');const span=clearDataBtn.querySelector('span');if(span)span.textContent=T('清除数据','Clear data')}
+function clearBoardData(){
+  if(!clearArmed){clearArmed=true;clearDataBtn.classList.add('armed');const span=clearDataBtn.querySelector('span');if(span)span.textContent=T('确认清除','Confirm reset');showNotice(T('再次点击“清除数据”将重置本棋类游戏的本地偏好与当前对局','Press Clear data again to reset Board Trio preferences and current matches.'),'warn',2600);clearTimer=setTimeout(cancelClearData,2600);return}
+  cancelClearData();cancelAI();cancelRestart();cancelResign();clearNotice();for(const key of Object.keys(sessions))delete sessions[key];opponent='ai';difficulty='normal';humanSeat='first';opponentSelect.value=opponent;difficultySelect.value=difficulty;seatSelect.value=humanSeat;sizeSelect.value='19';timeSelect.value='0';activeKey=sessionKey();freshBoard();if(U.resetLocalData)U.resetLocalData();saveMatchSettings();saveSession();syncUrl();sync();resize();showNotice(T('棋类本地数据已清除，已恢复默认先手设置','Board Trio local data cleared. Default first-move settings restored.'),'ok',2800)
+}
 function changeSetup(){
-  if(opponentSelect.disabled||seatSelect.disabled&&opponentSelect.value===opponent)return;
-  saveSession();cancelAI();cancelRestart();cancelResign();clearNotice();
-  opponent=opponentSelect.value==='local'?'local':'ai';humanSeat=seatSelect.value==='second'?'second':'first';saveMatchSettings();
-  activeKey=sessionKey();const restored=loadSession(activeKey);if(!restored)freshBoard();
-  sync();resize();queueAI();showNotice(restored&&history.length>1?T('已恢复对应对局','Saved match restored.'):opponent==='ai'?T('已切换为人机对弈','Switched to AI match.'):T('已切换为双人同屏','Switched to local two-player.'),'ok',2200);
+  if(opponentSelect.disabled)return;cancelAI();cancelRestart();cancelResign();clearNotice();opponent=opponentSelect.value==='local'?'local':'ai';humanSeat=seatSelect.value==='second'?'second':'first';saveMatchSettings();activeKey=sessionKey();freshBoard();saveSession();sync();resize();showNotice(opponent==='ai'?T('设置已更新，确认后点击“开始对局”','Settings updated. Press Start match when ready.'):T('已切换为双人同屏','Switched to local two-player.'),'ok',2200);
 }
 function switchGame(next){if(next===mode)return;if(reviewing!==null)leaveReview(true);saveSession();cancelAI();cancelRestart();cancelResign();clearNotice();pending=null;mode=next;activeKey=sessionKey();const restored=loadSession(activeKey);if(!restored)freshBoard();syncUrl();sync();resize();queueAI();showNotice(restored&&history.length>1?T('已恢复这类棋的当前对局','Saved match restored.'):T('已切换至','Switched to ')+nameOf(mode),'ok')}
 canvas.addEventListener('pointerup',ev=>{if(reviewing!==null)return;if(humanBlocked()){showNotice(T('请等待电脑完成本回合','Wait for the AI to finish this turn.'),'info');return}cancelResign();const{x,y}=point(ev);cursor={x,y};if(scoring)toggleDeadGroup(x,y);else if(mode==='xiangqi')onXiangqi(x,y);else selectPlacement(x,y)});
@@ -228,12 +235,13 @@ undoBtn.addEventListener('click',undoMove);
 sizeSelect.addEventListener('change',()=>{if(mode!=='go'||sizeSelect.disabled)return;if(reviewing!==null)leaveReview(true);saveSession();cancelAI();cancelRestart();cancelResign();clearNotice();pending=null;activeKey=sessionKey();const restored=loadSession(activeKey);if(!restored)freshBoard();syncUrl();sync();resize();queueAI();showNotice(restored&&history.length>1?T(`已恢复 ${sizeSelect.value}×${sizeSelect.value} 对局`,`Restored ${sizeSelect.value}×${sizeSelect.value} game`):T(`已切换为 ${sizeSelect.value}×${sizeSelect.value} 棋盘`,`Switched to ${sizeSelect.value}×${sizeSelect.value} board`),'ok')});
 timeSelect.addEventListener('change',()=>{if(timeSelect.disabled)return;initClocks(+timeSelect.value);replaceTopSnapshot();saveSession();sync();showNotice(clockLimit?T(`本局棋钟：双方 ${Math.round(clockLimit/60)} 分钟`,`Clock: ${Math.round(clockLimit/60)} minutes per side`):T('本局已设为不限时','Clock set to unlimited'),'ok',2000)});
 passBtn.addEventListener('click',()=>passGo(false));
+startMatchBtn.addEventListener('click',startMatch);clearDataBtn.addEventListener('click',clearBoardData);
 opponentSelect.addEventListener('change',()=>{changeSetup();syncUrl()});
 seatSelect.addEventListener('change',()=>{changeSetup();syncUrl()});
 difficultySelect.addEventListener('change',()=>{if(difficultySelect.disabled)return;difficulty=AI.LEVELS[difficultySelect.value]?difficultySelect.value:'normal';saveMatchSettings();syncUrl();sync();showNotice(T('电脑难度已切换为','AI difficulty: ')+levelName(difficulty),'ok',1800)});
 reviewPrevBtn.addEventListener('click',previousReview);reviewNextBtn.addEventListener('click',nextReview);reviewLiveBtn.addEventListener('click',()=>leaveReview());reviewBranchBtn.addEventListener('click',branchFromReview);
 recordList.addEventListener('click',ev=>{const btn=ev.target.closest('button[data-review-index]');if(btn)enterReview(+btn.dataset.reviewIndex)});
-window.addEventListener('resize',resize,{passive:true});window.addEventListener('board:layout',resize);window.addEventListener('board:language',()=>{sync();draw()});window.addEventListener('board:notice',ev=>showNotice(ev.detail&&ev.detail.text||T('操作不可用','Action unavailable'),'warn',2400));
+window.addEventListener('resize',resize,{passive:true});window.addEventListener('board:layout',resize);window.addEventListener('board:language',()=>{cancelClearData();sync();draw()});window.addEventListener('board:notice',ev=>showNotice(ev.detail&&ev.detail.text||T('操作不可用','Action unavailable'),'warn',2400));
 
 const qs=new URLSearchParams(location.search),requested=qs.get('game'),requestedSize=+qs.get('size'),requestedOpponent=qs.get('opponent'),requestedDifficulty=qs.get('difficulty'),requestedSeat=qs.get('seat');
 if(names[requested])mode=requested;if([9,13,19].includes(requestedSize))sizeSelect.value=String(requestedSize);
@@ -241,5 +249,5 @@ if(['ai','local'].includes(requestedOpponent))opponent=requestedOpponent;if(AI.L
 if(!['ai','local'].includes(opponent))opponent='ai';if(!AI.LEVELS[difficulty])difficulty='normal';if(!['first','second'].includes(humanSeat))humanSeat='first';
 opponentSelect.value=opponent;difficultySelect.value=difficulty;seatSelect.value=humanSeat;saveMatchSettings();activeKey=sessionKey();syncUrl();
 document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===mode));
-canvas.tabIndex=0;reset();resize();setInterval(tickClocks,250);window.addEventListener('beforeunload',cancelAI);document.documentElement.dataset.gameVersion='0.6.1';
+canvas.tabIndex=0;reset();resize();setInterval(tickClocks,250);window.addEventListener('beforeunload',cancelAI);document.documentElement.dataset.gameVersion='0.6.2';
 })();

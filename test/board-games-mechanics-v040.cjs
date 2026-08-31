@@ -19,6 +19,13 @@ assert(html.includes('id="resumeBtn"')&&html.includes('data-zh="继续下棋" da
 assert(html.includes('id="resignBtn"')&&html.includes('data-zh="认输" data-en="Resign"'),'resign action missing');
 assert(html.includes('死子确认')&&html.includes('中国面积计分'),'Go scoring-phase copy missing');
 
+assert(html.includes('id="startMatchBtn"')&&html.includes('id="clearDataBtn"'),'AI start / data-reset controls missing');
+assert(html.includes('id="volumeRange"')&&html.includes('id="volumeValue"'),'music volume control missing');
+assert(game.includes('function startMatch()')&&game.includes('if(!matchStarted||!aiEnabled()'),'AI must not open before explicit match start');
+assert(game.includes('function clearBoardData()'),'Board Trio runtime reset missing');
+const ui=read('board-games/ui.js');
+assert(ui.includes("startsWith('board-trio-')")&&ui.includes("board-trio-volume-v1"),'BoardUI scoped reset / volume persistence missing');
+
 assert(game.includes('selectPlacement(x,y)')&&game.includes('function confirmPlacement()'),'v0.2.1 select-then-confirm placement must remain intact');
 assert(game.includes('scoring=false')&&game.includes('dead=new Set()')&&game.includes("scoreApprover='b'"),'Go scoring state missing');
 assert(game.includes("if(passes>=2){scoring=true;dead.clear();scoreApprover='b'"),'two passes must enter scoring instead of ending immediately');
@@ -38,7 +45,7 @@ assert(game.includes('全局同形：不能形成此前出现过的整盘局面'
 
 assert(game.includes('function armResign()')&&game.includes("resignBtn.textContent=T('确认认输'"),'guarded resign flow missing');
 assert(game.includes("resultNote=loser+T('认输'")&&game.includes('winner=opponentWinner()'),'resignation must award the game to the opponent');
-assert(game.includes('resignBtn.disabled=inReview||aiTurn||aiBusy||!!winner||scoring'),'resign must be unavailable after game end or during Go scoring agreement');
+assert(game.includes('resignBtn.disabled=waitingStart||inReview||aiTurn||aiBusy||!!winner||scoring'),'resign must be unavailable before AI start, after game end or during Go scoring agreement');
 
 assert(css.includes('.actions #confirmBtn:not(:disabled)'),'placement/scoring confirmation visual state missing');
 assert(css.includes('.actions #resumeBtn:not(:disabled)'),'resume-play visual state missing');
