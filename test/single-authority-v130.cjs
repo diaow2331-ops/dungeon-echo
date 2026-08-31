@@ -128,7 +128,13 @@ assert(!game.includes('30 + Math.round(itemValueScore(it) * 1.2)'), 'core still 
 assert(!game.includes('Math.max(4, Math.round(itemValueScore(it) * .45)'), 'core still duplicates sell pricing');
 assert(game.includes('const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueScore(it), it.forge || 0);'), 'core must delegate forge pricing');
 assert(game.includes('const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);'), 'core must delegate sell pricing');
-for (const dormant of ['townTier','townPriceScale','townSupplyPrice','townSupplyStock','dungeonTier','dungeonHealPrice','quickDiveCost','wheelSpinCost','wheelResetCost']) assert(!game.includes(`ECONOMY_RULES.${dormant}(`), `core unexpectedly adopted dormant economy helper ${dormant}`);
+for (const delegated of ['townTier','townSupplyPrice','townSupplyStock','quickDiveCost','tavernToastCost','wheelSpinCost','wheelResetCost']) assert(game.includes(`ECONOMY_RULES.${delegated}(`), `core must delegate active economy policy ${delegated}`);
+for (const dormant of ['dungeonTier','dungeonHealPrice']) assert(!game.includes(`ECONOMY_RULES.${dormant}(`), `core unexpectedly adopted dormant economy helper ${dormant}`);
+assert(game.includes('TOWN_RULES.expeditionSupplyNeeds(meta)'), 'core must delegate expedition readiness thresholds');
+assert(game.includes('TOWN_RULES.unlockedCheckpoints(meta && meta.bestDepth)'), 'core must delegate checkpoint unlock policy');
+assert(game.includes('TOWN_RULES.isCheckpointUnlocked(checkpointDepth, meta.bestDepth)'), 'core must delegate checkpoint selection policy');
+assert(!game.includes('const TOWN_CHECKPOINTS = Object.freeze([1, 11, 21, 31, 41, 51, 61, 71, 81, 91])'), 'core must not duplicate checkpoint table');
+assert(!game.includes('potion:Math.max(0, 2 - (meta.potions || 0))'), 'core must not duplicate expedition readiness threshold');
 assert(!game.includes('while (player.xp >= player.lvl * 15)'), 'core still duplicates XP threshold');
 assert(!game.includes('player.lvl * 15'), 'core still duplicates XP threshold arithmetic outside the progression authority');
 assert(!game.includes('player.lvl++; player.hpBase += 6; player.atkBase += 1;'), 'core still duplicates level-up deltas');
@@ -151,6 +157,7 @@ for (const token of [
   "const CONTENT_RULES = typeof window !== 'undefined' ? window.DE_CONTENT_RULES_V130 : null",
   "const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null",
   "const ECONOMY_RULES = typeof window !== 'undefined' ? window.DE_ECONOMY_RULES_V130 : null",
+  "const TOWN_RULES = typeof window !== 'undefined' ? window.DE_TOWN_RULES_V130 : null",
   "const PROGRESSION_RULES = typeof window !== 'undefined' ? window.DE_PROGRESSION_RULES_V130 : null",
   "const COMBAT_RULES = typeof window !== 'undefined' ? window.DE_COMBAT_RULES_V130 : null",
   "document.addEventListener('keydown'",
@@ -179,6 +186,7 @@ for (const rel of [
   'game/core/game.js','game/core/production-bootstrap.js','game/core/runtime-bootstrap.js',
   'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js',
   'game/domain/economy/economy-rules-v130.js',
+  'game/domain/town/town-rules-v130.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',
   'art/hero-atlas-v11.png','art/monster-atlas-v11.png','art/guardian-atlas-v11.png',

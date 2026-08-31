@@ -10,9 +10,10 @@ const rules=read('board-games/rules.js');
 const css=read('board-games/style.css');
 const version=read('board-games/VERSION').trim();
 
-assert.strictEqual(version,'0.6.1','Board Trio semantic version must be 0.6.1');
-assert(html.includes('<meta name="version" content="0.6.1">'),'HTML version marker missing');
-assert(html.includes('style.css?v=061')&&html.includes('rules.js?v=061')&&html.includes('game.js?v=061'),'cache generation v050 incomplete');
+assert(/^\d+\.\d+\.\d+$/.test(version),'Board Trio VERSION must be semantic');
+assert(html.includes(`<meta name="version" content="${version}">`),'HTML version marker must match VERSION');
+const cache=(html.match(/style\.css\?v=(\d+)/)||[])[1];
+assert(cache&&html.includes(`rules.js?v=${cache}`)&&html.includes(`game.js?v=${cache}`),'Board Trio cache generation must be coherent');
 assert(html.includes('id="confirmBtn"')&&html.includes('data-zh="落子" data-en="Play"'),'pointer-confirm placement contract missing');
 assert(html.includes('id="resumeBtn"')&&html.includes('data-zh="继续下棋" data-en="Resume"'),'Go scoring resume action missing');
 assert(html.includes('id="resignBtn"')&&html.includes('data-zh="认输" data-en="Resign"'),'resign action missing');
@@ -42,6 +43,6 @@ assert(game.includes('resignBtn.disabled=inReview||aiTurn||aiBusy||!!winner||sco
 assert(css.includes('.actions #confirmBtn:not(:disabled)'),'placement/scoring confirmation visual state missing');
 assert(css.includes('.actions #resumeBtn:not(:disabled)'),'resume-play visual state missing');
 assert(css.includes('.actions #resignBtn:not(:disabled)'),'resign visual state missing');
-assert(game.includes("dataset.gameVersion='0.6.1'"),'runtime version marker missing');
+assert(game.includes(`dataset.gameVersion='${version}'`),'runtime version marker must match VERSION');
 
 console.log('board_games_mechanics_v050=PASS');

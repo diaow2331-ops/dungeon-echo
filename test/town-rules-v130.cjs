@@ -11,16 +11,18 @@ const executableSource = source
   .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
-assert.equal(rules.authority, 'none');
-assert.equal(rules.version, 'v1.3.0-staged');
-assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|fetch\s*\(|Math\.random/.test(executableSource), 'staged town rules must stay pure and disconnected');
+assert.equal(rules.authority, 'town-checkpoint-readiness-policy');
+assert.equal(rules.version, 'v1.6.0-production');
+assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|fetch\s*\(|Math\.random/.test(executableSource), 'production town policy rules must stay pure and deterministic');
 
 const manifest = fs.readFileSync(path.join(root, 'ops/release/static-files.txt'), 'utf8')
   .split(/\r?\n/).filter(Boolean);
-assert(!manifest.includes(rel), 'staged town rules must not enter release before atomic authority transfer');
+assert(manifest.includes(rel), 'production town policy authority must ship');
 for (const entry of ['index.html', 'en/index.html']) {
   const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  assert(!html.includes(rel), `${entry}: staged town rules must not be loaded in production`);
+  const generation = String(JSON.parse(fs.readFileSync(path.join(root, 'docs/authority-map-v130.json'), 'utf8')).cacheGeneration);
+  assert(html.includes(`${rel}?v=${generation}`), `${entry}: town policy authority must be loaded`);
+  assert(html.indexOf(`${rel}?v=${generation}`) < html.indexOf(`game/core/game.js?v=${generation}`), `${entry}: town policy must load before core`);
 }
 
 assert.deepEqual(rules.unlockedCheckpoints(0), [1]);
@@ -36,6 +38,9 @@ assert.equal(rules.checkpointUnlockedByGuardian(90), 91);
 assert.equal(rules.checkpointUnlockedByGuardian(100), null);
 assert.equal(rules.checkpointUnlockedByGuardian(33), null);
 
+assert.deepEqual(rules.expeditionSupplyNeeds({ potions:0, escapes:0 }), { potion:2, escape:1 });
+assert.deepEqual(rules.expeditionSupplyNeeds({ potions:1, escapes:4 }), { potion:1, escape:0 });
+assert.deepEqual(rules.expeditionSupplyNeeds({ potions:3, escapes:1 }), { potion:0, escape:0 });
 assert.deepEqual(rules.expeditionReadiness({ potions:2, escapes:1, keys:0 }), {
   ready:true, potions:2, escapes:1, keys:0, missing:[],
 });

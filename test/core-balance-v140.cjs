@@ -10,7 +10,7 @@ global.window={innerWidth:1280,innerHeight:800,addEventListener(){},DE_PROFILES:
 global.localStorage={_m:new Map(),getItem(k){return this._m.has(k)?this._m.get(k):null},setItem(k,v){this._m.set(k,String(v))},removeItem(k){this._m.delete(k)}};
 global.requestAnimationFrame=()=>0; global.cancelAnimationFrame=()=>{}; global.Image=class{set src(_v){}}; global.matchMedia=()=>({matches:false}); global.performance={now:()=>Date.now()}; global.location={search:'?profile=classic-100'};
 for(const id of ['classic-10','classic-20','classic-30','classic-40','classic-50','classic-60','classic-100']) vm.runInThisContext(fs.readFileSync(path.join(root,'profiles',`${id}.profile.js`),'utf8'),{filename:id});
-for(const rel of ['game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js','game/domain/economy/economy-rules-v130.js','game/domain/progression/progression-rules-v130.js','game/domain/combat/combat-rules-v130.js']) vm.runInThisContext(fs.readFileSync(path.join(root,rel),'utf8'),{filename:rel});
+for(const rel of ['game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js','game/domain/economy/economy-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/progression/progression-rules-v130.js','game/domain/combat/combat-rules-v130.js']) vm.runInThisContext(fs.readFileSync(path.join(root,rel),'utf8'),{filename:rel});
 vm.runInThisContext(fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'),{filename:'game/core/game.js'});
 const T=window.DE_TEST; let pass=0,fail=0; const ok=(c,n)=>{if(c){pass++;console.log('  PASS '+n)}else{fail++;console.log('  FAIL '+n)}};
 const clearMobs=()=>T.monsters.splice(0,T.monsters.length);

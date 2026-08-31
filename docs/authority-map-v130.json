@@ -1,6 +1,6 @@
 {
-  "version": "1.5.0",
-  "cacheGeneration": 179,
+  "version": "1.6.0",
+  "cacheGeneration": 180,
   "policy": "one-responsibility-one-production-authority",
   "authorities": {
     "gameplayState": "game/core/game.js",
@@ -28,7 +28,13 @@
     "equipmentClassFitScoring": "game/domain/inventory/equipment-rules-v130.js",
     "equipmentTransactionPricing": "game/domain/economy/economy-rules-v130.js",
     "levelUpArithmetic": "game/domain/progression/progression-rules-v130.js",
-    "criticalDamageMultiplier": "game/domain/combat/combat-rules-v130.js"
+    "criticalDamageMultiplier": "game/domain/combat/combat-rules-v130.js",
+    "townCheckpointPolicy": "game/domain/town/town-rules-v130.js",
+    "townReadinessPolicy": "game/domain/town/town-rules-v130.js",
+    "townSupplyPricing": "game/domain/economy/economy-rules-v130.js",
+    "tavernPricing": "game/domain/economy/economy-rules-v130.js",
+    "quickDivePricing": "game/domain/economy/economy-rules-v130.js",
+    "wheelPricing": "game/domain/economy/economy-rules-v130.js"
   },
   "plannedExtraction": {
     "combat": "game/domain/combat/",
@@ -40,9 +46,7 @@
     "renderHelpers": "game/render/",
     "persistence": "game/persistence/"
   },
-  "stagedPureLibraries": {
-    "townRules": "game/domain/town/town-rules-v130.js"
-  },
+  "stagedPureLibraries": {},
   "plannedDestinationsAreAuthorities": false,
   "stagedPureLibrariesAreAuthorities": false,
   "authorityTransferRule": "new owner takes the complete responsibility and old owner relinquishes it in the same PR",

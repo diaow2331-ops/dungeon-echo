@@ -12,8 +12,8 @@ const executableSource = source
   .replace(/\/\/.*$/gm, '');
 const rules = require(path.join(root, rel));
 
-assert.equal(rules.authority, 'equipment-transaction-pricing');
-assert.equal(rules.version, 'v1.3.0-production');
+assert.equal(rules.authority, 'economy-pricing');
+assert.equal(rules.version, 'v1.6.0-production');
 assert.deepEqual([...rules.sources], ['game/core/game.js']);
 assert(!/DE_TEST|addEventListener|getContext\s*\(|localStorage|sessionStorage|document\b|Math\.random/.test(executableSource), 'production economy pricing rules must stay pure and deterministic');
 
@@ -54,9 +54,13 @@ assert.equal(rules.forgeCost(100, 4), 630);
 assert.equal(rules.sellPrice(100, 0), 45);
 assert.equal(rules.sellPrice(100, 3), 90);
 assert.equal(rules.quickDiveCost(10, 5), 240);
-assert.equal(rules.wheelSpinCost(0), 40);
-assert.equal(rules.wheelSpinCost(3), 100);
-assert.equal(rules.wheelResetCost(0), 60);
-assert.equal(rules.wheelResetCost(2), 140);
+assert.equal(rules.tavernToastCost(0, 1), 115);
+assert.equal(rules.tavernToastCost(2, 4), 330);
+assert.equal(rules.wheelSpinCost(0, 1), 60);
+assert.equal(rules.wheelSpinCost(3, 1), 120);
+assert.equal(rules.wheelSpinCost(3, 10), 300);
+assert.equal(rules.wheelResetCost(0, 1), 105);
+assert.equal(rules.wheelResetCost(2, 1), 185);
+assert.equal(rules.wheelResetCost(2, 10), 590);
 
 console.log('economy_rules_v130=PASS');

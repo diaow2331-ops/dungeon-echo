@@ -10,10 +10,16 @@ The canonical map lives in `docs/authority-map-v130.json`.
 
 ## `core/`
 
-- `game.js` — sole owner of gameplay state, turn flow, combat, economy, progression, town behavior, dungeon/town Canvas rendering, keyboard/touch gameplay input and gameplay persistence.
+- `game.js` — sole owner of gameplay state, turn flow, combat execution, transaction commits, progression mutation, stateful town orchestration, dungeon/town Canvas rendering, keyboard/touch gameplay input and gameplay persistence.
 - `production-bootstrap.js` — pre-core storage epoch reset and production authority declaration. It must not become a gameplay system.
 - `runtime-bootstrap.js` — loads only approved DOM/CSS followers. It must not load gameplay wrappers or Canvas overlays.
 - `release-stamp-v130.js` — visible semantic release stamp only.
+
+## `domain/`
+
+Pure deterministic authorities load before core and never own live state, input, Canvas or storage.
+Current production authorities cover content classification, equipment scoring, economy pricing,
+progression arithmetic, critical-damage multiplier, and town checkpoint/readiness policy.
 
 ## `input/`
 

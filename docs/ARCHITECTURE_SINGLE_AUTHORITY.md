@@ -13,7 +13,8 @@ A feature may be split into data, rendering helpers, tests and archived prototyp
 | Gameplay state / turn flow | `game/core/game.js` | read exported test/debug state | assign state, wrap turn/combat functions |
 | Content classification | `game/domain/content/content-rules-v130.js` | supply deterministic eligibility decisions to core | spawn entities, consume RNG, mutate map/player/combat state |
 | Equipment decision scoring | `game/domain/inventory/equipment-rules-v130.js` | return canonical base-stat and class-fit scores to core for item comparison | mutate bag/equipment/player state, consume RNG, generate loot, alter affinity/rarity/depth rules, auto-equip items, or price economy transactions |
-| Equipment transaction pricing | `game/domain/economy/economy-rules-v130.js` | quote canonical forge/sell prices from supplied item value + forge level | value items, mutate gold/stock/items, commit transactions, or own town/heal/quick-dive/wheel pricing |
+| Economy pricing policy | `game/domain/economy/economy-rules-v130.js` | quote forge/sell, town supply, tavern, quick-dive and wheel costs/stock from caller-supplied values | value items, mutate gold/stock/items, commit transactions, consume RNG, render UI or write storage |
+| Town checkpoint + readiness policy | `game/domain/town/town-rules-v130.js` | classify unlocked checkpoints and expedition supply needs from caller-supplied progress/supplies | mutate town/meta state, buy supplies, select UI pages, render Canvas/DOM or write storage |
 | Level-up arithmetic | `game/domain/progression/progression-rules-v130.js` | calculate XP threshold, level deltas and talent-due classification | mutate XP/player state, open talent UI, enforce caps/clamps or activate skill-evolution milestones |
 | Critical-damage multiplier | `game/domain/combat/combat-rules-v130.js` | calculate the canonical critical damage multiplier from caller-supplied crit power | roll critical hits, mutate actors, sequence attacks, or own other combat/defense/healing arithmetic |
 | Dungeon + town Canvas rendering | `game/core/game.js` | supply static art/data | obtain production Canvas contexts, mask/redraw entities |
@@ -41,18 +42,20 @@ The repository has four states for implementation work:
 
 Quarantine is not a trash can. It is the staging area for previously completed work while ownership is repaired. A staged library is also not an authority: creating the future module directory never grants it production ownership.
 
-## Current staged domain shelves
+## Current pure domain authorities
 
-The currently staged pure libraries are registered in `docs/authority-map-v130.json` and currently include town rules only. Content classification, equipment stat scoring, equipment transaction pricing, level-up arithmetic and the critical-damage multiplier have completed their atomic authority transfers and are now active production. Remaining staged libraries must stay absent from the release allowlist and both production entries until their own transfer is deliberately performed.
+The v1.6.0 release has no staged pure library waiting to be shipped. Town checkpoint/readiness
+policy completed its atomic authority transfer and is now loaded before core. Core remains the
+sole owner of stateful town orchestration.
 
 Cross-responsibility boundaries are strict:
 
-- inventory/equipment owns canonical base-stat scoring plus class-fit scoring for player-facing comparison; class fit is read-only decision information and never enters pricing/loot/auto-equip logic; affinity, rarity and depth-bonus helpers remain dormant;
-- economy currently owns only canonical forge/sell pricing; town/heal/quick-dive/wheel helpers remain dormant until separately transferred;
-- progression currently owns only XP thresholds, level deltas and talent-due classification; caps/clamps/next-talent/skill-evolution helpers remain dormant until separately transferred;
+- inventory/equipment owns canonical base-stat scoring plus class-fit scoring for player-facing comparison; class fit is read-only decision information and never enters pricing/loot/auto-equip logic;
+- economy owns deterministic forge/sell, town supply, tavern, quick-dive and wheel pricing/stock policy; it never mutates gold, stock or items and does not own dungeon-heal behavior;
+- progression owns XP thresholds, level deltas and talent-due classification; caps/clamps/next-talent/skill-evolution helpers remain dormant;
 - content classifies floor eligibility without spawning or consuming RNG;
-- town owns checkpoint/readiness policy only;
-- combat currently owns only the canonical critical-damage multiplier; defense, grievous/healing, incoming/outgoing damage, thorns and kill-heal helpers remain dormant pure exports.
+- town domain owns checkpoint unlocks and expedition-readiness thresholds; core owns town movement, purchases, selection state, persistence and presentation;
+- combat owns the canonical critical-damage multiplier; defense, grievous/healing, incoming/outgoing damage, thorns and kill-heal helpers remain dormant pure exports.
 
 ## Restoring a quarantined feature
 

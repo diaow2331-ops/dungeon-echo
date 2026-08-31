@@ -17,3 +17,10 @@ The aggregate release layer reads component version authorities; it does not own
 The former server-side `moyu-v1230-standalone` clone was retired on 2026-08-31 after verifying its two unique-looking commits were already represented in `main`: the soundtrack patch matched commit `8e210721`, and the Moyu portion of the office-atlas patch matched commit `66ded726`. The retired clone is archival evidence, not an active development source.
 
 For a future game: create its source directory and version file, add its immutable builder/deployer/healthcheck, add one `games.json` record, run the catalog contract, then add the public-site presentation only after the playable route is live.
+## Cross-game source boundary
+
+Game source roots are isolation boundaries, not convenience folders. `moyu/` and `board-games/` may not import or reference Dungeon runtime/profile files or each other. The Dungeon artifact is defined by `ops/release/static-files.txt` and may not package another game source root.
+
+Shared runtime code is not created merely to reduce duplication. A future `shared/` module requires a separate authority decision, pure/stateless behavior unless explicitly approved, at least two real consumers, and a repository-boundary test updated in the same change. Until then, duplicate small presentation helpers are preferable to cross-game coupling.
+
+Run `bash ops/repo/check-game-boundaries.sh` before merging any change that touches game source roots, `games.json`, or release builders.
