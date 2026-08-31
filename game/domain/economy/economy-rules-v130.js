@@ -25,8 +25,14 @@
     return 1 + 0.42 * t + 0.065 * t * t;
   }
 
-  function townSupplyPrice(basePrice, tier) {
-    return round5((Number(basePrice) || 0) * townPriceScale(tier));
+  function townSupplyPrice(basePrice, tier, projectDiscount=0) {
+    const discount = clamp(Number(projectDiscount) || 0, 0, 0.15);
+    return round5((Number(basePrice) || 0) * townPriceScale(tier) * (1 - discount));
+  }
+
+  function townMarketRestockCost(tier) {
+    const t = clamp(Number(tier) || 1, 1, 10);
+    return round5(55 + t * 20);
   }
 
   function townSupplyStock(id, tier, projectBonus=0) {
@@ -68,6 +74,15 @@
     return discount > 0 ? Math.max(5, Math.round(raw * (1 - discount))) : raw;
   }
 
+  function forgeRetemperCost(itemValue, forgeLevel=0, retemperCount=0, projectDiscount=0) {
+    const value = Math.max(0, Number(itemValue) || 0);
+    const level = nonNegativeInt(forgeLevel);
+    const count = Math.min(9, nonNegativeInt(retemperCount));
+    const raw = 45 + value * 0.55 + level * 30 + count * 55;
+    const discount = clamp(Number(projectDiscount) || 0, 0, 0.25);
+    return round5(raw * (1 - discount));
+  }
+
   function sellPrice(itemValue, forgeLevel=0) {
     const value = Math.max(0, Number(itemValue) || 0);
     const level = nonNegativeInt(forgeLevel);
@@ -104,9 +119,11 @@
     townPriceScale,
     townSupplyPrice,
     townSupplyStock,
+    townMarketRestockCost,
     dungeonTier,
     dungeonHealPrice,
     forgeCost,
+    forgeRetemperCost,
     sellPrice,
     quickDiveCost,
     tavernToastCost,

@@ -42,6 +42,7 @@ const tests = [
   'monster-threat-v170.cjs',
   'named-relic-sets-v180.cjs',
   'town-growth-v180.cjs',
+  'town-services-v180.cjs',
   'town-life-v180.cjs',
   'town-residents-v180.cjs',
   'single-authority-v140.cjs',

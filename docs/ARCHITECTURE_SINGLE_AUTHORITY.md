@@ -52,13 +52,13 @@ combat execution, rewards and persistence.
 Cross-responsibility boundaries are strict:
 
 - inventory/equipment owns canonical base-stat scoring plus class-fit scoring for player-facing comparison; class fit is read-only decision information and never enters pricing/loot/auto-equip logic;
-- economy owns deterministic forge/sell, town supply, tavern, quick-dive and wheel pricing/stock policy; it never mutates gold, stock or items and does not own dungeon-heal behavior;
+- economy owns deterministic forge/sell, retemper, town supply/restock, tavern, quick-dive and wheel pricing/stock policy; it never mutates gold, stock or items and does not own dungeon-heal behavior;
 - progression owns XP thresholds, level deltas and talent-due classification; caps/clamps/next-talent/skill-evolution helpers remain dormant;
 - content classifies floor eligibility without spawning or consuming RNG;
 - town domain owns checkpoint unlocks and expedition-readiness thresholds; core owns town movement, purchases, selection state, persistence and presentation;
 - expedition domain owns deterministic contract availability/modifiers, dungeon-event specifications and elite-affix eligibility; core consumes RNG, spawns actors, mutates combat/reward state and persists the selected contract;
 - inventory set policy owns fixed named-set definitions, six-piece identities, lore, signatures, 2/4/6 threshold bonuses and bounded Relic-Hall research bias; core owns deterministic item-generation attachment, relic-ledger/focus persistence, focus selection UI, live stat consumption and town presentation;
-- town growth policy owns fixed project definitions, tier/relic/Gold requirements, bounded project-effect values, deterministic safe-return town-event selection, state-aware NPC copy and resident-roster eligibility; economy consumes smithy/market modifiers as explicit inputs while core remains the sole owner of Gold/supply mutation, resident movement/interaction, event/project/chronicle persistence, market invalidation, UI and Canvas state;
+- town growth policy owns fixed project definitions, tier/relic/Gold requirements, bounded project-effect values, qualitative service-upgrade eligibility, deterministic safe-return town-event selection, state-aware NPC copy and resident-roster eligibility; economy consumes smithy/market modifiers as explicit inputs and owns retemper/restock pricing, while core remains the sole owner of Gold/supply mutation, forge execution, tavern reward application, resident movement/interaction, event/project/chronicle persistence, market invalidation, UI and Canvas state;
 - combat owns the canonical critical-damage multiplier; live monster threat scaling, engagement strikes, defense, damage application and turn consequences remain core-owned.
 
 ## Restoring a quarantined feature

@@ -154,7 +154,7 @@ function defaultMeta(classId) {
     townChronicle: [],
     relicFocusSet: '',
     relicLedger: {}, lastReturnDepth: 0,
-    tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
+    tavernVisits: 0, tavernLastRun: -1, tavernHistory: [], tavernRewardCounts: {},
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
     bag: [], stash: [],
     bestDepth: 0, runs: 0, deaths: 0,
@@ -202,7 +202,7 @@ function sanitizeMeta(raw) {
       Number.isInteger(market.tier) && market.tier >= 1 && market.tier <= 10 &&
       marketStock && typeof marketStock === 'object' &&
       marketIds.every(id => Number.isInteger(marketStock[id]) && marketStock[id] >= 0 && marketStock[id] <= 99)) {
-    base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock } };
+    base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock }, restockUsed:market.restockUsed ? 1 : 0 };
   }
   base.contractId = EXPEDITION_RULES.normalizeContractId(raw.contractId);
   base.townWorks = TOWN_GROWTH_RULES.sanitizeLevels(raw.townWorks);
@@ -240,6 +240,14 @@ function sanitizeMeta(raw) {
   const tavernRewardIds = ['hearth', 'edge', 'fortune', 'prosperity'];
   base.tavernHistory = (Array.isArray(raw.tavernHistory) ? raw.tavernHistory : [])
     .filter(id => tavernRewardIds.includes(id)).slice(-4);
+  base.tavernRewardCounts = {};
+  for (const id of tavernRewardIds) {
+    const fromSaved = raw.tavernRewardCounts && typeof raw.tavernRewardCounts === 'object' && !Array.isArray(raw.tavernRewardCounts)
+      ? num(raw.tavernRewardCounts[id], 0) : 0;
+    const migrated = base.tavernHistory.filter(row => row === id).length;
+    const count = Math.max(fromSaved, migrated);
+    if (count > 0) base.tavernRewardCounts[id] = Math.min(99, count);
+  }
   base.totalKills = num(raw.totalKills, 0);
   base.wins = num(raw.wins, 0);
   base.wheelTotal = num(raw.wheelTotal, 0);
@@ -5495,17 +5503,18 @@ const TOWN_MARKET_IDS = Object.freeze(Object.keys(TOWN_MARKET_SUPPLIES));
 function townMarketPrice(id, tier) {
   const def = TOWN_MARKET_SUPPLIES[id];
   if (!def) return 0;
-  return ECONOMY_RULES.townSupplyPrice(def.base, tier);
+  return ECONOMY_RULES.townSupplyPrice(def.base, tier, TOWN_GROWTH_RULES.marketPriceDiscount(currentTownWorks()));
 }
 function freshTownMarket(tier = townTierForArt()) {
   const stock = {};
   const projectBonus = TOWN_GROWTH_RULES.marketStockBonus(currentTownWorks());
   for (const id of TOWN_MARKET_IDS) stock[id] = ECONOMY_RULES.townSupplyStock(id, tier, projectBonus);
-  return { v:1, cycleRun:Math.max(0, Math.floor(Number(meta && meta.runs) || 0)), tier, stock };
+  return { v:1, cycleRun:Math.max(0, Math.floor(Number(meta && meta.runs) || 0)), tier, stock, restockUsed:0 };
 }
 function validTownMarket(row) {
   return !!(row && row.v === 1 && Number.isInteger(row.cycleRun) && row.cycleRun >= 0 &&
     Number.isInteger(row.tier) && row.tier >= 1 && row.tier <= 10 && row.stock &&
+    (!('restockUsed' in row) || row.restockUsed === 0 || row.restockUsed === 1) &&
     TOWN_MARKET_IDS.every(id => Number.isInteger(row.stock[id]) && row.stock[id] >= 0 && row.stock[id] <= 99));
 }
 function ensureTownMarket() {
@@ -5518,10 +5527,57 @@ function ensureTownMarket() {
   }
   return meta.market;
 }
+function townMarketRestockCost() {
+  const market = ensureTownMarket();
+  return market ? ECONOMY_RULES.townMarketRestockCost(market.tier) : 0;
+}
+function townMarketNeedsRestock(market = ensureTownMarket()) {
+  if (!market) return false;
+  const full = freshTownMarket(market.tier).stock;
+  return TOWN_MARKET_IDS.some(id => (market.stock[id] || 0) < (full[id] || 0));
+}
+function townMarketRestockAvailable() {
+  const market = ensureTownMarket();
+  return !!(market && TOWN_GROWTH_RULES.marketRestockUnlocked(currentTownWorks()) &&
+    !market.restockUsed && townMarketNeedsRestock(market));
+}
+function restockTownMarket() {
+  if (state !== 'town' || !meta) return false;
+  if (!TOWN_GROWTH_RULES.marketRestockUnlocked(currentTownWorks())) {
+    msg(ui('先设立护商队，才有能力在同一轮远征周期内追回补给。', 'Fund Caravan Guards before recalling supplies within the same expedition cycle.'), 'bad');
+    return false;
+  }
+  const market = ensureTownMarket();
+  if (!market || market.restockUsed) {
+    msg(ui('这一轮已经召回过护商队了。', 'The guarded caravan has already been recalled this cycle.'), 'bad');
+    return false;
+  }
+  if (!townMarketNeedsRestock(market)) {
+    msg(ui('货架还是满的，现在没有必要召回商队。', 'The shelves are still full; there is no reason to recall the caravan yet.'), 'good');
+    return false;
+  }
+  const cost = townMarketRestockCost();
+  if ((meta.gold || 0) < cost) {
+    msg(ui(`召回护商队需要 ${cost} G，金库不足。`, `Recalling the guarded caravan costs ${cost} G; the vault is short.`), 'bad');
+    return false;
+  }
+  const full = freshTownMarket(market.tier).stock;
+  meta.gold -= cost;
+  for (const id of TOWN_MARKET_IDS) market.stock[id] = full[id];
+  market.restockUsed = 1;
+  saveMeta();
+  sfx.shop();
+  msg(ui(`护商队赶在城门关闭前补满了货架，花费 ${cost} G。`, `The guarded caravan refilled the shelves before the gate closed for ${cost} G.`), 'gold');
+  renderTown();
+  return true;
+}
+
 function townReadinessPlan() {
   const market = ensureTownMarket();
   if (!meta || !market) return { rows:[], total:0, ready:false, available:false, affordable:false };
-  const need = TOWN_RULES.expeditionSupplyNeeds(meta);
+  const need = { ...TOWN_RULES.expeditionSupplyNeeds(meta) };
+  const keyTarget = TOWN_GROWTH_RULES.marketReadinessKeyTarget(currentTownWorks());
+  if (keyTarget > 0) need.key = Math.max(0, keyTarget - Math.max(0, Number(meta.keys) || 0));
   const rows = Object.entries(need).filter(([, count]) => count > 0).map(([id, count]) => ({
     id, count, price:townMarketPrice(id, market.tier),
     available:(market.stock[id] || 0) >= count,
@@ -5546,7 +5602,10 @@ function buyTownReadiness() {
     for (let i = 0; i < row.count; i++) TOWN_MARKET_SUPPLIES[row.id].apply(meta);
   }
   sfx.shop();
-  msg(ui(`军需清单已补齐：2 瓶药水、1 张回城卷轴（${plan.total} G）。`, `Quartermaster kit complete: 2 Potions and 1 Return Scroll (${plan.total} G).`), 'gold');
+  const keyTarget = TOWN_GROWTH_RULES.marketReadinessKeyTarget(currentTownWorks());
+  const kitTextZh = keyTarget > 0 ? '2 瓶药水、1 张回城卷轴、至少 1 把钥匙' : '2 瓶药水、1 张回城卷轴';
+  const kitTextEn = keyTarget > 0 ? '2 Potions, 1 Return Scroll, and at least 1 Key' : '2 Potions and 1 Return Scroll';
+  msg(ui(`军需清单已补齐：${kitTextZh}（${plan.total} G）。`, `Quartermaster kit complete: ${kitTextEn} (${plan.total} G).`), 'gold');
   saveMeta(); renderTown();
   return true;
 }
@@ -5556,7 +5615,7 @@ function buyTownReadiness() {
 const tavernMaxToasts = () => TOWN_GROWTH_RULES.tavernToastCap(currentTownWorks());
 const TAVERN_REWARDS = Object.freeze([
   { id:'hearth', weight:50, zh:'炉火麦酒', en:'Hearth Ale', zhEffect:'生命上限永久 +2', enEffect:'Permanent Max HP +2', apply:m => { m.hpBase += 2; } },
-  { id:'edge', weight:10, zh:'猎人烈酒', en:"Hunter's Spirit", zhEffect:'基础攻击永久 +1', enEffect:'Permanent Base ATK +1', apply:m => { m.atkBase += 1; } },
+  { id:'edge', weight:10, cap:2, zh:'猎人烈酒', en:"Hunter's Spirit", zhEffect:'基础攻击永久 +1（最多 2 次）', enEffect:'Permanent Base ATK +1 (max 2)', apply:m => { m.atkBase += 1; } },
   { id:'fortune', weight:25, zh:'幸运苹果酒', en:'Lucky Cider', zhEffect:'暴击率永久 +1%', enEffect:'Permanent Crit +1%', apply:m => { m.critBase += 1; } },
   { id:'prosperity', weight:15, zh:'商路黑啤', en:'Caravan Stout', zhEffect:'金币获取永久 +1%', enEffect:'Permanent Gold Find +1%', apply:m => { m.goldFind += 1; } },
 ]);
@@ -5564,11 +5623,25 @@ function tavernCost() {
   return ECONOMY_RULES.tavernToastCost(meta && meta.tavernVisits, townTierForArt());
 }
 function tavernRewardById(id) { return TAVERN_REWARDS.find(row => row.id === id) || null; }
+function tavernRewardCount(id) { return meta && meta.tavernRewardCounts ? Math.max(0, Number(meta.tavernRewardCounts[id]) || 0) : 0; }
+function tavernRewardAvailable(row) { return !!(row && (!row.cap || tavernRewardCount(row.id) < row.cap)); }
+const tavernChoiceCount = () => TOWN_GROWTH_RULES.tavernChoiceCount(currentTownWorks());
+function tavernOfferChoices() {
+  const count = Math.max(1, Math.min(TAVERN_REWARDS.length, tavernChoiceCount()));
+  if (count <= 1) return [];
+  const pool = TAVERN_REWARDS.filter(tavernRewardAvailable);
+  if (!pool.length) return [];
+  const seed = Math.max(0, Math.floor(Number(meta && meta.runs) || 0)) +
+    Math.max(0, Math.floor(Number(meta && meta.tavernVisits) || 0)) * 3;
+  const start = seed % pool.length;
+  return Array.from({length:Math.min(count,pool.length)}, (_,i) => pool[(start + i) % pool.length]);
+}
+
 function tavernAvailable() {
   if (!meta || (meta.tavernVisits || 0) >= tavernMaxToasts()) return false;
   return (meta.tavernLastRun ?? -1) < (meta.runs || 0);
 }
-function drinkAtTavern() {
+function drinkAtTavern(rewardId = '') {
   if (state !== 'town' || !meta) return false;
   if ((meta.tavernVisits || 0) >= tavernMaxToasts()) {
     msg(ui('酒馆老板摇头：你的回响已经足够浓烈了。', 'The innkeeper shakes his head: your echo is strong enough already.'), 'gold');
@@ -5583,15 +5656,29 @@ function drinkAtTavern() {
     msg(ui(`酒钱需要 ${cost} G，金库还不够。`, `The toast costs ${cost} G; the vault is short.`), 'bad');
     return false;
   }
-  const total = TAVERN_REWARDS.reduce((sum, row) => sum + row.weight, 0);
-  let roll = rng() * total;
-  let reward = TAVERN_REWARDS[0];
-  for (const row of TAVERN_REWARDS) { roll -= row.weight; if (roll <= 0) { reward = row; break; } }
+  const choices = tavernOfferChoices();
+  if (choices.length && !rewardId) {
+    msg(ui('酒馆已经能让你选酒了——从本次酒单里挑一杯。', 'The tavern now lets you choose—pick one drink from the current list.'), 'good');
+    return false;
+  }
+  let reward = rewardId ? choices.find(row => row.id === rewardId) : null;
+  if (rewardId && !reward) {
+    msg(ui('这杯酒不在本次酒单里，或者这种回响已经达到上限。', 'That drink is not on the current list, or its echo has reached its cap.'), 'bad');
+    return false;
+  }
+  if (!reward) {
+    const pool = TAVERN_REWARDS.filter(tavernRewardAvailable);
+    const total = pool.reduce((sum, row) => sum + row.weight, 0);
+    let roll = rng() * total;
+    reward = pool[0];
+    for (const row of pool) { roll -= row.weight; if (roll <= 0) { reward = row; break; } }
+  }
   meta.gold -= cost;
   reward.apply(meta);
   meta.tavernVisits = (meta.tavernVisits || 0) + 1;
   meta.tavernLastRun = Math.max(0, Math.floor(Number(meta.runs) || 0));
   meta.tavernHistory = [...(meta.tavernHistory || []), reward.id].slice(-4);
+  meta.tavernRewardCounts = { ...(meta.tavernRewardCounts || {}), [reward.id]:tavernRewardCount(reward.id) + 1 };
   saveMeta();
   sfx.levelup();
   msg(ui(`你举杯喝下【${reward.zh}】：${reward.zhEffect}。`, `You raise [${reward.en}]: ${reward.enEffect}.`), 'gold');
@@ -6606,6 +6693,7 @@ function ensureTownLoop() {
 
 
 let activeRefineItem = null;
+let activeRefineMode = 'refine';
 function refinePathLabel(path) {
   if (!path) return '';
   return LOCALE_DATA && typeof LOCALE_DATA.refineName === 'function'
@@ -6616,35 +6704,124 @@ function refineStatText(stats) {
     LOCALE_DATA && typeof LOCALE_DATA.affixText === 'function'
       ? LOCALE_DATA.affixText(key, value) : `${key} +${value}`).join(' · ');
 }
+function removeForgeStats(item, stats) {
+  if (!item || !stats) return;
+  item.stats = item.stats || {};
+  for (const [key, value] of Object.entries(stats)) {
+    item.stats[key] = (Number(item.stats[key]) || 0) - Number(value || 0);
+    if (Math.abs(item.stats[key]) < 0.0001) delete item.stats[key];
+  }
+  item.score = eqScoreOf(item.stats);
+}
+function smithyCanRefine(item) {
+  return !!(item && (Number(item.forge) || 0) >= 3 && !item.refinePath);
+}
+function smithyCanRetemper(item) {
+  const works = currentTownWorks();
+  const current = forgeRefinementPath(item);
+  return !!(item && current && TOWN_GROWTH_RULES.smithyRetemperUnlocked(works) &&
+    (!item.masterworked || TOWN_GROWTH_RULES.smithyMasterRetemperUnlocked(works)) &&
+    (FORGE_REFINEMENT_PATHS[item.slot] || []).some(row => row.id !== current.id));
+}
+function smithyCanMasterwork(item) {
+  return !!(item && (Number(item.forge) || 0) >= FORGE_MAX && item.refinePath && !item.masterworked);
+}
+function forgeRetemperCost(item) {
+  return ECONOMY_RULES.forgeRetemperCost(
+    itemValueScore(item), item && item.forge, item && item.retemperCount,
+    TOWN_GROWTH_RULES.forgeDiscount(currentTownWorks()));
+}
 function pendingRefineItem() {
   if (!meta) return null;
   return [...(meta.bag || []), ...(meta.stash || [])].find(it => it && it.refinePending && !it.refinePath) || null;
 }
-function openForgeRefinement(item) {
-  if (state !== 'town' || !item || !item.refinePending || item.refinePath) return;
-  const rows = FORGE_REFINEMENT_PATHS[item.slot] || [];
-  if (!rows.length) { item.refinePending = false; return; }
+function openForgeRefinement(item, mode = 'refine') {
+  if (state !== 'town' || !item) return false;
+  const retemper = mode === 'retemper';
+  if (retemper ? !smithyCanRetemper(item) : !smithyCanRefine(item)) return false;
+  let rows = FORGE_REFINEMENT_PATHS[item.slot] || [];
+  if (retemper) rows = rows.filter(row => row.id !== item.refinePath);
+  if (!rows.length) return false;
   activeRefineItem = item;
+  activeRefineMode = retemper ? 'retemper' : 'refine';
   const title = $('refine-title'), copy = $('refine-copy'), grid = $('refine-grid');
-  if (title) title.textContent = ui(`+3 精炼：为【${visibleItemName(item)}】定一个方向`, `+3 Refinement: choose a path for [${visibleItemName(item)}]`);
-  if (copy) copy.textContent = ui('精炼不会失败，也不会毁坏装备。这个选择会在 +5 时自动继续淬炼强化。', 'Refinement cannot fail or destroy the item. Your choice receives a second automatic upgrade at +5.');
-  if (grid) grid.innerHTML = rows.map(path => `<button type="button" class="refine-choice" data-refine="${path.id}"><b>${esc(refinePathLabel(path))} · ${esc(refineStatText(path.refine))}</b><small>${esc(ui(path.zhDesc, path.enDesc))}</small></button>`).join('');
+  if (title) title.textContent = retemper
+    ? ui(`重淬：【${visibleItemName(item)}】重新选择精炼路线`, `Retemper [${visibleItemName(item)}]: choose a new refinement path`)
+    : ui(`+3 精炼：为【${visibleItemName(item)}】定一个方向`, `+3 Refinement: choose a path for [${visibleItemName(item)}]`);
+  if (copy) copy.textContent = retemper
+    ? ui(`淬火槽允许保留强化等级并改换路线，本次重淬需 ${forgeRetemperCost(item)} G；主炉重铸后，大师淬炼装备也可安全改换路线。`, `The quench trough preserves forge level while changing path. This retemper costs ${forgeRetemperCost(item)} G; after the main furnace is rebuilt, masterworked gear can be safely retempered too.`)
+    : ui('精炼不会失败，也不会毁坏装备；选定路线后，装备到 +5 时会自动完成该路线的大师淬炼。', 'Refinement cannot fail or destroy the item; once a path is chosen, +5 automatically completes that path masterwork.');
+  if (grid) grid.innerHTML = rows.map(path => `<button type="button" class="refine-choice" data-refine="${path.id}"><b>${esc(refinePathLabel(path))} · ${esc(refineStatText(path.refine))}</b><small>${esc(ui(path.zhDesc, path.enDesc))}</small></button>`).join('') +
+    (retemper ? `<button type="button" class="refine-choice refine-cancel" data-refinecancel="1"><b>${ui('暂不重淬','Cancel Retemper')}</b><small>${ui('保留当前精炼路线，不花费金币。','Keep the current refinement path and spend no Gold.')}</small></button>` : '');
   showUi('refine-screen');
+  return true;
+}
+function closeForgeRetemper() {
+  if (activeRefineMode !== 'retemper') return false;
+  activeRefineItem = null;
+  activeRefineMode = 'refine';
+  hideUi('refine-screen');
+  return true;
+}
+function startForgeRefinement(item) {
+  if (!smithyCanRefine(item)) return false;
+  item.refinePending = true;
+  item.refineVersion = 1;
+  saveMeta();
+  return openForgeRefinement(item, 'refine');
 }
 function chooseForgeRefinement(pathId) {
   const item = activeRefineItem;
-  if (!item || !item.refinePending || item.refinePath) return;
+  if (!item) return;
   const path = (FORGE_REFINEMENT_PATHS[item.slot] || []).find(row => row.id === pathId);
   if (!path) return;
+  if (activeRefineMode === 'retemper') {
+    if (!smithyCanRetemper(item) || path.id === item.refinePath) return;
+    const cost = forgeRetemperCost(item);
+    if ((meta.gold || 0) < cost) {
+      msg(ui(`重淬需要 ${cost} G，金库不足。`, `Retempering costs ${cost} G; the vault is short.`), 'bad');
+      return;
+    }
+    const oldPath = forgeRefinementPath(item);
+    if (!oldPath) return;
+    meta.gold -= cost;
+    removeForgeStats(item, oldPath.refine);
+    if (item.masterworked) removeForgeStats(item, oldPath.master);
+    item.refinePath = path.id;
+    addForgeStats(item, path.refine);
+    if (item.masterworked) addForgeStats(item, path.master);
+    item.retemperCount = Math.min(9, Math.max(0, Number(item.retemperCount) || 0) + 1);
+    activeRefineItem = null;
+    activeRefineMode = 'refine';
+    hideUi('refine-screen');
+    sfx.levelup();
+    msg(ui(`重淬完成：【${visibleItemName(item)}】改为${refinePathLabel(path)}，花费 ${cost} G。`, `Retemper complete: [${visibleItemName(item)}] now follows ${refinePathLabel(path)} for ${cost} G.`), 'epic');
+    saveMeta(); renderTown();
+    return;
+  }
+  if (!item.refinePending || item.refinePath || !smithyCanRefine(item)) return;
   item.refinePath = path.id;
   item.refineVersion = 1;
   item.refinePending = false;
   addForgeStats(item, path.refine);
+  const masterPath = smithyCanMasterwork(item) ? applyForgeMasterwork(item) : null;
   activeRefineItem = null;
+  activeRefineMode = 'refine';
   hideUi('refine-screen');
   sfx.levelup();
-  msg(ui(`精炼完成：【${visibleItemName(item)}】获得 ${refineStatText(path.refine)}。`, `Refinement complete: [${visibleItemName(item)}] gained ${refineStatText(path.refine)}.`), 'epic');
+  const masterText = masterPath ? ui(' · 大师淬炼同时完成', ' · masterwork completed at the same time') : '';
+  msg(ui(`精炼完成：【${visibleItemName(item)}】获得 ${refineStatText(path.refine)}${masterText}。`, `Refinement complete: [${visibleItemName(item)}] gained ${refineStatText(path.refine)}${masterText}.`), 'epic');
   saveMeta(); renderTown();
+}
+function completeForgeMasterwork(item) {
+  if (!smithyCanMasterwork(item)) return false;
+  const path = applyForgeMasterwork(item);
+  if (!path) return false;
+  saveMeta();
+  sfx.levelup();
+  msg(ui(`大师淬炼完成：【${visibleItemName(item)}】获得 ${refineStatText(path.master)}。`, `Masterwork complete: [${visibleItemName(item)}] gained ${refineStatText(path.master)}.`), 'epic');
+  renderTown();
+  return true;
 }
 
 
@@ -6694,6 +6871,15 @@ function townChronicleHtml() {
 }
 function townProjectContext() {
   return { tier:townTierForArt(), gold:meta ? (meta.gold || 0) : 0, relics:relicLedgerCount() };
+}
+function townServiceStageHtml(projectId, lockedZh, lockedEn) {
+  const row = TOWN_GROWTH_RULES.project(projectId);
+  if (!row) return '';
+  const level = TOWN_GROWTH_RULES.level(currentTownWorks(), projectId);
+  const effect = TOWN_GROWTH_RULES.currentEffect(currentTownWorks(), projectId);
+  const title = level > 0 ? ui(effect.zh,effect.en) : ui(lockedZh,lockedEn);
+  const detail = level > 0 ? ui(effect.effectZh,effect.effectEn) : ui('尚未扩建 · 基础服务仍可使用','Not yet expanded · basic service remains available');
+  return `<div class="town-service-stage${level ? ' built' : ' locked'}"><b>${esc(ui(row.zh,row.en))} · Lv ${level}/3</b><span>${esc(title)}</span><small>${esc(detail)}</small></div>`;
 }
 function upgradeTownWork(id) {
   if (state !== 'town' || !meta) return false;
@@ -6813,7 +6999,11 @@ function resolveTownEvent() {
   if (offer.cost) meta.gold -= offer.cost;
   const effect = offer.effect || {};
   if (effect.gold) meta.gold += Math.max(0, Number(effect.gold) || 0);
-  if (effect.marketRestock) meta.market = freshTownMarket(townTierForArt());
+  if (effect.marketRestock) {
+    const serviceRestockUsed = meta.market && meta.market.restockUsed ? 1 : 0;
+    meta.market = freshTownMarket(townTierForArt());
+    meta.market.restockUsed = serviceRestockUsed;
+  }
   if (effect.escapes) meta.escapes = (meta.escapes || 0) + Math.max(0, Number(effect.escapes) || 0);
   if (effect.keys) meta.keys = (meta.keys || 0) + Math.max(0, Number(effect.keys) || 0);
   recordTownChronicle({ kind:'event', id:offer.id });
@@ -6865,7 +7055,7 @@ function renderTownRelics() {
   const research = hallLevel > 0
     ? `<div class="relic-research"><div><b>${ui('线索追查','Research Focus')}</b><span>${focusSet ? ui(`当前追查：${focusSet.zh} · 具名遗物偏向约 ${focusPct}%`, `Tracking: ${focusSet.en} · about ${focusPct}% of eligible named relics favor it`) : ui(`可指定一套进行追查 · 当前偏向强度 ${focusPct}%`, `Choose one set to track · current focus strength ${focusPct}%`)}</span></div>${focusSet ? `<button type="button" data-relicfocus="">${ui('取消追查','Clear Focus')}</button>` : ''}</div>`
     : `<div class="relic-research locked"><div><b>${ui('线索追查未开放','Research Focus Locked')}</b><span>${ui('完成“整理旧展柜”后，可让遗物馆定向追查某一套六件遗物。','Complete “Restore the Old Cases” to let the Relic Hall track one six-piece set.')}</span></div></div>`;
-  host.innerHTML =
+  host.innerHTML = townServiceStageHtml('relics','临时木架','Temporary Shelves') +
     `<div class="relic-summary"><b>${ui('馆藏进度','Archive Progress')} ${totalFound}/${totalPieces}</b><span>${ui('只有安全带回小镇的具名遗物才会永久留下记录。','Only named relics safely returned to town are permanently catalogued.')}</span></div>` + research +
     SET_RULES.SETS.map(set => {
       const progress = SET_RULES.collectionProgress(ledger, set.id);
@@ -6908,14 +7098,17 @@ function renderTown() {
       : ui(`再征服第 ${tier * 10} 层守卫，进入阶段 ${tier + 1}`, `Defeat the Floor ${tier * 10} guardian to reach Tier ${tier + 1}`);
     const readiness = townReadinessPlan();
     const ready = readiness.ready;
-    const kitActionLabel = !readiness.available
-      ? ui('本轮库存不足', 'Market Stock Short')
-      : !readiness.affordable
-        ? ui(`还差 ${Math.max(0, readiness.total - (meta.gold || 0))} G`, `Need ${Math.max(0, readiness.total - (meta.gold || 0))} G More`)
-        : ui(`一键补齐 ${readiness.total} G`, `Complete Kit ${readiness.total} G`);
+    const quickReadyUnlocked = TOWN_GROWTH_RULES.marketReadinessUnlocked(currentTownWorks());
+    const kitActionLabel = !quickReadyUnlocked
+      ? ui('修整驿道后开放一键整备','One-click kit unlocks after road repair')
+      : !readiness.available
+        ? ui('本轮库存不足', 'Market Stock Short')
+        : !readiness.affordable
+          ? ui(`还差 ${Math.max(0, readiness.total - (meta.gold || 0))} G`, `Need ${Math.max(0, readiness.total - (meta.gold || 0))} G More`)
+          : ui(`一键补齐 ${readiness.total} G`, `Complete Kit ${readiness.total} G`);
     const kitButton = ready
       ? `<button type="button" class="town-ready-action" disabled>${ui('基础补给齐备','Core Kit Ready')}</button>`
-      : `<button type="button" class="town-ready-action" data-townready="1"${(!readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
+      : `<button type="button" class="town-ready-action" data-townready="1"${(!quickReadyUnlocked || !readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
     const relicFound = Object.keys(meta.relicLedger || {}).filter(k => meta.relicLedger[k]).length;
     const completedSets = completedRelicSetCount(meta.relicLedger || {});
     const checkpointCount = unlockedTownCheckpoints().length;
@@ -6961,9 +7154,17 @@ function renderTown() {
       ? ui('先完成 +3 精炼，再继续强化。', 'Complete the +3 refinement before forging further.')
       : maxed ? ui('已至 +5 极致','Maxed at +5')
       : ui(`强化到 +${(it.forge || 0) + 1}，需 ${fc} G`, `Forge to +${(it.forge || 0) + 1} for ${fc} G`);
+    const refineAction = smithyCanRefine(it)
+      ? `<button type="button" data-refineitem="${where}:${i}">${ui('+3 精炼','Refine')}</button>` : '';
+    const retemperCost = smithyCanRetemper(it) ? forgeRetemperCost(it) : 0;
+    const retemperAction = retemperCost
+      ? `<button type="button" data-retemper="${where}:${i}"${meta.gold < retemperCost ? ' disabled' : ''} title="${ui(`保留强化等级并改换精炼路线，${retemperCost} G`, `Keep forge level and change refinement path for ${retemperCost} G`)}">${ui(`重淬 ${retemperCost}G`,`Retemper ${retemperCost}G`)}</button>` : '';
+    const masterAction = smithyCanMasterwork(it)
+      ? `<button type="button" data-masterwork="${where}:${i}">${ui('大师淬炼','Masterwork')}</button>` : '';
     return `<span class="row-actions">` +
       `<button type="button" data-forge="${where}:${i}"${forgeDisabled ? ' disabled' : ''}` +
       ` title="${forgeTitle}">${pendingRefine ? ui('待精炼','Refine') : ui('强化','Forge')}</button>` +
+      refineAction + retemperAction + masterAction +
       `<button type="button" data-sell="${where}:${i}" title="${ui(`出售得 ${sellPrice(it)} G`, `Sell for ${sellPrice(it)} G`)}">${ui(`卖 ${sellPrice(it)}G`, `Sell ${sellPrice(it)}G`)}</button>` +
       `</span>`;
   };
@@ -6978,23 +7179,38 @@ function renderTown() {
       ? `<div class="town-row"><span></span><span class="row-actions"><button type="button" data-depositall="1">${ui('全部存入仓库','Store All')}</button></span></div>`
       : '');
   const stashEl = $('town-stash');
-  if (stashEl) stashEl.innerHTML = meta.stash.length
+  if (stashEl) stashEl.innerHTML = townServiceStageHtml('smithy','破旧铁砧','Old Anvil') + (meta.stash.length
     ? meta.stash.map((it, i) =>
       `<div class="town-row"><span>${itemTag(it)}</span>` +
       `<span class="row-actions"><button type="button" data-withdraw="${i}"${meta.bag.length >= BAG_CAP ? ' disabled' : ''}>${ui('取出','Withdraw')}</button>${tradeBtns('stash', i, it)}</span></div>`).join('')
-    : `<p class="dim-note">${ui('仓库是空的。把装备「存入」这里，死亡也夺不走。','The stash is empty. Store gear here to keep it safe from death.')}</p>`;
+    : `<p class="dim-note">${ui('仓库是空的。把装备「存入」这里，死亡也夺不走。','The stash is empty. Store gear here to keep it safe from death.')}</p>`);
   const shopEl = $('town-shop');
   if (shopEl) {
     const market = ensureTownMarket();
-    shopEl.innerHTML = market ? TOWN_MARKET_IDS.map(id => {
-      const def = TOWN_MARKET_SUPPLIES[id];
-      const price = townMarketPrice(id, market.tier);
-      const left = market.stock[id] || 0;
-      const held = def.held(meta);
-      const label = ui(def.zh, def.en);
-      return `<div class="shop-row" data-town-supply="${id}"><span>${esc(label)} ×1 <small>${ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`)}</small></span>` +
-        `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
-    }).join('') + `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>` : '';
+    if (market) {
+      const marketLevel = townWorkLevel('market');
+      const discountPct = Math.round(TOWN_GROWTH_RULES.marketPriceDiscount(currentTownWorks()) * 100);
+      const restockCost = townMarketRestockCost();
+      const restockUnlocked = TOWN_GROWTH_RULES.marketRestockUnlocked(currentTownWorks());
+      const restockAvailable = townMarketRestockAvailable();
+      const restockLabel = !restockUnlocked ? ui('设立护商队后开放补货','Restock unlocks with Caravan Guards')
+        : market.restockUsed ? ui('本轮护商队已召回','Caravan recall used this cycle')
+        : !townMarketNeedsRestock(market) ? ui('当前货架已满','Shelves are currently full')
+        : ui(`召回护商队 ${restockCost} G`,`Recall Caravan ${restockCost} G`);
+      shopEl.innerHTML = townServiceStageHtml('market','泥泞东门路','Muddy East Road') +
+        (discountPct ? `<div class="market-night-note">${ui(`夜市议价生效 · 全部补给 -${discountPct}%`,`Night Market pricing active · all supplies -${discountPct}%`)}</div>` : '') +
+        TOWN_MARKET_IDS.map(id => {
+          const def = TOWN_MARKET_SUPPLIES[id];
+          const price = townMarketPrice(id, market.tier);
+          const left = market.stock[id] || 0;
+          const held = def.held(meta);
+          const label = ui(def.zh, def.en);
+          return `<div class="shop-row" data-town-supply="${id}"><span>${esc(label)} ×1 <small>${ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`)}</small></span>` +
+            `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
+        }).join('') +
+        `<div class="market-service-row"><span>${ui(`商道服务 · Lv ${marketLevel}/3`,`Trade-road service · Lv ${marketLevel}/3`)}</span><button type="button" data-townrestock="1"${(!restockAvailable || meta.gold < restockCost) ? ' disabled' : ''}>${esc(restockLabel)}</button></div>` +
+        `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>`;
+    } else shopEl.innerHTML = '';
   }
   const tavernEl = $('town-tavern');
   if (tavernEl) {
@@ -7007,12 +7223,19 @@ function renderTown() {
     const historyText = history.length
       ? history.map(row => ui(row.zhEffect, row.enEffect)).join(' · ')
       : ui('尚未留下酒馆回响', 'No tavern echoes yet');
-    tavernEl.innerHTML =
-      `<div class="tavern-offer"><b>${ui('回响祝酒','Echo Toast')}</b><span>${ui(`每次远征归来限一杯 · 当前上限 ${toastCap} 杯`, `One after each expedition · current cap ${toastCap}`)}</span></div>` +
-      `<p class="dim-note">${ui('不是免费刷属性：酒价递增、结果随机、攻击成长低权重，并有永久硬上限。','Not a free stat farm: rising price, random result, low-weight ATK, and a permanent hard cap.')}</p>` +
-      `<div class="tavern-history"><small>${ui(`已饮 ${visits}/${toastCap}`, `Toasts ${visits}/${toastCap}`)}</small><span>${esc(historyText)}</span></div>` +
-      `<button type="button" class="tavern-drink" data-taverndrink="1"${(!available || meta.gold < cost) ? ' disabled' : ''}>` +
-      `${complete ? ui('回响已满','Echo Complete') : available ? ui(`举杯 ${cost} G`,`Raise a Toast ${cost} G`) : ui('完成下一次远征后再来','Return from another expedition')}</button>`;
+    const choiceCount = tavernChoiceCount();
+    const choices = tavernOfferChoices();
+    const offerButtons = complete
+      ? `<button type="button" class="tavern-drink" disabled>${ui('回响已满','Echo Complete')}</button>`
+      : !available
+        ? `<button type="button" class="tavern-drink" disabled>${ui('完成下一次远征后再来','Return from another expedition')}</button>`
+        : choiceCount > 1
+          ? `<div class="tavern-choice-grid">${choices.map(row => `<button type="button" class="tavern-drink" data-taverndrink="${row.id}"${meta.gold < cost ? ' disabled' : ''}><b>${esc(ui(row.zh,row.en))}</b><small>${esc(ui(row.zhEffect,row.enEffect))}</small><em>${cost} G</em></button>`).join('')}</div>`
+          : `<button type="button" class="tavern-drink" data-taverndrink=""${meta.gold < cost ? ' disabled' : ''}>${ui(`随机举杯 ${cost} G`,`Random Toast ${cost} G`)}</button>`;
+    tavernEl.innerHTML = townServiceStageHtml('tavern','旧吧台','Old Taproom') +
+      `<div class="tavern-offer"><b>${ui('回响祝酒','Echo Toast')}</b><span>${ui(`每次远征归来限一杯 · 当前上限 ${toastCap} 杯 · 酒单 ${choiceCount} 选 1`, `One after each expedition · current cap ${toastCap} · choose 1 of ${choiceCount}`)}</span></div>` +
+      `<p class="dim-note">${choiceCount > 1 ? ui('酒馆扩建后，回响不再完全交给随机：从本次酒单里选一杯。','After expansion, the Echo is no longer fully random: choose one drink from the current list.') : ui('旧酒馆只能随机上一杯；扩建后会逐步开放可选酒单。','The old tavern serves a random toast; expansions gradually unlock a choice menu.')}</p>` +
+      `<div class="tavern-history"><small>${ui(`已饮 ${visits}/${toastCap}`, `Toasts ${visits}/${toastCap}`)}</small><span>${esc(historyText)}</span></div>` + offerButtons;
   }
   const wheelEl = $('town-wheel');
   if (wheelEl) {
@@ -7092,7 +7315,7 @@ function forgeItem(where, i) {
   const masterPath = it.forge === 5 ? applyForgeMasterwork(it) : null;
   sfx.levelup();
   const finish = masterPath
-    ? ui(` · ${refinePathLabel(masterPath)}淬炼完成`, ` · ${refinePathLabel(masterPath)} Masterwork completed`)
+    ? ui(` · ${refinePathLabel(masterPath)}大师淬炼完成`, ` · ${refinePathLabel(masterPath)} Masterwork completed`)
     : it.refinePending ? ui(' · 等待 +3 精炼选择', ' · +3 refinement choice ready') : '';
   msg(ui(`锻造成功！【${visibleItemName(it)}】强化至 +${it.forge}，花费 ${cost} G${finish}。`, `Forge success! [${visibleItemName(it)}] reached +${it.forge} for ${cost} G${finish}.`), 'epic');
   saveMeta(); renderTown();
@@ -7529,10 +7752,12 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (wth) { ensureAudio(); withdrawStash(+wth.dataset.withdraw); return; }
   const buy = e.target.closest('[data-townbuy]');
   if (buy) { ensureAudio(); buyTown(buy.dataset.townbuy); return; }
+  const restock = e.target.closest('[data-townrestock]');
+  if (restock) { ensureAudio(); restockTownMarket(); return; }
   const ready = e.target.closest('[data-townready]');
   if (ready) { ensureAudio(); buyTownReadiness(); return; }
   const toast = e.target.closest('[data-taverndrink]');
-  if (toast) { ensureAudio(); drinkAtTavern(); return; }
+  if (toast) { ensureAudio(); drinkAtTavern(toast.dataset.taverndrink || ''); return; }
   const wsp = e.target.closest('[data-wheelspin]');
   if (wsp) { ensureAudio(); spinWheel(); return; }
   const wrs = e.target.closest('[data-wheelreset]');
@@ -7542,6 +7767,30 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
     ensureAudio();
     const [w, i] = sel.dataset.sell.split(':');
     sellItem(w, +i);
+    return;
+  }
+  const refineItem = e.target.closest('[data-refineitem]');
+  if (refineItem) {
+    ensureAudio();
+    const [w, i] = refineItem.dataset.refineitem.split(':');
+    const item = (w === 'stash' ? meta.stash : meta.bag)[+i];
+    if (item) startForgeRefinement(item);
+    return;
+  }
+  const retemper = e.target.closest('[data-retemper]');
+  if (retemper) {
+    ensureAudio();
+    const [w, i] = retemper.dataset.retemper.split(':');
+    const item = (w === 'stash' ? meta.stash : meta.bag)[+i];
+    if (item) openForgeRefinement(item, 'retemper');
+    return;
+  }
+  const masterwork = e.target.closest('[data-masterwork]');
+  if (masterwork) {
+    ensureAudio();
+    const [w, i] = masterwork.dataset.masterwork.split(':');
+    const item = (w === 'stash' ? meta.stash : meta.bag)[+i];
+    if (item) completeForgeMasterwork(item);
     return;
   }
   const forg = e.target.closest('[data-forge]');
@@ -7608,6 +7857,8 @@ if ($('talent-grid')) $('talent-grid').addEventListener('click', e => {
   pickTalent(btn.dataset.talent);
 });
 if ($('refine-grid')) $('refine-grid').addEventListener('click', e => {
+  const cancel = e.target.closest('[data-refinecancel]');
+  if (cancel) { ensureAudio(); closeForgeRetemper(); return; }
   const btn = e.target.closest('[data-refine]');
   if (!btn) return;
   ensureAudio();

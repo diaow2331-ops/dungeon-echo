@@ -5,10 +5,10 @@ Make returning to town materially meaningful and make equipment feel like author
 
 ## Pillar 1 — Persistent town construction
 The plaza now exposes four bounded three-stage projects:
-- **Rekindled Smithy** — reduces forge cost by 5% / 10% / 15%.
-- **East-Gate Trade Road** — adds +1 / +2 / +3 stock to each town supply line.
-- **Relic Hall Expansion** — adds +3% / +6% / +9% Epic/Legendary named-relic discovery chance; later stages require catalogue progress as well as Gold.
-- **Ember Tavern** — expands the per-character permanent toast cap from 8 to 9 / 10 / 11.
+- **Rekindled Smithy** — reduces forge cost by 5% / 10% / 15%; Lv2 adds paid route retempering, while Lv3 lets already-masterworked gear retain masterwork through a retemper. Existing +3 refinement / +5 masterwork remain baseline services for save compatibility.
+- **East-Gate Trade Road** — adds +1 / +2 / +3 stock to each town supply line; Lv1 upgrades the one-click kit to top up a Key, Lv2 adds one guarded-caravan restock per expedition cycle, and Lv3 applies an 8% supply-price discount.
+- **Relic Hall Expansion** — adds +3% / +6% / +9% Epic/Legendary named-relic discovery chance; later stages require catalogue progress and raise research bias to 50% / 65% / 80%.
+- **Ember Tavern** — expands the per-character permanent toast cap from 8 to 9 / 10 / 11 and changes the post-expedition service from one random drink into 2-way / 3-way / 4-way choice.
 
 Projects are gated by town tier and Gold. Their levels persist in the existing v130 Greedy meta record and are clamped by the pure town-growth policy on load.
 
@@ -31,6 +31,9 @@ The plaza also keeps a bounded **Recent Town Chronicle**. Safe returns, project 
 
 ## Pillar 5 — Residents, not scenery
 The background population is promoted into a deterministic resident roster. Provisioners, an apothecary apprentice, town watch, expedition scout, portal technician and resident alchemist appear only when town tier and relevant construction justify them. They are real walkable/clickable interaction targets with state-aware dialogue; pending caravan/scout events change the lines of the people involved. Decorative duplicates remain limited to non-interactive crowd dressing.
+
+## Pillar 6 — Buildings change what services can do
+Construction is not allowed to collapse into passive percentage bonuses. The v1.8 service pass keeps all v1.7 baseline functionality, then adds new decisions on top of it: the smithy can retemper a chosen refinement route, the trade road can restore depleted shelves once per cycle, the night market changes prices, the road improves the readiness kit, and tavern expansion converts a random permanent-growth roll into a bounded choice menu. Each service card displays its current construction stage so the player can see why a new option exists.
 
 ## Authority boundaries
 - `game/domain/town/town-growth-rules-v180.js`: project definitions, requirements and bounded deterministic effects.

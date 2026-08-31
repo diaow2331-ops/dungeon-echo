@@ -128,7 +128,7 @@ assert(!game.includes('30 + Math.round(itemValueScore(it) * 1.2)'), 'core still 
 assert(!game.includes('Math.max(4, Math.round(itemValueScore(it) * .45)'), 'core still duplicates sell pricing');
 assert(game.includes('const forgeCost = it => ECONOMY_RULES.forgeCost(')&&game.includes('TOWN_GROWTH_RULES.forgeDiscount(currentTownWorks())'), 'core must delegate forge pricing while supplying the town-project discount as policy input');
 assert(game.includes('const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);'), 'core must delegate sell pricing');
-for (const delegated of ['townTier','townSupplyPrice','townSupplyStock','quickDiveCost','tavernToastCost','wheelSpinCost','wheelResetCost']) assert(game.includes(`ECONOMY_RULES.${delegated}(`), `core must delegate active economy policy ${delegated}`);
+for (const delegated of ['townTier','townSupplyPrice','townSupplyStock','townMarketRestockCost','forgeRetemperCost','quickDiveCost','tavernToastCost','wheelSpinCost','wheelResetCost']) assert(game.includes(`ECONOMY_RULES.${delegated}(`), `core must delegate active economy policy ${delegated}`);
 for (const dormant of ['dungeonTier','dungeonHealPrice']) assert(!game.includes(`ECONOMY_RULES.${dormant}(`), `core unexpectedly adopted dormant economy helper ${dormant}`);
 assert(game.includes('TOWN_RULES.expeditionSupplyNeeds(meta)'), 'core must delegate expedition readiness thresholds');
 assert(game.includes('TOWN_RULES.unlockedCheckpoints(meta && meta.bestDepth)'), 'core must delegate checkpoint unlock policy');
