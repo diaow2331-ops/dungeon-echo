@@ -1,12 +1,12 @@
 # 摸鱼到下班 · Clock Out Alive
 
-Current release candidate: **v1.26.4**. Production route: `https://play.91hwl.cn/moyu/`.
+Current release candidate: **v1.26.5**. Production route: `https://play.91hwl.cn/moyu/`.
 
-## v1.26.4 unified world floor and perspective
+## v1.26.5 readable play UI
 
-v1.26.4 removes the last "separate platform" look from the runner view. Each room now skips the dead source gap between foreground furniture and the real SVG floor, then projects that floor with a lightweight perspective sampler so tile seams converge toward the office set instead of reading like a flat wall. The artificial white runway is gone; the hero and hazards stand directly on the same scene floor, with only a thin contact edge and a 28px foreground speed lip retained.
+v1.26.5 keeps the approved v1.26.4 unified floor/perspective and fixes the remaining readability problem. Active desktop HUD chips rise from 11px to 14px, the ticker to 13px, scene notices to 14px/11px, and tutorial prompts to 12px. Fullscreen gets its own scale-aware rules, reaching roughly 16–19px instead of keeping tiny desktop pixels on a much larger playfield. Portrait mobile is also lifted to 10–11px without overflowing the compact HUD.
 
-The runner sprite is visually raised to 148px while the original 44×66 physics body remains unchanged. Ground hazards are also drawn larger for one consistent foreground scale: normal BUG, mutated BUG, request, mail, spill and dumbbell art all gain visual presence without changing collision geometry. Circular runner halos are removed because the unified depth plane now provides readability naturally. Route length, obstacle cadence, three-strike buffer and endings remain unchanged.
+Canvas-side gameplay messages are enlarged too: spot-check warnings, scene events, exit hints, combo follow-ups and floating feedback are all easier to read at speed. The world-floor perspective, 148px hero display, 44×66 physics body, obstacle collision geometry, route length, cadence, three-strike buffer and endings remain unchanged.
 
 v1.12 starts from one production authority instead of rebuilding gameplay at release time:
 
