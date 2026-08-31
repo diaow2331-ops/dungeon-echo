@@ -4,6 +4,7 @@ This directory collects project, engineering and release-history material so the
 
 ## Current engineering documents
 
+- [CURRENT_RELEASES.md](CURRENT_RELEASES.md) — current public versions and canonical release builders.
 - [DEVELOPMENT.md](DEVELOPMENT.md) — module boundaries, local setup and focused validation.
 - [MAINTENANCE.md](MAINTENANCE.md) — current production/runtime/save contract.
 - [LOCALIZATION.md](LOCALIZATION.md) — fixed Chinese/English route contract.
