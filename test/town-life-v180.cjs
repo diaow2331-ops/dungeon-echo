@@ -14,6 +14,7 @@ const ctx={tier:5,newRelics:0,runs:8,lastReturnDepth:47,relics:5};
 assert.equal(growth.eventForReturn(ctx).id,growth.eventForReturn(ctx).id,'same return context must select the same town event');
 event=growth.eventOffer('caravan_surplus',{tier:5});
 assert(event&&event.cost>0&&event.effect.marketRestock===1,'caravan event must be a bounded paid market restock');
+assert.equal(growth.eventOffer('scout_cache',{tier:4}),null,'Scout Reserve Crate must not appear before the expedition scout can reside in town');
 event=growth.eventOffer('scout_cache',{tier:5});
 assert(event&&event.effect.escapes===1&&event.effect.keys===1,'scout event must supply explicit survival resources');
 assert(!/Math\.random|\brng\s*\(/.test(read('game/domain/town/town-growth-rules-v180.js')),'town-growth policy must stay deterministic and RNG-free');

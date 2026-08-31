@@ -222,6 +222,7 @@ function sanitizeMeta(raw) {
     if (row.kind === 'return') return Number.isInteger(row.depth) && row.depth >= 1 && row.depth <= 9999;
     if (row.kind === 'project') return !!TOWN_GROWTH_RULES.project(row.id) && Number.isInteger(row.level) && row.level >= 1 && row.level <= 3;
     if (row.kind === 'event') return !!TOWN_GROWTH_RULES.eventById(row.id);
+    if (row.kind === 'resident') return !!TOWN_GROWTH_RULES.residentById(row.id);
     if (row.kind === 'relic') return !!SET_RULES.setById(row.setId) && SET_RULES.SLOTS.includes(row.slot);
     return false;
   }).slice(-8).map(row => ({ ...row }));
@@ -6625,11 +6626,22 @@ function townChronicleText(row) {
     const event = TOWN_GROWTH_RULES.eventById(row.id);
     return event ? ui('镇务处理：' + event.zh + '。', 'Town event resolved: ' + event.en + '.') : '';
   }
+  if (row.kind === 'resident') {
+    const resident = TOWN_GROWTH_RULES.residentById(row.id);
+    return resident ? ui('新居民：' + resident.zh + '在镇上住下了。', 'New resident: ' + resident.en + ' settled in town.') : '';
+  }
   if (row.kind === 'relic') {
     const piece = SET_RULES.piece(row.setId,row.slot,meta.classId);
     return piece ? ui('遗物入藏：' + piece.zh + '。', 'Relic catalogued: ' + piece.en + '.') : '';
   }
   return '';
+}
+function recordResidentArrivals(beforeIds) {
+  if (!meta) return [];
+  const before = beforeIds instanceof Set ? beforeIds : new Set(Array.isArray(beforeIds) ? beforeIds : []);
+  const arrived = activeTownResidents().filter(row => !before.has(row.id));
+  for (const row of arrived) recordTownChronicle({ kind:'resident', id:row.id });
+  return arrived;
 }
 function townChronicleHtml() {
   const rows = Array.isArray(meta && meta.townChronicle) ? meta.townChronicle.slice(-5).reverse() : [];
@@ -6653,10 +6665,12 @@ function upgradeTownWork(id) {
     else if (check.reason === 'gold') msg(ui(`建设需要 ${next.cost} G，金库不足。`, `Construction costs ${next.cost} Gold; the vault is short.`), 'bad');
     return false;
   }
+  const residentsBefore = new Set(activeTownResidents().map(resident => resident.id));
   meta.gold -= check.next.cost;
   const current = TOWN_GROWTH_RULES.level(meta.townWorks || {}, id);
   meta.townWorks = { ...(meta.townWorks || {}), [id]:current + 1 };
   recordTownChronicle({ kind:'project', id, level:current + 1 });
+  const arrivedResidents = recordResidentArrivals(residentsBefore);
   if (id === 'market') meta.market = null;
   saveMeta();
   sfx.levelup();
@@ -6664,6 +6678,10 @@ function upgradeTownWork(id) {
     `城镇工程完成：【${row.zh}】${check.next.zh}。${check.next.effectZh}`,
     `Town project completed: [${row.en}] ${check.next.en}. ${check.next.effectEn}`
   ), 'epic');
+  if (arrivedResidents.length) msg(ui(
+    `工程完工后，有新居民在镇上住下：${arrivedResidents.map(r => r.zh).join('、')}。`,
+    `The finished project brought new residents: ${arrivedResidents.map(r => r.en).join(', ')}.`
+  ), 'good');
   renderTown();
   return true;
 }
@@ -7148,10 +7166,12 @@ function useEscape() {
   }
   player.escapes--;
   const banked = player.gold;
+  const residentsBefore = new Set(activeTownResidents().map(resident => resident.id));
   recordSafeReturn();
   syncMetaFromPlayer(false);
   meta.lastReturnDepth = Math.max(0, Number(depth) || 0);
   recordTownChronicle({ kind:'return', depth:meta.lastReturnDepth });
+  const arrivedResidents = recordResidentArrivals(residentsBefore);
   const returnedRelics = registerReturnedRelics([
     ...(meta.bag || []),
     ...Object.values(meta.equip || {}).filter(Boolean),
@@ -7159,6 +7179,10 @@ function useEscape() {
   const stagedTownEvent = stageTownReturnEvent(returnedRelics.length);
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
+  if (arrivedResidents.length) msg(ui(
+    `你的远征让小镇又热闹了一些：${arrivedResidents.map(r => r.zh).join('、')}来到这里定居。`,
+    `Your expedition made the town busier: ${arrivedResidents.map(r => r.en).join(', ')} settled here.`
+  ), 'good');
   if (returnedRelics.length) {
     msg(ui(
       `遗物书记登记了 ${returnedRelics.length} 件新的具名遗物：${returnedRelics.map(p => p.zh).join('、')}。`,

@@ -63,7 +63,7 @@
       actionZh:'收下压仓货', actionEn:'Take the Surplus',
     }),
     Object.freeze({
-      id:'scout_cache', minTier:3,
+      id:'scout_cache', minTier:5,
       zh:'斥候的备用箱', en:'Scout Reserve Crate',
       zhStory:'远征斥候从旧岗哨拖回一只备用箱。里面的东西不漂亮，但每一样都能让人更有机会活着回来。',
       enStory:'Expedition scouts drag a reserve crate back from an abandoned post. Nothing inside is pretty, but all of it helps people come home alive.',

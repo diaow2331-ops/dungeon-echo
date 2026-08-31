@@ -23,6 +23,9 @@ assert(core.includes('function townInteractables() { return [...TOWN_HOTSPOTS, .
 assert(core.includes("row.kind === 'resident'")&&core.includes('TOWN_GROWTH_RULES.residentLine(row.id, context)'),'resident interaction must use policy-owned state-aware copy');
 assert(core.includes('for (const row of townInteractables())'),'pointer targeting must include residents');
 assert(core.includes('const residentCount = TOWN_HOTSPOTS.length + activeTownResidents().length'),'town ledger must report visible resident growth');
+assert(core.includes("if (row.kind === 'resident') return !!TOWN_GROWTH_RULES.residentById(row.id)"),'resident chronicle rows must sanitize through the resident policy authority');
+assert(core.includes('function recordResidentArrivals(beforeIds)')&&core.includes("recordTownChronicle({ kind:'resident', id:row.id })"),'new project/depth residents must leave structured town-history entries');
+assert(core.includes('const arrivedResidents = recordResidentArrivals(residentsBefore)'),'safe-return/project flows must explicitly detect new residents');
 assert.equal(authority.authorities.townResidentRosterPolicy,'game/domain/town/town-growth-rules-v180.js');
 assert.equal(authority.authorities.townResidentInteraction,'game/core/game.js');
 
