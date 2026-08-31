@@ -2,8 +2,15 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.6.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.6.1**. Planned production route: `https://play.91hwl.cn/board-games/`.
 
+
+## v0.6.1 fullscreen / Xiangqi polish
+
+- Fullscreen notices are now visual overlays instead of grid rows, so selecting a pending Gomoku/Go move no longer changes the fullscreen board height or makes the page jump.
+- Xiangqi now draws the previous move source/target, animates a calligraphic `吃` at the captured square, and shows `将` on a non-capturing check.
+- Xiangqi position identity is tracked with side-to-move; a third neutral repetition is a draw, while a third repeated checking position is treated as a perpetual-check violation by the checking side.
+- Existing self-check, flying-general, checkmate, stalemate, clocks, replay and local AI behavior remain intact.
 
 ## v0.6.0 bilingual immersive release
 
