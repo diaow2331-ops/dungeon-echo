@@ -1,12 +1,18 @@
-# Dungeon Echo · 地牢回响
+# 91hwl Games · 浏览器游戏仓库
 
-**A browser-native 100-floor turn-based roguelike about builds, risk, retreat and greed.**
+**A multi-game, browser-native repository for 91hwl.cn. No launcher, no account, open and play.**
 
-[91hwl Games](https://91hwl.cn/) · [Play Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [English route](https://play.91hwl.cn/dungeon-echo/en/)
+[91hwl Games](https://91hwl.cn/) · [Dungeon Echo](https://play.91hwl.cn/dungeon-echo/) · [Clock Out Alive](https://play.91hwl.cn/moyu/) · [Board Trio](https://play.91hwl.cn/board-games/)
 
-> **v1.4.2 paged-town release:** Echo Town now stays inside a fixed viewport, opens on a larger detailed walkable plaza, and routes gear, market, tavern, fortune, and departure into focused pages on cache generation **178**.
+This repository now owns three independently versioned games and the public-site release tooling. `games.json` is the repository-level game catalog; each game keeps its own version authority and immutable bundle builder.
 
-Dungeon Echo remains a vanilla HTML/CSS/JavaScript roguelike built around one journey from floor 1 to floor 100.
+| Game | Route | Version authority |
+| --- | --- | --- |
+| Dungeon Echo · 地牢回响 | `/dungeon-echo/` | `VERSION` |
+| Clock Out Alive · 摸鱼到下班 | `/moyu/` | `moyu/VERSION` |
+| Board Trio · 方寸棋局 | `/board-games/` | `board-games/VERSION` |
+
+Dungeon Echo remains the legacy root-layout game for now; its single-authority architecture is documented below. New games live in self-contained directories so the repository can continue expanding without coupling their runtimes.
 
 ## Current architecture rule
 

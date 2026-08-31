@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "repository": "91hwl-games",
+  "games": [
+    {"id":"dungeon-echo","title":"Dungeon Echo","route":"/dungeon-echo/","versionFile":"VERSION","builder":"ops/release/build-site-bundle.sh"},
+    {"id":"moyu","title":"Clock Out Alive","route":"/moyu/","versionFile":"moyu/VERSION","builder":"ops/release/build-moyu-bundle.sh"},
+    {"id":"board-games","title":"方寸棋局 / Board Trio","route":"/board-games/","versionFile":"board-games/VERSION","builder":"ops/release/build-board-games-bundle.sh"}
+  ]
+}
