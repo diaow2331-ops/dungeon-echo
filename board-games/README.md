@@ -2,7 +2,17 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.4.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.5.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+
+## v0.5.0 local AI release
+
+- Human-versus-computer is the first-run default; same-device local two-player remains available from the match selector.
+- All three games provide three browser-local difficulty levels: Easy / 入门, Normal / 标准 and Hard / 困难.
+- Gomoku combines immediate win/block safety, line-shape scoring and a deeper reply-aware hard level.
+- Xiangqi generates moves through the canonical rule engine and scales from tactical move choice to time-bounded alpha-beta search.
+- Go evaluates captures, liberties, group rescue, atari pressure, eye filling and opening shape; Hard also predicts the opponent's best local reply.
+- AI search runs in a Web Worker, so difficult Xiangqi and 19×19 Go thinking does not freeze pointer, touch or clock rendering.
+- No API, account, model download or network request is used. AI mode supports playing either side and undo rolls back a complete human/computer round.
 
 ## v0.4.0 record and clock release
 
