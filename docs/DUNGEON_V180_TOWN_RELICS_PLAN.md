@@ -23,6 +23,8 @@ Safe return may stage one deterministic town event instead of treating the town 
 
 Walkable NPC dialogue now reacts to construction level, archive progress and recent return depth. The smith talks differently after furnace reconstruction, the merchant reflects trade-road investment, the innkeeper remembers a recent deep return, and the Relic Curator changes tone as the archive fills. Death does not create positive safe-return events.
 
+The plaza also keeps a bounded **Recent Town Chronicle**. Safe returns, project completions, newly catalogued relics and resolved town events leave structured records, so the home base accumulates visible history without storing duplicate free-form story text.
+
 ## Authority boundaries
 - `game/domain/town/town-growth-rules-v180.js`: project definitions, requirements and bounded deterministic effects.
 - `game/domain/inventory/set-rules-v180.js`: named-set identities, lore, signatures, set thresholds.

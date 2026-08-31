@@ -212,6 +212,11 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 .town-event-copy p { margin:0 0 4px; color:#cdbda8; font-size:10px; line-height:1.45; }
 .town-event-copy small { color:#a9947b; font-size:9px; line-height:1.4; }
 .town-event-card button { min-width:132px; min-height:36px; padding:6px 10px; border-color:rgba(215,166,64,.65); color:#f3d69b; }
+.town-chronicle { grid-column:1 / -1; display:grid; grid-template-columns:auto minmax(0,1fr); gap:10px; align-items:start; padding:9px 11px; border:1px solid rgba(104,79,50,.42); background:rgba(12,9,8,.62); }
+.town-chronicle > b { color:#d8b77e; font-size:10px; white-space:nowrap; }
+.town-chronicle > div { display:flex; flex-wrap:wrap; gap:5px 9px; min-width:0; }
+.town-chronicle span { color:#a9957b; font-size:9px; line-height:1.4; }
+.town-chronicle span::before { content:'•'; margin-right:5px; color:#86643a; }
 .town-ready-action {
   width: 100%;
   min-height: 30px;
@@ -471,6 +476,7 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
   .town-work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .town-event-card { grid-template-columns:1fr; align-items:start; }
   .town-event-card button { width:100%; min-width:0; }
+  .town-chronicle { grid-template-columns:1fr; gap:5px; }
   .town-works > header { align-items:flex-start; flex-direction:column; gap:4px; }
   .town-growth { overflow: visible; }
   .town-growth span { white-space: normal; }

@@ -151,6 +151,7 @@ function defaultMeta(classId) {
     contractId: 'none',
     townWorks: TOWN_GROWTH_RULES.sanitizeLevels({}),
     townEvent: null,
+    townChronicle: [],
     relicLedger: {}, lastReturnDepth: 0,
     tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
@@ -215,6 +216,14 @@ function sanitizeMeta(raw) {
       },
     };
   }
+  base.townChronicle = (Array.isArray(raw.townChronicle) ? raw.townChronicle : []).filter(row => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    if (row.kind === 'return') return Number.isInteger(row.depth) && row.depth >= 1 && row.depth <= 9999;
+    if (row.kind === 'project') return !!TOWN_GROWTH_RULES.project(row.id) && Number.isInteger(row.level) && row.level >= 1 && row.level <= 3;
+    if (row.kind === 'event') return !!TOWN_GROWTH_RULES.eventById(row.id);
+    if (row.kind === 'relic') return !!SET_RULES.setById(row.setId) && SET_RULES.SLOTS.includes(row.slot);
+    return false;
+  }).slice(-8).map(row => ({ ...row }));
   base.relicLedger = {};
   if (raw.relicLedger && typeof raw.relicLedger === 'object' && !Array.isArray(raw.relicLedger)) {
     for (const set of SET_RULES.SETS) for (const slot of SET_RULES.SLOTS) {
@@ -5801,7 +5810,10 @@ function registerReturnedRelics(items) {
     if (!key || meta.relicLedger[key]) continue;
     meta.relicLedger[key] = 1;
     const piece = SET_RULES.piece(item.setId, item.setPiece, meta.classId);
-    if (piece) newly.push(piece);
+    if (piece) {
+      newly.push(piece);
+      recordTownChronicle({ kind:'relic', setId:item.setId, slot:item.setPiece });
+    }
   }
   return newly;
 }
@@ -6566,6 +6578,35 @@ function chooseForgeRefinement(pathId) {
 }
 
 
+function recordTownChronicle(entry) {
+  if (!meta || !entry || typeof entry !== 'object') return;
+  meta.townChronicle = Array.isArray(meta.townChronicle) ? meta.townChronicle : [];
+  meta.townChronicle.push({ ...entry });
+  if (meta.townChronicle.length > 8) meta.townChronicle = meta.townChronicle.slice(-8);
+}
+function townChronicleText(row) {
+  if (!row) return '';
+  if (row.kind === 'return') return ui('第 ' + row.depth + ' 层平安归来。', 'Returned safely from Floor ' + row.depth + '.');
+  if (row.kind === 'project') {
+    const project = TOWN_GROWTH_RULES.project(row.id);
+    return project ? ui('工程完工：' + project.zh + ' Lv ' + row.level + '。', 'Project completed: ' + project.en + ' Lv ' + row.level + '.') : '';
+  }
+  if (row.kind === 'event') {
+    const event = TOWN_GROWTH_RULES.eventById(row.id);
+    return event ? ui('镇务处理：' + event.zh + '。', 'Town event resolved: ' + event.en + '.') : '';
+  }
+  if (row.kind === 'relic') {
+    const piece = SET_RULES.piece(row.setId,row.slot,meta.classId);
+    return piece ? ui('遗物入藏：' + piece.zh + '。', 'Relic catalogued: ' + piece.en + '.') : '';
+  }
+  return '';
+}
+function townChronicleHtml() {
+  const rows = Array.isArray(meta && meta.townChronicle) ? meta.townChronicle.slice(-5).reverse() : [];
+  if (!rows.length) return '';
+  return '<section class="town-chronicle"><b>' + ui('近事镇志','Recent Town Chronicle') + '</b><div>' +
+    rows.map(row => '<span>' + esc(townChronicleText(row)) + '</span>').join('') + '</div></section>';
+}
 function townProjectContext() {
   return { tier:townTierForArt(), gold:meta ? (meta.gold || 0) : 0, relics:relicLedgerCount() };
 }
@@ -6585,6 +6626,7 @@ function upgradeTownWork(id) {
   meta.gold -= check.next.cost;
   const current = TOWN_GROWTH_RULES.level(meta.townWorks || {}, id);
   meta.townWorks = { ...(meta.townWorks || {}), [id]:current + 1 };
+  recordTownChronicle({ kind:'project', id, level:current + 1 });
   if (id === 'market') meta.market = null;
   saveMeta();
   sfx.levelup();
@@ -6683,6 +6725,7 @@ function resolveTownEvent() {
   if (effect.marketRestock) meta.market = freshTownMarket(townTierForArt());
   if (effect.escapes) meta.escapes = (meta.escapes || 0) + Math.max(0, Number(effect.escapes) || 0);
   if (effect.keys) meta.keys = (meta.keys || 0) + Math.max(0, Number(effect.keys) || 0);
+  recordTownChronicle({ kind:'event', id:offer.id });
   meta.townEvent = null;
   saveMeta();
   sfx.pickup();
@@ -6754,6 +6797,7 @@ function renderTown() {
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
       `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物馆 ${relicFound}/${SET_RULES.SETS.length * 6} · 已记录出发点 ${checkpointCount} · 市集阶段 ${tier}`, `Relic Hall ${relicFound}/${SET_RULES.SETS.length * 6} · Departure records ${checkpointCount} · Market Tier ${tier}`)}</span></div>` +
       `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>` +
+      townChronicleHtml() +
       townEventHtml() +
       `<section id="town-works" class="town-works" aria-live="polite"></section>`;
   }
@@ -7037,6 +7081,7 @@ function useEscape() {
   recordSafeReturn();
   syncMetaFromPlayer(false);
   meta.lastReturnDepth = Math.max(0, Number(depth) || 0);
+  recordTownChronicle({ kind:'return', depth:meta.lastReturnDepth });
   const returnedRelics = registerReturnedRelics([
     ...(meta.bag || []),
     ...Object.values(meta.equip || {}).filter(Boolean),

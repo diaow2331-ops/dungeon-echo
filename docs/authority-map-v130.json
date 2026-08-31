@@ -42,6 +42,7 @@
     "townNpcStateCopy": "game/domain/town/town-growth-rules-v180.js",
     "townProjectPersistence": "game/core/game.js",
     "townEventPersistence": "game/core/game.js",
+    "townChroniclePersistence": "game/core/game.js",
     "townSupplyPricing": "game/domain/economy/economy-rules-v130.js",
     "tavernPricing": "game/domain/economy/economy-rules-v130.js",
     "quickDivePricing": "game/domain/economy/economy-rules-v130.js",

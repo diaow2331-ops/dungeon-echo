@@ -26,6 +26,7 @@ const curatorFull=growth.npcLine('records',{tier:8,relics:12,works:{relics:2}});
 assert(curatorEmpty.zh!==curatorFull.zh,'Relic Curator copy must react to archive progress');
 
 assert(core.includes('townEvent: null'),'meta schema must explicitly own one pending town event');
+assert(core.includes('townChronicle: []'),'meta schema must explicitly own a bounded town chronicle');
 assert(core.includes('function stageTownReturnEvent(newRelics = 0)'),'core must stage safe-return events');
 assert(core.includes('function resolveTownEvent()'),'core must own event resource mutation');
 assert(core.includes('data-townevent="resolve"'),'town UI must expose the pending event action');
@@ -35,9 +36,13 @@ const deathEnd=core.indexOf('const fullscreenElement',deathStart);
 assert(!core.slice(deathStart,deathEnd).includes('stageTownReturnEvent('),'death must not create a positive safe-return town event');
 assert(core.includes('const line = townNpcLine(row);')&&core.includes('TOWN_GROWTH_RULES.npcLine(row.id'),'walkable NPC interaction must surface state-aware town copy');
 assert(core.includes('function drawTownEventNotice(ctx, now, W, H)')&&core.includes("ctx.fillText('!',x,y-23)"),'pending town events must be visible in the walkable plaza');
+assert(core.includes('function recordTownChronicle(entry)')&&core.includes('function townChronicleHtml()'),'town must persist and render recent structured history');
+assert(core.includes("recordTownChronicle({ kind:'return'")&&core.includes("recordTownChronicle({ kind:'project'")&&core.includes("recordTownChronicle({ kind:'event'")&&core.includes("recordTownChronicle({ kind:'relic'"),'returns/projects/events/relics must all leave town-history records');
 assert(css.includes('.town-event-card')&&css.includes('.town-event-copy'),'town event needs dedicated responsive presentation');
+assert(css.includes('.town-chronicle'),'town chronicle needs dedicated responsive presentation');
 assert.equal(authority.authorities.townReturnEventPolicy,'game/domain/town/town-growth-rules-v180.js');
 assert.equal(authority.authorities.townNpcStateCopy,'game/domain/town/town-growth-rules-v180.js');
 assert.equal(authority.authorities.townEventPersistence,'game/core/game.js');
+assert.equal(authority.authorities.townChroniclePersistence,'game/core/game.js');
 
 console.log('town_life_v180=PASS');
