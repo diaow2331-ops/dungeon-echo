@@ -57,6 +57,7 @@
     "quickDivePricing": "game/domain/economy/economy-rules-v130.js",
     "wheelPricing": "game/domain/economy/economy-rules-v130.js",
     "expeditionContractPolicy": "game/domain/expedition/expedition-rules-v170.js",
+    "expeditionContractRolePolicy": "game/domain/expedition/expedition-rules-v170.js",
     "dungeonEventPolicy": "game/domain/expedition/expedition-rules-v170.js",
     "eliteAffixPolicy": "game/domain/expedition/expedition-rules-v170.js"
   },

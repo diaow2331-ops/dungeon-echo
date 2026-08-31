@@ -153,12 +153,13 @@
     const d=Math.max(1,Math.floor(Number(depth)||1));
     return Object.freeze(SETS.filter(row=>d>=row.minDepth&&d<=row.maxDepth));
   }
-  function namedChance(rarity, relicHallBonus=0) {
+  function namedChance(rarity, relicHallBonus=0, expeditionBonus=0) {
     const r=clampInt(rarity,0,4);
     const base=r>=4?0.58:r===3?0.22:0;
     if(base<=0) return 0;
-    const bonus=Math.max(0,Math.min(0.09,Number(relicHallBonus)||0));
-    return Math.min(0.78,base+bonus);
+    const hall=Math.max(0,Math.min(0.09,Number(relicHallBonus)||0));
+    const contract=Math.max(0,Math.min(0.16,Number(expeditionBonus)||0));
+    return Math.min(0.84,base+hall+contract);
   }
   function focusWeight(relicHallLevel=0) {
     const lvl=clampInt(relicHallLevel,0,3);

@@ -13,6 +13,8 @@ assert.deepEqual(rules.availableContracts(2).map(x=>x.id),['none','hunt','relic'
 assert.deepEqual(rules.availableContracts(4).map(x=>x.id),['none','hunt','relic','oath']);
 assert.equal(rules.eliteChance(.16,'hunt'),.24);
 assert.equal(rules.trapBonus('relic'),1);
+assert.equal(rules.namedRelicChanceBonus('relic'),.16);
+assert.equal(rules.namedRelicChanceBonus('hunt'),0);
 assert(rules.chestChance(.62,'relic')>.62);
 assert.equal(rules.monsterAtkMultiplier('oath'),1.12);
 assert.equal(rules.monsterXpMultiplier('oath'),1.18);

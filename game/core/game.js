@@ -2127,7 +2127,10 @@ function genEquip(d, minRarity = 0) {
   const namedEntropy = Math.floor(roll * 4294967296) >>> 0;
   const namedHash = hashSeed([RUN_SEED, d, slot, rarity, base && base.name, classId, namedEntropy].join('|'));
   const namedRoll = (namedHash >>> 0) / 4294967295;
-  const namedSet = namedRoll < SET_RULES.namedChance(rarity, TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()))
+  const namedSet = namedRoll < SET_RULES.namedChance(
+    rarity,
+    TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()),
+    EXPEDITION_RULES.namedRelicChanceBonus(currentExpeditionContractId()))
     ? SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics')) : null;
   // Ordinary gear keeps the classic weighted slot mix. Once a named relic is rolled, however,
   // its six authored pieces are peers: do not make the amulet a hidden 5% bottleneck merely

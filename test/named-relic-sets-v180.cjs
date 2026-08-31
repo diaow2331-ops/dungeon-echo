@@ -33,6 +33,8 @@ assert.equal(capstoneMechanics.size,rules.SETS.length,'each complete six-piece s
 assert.equal(rules.namedChance(2),0,'rare and below must remain ordinary gear');
 assert(rules.namedChance(3)>0&&rules.namedChance(4)>rules.namedChance(3),'Epic/Legendary named relic chance must be bounded and rarity-sensitive');
 assert.equal(Number((rules.namedChance(3,.09)-rules.namedChance(3)).toFixed(2)),.09,'Relic Hall may add at most a bounded +9% named chance');
+assert.equal(Number((rules.namedChance(3,0,.16)-rules.namedChance(3)).toFixed(2)),.16,'Relic Sweep may add a separate bounded +16% named chance');
+assert.equal(Number(rules.namedChance(4,.09,.16).toFixed(2)),.83,'Hall and Relic Sweep bonuses compose without flattening Legendary identity into a guarantee');
 assert.deepEqual([0,1,2,3].map(x=>rules.focusWeight(x)),[0,.5,.65,.8],'Relic Hall focus strength must remain bounded by construction level');
 const slotCounts=Object.fromEntries(rules.SLOTS.map(slot=>[slot,0]));
 for(let i=0;i<600;i++) slotCounts[rules.namedPieceSlot(i)]++;

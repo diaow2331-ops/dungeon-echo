@@ -24,7 +24,7 @@
     Object.freeze({
       id:'relic', unlockTier:2,
       zh:'遗物搜掠契约', en:'Relic Sweep',
-      zhDesc:'宝箱与异常回响更常见，但每层多 1 个陷阱。', enDesc:'More chests and echo events, but +1 trap per floor.',
+      zhDesc:'宝箱、异常回响与具名遗物更常见，但每层多 1 个陷阱。', enDesc:'More chests, echo events and named relics, but +1 trap per floor.',
     }),
     Object.freeze({
       id:'oath', unlockTier:4,
@@ -54,6 +54,10 @@
 
   function trapBonus(contractId) {
     return normalizeContractId(contractId) === 'relic' ? 1 : 0;
+  }
+
+  function namedRelicChanceBonus(contractId) {
+    return normalizeContractId(contractId) === 'relic' ? 0.16 : 0;
   }
 
   function eventChance(contractId) {
@@ -121,6 +125,7 @@
     eliteChance,
     chestChance,
     trapBonus,
+    namedRelicChanceBonus,
     eventChance,
     monsterAtkMultiplier,
     monsterXpMultiplier,
