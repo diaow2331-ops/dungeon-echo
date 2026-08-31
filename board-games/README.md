@@ -2,7 +2,16 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.2.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.2.1**. Planned production route: `https://play.91hwl.cn/board-games/`.
+
+## v0.2.1 pointer-confirm patch
+
+- Gomoku and Go now use an explicit two-step move flow: select an intersection first, then press `落子` to commit it.
+- The selected point remains a visible pending preview and does not enter move history until confirmed.
+- Undo cancels an unconfirmed selection first; only confirmed moves count as actual history.
+- Xiangqi keeps its natural piece-first flow: select a piece, then select a legal destination. No extra confirmation click is added.
+- Keyboard input remains available as a secondary accessibility path, but is no longer advertised as the primary control model.
+
 
 ## v0.2.0 interaction quality release
 
