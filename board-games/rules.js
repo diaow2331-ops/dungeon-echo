@@ -9,6 +9,7 @@ function gomokuWin(board,x,y,color){
   const dirs=[[1,0],[0,1],[1,1],[1,-1]];
   return dirs.some(([dx,dy])=>{let n=1;for(const s of [-1,1]){let xx=x+dx*s,yy=y+dy*s;while(inside(board,xx,yy)&&board[yy][xx]===color){n++;xx+=dx*s;yy+=dy*s}}return n>=5});
 }
+function gomokuFull(board){return board.every(row=>row.every(Boolean))}
 
 const X={R:'车',N:'马',B:'相',A:'仕',K:'帅',C:'炮',P:'兵',r:'车',n:'马',b:'象',a:'士',k:'将',c:'炮',p:'卒'};
 function xiangqiBoard(){
@@ -50,6 +51,7 @@ function xiangqiMove(b,fx,fy,tx,ty){
 }
 function xiangqiTargets(b,x,y){const p=b[y]&&b[y][x],out=[];if(!p)return out;for(let yy=0;yy<10;yy++)for(let xx=0;xx<9;xx++)if(xiangqiMove(b,x,y,xx,yy))out.push({x:xx,y:yy});return out}
 function xiangqiHasMove(b,c){for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=b[y][x];if(p&&p.c===c&&xiangqiTargets(b,x,y).length)return true}return false}
+function xiangqiTerminal(b,c){if(xiangqiHasMove(b,c))return null;return xiangqiInCheck(b,c)?'checkmate':'stalemate'}
 
 function goBoard(size=19){return empty(size,size)}
 function neighbors(b,x,y){return [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(([xx,yy])=>inside(b,xx,yy))}
@@ -71,5 +73,5 @@ function goScore(b,komi=7.5){
   }
   return{black,white,winner:black>white?'b':'w',margin:Math.abs(black-white)};
 }
-return{X,clone,gomokuBoard,gomokuWin,xiangqiBoard,xiangqiMove,xiangqiTargets,xiangqiInCheck,xiangqiHasMove,goBoard,goPlay,goScore,boardKey};
+return{X,clone,gomokuBoard,gomokuWin,gomokuFull,xiangqiBoard,xiangqiMove,xiangqiTargets,xiangqiInCheck,xiangqiHasMove,xiangqiTerminal,goBoard,goPlay,goScore,boardKey};
 });
