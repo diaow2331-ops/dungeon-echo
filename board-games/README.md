@@ -2,7 +2,16 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.3.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.4.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+
+## v0.4.0 record and clock release
+
+- Gomoku, Xiangqi and Go now generate a per-move local record from the same canonical history snapshots used for undo and scoring.
+- Players can jump to prior positions, step backward/forward, return to the live position, or branch from a historical move; branching truncates the later record instead of creating a second board authority.
+- Optional time controls are available before the first move: unlimited, 5 minutes per side, or 10 minutes per side.
+- Only the side to move loses clock time. Pending placement still consumes thinking time; review and Go scoring agreement pause both clocks.
+- Clock values are stored in history snapshots, so undo and branch-from-review restore the corresponding remaining time.
+- Timeout is a terminal loss and uses the same result flow as resignation; existing v0.3.0 Go scoring/repetition rules remain intact.
 
 ## v0.3.0 game-mechanics release
 
