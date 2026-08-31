@@ -103,9 +103,31 @@
     const bonus=Math.max(0,Math.min(0.09,Number(relicHallBonus)||0));
     return Math.min(0.78,base+bonus);
   }
-  function chooseSet(depth,hashValue=0) {
+  function focusWeight(relicHallLevel=0) {
+    const lvl=clampInt(relicHallLevel,0,3);
+    return [0,0.50,0.65,0.80][lvl];
+  }
+  function focusableSets(bestDepth,ledger) {
+    const depth=Math.max(0,Math.floor(Number(bestDepth)||0));
+    return Object.freeze(SETS.filter(set => depth>=set.minDepth || collectionProgress(ledger,set.id).found>0));
+  }
+  function normalizeFocusId(id,bestDepth,ledger) {
+    const value=String(id||'');
+    return focusableSets(bestDepth,ledger).some(set=>set.id===value) ? value : '';
+  }
+  function chooseSet(depth,hashValue=0,focusSetId='',relicHallLevel=0) {
     const pool=eligibleSets(depth);
     if(!pool.length) return null;
+    const focus=pool.find(row=>row.id===String(focusSetId||''));
+    const weight=focus ? focusWeight(relicHallLevel) : 0;
+    if(focus && weight>0) {
+      const h=(Math.floor(Number(hashValue)||0)>>>0);
+      const roll=((h ^ 0x9e3779b9)>>>0)/4294967295;
+      if(roll<weight) return focus;
+      const rest=pool.filter(row=>row.id!==focus.id);
+      if(!rest.length) return focus;
+      return rest[h%rest.length];
+    }
     return pool[Math.abs(Math.floor(Number(hashValue)||0))%pool.length];
   }
   function equippedCounts(equip) {
@@ -172,7 +194,7 @@
     version:'v1.8.0-development',
     authority:'named-set-policy',
     SLOTS, SETS,
-    setById, piece, eligibleSets, namedChance, chooseSet,
+    setById, piece, eligibleSets, namedChance, focusWeight, focusableSets, normalizeFocusId, chooseSet,
     equippedCounts, activeBonuses, statBonuses, signatureStats,
     collectionKey, collectionProgress,
   });

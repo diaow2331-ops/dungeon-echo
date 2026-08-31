@@ -27,6 +27,11 @@ for(const set of rules.SETS){
 assert.equal(rules.namedChance(2),0,'rare and below must remain ordinary gear');
 assert(rules.namedChance(3)>0&&rules.namedChance(4)>rules.namedChance(3),'Epic/Legendary named relic chance must be bounded and rarity-sensitive');
 assert.equal(Number((rules.namedChance(3,.09)-rules.namedChance(3)).toFixed(2)),.09,'Relic Hall may add at most a bounded +9% named chance');
+assert.deepEqual([0,1,2,3].map(x=>rules.focusWeight(x)),[0,.5,.65,.8],'Relic Hall focus strength must remain bounded by construction level');
+assert.equal(rules.normalizeFocusId('void_court',59,{}),'','unreached deep set cannot be focused without a recovered clue');
+assert.equal(rules.normalizeFocusId('void_court',60,{}),'void_court','reaching a set band unlocks research focus');
+assert.equal(rules.chooseSet(65,1).id,'void_court','unfocused deterministic selection remains unchanged');
+assert.equal(rules.chooseSet(65,1,'star_hunt',3).id,'star_hunt','level-three research bias may deterministically redirect an eligible named relic');
 
 const set=rules.SETS[0];
 const equip={};
@@ -47,6 +52,8 @@ assert(!deathBlock.includes('registerReturnedRelics('),'death must not create pe
 assert(core.includes("service:'relics', zh:'遗物书记', en:'Relic Curator'"),'walkable town must have a Relic Curator hotspot');
 assert(core.includes("ui('遗物馆','RELICS')"),'town growth art must visibly gain a Relic Hall marker');
 assert(core.includes('function renderTownRelics()'),'town must render a persistent relic archive');
+assert(core.includes('relicFocusSet')&&core.includes('function selectRelicFocus(setId)'),'core must persist and expose Relic Hall research focus');
+assert(core.includes("SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics'))"),'item generation must consume the bounded research focus through set policy');
 assert(core.includes("setStat('fixedDr')")&&core.includes("setStat('crit')")&&core.includes("setStat('skillHaste')"),'set bonuses must affect canonical combat/stat paths');
 
 for(const [name,html] of [['zh',zh],['en',en]]){
@@ -59,8 +66,11 @@ for(const [name,html] of [['zh',zh],['en',en]]){
 assert(!/[\u3400-\u9fff]/.test(en),'English authored route must remain CJK-free');
 assert(locale.includes('item.namedEn'),'locale must preserve fixed English relic names');
 assert(css.includes('.relic-set-card')&&css.includes('.named-relic-lore'),'relic archive and lore require dedicated presentation');
+assert(css.includes('.relic-research')&&css.includes('.relic-focus-action'),'Relic Hall research needs dedicated responsive presentation');
 assert(manifest.includes('game/domain/inventory/set-rules-v180.js'),'release allowlist must ship set policy');
 assert.equal(authority.authorities.namedRelicSetPolicy,'game/domain/inventory/set-rules-v180.js');
+assert.equal(authority.authorities.namedRelicResearchPolicy,'game/domain/inventory/set-rules-v180.js');
 assert.equal(authority.authorities.relicCollectionPersistence,'game/core/game.js');
+assert.equal(authority.authorities.relicResearchPersistence,'game/core/game.js');
 
 console.log('named_relic_sets_v180=PASS');

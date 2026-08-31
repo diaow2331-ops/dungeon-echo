@@ -71,8 +71,18 @@
     }),
   ]);
 
+  const RESIDENTS = Object.freeze([
+    Object.freeze({ id:'provisioner', zh:'补给商', en:'Provisioner', minTier:2 }),
+    Object.freeze({ id:'apothecary', zh:'药剂学徒', en:'Apothecary Apprentice', minTier:3, project:'market', minProject:1 }),
+    Object.freeze({ id:'watch', zh:'东门镇卫', en:'East-Gate Watch', minTier:4 }),
+    Object.freeze({ id:'scout', zh:'远征斥候', en:'Expedition Scout', minTier:5 }),
+    Object.freeze({ id:'technician', zh:'传送技师', en:'Portal Technician', minTier:7 }),
+    Object.freeze({ id:'alchemist', zh:'驻镇炼金师', en:'Resident Alchemist', minTier:8, project:'market', minProject:2 }),
+  ]);
+
   const BY_ID = Object.freeze(Object.fromEntries(PROJECTS.map(row => [row.id,row])));
   const EVENT_BY_ID = Object.freeze(Object.fromEntries(EVENTS.map(row => [row.id,row])));
+  const RESIDENT_BY_ID = Object.freeze(Object.fromEntries(RESIDENTS.map(row => [row.id,row])));
 
   function project(id) { return BY_ID[String(id || '')] || null; }
   function eventById(id) { return EVENT_BY_ID[String(id || '')] || null; }
@@ -141,7 +151,42 @@
     return pool[seed%pool.length];
   }
 
-  function npcLine(id,{tier=1,bestDepth=0,lastReturnDepth=0,relics=0,works={}}={}) {
+  function residentById(id) { return RESIDENT_BY_ID[String(id || '')] || null; }
+  function residentRoster({tier=1,works={}}={}) {
+    const t=Math.max(1,Math.floor(Number(tier)||1));
+    return Object.freeze(RESIDENTS.filter(row => {
+      if(t<row.minTier) return false;
+      if(row.project && level(works,row.project)<(row.minProject||1)) return false;
+      return true;
+    }));
+  }
+  function residentLine(id,{tier=1,bestDepth=0,lastReturnDepth=0,relics=0,works={},eventId=''}={}) {
+    const row=residentById(id); if(!row) return null;
+    const depth=Math.max(0,Math.floor(Number(bestDepth)||0));
+    const last=Math.max(0,Math.floor(Number(lastReturnDepth)||0));
+    switch(row.id) {
+      case 'provisioner':
+        if(eventId==='caravan_surplus') return Object.freeze({zh:'东门那批压仓货还没散。你要是想让市集今天重新满起来，现在就去拍板。',en:'The east-gate surplus is still waiting. If you want the market full again today, now is the time to decide.'});
+        if(level(works,'market')>=2) return Object.freeze({zh:'护商队走起来以后，路上少丢一车货，镇里就多一排货架。',en:'With caravan guards on the road, every wagon that survives becomes another stocked shelf in town.'});
+        return Object.freeze({zh:'我以前只在这里停半天。现在至少值得把货卸下来慢慢卖。',en:'I used to stop here for half a day. Now it is worth unloading the wagon and staying awhile.'});
+      case 'apothecary':
+        return Object.freeze({zh:level(works,'market')>=3?'夜市最麻烦的不是客人，是他们总想半夜买现熬的药。':'商路一修，药材终于不用靠背篓一趟趟扛进来了。',en:level(works,'market')>=3?'The hardest part of a night market is people wanting fresh medicine at midnight.':'Since the road was repaired, herbs no longer have to arrive one basket at a time.'});
+      case 'watch':
+        return Object.freeze({zh:depth>=60?'最近回来的人越来越少，登记在门口的名字却越来越长。我们开始两班倒守夜了。':'镇子人一多，门就不能再像以前一样随便敞着。',en:depth>=60?'Fewer delvers return now, but the list of names at the gate keeps growing. We started double night watches.':'As the town grows, the gate cannot stay open as carelessly as it once did.'});
+      case 'scout':
+        if(eventId==='scout_cache') return Object.freeze({zh:'备用箱是我从旧岗哨里拖回来的。里面没宝贝，只有能让人多活几层的东西。',en:'I dragged that reserve crate out of an abandoned post. No treasure inside, just things that buy a few more floors of life.'});
+        if(last>0) return Object.freeze({zh:'你从第 '+last+' 层回来后，我把那段路重新标了一遍。下次别以为旧路线还会一样。',en:'After you came back from Floor '+last+', I marked that route again. Do not assume the old path will behave the same next time.'});
+        return Object.freeze({zh:'我负责把能回来的路画出来。你负责证明那些线不是白画。',en:'I draw routes people might return from. You prove the lines were worth drawing.'});
+      case 'technician':
+        return Object.freeze({zh:depth>=80?'深层坐标会自己漂。每次有人回来，我都要把整组参数重算一遍。':'传送门不是门，是一堆很容易把人送错地方的参数。',en:depth>=80?'Deep coordinates drift on their own. Every safe return makes me recalculate the whole set.':'The portal is not a door. It is a pile of parameters that can send you to the wrong place.'});
+      case 'alchemist':
+        return Object.freeze({zh:relics>=10?'馆里那些旧器物沾着的残留，比市面上最贵的试剂还有意思。':'等商路稳定些，我才能把易碎的瓶瓶罐罐运进来，不然全碎在路上。',en:relics>=10?'The residue on those old relics is more interesting than the most expensive reagent in the market.':'Once the trade road is stable, I can bring fragile glassware in without losing half of it on the way.'});
+      default:
+        return Object.freeze({zh:'镇上比以前热闹多了。',en:'The town is much busier than it used to be.'});
+    }
+  }
+
+  function npcLine(id,{tier=1,bestDepth=0,lastReturnDepth=0,relics=0,works={},eventId=''}={}) {
     const t=Math.max(1,Math.floor(Number(tier)||1));
     const depth=Math.max(0,Math.floor(Number(bestDepth)||0));
     const last=Math.max(0,Math.floor(Number(lastReturnDepth)||0));
@@ -153,6 +198,7 @@
         return Object.freeze({zh:'这破风箱一天漏三次气。等镇上有闲钱，先把它救活。',en:'These bellows leak three times a day. When the town can spare the coin, save them first.'});
       }
       case 'merchant': {
+        if(eventId==='caravan_surplus') return Object.freeze({zh:'那支商队今晚就走。要补货就现在决定，明早只剩车辙。',en:'That caravan leaves tonight. Decide now if you want the stock; by morning there will be only wagon tracks.'});
         const lvl=level(works,'market');
         if(lvl>=3) return Object.freeze({zh:'夜市一开，天亮前也有人来换货。现在这条路终于像条商路了。',en:'With the night market open, people trade before dawn. This road finally feels like a trade road.'});
         if(lvl>=1) return Object.freeze({zh:'路修平以后，车轴少断一根，镇上就能多留下一箱货。',en:'Every axle that survives the repaired road leaves another crate in town.'});
@@ -165,6 +211,7 @@
         return Object.freeze({zh:'第一次回来以前，我不劝你点最贵的酒。',en:'Before your first safe return, I would not order the expensive bottle.'});
       }
       case 'records': {
+        if(eventId==='relic_exhibition') return Object.freeze({zh:'这次带回来的东西值得单独开一只柜。先让镇里的人看看，他们才会明白我们为什么要扩馆。',en:'What you brought back deserves its own case. Let the town see it; then they will understand why this hall needs to grow.'});
         const lvl=level(works,'relics');
         if(relics>=12) return Object.freeze({zh:'你带回来的东西已经够撑起半间展厅。现在缺的不是货架，是完整的故事。',en:'Your relics could fill half a gallery now. What we lack is not shelf space, but complete stories.'});
         if(lvl>=1) return Object.freeze({zh:'已经归档 '+relics+' 件。别只看数值——名字和来历才决定它为什么值得留下。',en:relics+' relics catalogued. Do not look only at numbers; names and provenance are why they are worth keeping.'});
@@ -186,8 +233,11 @@
     authority:'town-growth-policy',
     PROJECTS,
     EVENTS,
+    RESIDENTS,
     project,
     eventById,
+    residentById,
+    residentRoster,
     sanitizeLevels,
     level,
     currentEffect,
@@ -199,6 +249,7 @@
     tavernToastCap,
     eventOffer,
     eventForReturn,
+    residentLine,
     npcLine,
   });
 

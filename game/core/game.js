@@ -152,6 +152,7 @@ function defaultMeta(classId) {
     townWorks: TOWN_GROWTH_RULES.sanitizeLevels({}),
     townEvent: null,
     townChronicle: [],
+    relicFocusSet: '',
     relicLedger: {}, lastReturnDepth: 0,
     tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
@@ -247,6 +248,7 @@ function sanitizeMeta(raw) {
       if (raw.achv[k]) base.achv[k] = 1;
   }
   base.bestDepth = num(raw.bestDepth, 0);
+  base.relicFocusSet = SET_RULES.normalizeFocusId(raw.relicFocusSet, base.bestDepth, base.relicLedger);
   base.runs = num(raw.runs, 0);
   base.deaths = num(raw.deaths, 0);
   base.talents = Array.isArray(raw.talents)
@@ -2101,7 +2103,7 @@ function genEquip(d, minRarity = 0) {
   const namedHash = hashSeed([RUN_SEED, d, slot, rarity, base && base.name, classId].join('|'));
   const namedRoll = (namedHash >>> 0) / 4294967295;
   const namedSet = namedRoll < SET_RULES.namedChance(rarity, TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()))
-    ? SET_RULES.chooseSet(d, namedHash) : null;
+    ? SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics')) : null;
   // Named set weapons are relics for the active hero, not anonymous world weapon-family noise.
   if (namedSet && slot === 'weapon') {
     const own = WEAPON_BASES.filter(b => b.cls === classId && d >= b.min);
@@ -5606,16 +5608,35 @@ const TOWN_HOTSPOTS = Object.freeze([
   { id:'portal', cell:TOWN_NPC_ART.portalWarden, activeCell:TOWN_NPC_ART.portalTechnician, x:.92, y:.82, face:-1, action:'portal', zh:'传送守卫', en:'Portal Warden' },
 ]);
 const TOWN_WORK_FOR_HOTSPOT = Object.freeze({ smith:'smithy', innkeeper:'tavern', merchant:'market', records:'relics' });
+const TOWN_RESIDENT_VISUALS = Object.freeze({
+  provisioner:{ cell:TOWN_NPC_ART.provisioner, x:.52, y:.91, face:1, scale:.72 },
+  apothecary:{ cell:TOWN_NPC_ART.apothecaryApprentice, x:.65, y:.91, face:-1, scale:.72 },
+  watch:{ cell:TOWN_NPC_ART.townWatch, x:.035, y:.88, face:1, scale:.76 },
+  scout:{ cell:TOWN_NPC_ART.expeditionScout, x:.975, y:.91, face:-1, scale:.74 },
+  technician:{ cell:TOWN_NPC_ART.portalTechnician, x:.90, y:.91, face:1, scale:.70 },
+  alchemist:{ cell:TOWN_NPC_ART.alchemist, x:.66, y:.90, face:1, scale:.70 },
+});
 let selectedTownCheckpoint = 1;
 let townActiveService = 'plaza';
 let townPendingHotspot = '';
 let townLastFrame = 0;
 let townPromptKey = '';
 const townAvatar = { x:.5, y:.90, tx:.5, ty:.90, face:1 };
-function townHotspotById(id) { return TOWN_HOTSPOTS.find(row => row.id === id) || null; }
+function activeTownResidents() {
+  if (!meta) return [];
+  const roster = TOWN_GROWTH_RULES.residentRoster({
+    tier:townTierForArt(), works:meta.townWorks || {},
+  });
+  return roster.map(row => {
+    const visual = TOWN_RESIDENT_VISUALS[row.id];
+    return visual ? { ...row, ...visual, kind:'resident' } : null;
+  }).filter(Boolean);
+}
+function townInteractables() { return [...TOWN_HOTSPOTS, ...activeTownResidents()]; }
+function townHotspotById(id) { return townInteractables().find(row => row.id === id) || null; }
 function nearestTownHotspot(maxDistance = Infinity) {
   let best = null, bestDistance = Infinity;
-  for (const row of TOWN_HOTSPOTS) {
+  for (const row of townInteractables()) {
     const dx = townAvatar.x - row.x, dy = (townAvatar.y - row.y) * .72;
     const distance = Math.hypot(dx, dy);
     if (distance < bestDistance) { best = row; bestDistance = distance; }
@@ -5667,10 +5688,13 @@ function renderTownFocus(focusTab = false) {
 }
 function townNpcLine(row) {
   if (!row || !meta) return null;
-  return TOWN_GROWTH_RULES.npcLine(row.id, {
+  const context = {
     tier:townTierForArt(), bestDepth:meta.bestDepth || 0, lastReturnDepth:meta.lastReturnDepth || 0,
-    relics:relicLedgerCount(), works:meta.townWorks || {},
-  });
+    relics:relicLedgerCount(), works:meta.townWorks || {}, eventId:meta.townEvent ? meta.townEvent.id : '',
+  };
+  return row.kind === 'resident'
+    ? TOWN_GROWTH_RULES.residentLine(row.id, context)
+    : TOWN_GROWTH_RULES.npcLine(row.id, context);
 }
 function activateTownHotspot(row, focusTab = true) {
   if (!row || state !== 'town') return false;
@@ -5684,7 +5708,7 @@ function activateTownHotspot(row, focusTab = true) {
     if (depart) depart.focus({ preventScroll:true });
     return true;
   }
-  townActiveService = row.service || 'stash';
+  townActiveService = row.kind === 'resident' ? 'plaza' : (row.service || 'stash');
   renderTownFocus(focusTab);
   return true;
 }
@@ -6205,10 +6229,18 @@ function drawTownHeroFigure(ctx, x, baseY, now, facing = 1, scale = 1) {
   }
   ctx.restore();
 }
+function townRowHasNews(row) {
+  if (!row || !meta || !meta.townEvent) return false;
+  const eventId = meta.townEvent.id;
+  return (eventId === 'relic_exhibition' && row.id === 'records') ||
+    (eventId === 'caravan_surplus' && (row.id === 'merchant' || row.id === 'provisioner')) ||
+    (eventId === 'scout_cache' && row.id === 'scout');
+}
 function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
   const workId = TOWN_WORK_FOR_HOTSPOT[row.id];
   const workLevel = workId ? townWorkLevel(workId) : 0;
-  const label = ui(row.zh, row.en) + (workLevel ? ui(` · 建设 ${workLevel}`, ` · Lv ${workLevel}`) : '');
+  const news = townRowHasNews(row);
+  const label = ui(row.zh, row.en) + (workLevel ? ui(` · 建设 ${workLevel}`, ` · Lv ${workLevel}`) : '') + (news ? ' · !' : '');
   ctx.save();
   ctx.font = `600 ${Math.round(10 * scale)}px "Segoe UI", "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -6226,15 +6258,9 @@ function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
 function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
   const near = nearestTownHotspot(.105);
   const artScale = clamp(H / 300, 1, 1.34);
-  const actors = TOWN_HOTSPOTS.map(row => ({ type:'hotspot', row, x:W * row.x, baseY:H * row.y }));
+  const actors = townInteractables().map(row => ({ type:row.kind === 'resident' ? 'resident' : 'hotspot', row, x:W * row.x, baseY:H * row.y }));
   const extras = [
-    { min:2, cell:TOWN_NPC_ART.provisioner, x:.52, y:.91, face:1, scale:.72 },
-    { min:3, cell:TOWN_NPC_ART.apothecaryApprentice, x:.65, y:.91, face:-1, scale:.72 },
-    { min:4, cell:TOWN_NPC_ART.townWatch, x:.035, y:.88, face:1, scale:.76 },
-    { min:5, cell:TOWN_NPC_ART.expeditionScout, x:.975, y:.91, face:-1, scale:.74 },
     { min:6, cell:TOWN_NPC_ART.townWatch, x:.19, y:.91, face:-1, scale:.70 },
-    { min:7, cell:TOWN_NPC_ART.portalTechnician, x:.90, y:.91, face:1, scale:.70 },
-    { min:8, cell:TOWN_NPC_ART.alchemist, x:.66, y:.90, face:1, scale:.70 },
     { min:9, cell:TOWN_NPC_ART.provisionerCrate, x:.50, y:.92, face:-1, scale:.68 },
   ];
   for (const row of extras) if (tier >= row.min)
@@ -6251,18 +6277,22 @@ function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
       continue;
     }
     const row = actor.row;
-    const selected = townActiveService === row.service || (row.action === 'portal' && townActiveService === 'portal');
+    const selected = row.kind !== 'resident' && (townActiveService === row.service || (row.action === 'portal' && townActiveService === 'portal'));
     const nearby = !!(near && near.row.id === row.id);
-    const pulse = !reducedMotion && row.activeCell !== undefined && (selected || nearby) && Math.floor(now / 620) % 2;
-    if (selected || nearby) {
+    const hasNews = townRowHasNews(row);
+    const pulse = !reducedMotion && row.activeCell !== undefined && (selected || nearby || hasNews) && Math.floor(now / 620) % 2;
+    if (selected || nearby || hasNews) {
       ctx.save();
       ctx.globalAlpha = .2 + .08 * Math.sin(now * .006);
       ctx.fillStyle = '#f2d27b';
       ctx.beginPath(); ctx.ellipse(actor.x, actor.baseY + 2, 18 * artScale, 5 * artScale, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
-    drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, (selected ? 1.02 : .94) * artScale);
-    drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby, artScale);
+    const figureScale = row.kind === 'resident'
+      ? (Number(row.scale) || .74) * (nearby ? 1.06 : 1)
+      : (selected ? 1.02 : .94);
+    drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, figureScale * artScale);
+    drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby || hasNews, (row.kind === 'resident' ? Math.max(.78, Number(row.scale) || .74) : 1) * artScale);
   }
 }
 function drawTownProjectLandmarks(ctx, now, W, H) {
@@ -6733,6 +6763,34 @@ function resolveTownEvent() {
   renderTown();
   return true;
 }
+function selectRelicFocus(setId) {
+  if (state !== 'town' || !meta) return false;
+  const hallLevel = townWorkLevel('relics');
+  if (hallLevel <= 0) {
+    msg(ui('先扩建遗物馆，书记才有余力追查特定套装的线索。', 'Expand the Relic Hall before asking the curator to track a specific set.'), 'bad');
+    return false;
+  }
+  const requested = String(setId || '');
+  if (!requested || requested === meta.relicFocusSet) {
+    meta.relicFocusSet = '';
+    saveMeta();
+    msg(ui('遗物馆停止定向追查，重新整理全部线索。', 'The Relic Hall stops targeted research and returns to the full archive.'), 'good');
+    renderTown();
+    return true;
+  }
+  const normalized = SET_RULES.normalizeFocusId(requested, meta.bestDepth || 0, meta.relicLedger || {});
+  if (!normalized) {
+    msg(ui('这套遗物还没有足够线索，暂时无法定向研究。', 'There are not enough clues to focus research on that set yet.'), 'bad');
+    return false;
+  }
+  meta.relicFocusSet = normalized;
+  saveMeta();
+  const set = SET_RULES.setById(normalized);
+  const pct = Math.round(SET_RULES.focusWeight(hallLevel) * 100);
+  msg(ui(`遗物馆开始追查【${set.zh}】线索：出现具名遗物时，约 ${pct}% 会优先指向该套。`, `Relic Hall research now tracks [${set.en}]: about ${pct}% of eligible named relics will favor this set.`), 'epic');
+  renderTown();
+  return true;
+}
 function renderTownRelics() {
   const host = $('town-relics');
   if (!host || !meta) return;
@@ -6740,12 +6798,20 @@ function renderTownRelics() {
   const equipped = SET_RULES.equippedCounts(meta.equip || {});
   const totalFound = Object.keys(ledger).filter(k => ledger[k]).length;
   const totalPieces = SET_RULES.SETS.length * SET_RULES.SLOTS.length;
+  const hallLevel = townWorkLevel('relics');
+  const focusSet = SET_RULES.setById(meta.relicFocusSet);
+  const focusPct = Math.round(SET_RULES.focusWeight(hallLevel) * 100);
+  const research = hallLevel > 0
+    ? `<div class="relic-research"><div><b>${ui('线索追查','Research Focus')}</b><span>${focusSet ? ui(`当前追查：${focusSet.zh} · 具名遗物偏向约 ${focusPct}%`, `Tracking: ${focusSet.en} · about ${focusPct}% of eligible named relics favor it`) : ui(`可指定一套进行追查 · 当前偏向强度 ${focusPct}%`, `Choose one set to track · current focus strength ${focusPct}%`)}</span></div>${focusSet ? `<button type="button" data-relicfocus="">${ui('取消追查','Clear Focus')}</button>` : ''}</div>`
+    : `<div class="relic-research locked"><div><b>${ui('线索追查未开放','Research Focus Locked')}</b><span>${ui('完成“整理旧展柜”后，可让遗物馆定向追查某一套六件遗物。','Complete “Restore the Old Cases” to let the Relic Hall track one six-piece set.')}</span></div></div>`;
   host.innerHTML =
-    `<div class="relic-summary"><b>${ui('馆藏进度','Archive Progress')} ${totalFound}/${totalPieces}</b><span>${ui('只有安全带回小镇的具名遗物才会永久留下记录。','Only named relics safely returned to town are permanently catalogued.')}</span></div>` +
+    `<div class="relic-summary"><b>${ui('馆藏进度','Archive Progress')} ${totalFound}/${totalPieces}</b><span>${ui('只有安全带回小镇的具名遗物才会永久留下记录。','Only named relics safely returned to town are permanently catalogued.')}</span></div>` + research +
     SET_RULES.SETS.map(set => {
       const progress = SET_RULES.collectionProgress(ledger, set.id);
       const worn = equipped[set.id] || 0;
       const known = progress.found > 0 || (meta.bestDepth || 0) >= set.minDepth;
+      const focusable = hallLevel > 0 && SET_RULES.normalizeFocusId(set.id, meta.bestDepth || 0, ledger) === set.id;
+      const focused = meta.relicFocusSet === set.id;
       const story = known
         ? ui(set.zhStory,set.enStory)
         : ui(`书记只知道这批遗物大约出现在第 ${set.minDepth} 层以后。`, `The curator only knows these relics begin appearing around Floor ${set.minDepth}.`);
@@ -6760,7 +6826,10 @@ function renderTownRelics() {
       const bonuses = set.bonuses.map(b =>
         `<span class="${worn >= b.pieces ? 'active' : ''}"><b>${b.pieces}/6</b>${esc(ui(b.zh,b.en))}</span>`
       ).join('');
-      return `<section class="relic-set-card${known ? '' : ' rumor'}"><header><div><p class="kicker">${ui('具名六件套','Named Six-Piece Set')}</p><h3>${esc(ui(set.zh,set.en))}</h3></div><strong>${ui(`馆藏 ${progress.found}/6 · 穿戴 ${worn}/6`, `Archive ${progress.found}/6 · Equipped ${worn}/6`)}</strong></header><p class="relic-set-story">${esc(story)}</p><div class="relic-piece-grid">${pieces}</div><div class="relic-set-bonuses">${bonuses}</div></section>`;
+      const focusButton = focusable
+        ? `<button type="button" class="relic-focus-action${focused ? ' active' : ''}" data-relicfocus="${set.id}">${focused ? ui(`追查中 · ${focusPct}%`,`Tracking · ${focusPct}%`) : ui('追查此套线索','Track This Set')}</button>`
+        : '';
+      return `<section class="relic-set-card${known ? '' : ' rumor'}${focused ? ' focused' : ''}"><header><div><p class="kicker">${ui('具名六件套','Named Six-Piece Set')}</p><h3>${esc(ui(set.zh,set.en))}</h3></div><strong>${ui(`馆藏 ${progress.found}/6 · 穿戴 ${worn}/6`, `Archive ${progress.found}/6 · Equipped ${worn}/6`)}</strong></header><p class="relic-set-story">${esc(story)}</p><div class="relic-piece-grid">${pieces}</div><div class="relic-set-bonuses">${bonuses}</div>${focusButton}</section>`;
     }).join('');
 }
 function renderTown() {
@@ -6788,6 +6857,7 @@ function renderTown() {
       : `<button type="button" class="town-ready-action" data-townready="1"${(!readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
     const relicFound = Object.keys(meta.relicLedger || {}).filter(k => meta.relicLedger[k]).length;
     const checkpointCount = unlockedTownCheckpoints().length;
+    const residentCount = TOWN_HOTSPOTS.length + activeTownResidents().length;
     const returnNote = (meta.lastReturnDepth || 0) > 0
       ? ui(`最近一次有人从第 ${meta.lastReturnDepth} 层活着回来，酒馆里还在谈这件事。`, `Someone returned alive from Floor ${meta.lastReturnDepth}; the tavern is still talking about it.`)
       : ui('镇上的人还没有等到你的第一次平安归来。','The town is still waiting for your first safe return.');
@@ -6795,7 +6865,7 @@ function renderTown() {
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
-      `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物馆 ${relicFound}/${SET_RULES.SETS.length * 6} · 已记录出发点 ${checkpointCount} · 市集阶段 ${tier}`, `Relic Hall ${relicFound}/${SET_RULES.SETS.length * 6} · Departure records ${checkpointCount} · Market Tier ${tier}`)}</span></div>` +
+      `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物馆 ${relicFound}/${SET_RULES.SETS.length * 6} · 已记录出发点 ${checkpointCount} · 广场常驻 ${residentCount}`, `Relic Hall ${relicFound}/${SET_RULES.SETS.length * 6} · Departure records ${checkpointCount} · Plaza residents ${residentCount}`)}</span></div>` +
       `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>` +
       townChronicleHtml() +
       townEventHtml() +
@@ -7374,6 +7444,8 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (townWork) { ensureAudio(); upgradeTownWork(townWork.dataset.townwork); return; }
   const townEvent = e.target.closest('[data-townevent]');
   if (townEvent) { ensureAudio(); resolveTownEvent(); return; }
+  const relicFocus = e.target.closest('[data-relicfocus]');
+  if (relicFocus) { ensureAudio(); selectRelicFocus(relicFocus.dataset.relicfocus || ''); return; }
   const dep = e.target.closest('[data-deposit]');
   if (dep) { ensureAudio(); depositStash(+dep.dataset.deposit); return; }
   const depAll = e.target.closest('[data-depositall]');
@@ -7413,7 +7485,7 @@ if ($('town-scene')) $('town-scene').addEventListener('pointerdown', e => {
   const x = clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
   const y = clamp((e.clientY - rect.top) / Math.max(1, rect.height), .79, .93);
   let nearest = null, distance = Infinity;
-  for (const row of TOWN_HOTSPOTS) {
+  for (const row of townInteractables()) {
     const d = Math.hypot(x - row.x, (y - row.y) * .72);
     if (d < distance) { nearest = row; distance = d; }
   }
@@ -7529,7 +7601,7 @@ if (typeof window !== 'undefined') {
     get meta() { return meta; },
     useEscape, departTown, depositStash, withdrawStash, buyTown,
     tavernCost, tavernAvailable, drinkAtTavern, moveTownAvatar, setTownTarget, interactTown,
-    TOWN_HOTSPOTS, get townAvatar() { return { ...townAvatar }; },
+    TOWN_HOTSPOTS, activeTownResidents, townInteractables, townNpcLine, townRowHasNews, selectRelicFocus, get townAvatar() { return { ...townAvatar }; },
     unlockedTownCheckpoints, selectTownCheckpoint, get selectedTownCheckpoint() { return selectedTownCheckpoint; },
     spinWheel, resetWheel, spinCost, resetWheelCost, applyWheelPrize, genWheelSlot,
     ACHV, checkAchv, getRecord: () => ({ ...ensureRecord(), achv:{...ensureRecord().achv} }),

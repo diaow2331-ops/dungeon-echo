@@ -413,12 +413,20 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 }
 .relic-summary b { color:#e7c57f; }
 .relic-summary span { color:var(--dim); font-size:11px; }
+.relic-research { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px; border:1px solid rgba(172,126,57,.56); background:linear-gradient(135deg,rgba(42,27,15,.88),rgba(17,12,10,.9)); }
+.relic-research.locked { opacity:.64; border-style:dashed; }
+.relic-research div { min-width:0; }
+.relic-research b, .relic-research span { display:block; }
+.relic-research b { color:#e7c57f; font-size:12px; margin-bottom:2px; }
+.relic-research span { color:#b5a58f; font-size:10px; line-height:1.45; }
+.relic-research button { flex:0 0 auto; min-height:30px; padding:5px 10px; font-size:10px; }
 .relic-set-card {
   border:1px solid rgba(139,104,53,.48);
   background:linear-gradient(150deg, rgba(29,20,15,.96), rgba(12,9,10,.97));
   padding:14px;
 }
 .relic-set-card.rumor { opacity:.72; }
+.relic-set-card.focused { border-color:rgba(230,177,70,.82); box-shadow:inset 0 0 0 1px rgba(230,177,70,.12),0 0 20px rgba(181,116,34,.08); }
 .relic-set-card > header { display:flex; justify-content:space-between; gap:14px; align-items:flex-end; padding-bottom:8px; border-bottom:1px solid rgba(139,104,53,.3); }
 .relic-set-card h3 { margin:2px 0 0; color:#f0cb7d; font-size:18px; letter-spacing:1px; }
 .relic-set-card header strong { color:#bca783; font-size:11px; font-weight:600; }
@@ -442,6 +450,8 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 .relic-set-bonuses span b { color:#9a8a78; font-size:11px; }
 .relic-set-bonuses span.active { border-color:rgba(215,166,64,.74); color:#d7c5aa; background:rgba(57,39,20,.58); }
 .relic-set-bonuses span.active b { color:#f2d27b; }
+.relic-focus-action { width:100%; min-height:31px; margin-top:10px; padding:5px 9px; border-color:rgba(139,104,53,.55); color:#c9b48f; }
+.relic-focus-action.active { border-color:rgba(230,177,70,.82); color:#f3d793; background:linear-gradient(180deg,rgba(71,47,20,.82),rgba(36,24,13,.9)); }
 .named-relic-name { letter-spacing:.3px; }
 .named-relic-set { margin-top:4px; color:#d9ad58; font-size:11px; font-weight:700; }
 .named-relic-lore { margin:7px 0; padding:7px 9px; border-left:2px solid rgba(201,151,65,.68); color:#c9b9a2; background:rgba(41,29,19,.48); font-style:italic; line-height:1.5; }
@@ -456,7 +466,8 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 @media (max-width: 760px) {
   .relic-piece-grid { grid-template-columns:1fr; }
   .relic-set-bonuses { grid-template-columns:1fr; }
-  .relic-set-card > header, .relic-summary { align-items:flex-start; flex-direction:column; }
+  .relic-set-card > header, .relic-summary, .relic-research { align-items:flex-start; flex-direction:column; }
+  .relic-research button { width:100%; }
 }
 @media (max-width: 560px) {
   .town-contract-grid { grid-template-columns: 1fr; }

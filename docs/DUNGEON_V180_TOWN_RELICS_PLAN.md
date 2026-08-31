@@ -18,12 +18,19 @@ Town project levels are shown in walkable NPC nameplates. The town Canvas also g
 ## Pillar 3 — Fixed named six-piece sets
 Named relics use the existing six equipment slots and activate at 2 / 4 / 6 pieces. Each fixed piece has its own name, lore and signature stats. Named relics keep at most one random secondary affix so identity remains primary.
 
+The Relic Hall can later **research one named set at a time**. This never raises the total named-drop probability by itself; instead, once a named relic is rolled, a developed hall biases which eligible set it belongs to (50% / 65% / 80% by hall level). This turns collection into a long-term town↔dungeon loop without guaranteeing exact pieces.
+
+Relic Hall construction also turns collection into an active town service. After the first archive expansion, the player may track one known/reached set; when a named relic is generated and the tracked set is eligible at that depth, the fixed set-selection policy biases toward it at 50% / 65% / 80% by Hall level. This does not increase ordinary Epic/Legendary frequency by itself and does not guarantee a missing slot, so completing a six-piece set remains a hunt rather than a vending-machine purchase.
+
 ## Pillar 4 — A town that reacts to returns
 Safe return may stage one deterministic town event instead of treating the town as a static menu. The first slice includes Relic Exhibition, Caravan Surplus and Scout Reserve Crate. Events persist until handled, can consume or add real town resources, and are surfaced both in the plaza ledger and by a visible notice marker.
 
 Walkable NPC dialogue now reacts to construction level, archive progress and recent return depth. The smith talks differently after furnace reconstruction, the merchant reflects trade-road investment, the innkeeper remembers a recent deep return, and the Relic Curator changes tone as the archive fills. Death does not create positive safe-return events.
 
 The plaza also keeps a bounded **Recent Town Chronicle**. Safe returns, project completions, newly catalogued relics and resolved town events leave structured records, so the home base accumulates visible history without storing duplicate free-form story text.
+
+## Pillar 5 — Residents, not scenery
+The background population is promoted into a deterministic resident roster. Provisioners, an apothecary apprentice, town watch, expedition scout, portal technician and resident alchemist appear only when town tier and relevant construction justify them. They are real walkable/clickable interaction targets with state-aware dialogue; pending caravan/scout events change the lines of the people involved. Decorative duplicates remain limited to non-interactive crowd dressing.
 
 ## Authority boundaries
 - `game/domain/town/town-growth-rules-v180.js`: project definitions, requirements and bounded deterministic effects.
