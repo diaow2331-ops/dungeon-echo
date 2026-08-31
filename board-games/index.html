@@ -2,22 +2,22 @@
 <html lang="zh-CN" translate="no">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="version" content="0.2.0"><meta name="google" content="notranslate">
+<meta name="version" content="0.2.1"><meta name="google" content="notranslate">
 <title>方寸棋局 · 五子棋 / 象棋 / 围棋</title>
-<link rel="stylesheet" href="style.css?v=020">
+<link rel="stylesheet" href="style.css?v=021">
 </head>
 <body>
-<header class="topbar"><a class="brand" href="https://91hwl.cn/">91hwl</a><div><strong>方寸棋局</strong><small>Board Trio · v0.2.0</small></div><button id="soundBtn" type="button" aria-pressed="true">声音 开</button></header>
+<header class="topbar"><a class="brand" href="https://91hwl.cn/">91hwl</a><div><strong>方寸棋局</strong><small>Board Trio · v0.2.1</small></div><button id="soundBtn" type="button" aria-pressed="true">声音 开</button></header>
 <main class="shell">
 <section class="intro"><div><p class="eyebrow">THREE CLASSICS · ONE PAGE</p><h1>三种棋，一张桌。</h1><p>无需账号，无需下载。五子棋、中国象棋、围棋共用一套轻量棋盘与本地双人流程。</p></div><nav class="tabs" aria-label="选择棋类"><button data-game="gomoku" class="active">五子棋<small>GOMOKU</small></button><button data-game="xiangqi">象棋<small>XIANGQI</small></button><button data-game="go">围棋<small>GO</small></button></nav></section>
 <section class="playcard">
-<div class="toolbar"><div><span id="gameName">五子棋</span><strong id="status">黑方落子</strong></div><div class="actions"><label id="goSizeWrap" hidden>棋盘 <select id="goSize"><option value="9">9×9</option><option value="13">13×13</option><option value="19" selected>19×19</option></select></label><button id="passBtn" hidden type="button">停一手</button><button id="undoBtn" type="button">悔棋</button><button id="restartBtn" type="button">重开</button></div></div>
+<div class="toolbar"><div><span id="gameName">五子棋</span><strong id="status">黑方落子</strong></div><div class="actions"><label id="goSizeWrap" hidden>棋盘 <select id="goSize"><option value="9">9×9</option><option value="13">13×13</option><option value="19" selected>19×19</option></select></label><button id="passBtn" hidden type="button">停一手</button><button id="confirmBtn" type="button" disabled>落子</button><button id="undoBtn" type="button">悔棋</button><button id="restartBtn" type="button">重开</button></div></div>
 <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 <div class="board-wrap"><canvas id="board" width="900" height="900" tabindex="0" aria-label="棋盘"></canvas></div>
-<div class="foot"><span id="ruleHint">自由规则：先连成五子者胜。</span><span class="foot-meta"><span id="sessionHint">切换棋类会保留本页内的当前对局</span><span id="moveCount">0 手</span></span></div>
+<div class="foot"><span id="ruleHint">自由规则：先连成五子者胜。</span><span class="foot-meta"><span id="sessionHint">先选落点，再点“落子”确认</span><span id="moveCount">0 手</span></span></div>
 </section>
 <section class="notes"><article><b>五子棋</b><p>15×15，自由规则，横竖斜五连即胜。</p></article><article><b>中国象棋</b><p>完整基础走子、蹩马腿、塞象眼、炮架、九宫、过河兵与将帅照面约束。</p></article><article><b>围棋</b><p>9/13/19 路，提子、禁自杀、简单劫、双方停一手后按当前盘面进行中国面积规则自动估算；支持 7.5 贴目。</p></article></section>
-<p class="keyboard-hint">桌面端：棋盘获得焦点后，可用方向键移动落点，Enter / 空格落子或走棋。</p>
+<p class="control-hint">五子棋 / 围棋：先选落点，再点“落子”确认；象棋：先选棋子，再点目标位置。悔棋只回退已经确认的走子。</p>
 </main>
-<script src="rules.js?v=020"></script><script src="game.js?v=020"></script>
+<script src="rules.js?v=021"></script><script src="game.js?v=021"></script>
 </body></html>
