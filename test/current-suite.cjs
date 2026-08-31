@@ -38,6 +38,8 @@ const tests = [
   'decision-clarity-v133.cjs',
   'core-balance-v140.cjs',
   'dungeon-v150-feedback-flow.cjs',
+  'dungeon-v170-living-expedition.cjs',
+  'monster-threat-v170.cjs',
   'single-authority-v140.cjs',
   'postlaunch-ux-v140.cjs',
   'postlaunch-gameplay-regressions-v134.cjs',

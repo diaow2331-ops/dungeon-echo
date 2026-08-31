@@ -60,3 +60,27 @@ Remediation:
 - advanced the public-site presentation version to v1.11.7 and synchronized component labels from their canonical version files instead of hard-coded duplicate versions.
 
 Pre-merge verification on the rebased working tree: `node test/current-suite.cjs` completed 45 current gates with 0 failures; repository event safety, public-repository safety, cross-game boundaries and release-root policy all passed.
+
+
+## Dungeon Echo v1.7.0 gameplay expansion follow-up
+
+A player-facing expansion was implemented after the v1.6 modular-authority audit. The change deliberately avoids reopening the repository architecture.
+
+### New authority
+- Added `game/domain/expedition/expedition-rules-v170.js` as the sole deterministic policy owner for expedition contracts, dungeon-event specifications and elite-affix eligibility.
+- The module is pure: no RNG consumption, storage, DOM, Canvas, input, spawning or live actor mutation.
+- `game/core/game.js` remains the sole runtime owner for RNG, spawning, combat execution, reward mutation, persistence, rendering and gameplay input.
+
+### Player-facing scope
+- Town-tier-gated expedition contracts.
+- Optional Blood Offering, Cursed Cache and Elite Trial encounters.
+- Frenzied, Vampiric and Volatile elite identities.
+- Modest ordinary-monster ATK pressure scaling with depth.
+- Engagement pressure increased to make adjacency and positioning consequential while preserving telegraphed counterplay.
+- Guardian/final-boss authored ATK values remain outside the ordinary-monster pressure multiplier.
+
+### Compatibility and release
+- Storage epoch remains `v130`.
+- New `contractId` sanitizes to `none` for existing saves.
+- Release metadata advances to Dungeon Echo `v1.7.0`, cache generation `181`, runtime bootstrap `v33`.
+- Component release root policy and cross-game source boundaries remain unchanged.

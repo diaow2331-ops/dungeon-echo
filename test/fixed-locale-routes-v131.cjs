@@ -13,7 +13,7 @@ const scripts=html=>[...html.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g
 const expectedScripts=[
   'game/core/production-bootstrap.js','profiles/classic-100.profile.js','game/locale/locale-data-v134.js',
   'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js',
-  'game/domain/economy/economy-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/progression/progression-rules-v130.js',
+  'game/domain/economy/economy-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/expedition/expedition-rules-v170.js','game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js','game/core/game.js','game/locale/core-locale-data-v139.js',
   'game/input/desktop-controls.js','game/core/runtime-bootstrap.js',
 ];
@@ -30,7 +30,7 @@ for(const retired of ['stable-item-id-migration-v150.js','core-screen-owner-v153
   ok(!manifest.some(file=>file===retired||file.endsWith('/'+retired)),`${retired} is absent from release manifest`);
 }
 const expectedFollowers=[
-  "fresh('game/core/release-stamp-v160.js')",
+  "fresh('game/core/release-stamp-v170.js')",
   "fresh('game/locale/fixed-locale-entry-v130.js')",
   "fresh('game/ui/responsive-final-v154.js')",
   "fresh('game/ui/help-copy-v126.js')",
@@ -40,7 +40,7 @@ const expectedFollowers=[
 ];
 for(const token of expectedFollowers) ok(runtime.includes(token),`runtime follower present: ${token}`);
 ok(/const english = routeLang === 'en'/.test(runtime),'runtime locale identity is fixed-route derived');
-ok(/const assetVersion = '180'/.test(runtime)&&/version:'v32'/.test(runtime),'runtime bootstrap aligns with generation 180 / v32');
+ok(/const assetVersion = '181'/.test(runtime)&&/version:'v33'/.test(runtime),'runtime bootstrap aligns with generation 181 / v33');
 ok(/const chain = Object\.freeze\(\[/.test(runtime)&&/followers:'presentation-only'/.test(runtime),'runtime owns one bounded presentation follower chain');
 ok(!/MutationObserver|translateTree|setInterval/.test(localeData),'locale data remains source-level and observer-free');
 ok(!/MutationObserver|setInterval|requestAnimationFrame/.test(coreLocale),'core locale data remains one-shot and observer-free');

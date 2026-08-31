@@ -25,9 +25,9 @@ const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const health = read('ops/site-bundle/healthcheck.sh');
 
-assert.equal(version, '1.6.0', 'release test must lock the v1.6.0 boundary');
+assert.equal(version, '1.7.0', 'release test must lock the v1.7.0 boundary');
 assert.equal(authority.version, version, 'authority map version drifted');
-assert.equal(generation, '180', 'release test must lock cache generation 180');
+assert.equal(generation, '181', 'release test must lock cache generation 181');
 assert.equal(new Set(manifest).size, manifest.length, 'release manifest contains duplicates');
 assert(manifest.includes('VERSION') && manifest.includes(stampPath), 'semantic version and release stamp must ship');
 assert(manifest.every(rel => fs.existsSync(path.join(root, rel))), 'every allowlisted file must exist');
@@ -42,6 +42,7 @@ const expectedScripts = [
   'game/domain/inventory/equipment-rules-v130.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',
   'game/core/game.js',
@@ -82,7 +83,7 @@ assert(health.includes("followers:'presentation-only'") && !health.includes("fol
 
 const revision = run('git', ['rev-parse', 'HEAD']).stdout.trim();
 assert.match(revision, /^[0-9a-f]{40}$/);
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-v160-release-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-v170-release-'));
 const archive = path.join(tmp, `91hwl-play-dungeon-echo-v${version}.zip`);
 const build = run('bash', ['ops/release/build-site-bundle.sh', archive], { env:{ SOURCE_REVISION:revision } });
 assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
@@ -110,4 +111,4 @@ assert.equal(deploySyntax.status, 0, deploySyntax.stderr);
 assert.equal(healthSyntax.status, 0, healthSyntax.stderr);
 
 fs.rmSync(tmp, { recursive:true, force:true });
-console.log('release_v1_6_0=PASS');
+console.log('release_v1_7_0=PASS');
