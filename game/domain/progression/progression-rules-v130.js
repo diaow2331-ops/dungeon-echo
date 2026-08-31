@@ -1,8 +1,8 @@
 /* Dungeon Echo production level-up-arithmetic authority v1.3.0.
  *
- * Sole production authority for canonical XP thresholds, per-level HP/ATK/heal deltas and
- * talent-due classification. Caps, growth clamps, next-talent metadata and skill-evolution
- * milestones remain dormant pure exports until separately transferred.
+ * Sole production authority for canonical XP thresholds, per-level HP/ATK/heal deltas,
+ * talent-due classification and the permanent level-cap calculation. Snapshot clamping,
+ * next-talent metadata and skill-evolution milestones remain dormant pure exports.
  *
  * Boundary rule: no XP/player/meta mutation, talent-screen control, input, DOM or storage.
  */

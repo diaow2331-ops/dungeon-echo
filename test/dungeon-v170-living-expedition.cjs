@@ -9,7 +9,7 @@ const manifest=fs.readFileSync(path.join(root,'ops/release/static-files.txt'),'u
 assert.equal(rules.authority,'expedition-variation-policy');
 assert.equal(rules.version,'v1.7.0-production');
 assert.deepEqual(rules.availableContracts(1).map(x=>x.id),['none','hunt']);
-assert.deepEqual(rules.availableContracts(2).map(x=>x.id),['none','hunt','relic']);
+assert.deepEqual(rules.availableContracts(2).map(x=>x.id),['none','hunt','relic','oath']);
 assert.deepEqual(rules.availableContracts(4).map(x=>x.id),['none','hunt','relic','oath']);
 assert.equal(rules.eliteChance(.16,'hunt'),.24);
 assert.equal(rules.trapBonus('relic'),1);

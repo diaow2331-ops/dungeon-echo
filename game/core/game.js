@@ -3154,15 +3154,37 @@ function dropAt(x, y, it) {
 const PROGRESSION_RULES = typeof window !== 'undefined' ? window.DE_PROGRESSION_RULES_V130 : null;
 if (!PROGRESSION_RULES || PROGRESSION_RULES.authority !== 'level-up-arithmetic')
   throw new Error('Dungeon Echo level-up-arithmetic authority missing');
+function progressionLegacyFloor() {
+  return greedyMode && meta ? {
+    legacyLvl:Math.max(1, Number(meta.lvl) || 1),
+    legacyHp:Math.max(1, Number(meta.hpBase) || 1),
+    legacyAtk:Math.max(0, Number(meta.atkBase) || 0),
+  } : {};
+}
+function progressionLevelCap() {
+  const level = player ? player.lvl : 1;
+  return PROGRESSION_RULES.progressionCaps(classDef(), level, progressionLegacyFloor()).level;
+}
+function settleProgressionXpCap() {
+  if (!player) return;
+  const cap = progressionLevelCap();
+  if (player.lvl >= cap) player.xp = Math.min(Math.max(0, Number(player.xp) || 0), PROGRESSION_RULES.xpThreshold(cap) - 1);
+}
 function killMonster(m) {
   const boomHit = m.boom && player.hp > 0 &&
     Math.abs(m.x - player.x) + Math.abs(m.y - player.y) <= 1;
   monsters.splice(monsters.indexOf(m), 1);
-  player.kills++; player.xp += m.xp;
+  player.kills++;
+  const levelCap = progressionLevelCap();
+  const xpAwarded = player.lvl < levelCap ? m.xp : 0;
+  if (xpAwarded > 0) player.xp += xpAwarded;
+  else settleProgressionXpCap();
   burst(m.fx, m.fy, m.color, 14);
   sfx.kill(!!(m.boss || m.midBoss));
   addDecal(m.x, m.y);
-  msg(ui(`${m.name}被消灭了！（+${m.xp} 经验）`, `${visibleWorldName(m.name)} was slain! (+${m.xp} XP)`), 'good');
+  msg(xpAwarded > 0
+    ? ui(`${m.name}被消灭了！（+${xpAwarded} 经验）`, `${visibleWorldName(m.name)} was slain! (+${xpAwarded} XP)`)
+    : ui(`${m.name}被消灭了！（永久等级已达上限）`, `${visibleWorldName(m.name)} was slain! (Permanent level cap reached)`), 'good');
   if (boomHit) {
     const dmg = Math.max(2, mitigatePlayerHit(Math.round(m.atk * 0.55), .5, false));
     player.hp -= dmg; player.hurtT = 1;
@@ -3223,7 +3245,7 @@ function killMonster(m) {
     player.hp += h;
     floater(player, `+${h}`, '#7dd87d');
   }
-  while (player.xp >= PROGRESSION_RULES.xpThreshold(player.lvl)) {
+  while (player.lvl < levelCap && player.xp >= PROGRESSION_RULES.xpThreshold(player.lvl)) {
     player.xp -= PROGRESSION_RULES.xpThreshold(player.lvl);
     const delta = PROGRESSION_RULES.levelUpDelta();
     player.lvl++; player.hpBase += delta.hpBase; player.atkBase += delta.atkBase;
@@ -3234,6 +3256,7 @@ function killMonster(m) {
     msg(ui(`你升到了 ${player.lvl} 级！攻击+1，生命上限+6。`, `Level ${player.lvl}! ATK +1, Max HP +6.`), 'gold');
     if (PROGRESSION_RULES.talentDue(player.lvl)) pendingTalent = true;
   }
+  settleProgressionXpCap();
   if (!floorCleared && monsters.length === 0) {
     floorCleared = true;
     const bonus = 12 + depth * 3;
@@ -5181,7 +5204,9 @@ function updateHud() {
       : ui('使用治疗药水（Q）', 'Use Healing Potion (Q)');
   }
   $('st-lvl').textContent = player.lvl;
-  $('st-xp').textContent = `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
+  $('st-xp').textContent = player.lvl >= progressionLevelCap()
+    ? ui('(永久等级 MAX)','(Permanent Level MAX)')
+    : `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
   $('st-atk').textContent = pAtk();
   $('st-def').textContent = pDef();
   $('st-crit').textContent = pCrit() + '%';
@@ -5870,10 +5895,22 @@ function selectTownCheckpoint(target) {
 function availableTownContracts() {
   return EXPEDITION_RULES.availableContracts(townTierForArt());
 }
+function townPermanentLevelCapReached() {
+  if (!meta) return false;
+  const c = CLASSES[meta.classId] || CLASSES.warrior;
+  const cap = PROGRESSION_RULES.progressionCaps(c, meta.lvl, {
+    legacyLvl:meta.lvl, legacyHp:meta.hpBase, legacyAtk:meta.atkBase,
+  }).level;
+  return (Number(meta.lvl) || 1) >= cap;
+}
+function townContractEnabled(id) {
+  const normalized = EXPEDITION_RULES.normalizeContractId(id);
+  return normalized !== 'oath' || !townPermanentLevelCapReached();
+}
 function selectTownContract(id) {
   if (state !== 'town' || !meta) return false;
   const normalized = EXPEDITION_RULES.normalizeContractId(id);
-  if (!availableTownContracts().some(row => row.id === normalized)) return false;
+  if (!availableTownContracts().some(row => row.id === normalized) || !townContractEnabled(normalized)) return false;
   meta.contractId = normalized;
   saveMeta();
   renderTown();
@@ -5883,12 +5920,19 @@ function renderTownContracts() {
   const panel = $('town-contracts');
   if (!panel || !meta) return;
   const rows = availableTownContracts();
-  if (!rows.some(row => row.id === meta.contractId)) meta.contractId = 'none';
+  if (!rows.some(row => row.id === meta.contractId) || !townContractEnabled(meta.contractId)) {
+    meta.contractId = 'none';
+    saveMeta();
+  }
   const selected = EXPEDITION_RULES.normalizeContractId(meta.contractId);
   panel.innerHTML = `<div class="checkpoint-head"><b>${ui('远征委托','Expedition Contract')}</b><small>${ui('出发前选择 · 仅影响下一次远征','Choose before departure · affects the next expedition')}</small></div>` +
     `<div class="town-contract-grid">${rows.map(row => {
       const active = row.id === selected;
-      return `<button type="button" data-contract="${row.id}" class="${active ? 'active' : ''}" aria-pressed="${active}"><b>${ui(row.zh,row.en)}</b><small>${ui(row.zhDesc,row.enDesc)}</small></button>`;
+      const enabled = townContractEnabled(row.id);
+      const desc = !enabled && row.id === 'oath'
+        ? ui('永久等级已达上限；该誓约本轮不再提供成长收益。','Permanent level cap reached; this Oath no longer provides progression value.')
+        : ui(row.zhDesc,row.enDesc);
+      return `<button type="button" data-contract="${row.id}" class="${active ? 'active' : ''}" aria-pressed="${active}" aria-disabled="${!enabled}"${enabled ? '' : ' disabled'}><b>${ui(row.zh,row.en)}</b><small>${desc}</small></button>`;
     }).join('')}</div>`;
 }
 function renderTownCheckpoints() {
@@ -7943,6 +7987,7 @@ if (typeof window !== 'undefined') {
     persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, monsterThreatScale, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
+    progressionLevelCap, settleProgressionXpCap,
     weaponBaseForDrop, starterWeaponForClass, weaponClassOf, canEquipForClass, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,
@@ -7956,7 +8001,8 @@ if (typeof window !== 'undefined') {
     tavernCost, tavernAvailable, tavernOfferChoices, tavernRewardCount, drinkAtTavern,
     smithyCanRetemper, smithyCanMasterwork, forgeRetemperCost, completeForgeMasterwork,
     moveTownAvatar, setTownTarget, interactTown,
-    TOWN_HOTSPOTS, activeTownResidents, townInteractables, townNpcLine, townRowHasNews, selectRelicFocus, get townAvatar() { return { ...townAvatar }; },
+    TOWN_HOTSPOTS, activeTownResidents, townInteractables, townNpcLine, townRowHasNews, selectRelicFocus,
+    townPermanentLevelCapReached, townContractEnabled, get townAvatar() { return { ...townAvatar }; },
     unlockedTownCheckpoints, selectTownCheckpoint, get selectedTownCheckpoint() { return selectedTownCheckpoint; },
     spinWheel, resetWheel, spinCost, resetWheelCost, applyWheelPrize, genWheelSlot,
     ACHV, checkAchv, getRecord: () => ({ ...ensureRecord(), achv:{...ensureRecord().achv} }),

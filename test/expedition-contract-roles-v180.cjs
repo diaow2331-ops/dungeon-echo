@@ -21,6 +21,8 @@ assert.equal(expedition.eliteChance(baseElite,'relic'),baseElite,'Relic Sweep mu
 assert.equal(expedition.monsterXpMultiplier('relic'),1,'Relic Sweep must not also own the XP multiplier');
 assert.equal(expedition.eliteBounty(80,'relic'),0,'Relic Sweep must not also own Elite Hunt Gold');
 
+assert.equal(expedition.availableContracts(1).some(row=>row.id==='oath'),false,'Veteran Oath should not pressure the very first town tier');
+assert.equal(expedition.availableContracts(2).some(row=>row.id==='oath'),true,'Veteran Oath must unlock while permanent XP progression still has meaningful runway');
 assert.equal(expedition.monsterAtkMultiplier('oath'),1.12,'Veteran Oath owns the combat-risk multiplier');
 assert.equal(expedition.monsterXpMultiplier('oath'),1.18,'Veteran Oath owns the XP premium');
 assert.equal(expedition.namedRelicChanceBonus('oath'),0,'Veteran Oath must not also own named-relic discovery');

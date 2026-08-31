@@ -53,7 +53,7 @@ Cross-responsibility boundaries are strict:
 
 - inventory/equipment owns canonical base-stat scoring plus class-fit scoring for player-facing comparison; class fit is read-only decision information and never enters pricing/loot/auto-equip logic;
 - economy owns deterministic forge/sell, retemper, town supply/restock, tavern, quick-dive and wheel pricing/stock policy; it never mutates gold, stock or items and does not own dungeon-heal behavior;
-- progression owns XP thresholds, level deltas and talent-due classification; caps/clamps/next-talent/skill-evolution helpers remain dormant;
+- progression owns XP thresholds, level deltas, talent-due classification and permanent level-cap calculation; core owns XP/player mutation and legacy-save preservation, while snapshot clamps/next-talent/skill-evolution helpers remain dormant;
 - content classifies floor eligibility without spawning or consuming RNG;
 - town domain owns checkpoint unlocks and expedition-readiness thresholds; core owns town movement, purchases, selection state, persistence and presentation;
 - expedition domain owns deterministic contract availability/modifiers, contract-specific risk/reward roles (including Relic Sweep named-discovery premium), dungeon-event specifications and elite-affix eligibility; inventory set policy clamps/composes named-discovery inputs, while core consumes RNG, spawns actors, mutates combat/reward state and persists the selected contract;

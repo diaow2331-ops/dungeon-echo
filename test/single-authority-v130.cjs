@@ -142,7 +142,8 @@ assert(!game.includes('if (player.lvl % 3 === 0) pendingTalent = true;'), 'core 
 assert(game.includes('PROGRESSION_RULES.xpThreshold(player.lvl)'), 'core must delegate XP threshold');
 assert(game.includes('PROGRESSION_RULES.levelUpDelta()'), 'core must delegate level-up delta');
 assert(game.includes('PROGRESSION_RULES.talentDue(player.lvl)'), 'core must delegate talent due');
-for (const dormant of ['progressionCaps','clampGrowthSnapshot','reachedEvolutionMilestones','nextEvolutionMilestone','nextTalentLevel']) assert(!game.includes(`PROGRESSION_RULES.${dormant}(`), `core unexpectedly adopted dormant progression helper ${dormant}`);
+assert(game.includes('PROGRESSION_RULES.progressionCaps(classDef(), level, progressionLegacyFloor())'), 'core must delegate the permanent level-cap calculation while retaining mutation ownership');
+for (const dormant of ['clampGrowthSnapshot','reachedEvolutionMilestones','nextEvolutionMilestone','nextTalentLevel']) assert(!game.includes(`PROGRESSION_RULES.${dormant}(`), `core unexpectedly adopted dormant progression helper ${dormant}`);
 assert(!game.includes("const pCritMul  = () => 1.8 + (player.critPower || 0) / 100;"), 'core still duplicates critical multiplier arithmetic');
 assert(game.includes("const pCritMul  = () => COMBAT_RULES.criticalMultiplier((player.critPower || 0) + setStat('critPower'));"), 'core must delegate critical multiplier while supplying active set bonus input');
 for (const dormant of ['warriorDamageReduction','totalDefense','grievousHealMultiplier','outgoingHitDamage','incomingMeleeDamage','incomingRangedDamage','thornsDamage','killHeal']) assert(!game.includes(`COMBAT_RULES.${dormant}(`), `core unexpectedly adopted dormant combat helper ${dormant}`);

@@ -35,6 +35,9 @@ The background population is promoted into a deterministic resident roster. Prov
 ## Pillar 6 — Buildings change what services can do
 Construction is not allowed to collapse into passive percentage bonuses. The v1.8 service pass keeps all v1.7 baseline functionality, then adds new decisions on top of it: the smithy can retemper a chosen refinement route, the trade road can restore depleted shelves once per cycle, the night market changes prices, the road improves the readiness kit, and tavern expansion converts a random permanent-growth roll into a bounded choice menu. Each service card displays its current construction stage so the player can see why a new option exists.
 
+## Pillar 7 — Permanent growth closes before deep-system growth
+The 1→100 audit restored the authored permanent Level-50 ceiling through the canonical progression authority. Fresh characters no longer inflate base ATK/HP through hundreds of unintended levels; historical stronger saves are grandfathered but cannot ratchet upward. Veteran Oath now unlocks at town Tier 2 while XP still matters and is disabled at the permanent cap. After that point, deep progression deliberately shifts toward equipment, forging, six-piece capstones, town investment and depth-based skill evolution.
+
 ## Authority boundaries
 - `game/domain/town/town-growth-rules-v180.js`: project definitions, requirements and bounded deterministic effects.
 - `game/domain/inventory/set-rules-v180.js`: named-set identities, lore, signatures, set thresholds.

@@ -11,7 +11,7 @@ Target roles:
 
 - **Elite Hunt** — strongest Gold / elite-loot route.
 - **Relic Sweep** — strongest named-relic / six-piece collection route.
-- **Veteran Oath** — strongest XP / character-level progression route.
+- **Veteran Oath** — strongest XP / character-level progression route while permanent levels still have runway; it unlocks at town Tier 2 and becomes unavailable at the permanent level ceiling.
 - **Free Expedition** — stable baseline with no additional risk or premium.
 
 ## Baseline defect
@@ -83,7 +83,7 @@ Separate floor sampling still shows:
 - Elite Hunt has the highest liquid Gold + sale-value output because of higher elite density and explicit elite bounties.
 - Veteran Oath has the highest generated XP despite Elite Hunt producing more elites. At Floors 80–90, sampled Oath XP was roughly 9.2k–11.0k versus Hunt at roughly 8.5k–10.2k.
 
-No Gold premium was added to Relic Sweep and no named-relic premium was added to Veteran Oath.
+No Gold premium was added to Relic Sweep and no named-relic premium was added to Veteran Oath. The later 1→100 closure audit moved Veteran Oath from town Tier 4 to Tier 2 because fresh characters normally reach the permanent Level-50 ceiling around Floor 28; at that ceiling the town disables the Oath instead of offering a risk-only contract.
 
 ## Authority boundary
 

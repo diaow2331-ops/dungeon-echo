@@ -36,6 +36,7 @@
     "relicResearchPersistence": "game/core/game.js",
     "equipmentTransactionPricing": "game/domain/economy/economy-rules-v130.js",
     "levelUpArithmetic": "game/domain/progression/progression-rules-v130.js",
+    "permanentLevelCapPolicy": "game/domain/progression/progression-rules-v130.js",
     "criticalDamageMultiplier": "game/domain/combat/combat-rules-v130.js",
     "townCheckpointPolicy": "game/domain/town/town-rules-v130.js",
     "townReadinessPolicy": "game/domain/town/town-rules-v130.js",
