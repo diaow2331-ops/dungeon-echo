@@ -71,17 +71,17 @@ check_adsense_surface(){
 
 check_home(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.11.0"' 'homepage site version' || return 1
+  require_fixed "$file" 'data-site-version="1.11.1"' 'homepage site version' || return 1
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
   require_fixed "$file" '方寸棋局 · Board Trio' 'homepage Board Trio card' || return 1
   require_fixed "$file" 'v1.4.2' 'homepage Dungeon Echo version' || return 1
   require_fixed "$file" 'v1.26.5' 'homepage Moyu version' || return 1
-  require_fixed "$file" 'v0.1.0' 'homepage Board Trio version' || return 1
+  require_fixed "$file" 'v0.1.1' 'homepage Board Trio version' || return 1
   require_fixed "$file" 'GitHub / Source' 'homepage source CTA' || return 1
   require_fixed "$file" '公开开发' 'homepage public-development copy' || return 1
-  require_fixed "$file" 'site-v1110/style.css' 'homepage v1.11.0 shared design' || return 1
+  require_fixed "$file" 'site-v1110/style.css' 'homepage v1.11.1 shared design' || return 1
   require_fixed "$file" 'quick-pick' 'homepage quick pick' || return 1
   require_fixed "$file" 'hero-showcase' 'homepage game-art hero' || return 1
   require_fixed "$file" '浏览器游戏' 'homepage Chinese hero copy' || return 1
@@ -102,7 +102,7 @@ check_home(){
 
 check_de_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.11.0"' 'Dungeon Echo detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.11.1"' 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.4.2"' 'Dungeon Echo detail software version' || return 1
   require_fixed "$file" '1120×460 可步行广场' 'Dungeon Echo v1.4.2 town release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
@@ -119,7 +119,7 @@ check_de_detail(){
 
 check_moyu_detail(){
   file="$1"
-  require_fixed "$file" 'data-site-version="1.11.0"' 'Moyu detail site version' || return 1
+  require_fixed "$file" 'data-site-version="1.11.1"' 'Moyu detail site version' || return 1
   require_fixed "$file" 'softwareVersion":"1.26.5"' 'Moyu detail software version' || return 1
   require_fixed "$file" 'Clock Out Alive' 'Moyu detail title' || return 1
   require_fixed "$file" '画面与信息都更清楚' 'Moyu current Chinese release copy' || return 1
@@ -134,7 +134,7 @@ check_trust_page(){
   require_fixed "$file" "$marker" "$label content" || return 1
   require_fixed "$file" "rel=\"canonical\" href=\"$canonical\"" "$label canonical" || return 1
   require_fixed "$file" 'name="robots" content="index,follow"' "$label robots" || return 1
-  require_fixed "$file" 'data-site-version="1.11.0"' "$label site version" || return 1
+  require_fixed "$file" 'data-site-version="1.11.1"' "$label site version" || return 1
   require_fixed "$file" 'site-v1110/style.css' "$label shared design" || return 1
   require_fixed "$file" 'site-v1110/site.js' "$label shared interactions" || return 1
   require_fixed "$file" "$ADSENSE_CLIENT" "$label AdSense client" || return 1
@@ -175,7 +175,7 @@ moyu_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$MOYU_VERSION
 board_origin="$(curl -fsSL --noproxy '*' --resolve "$PLAY_RESOLVE" "$BOARD_VERSION_URL" | tr -d '\r\n[:space:]')"
 test "$de_origin" = '1.4.2' || fail "origin Dungeon Echo VERSION mismatch: $de_origin"
 test "$moyu_origin" = '1.26.5' || fail "origin Moyu VERSION mismatch: $moyu_origin"
-test "$board_origin" = '0.1.0' || fail "origin Board Trio VERSION mismatch: $board_origin"
+test "$board_origin" = '0.1.1' || fail "origin Board Trio VERSION mismatch: $board_origin"
 
 public_ok=false
 for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
@@ -193,13 +193,13 @@ for ((attempt=1; attempt<=ATTEMPTS; attempt++)); do
       && test "$(curl -fsSL "${ADS_URL}?release=$revision" | tr -d '\r\n')" = "$ADS_LINE" \
       && test "$(curl -fsSL "${DE_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.4.2' \
       && test "$(curl -fsSL "${MOYU_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '1.26.5' \
-      && test "$(curl -fsSL "${BOARD_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '0.1.0'; then
+      && test "$(curl -fsSL "${BOARD_VERSION_URL}?release=$revision" | tr -d '\r\n[:space:]')" = '0.1.1'; then
     public_ok=true
     break
   fi
   if (( attempt < ATTEMPTS )); then sleep "$DELAY"; fi
 done
-test "$public_ok" = true || fail "public site v1.11.0 check failed after $ATTEMPTS attempts"
+test "$public_ok" = true || fail "public site v1.11.1 check failed after $ATTEMPTS attempts"
 
 echo "homepage=$HOME_URL"
 echo "dungeon_echo_detail=$DE_DETAIL_URL"

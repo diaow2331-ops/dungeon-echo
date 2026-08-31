@@ -2,7 +2,13 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.1.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.1.1**. Planned production route: `https://play.91hwl.cn/board-games/`.
+
+## v0.1.1 rule integrity patch
+
+- Xiangqi stalemate / 困毙 is now correctly a loss for the side with no legal move, not a draw.
+- Gomoku now resolves a completely filled board without a five-in-a-row as a draw.
+- Existing movement, Go capture/ko/scoring and responsive controls are unchanged.
 
 ## v0.1.0 rules
 
