@@ -7,10 +7,12 @@ BACKUP_ROOT=/var/backups/91hwl-home-mount
 PUBLIC_ROOT="$BUNDLE_ROOT/public"
 DE_REL=toys/dungeon-echo
 MOYU_REL=toys/moyu
+BOARD_REL=toys/board-games
 ABOUT_REL=about
 PRIVACY_REL=privacy
 CONTACT_REL=contact
 ASSET_REL=assets/site-v1110
+PROJECT_ART_REL=assets/site-v1118
 ADS_REL=ads.txt
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 
@@ -23,6 +25,7 @@ for file in \
   "$PUBLIC_ROOT/index.html" \
   "$PUBLIC_ROOT/$DE_REL/index.html" \
   "$PUBLIC_ROOT/$MOYU_REL/index.html" \
+  "$PUBLIC_ROOT/$BOARD_REL/index.html" \
   "$PUBLIC_ROOT/$ABOUT_REL/index.html" \
   "$PUBLIC_ROOT/$PRIVACY_REL/index.html" \
   "$PUBLIC_ROOT/$CONTACT_REL/index.html" \
@@ -31,6 +34,16 @@ for file in \
   "$PUBLIC_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" \
   "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1265.jpg" \
   "$PUBLIC_ROOT/$ASSET_REL/dungeon-roster.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/board-gomoku.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/board-xiangqi.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/board-go.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/dungeon-town.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/dungeon-guardians.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/dungeon-weapons.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/dungeon-final.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/moyu-scenes.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/moyu-hero.webp" \
+  "$PUBLIC_ROOT/$PROJECT_ART_REL/moyu-hazards.webp" \
   "$PUBLIC_ROOT/$ADS_REL" \
   "$BUNDLE_ROOT/VERSION" \
   "$BUNDLE_ROOT/DUNGEON_VERSION" \
@@ -46,7 +59,7 @@ version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
 expected_de="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/DUNGEON_VERSION")"
 expected_moyu="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/MOYU_VERSION")"
 expected_board="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/BOARD_VERSION")"
-test "$version" = '1.11.7' || fail "unexpected site version: $version"
+test "$version" = '1.11.8' || fail "unexpected site version: $version"
 grep -Fq "data-site-version=\"$version\"" "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
@@ -65,12 +78,19 @@ grep -Fq 'id="navToggle"' "$PUBLIC_ROOT/index.html" || fail 'mobile directory co
 grep -Fq '公开开发' "$PUBLIC_ROOT/index.html" || fail 'homepage public-development copy missing'
 grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$PUBLIC_ROOT/index.html" || fail 'homepage private security route missing'
 grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage AdSense client missing'
+grep -Fq 'href="/toys/board-games/"' "$PUBLIC_ROOT/index.html" || fail 'homepage Board Trio details missing'
+grep -Fq 'board-xiangqi.webp' "$PUBLIC_ROOT/index.html" || fail 'homepage Board Trio real art missing'
+grep -Fq "softwareVersion\":\"$expected_board\"" "$PUBLIC_ROOT/$BOARD_REL/index.html" || fail "Board Trio v$expected_board detail marker missing"
+grep -Fq '三种棋，一张桌' "$PUBLIC_ROOT/$BOARD_REL/index.html" || fail 'Board Trio detail content missing'
+grep -Fq 'board-gomoku.webp' "$PUBLIC_ROOT/$BOARD_REL/index.html" || fail 'Board Trio detail art missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
 grep -Fq "softwareVersion\":\"$expected_de\"" "$PUBLIC_ROOT/$DE_REL/index.html" || fail "Dungeon Echo v$expected_de detail marker missing"
-grep -Fq '强化战斗打击反馈' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo release copy missing'
+grep -Fq '单一规则权威' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo release copy missing'
+grep -Fq 'dungeon-guardians.webp' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo project art missing'
 grep -Fq "softwareVersion\":\"$expected_moyu\"" "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail "Clock Out Alive v$expected_moyu detail marker missing"
 grep -Fq '画面与信息都更清楚' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
 grep -Fq 'Clearer world, readable UI' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
+grep -Fq 'moyu-scenes.webp' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Moyu project art missing'
 grep -Fq '这是一个独立浏览器游戏站。' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
 grep -Fq 'about-showcase' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page identity missing'
 grep -Fq '隐私说明' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy page marker missing'
@@ -88,23 +108,27 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1117.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1118.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
 de_existed=false
 moyu_existed=false
+board_existed=false
 about_existed=false
 privacy_existed=false
 contact_existed=false
 assets_existed=false
+project_art_existed=false
 ads_existed=false
 if test -e "$SITE_ROOT/$DE_REL"; then cp -a "$SITE_ROOT/$DE_REL" "$backup_dir/dungeon-echo"; de_existed=true; fi
 if test -e "$SITE_ROOT/$MOYU_REL"; then cp -a "$SITE_ROOT/$MOYU_REL" "$backup_dir/moyu"; moyu_existed=true; fi
+if test -e "$SITE_ROOT/$BOARD_REL"; then cp -a "$SITE_ROOT/$BOARD_REL" "$backup_dir/board-games"; board_existed=true; fi
 if test -e "$SITE_ROOT/$ABOUT_REL"; then cp -a "$SITE_ROOT/$ABOUT_REL" "$backup_dir/about"; about_existed=true; fi
 if test -e "$SITE_ROOT/$PRIVACY_REL"; then cp -a "$SITE_ROOT/$PRIVACY_REL" "$backup_dir/privacy"; privacy_existed=true; fi
 if test -e "$SITE_ROOT/$CONTACT_REL"; then cp -a "$SITE_ROOT/$CONTACT_REL" "$backup_dir/contact"; contact_existed=true; fi
 if test -e "$SITE_ROOT/$ASSET_REL"; then cp -a "$SITE_ROOT/$ASSET_REL" "$backup_dir/site-v1110"; assets_existed=true; fi
+if test -e "$SITE_ROOT/$PROJECT_ART_REL"; then cp -a "$SITE_ROOT/$PROJECT_ART_REL" "$backup_dir/site-v1118"; project_art_existed=true; fi
 if test -e "$SITE_ROOT/$ADS_REL"; then cp -a "$SITE_ROOT/$ADS_REL" "$backup_dir/ads.txt"; ads_existed=true; fi
 
 restore_dir(){
@@ -128,10 +152,12 @@ rollback(){
     cp -a "$backup_dir/index.html" "$SITE_ROOT/index.html"
     restore_dir "$DE_REL" "$backup_dir/dungeon-echo" "$de_existed"
     restore_dir "$MOYU_REL" "$backup_dir/moyu" "$moyu_existed"
+    restore_dir "$BOARD_REL" "$backup_dir/board-games" "$board_existed"
     restore_dir "$ABOUT_REL" "$backup_dir/about" "$about_existed"
     restore_dir "$PRIVACY_REL" "$backup_dir/privacy" "$privacy_existed"
     restore_dir "$CONTACT_REL" "$backup_dir/contact" "$contact_existed"
     restore_dir "$ASSET_REL" "$backup_dir/site-v1110" "$assets_existed"
+    restore_dir "$PROJECT_ART_REL" "$backup_dir/site-v1118" "$project_art_existed"
     restore_file "$ADS_REL" "$backup_dir/ads.txt" "$ads_existed"
     nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
     echo 'web_toys_home_mount=ROLLED_BACK' >&2
@@ -140,7 +166,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v1117.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v1118.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -155,6 +181,7 @@ install_detail(){
 }
 install_detail "$DE_REL"
 install_detail "$MOYU_REL"
+install_detail "$BOARD_REL"
 install_detail "$ABOUT_REL"
 install_detail "$PRIVACY_REL"
 install_detail "$CONTACT_REL"
@@ -163,8 +190,11 @@ mkdir -p "$SITE_ROOT/assets"
 rm -rf -- "$SITE_ROOT/$ASSET_REL"
 cp -a "$PUBLIC_ROOT/$ASSET_REL" "$SITE_ROOT/$ASSET_REL"
 chown -R --reference="$SITE_ROOT/index.html" "$SITE_ROOT/$ASSET_REL"
+rm -rf -- "$SITE_ROOT/$PROJECT_ART_REL"
+cp -a "$PUBLIC_ROOT/$PROJECT_ART_REL" "$SITE_ROOT/$PROJECT_ART_REL"
+chown -R --reference="$SITE_ROOT/index.html" "$SITE_ROOT/$PROJECT_ART_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1117.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1118.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
@@ -177,6 +207,10 @@ cmp -s "$PUBLIC_ROOT/$ASSET_REL/site.js" "$SITE_ROOT/$ASSET_REL/site.js" || fail
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" "$SITE_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" || fail 'landscape asset write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1265.jpg" "$SITE_ROOT/$ASSET_REL/moyu-run-v1265.jpg" || fail 'Moyu cover write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/dungeon-roster.webp" "$SITE_ROOT/$ASSET_REL/dungeon-roster.webp" || fail 'Dungeon cover write verification failed'
+cmp -s "$PUBLIC_ROOT/$PROJECT_ART_REL/board-xiangqi.webp" "$SITE_ROOT/$PROJECT_ART_REL/board-xiangqi.webp" || fail 'Board detail art write verification failed'
+cmp -s "$PUBLIC_ROOT/$PROJECT_ART_REL/moyu-scenes.webp" "$SITE_ROOT/$PROJECT_ART_REL/moyu-scenes.webp" || fail 'Moyu detail art write verification failed'
+cmp -s "$PUBLIC_ROOT/$PROJECT_ART_REL/dungeon-town.webp" "$SITE_ROOT/$PROJECT_ART_REL/dungeon-town.webp" || fail 'Dungeon detail art write verification failed'
+grep -Fq '三种棋，一张桌' "$SITE_ROOT/$BOARD_REL/index.html" || fail 'Board detail write verification failed'
 grep -Fq '方寸棋局 · Board Trio' "$SITE_ROOT/index.html" || fail 'homepage Board Trio write verification failed'
 grep -Fq "03 / v$expected_board" "$SITE_ROOT/index.html" || fail "homepage Board Trio v$expected_board write verification failed"
 ! grep -Fq '下一款开发中' "$SITE_ROOT/index.html" || fail 'stale future-game slot written'

@@ -10,18 +10,17 @@ const versions=Object.freeze({
   dungeon:readVersion('VERSION'),
   moyu:readVersion('moyu/VERSION'),
   board:readVersion('board-games/VERSION'),
-  site:readVersion('ops/home-mount/SITE_VERSION'),
 });
 for(const [name,value] of Object.entries(versions)){
   if(!/^\d+\.\d+\.\d+$/.test(value))throw new Error(`${name} version is not semantic: ${value}`);
 }
-if(versions.site!=='1.11.7')throw new Error(`unexpected v1117 site version: ${versions.site}`);
+const STAGE_SITE='1.11.7';
 const securityUrl='https://github.com/diaow2331-ops/dungeon-echo/security/policy';
 function upgradeSiteVersion(file){
   let body=fs.readFileSync(file,'utf8');
   if(!body.includes('data-site-version="1.11.6"'))throw new Error(`site v1.11.6 marker missing: ${file}`);
-  body=body.replaceAll('data-site-version="1.11.6"',`data-site-version="${versions.site}"`)
-    .replaceAll('site v1.11.6',`site v${versions.site}`);
+  body=body.replaceAll('data-site-version="1.11.6"',`data-site-version="${STAGE_SITE}"`)
+    .replaceAll('site v1.11.6',`site v${STAGE_SITE}`);
   fs.writeFileSync(file,body);
 }
 pages.forEach(upgradeSiteVersion);
@@ -43,11 +42,11 @@ fs.writeFileSync(moyuPath,moyu);
 
 for(const file of pages){
   const body=fs.readFileSync(file,'utf8');
-  if(!body.includes(`data-site-version="${versions.site}"`))throw new Error(`site version drift: ${file}`);
+  if(!body.includes(`data-site-version="${STAGE_SITE}"`))throw new Error(`site version drift: ${file}`);
   if(/mailto:[^"'\s>]+@/i.test(body))throw new Error(`personal mail route remains: ${file}`);
   if(/https:\/\/x\.com\//i.test(body))throw new Error(`personal social route remains: ${file}`);
 }
 if(!fs.readFileSync(homePath,'utf8').includes(`03 / v${versions.board}`))throw new Error('Board version not synchronized from authority');
 if(!fs.readFileSync(dePath,'utf8').includes(`softwareVersion":"${versions.dungeon}"`))throw new Error('Dungeon version not synchronized from authority');
 if(!fs.readFileSync(moyuPath,'utf8').includes(`softwareVersion":"${versions.moyu}"`))throw new Error('Moyu version not synchronized from authority');
-console.log(`site_v1117_authority_sync=PASS site=${versions.site} dungeon=${versions.dungeon} moyu=${versions.moyu} board=${versions.board}`);
+console.log(`site_v1117_authority_sync=PASS site=${STAGE_SITE} dungeon=${versions.dungeon} moyu=${versions.moyu} board=${versions.board}`);

@@ -15,7 +15,7 @@ const setTheme=v=>{theme=v==='light'?'light':'dark';localStorage.setItem(TK,them
 const chooser={
 dungeon:{seal:'DE',zh:'推荐 Dungeon Echo',en:'Try Dungeon Echo',href:'/toys/dungeon-echo/'},
 moyu:{seal:'CO',zh:'推荐 Clock Out Alive',en:'Try Clock Out Alive',href:'/toys/moyu/'},
-board:{seal:'棋',zh:'推荐 方寸棋局',en:'Try Board Trio',href:'https://play.91hwl.cn/board-games/'}
+board:{seal:'棋',zh:'推荐 方寸棋局',en:'Try Board Trio',href:'/toys/board-games/'}
 };
 const choose=key=>{const data=chooser[key];if(!data)return;document.querySelectorAll('[data-game-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.gameChoice===key)));const box=document.querySelector('[data-draw-result]');if(!box)return;box.classList.remove('is-revealing');void box.offsetWidth;box.querySelector('[data-draw-seal]').textContent=data.seal;box.querySelector('[data-draw-title]').textContent=lang==='zh'?data.zh:data.en;const a=box.querySelector('a');a.href=data.href;a.dataset.baseHref=data.href;box.classList.add('is-revealing');carry()};
 const randomChoice=()=>{const box=document.querySelector('[data-draw-result]');if(box)box.classList.add('is-drawing');setTimeout(()=>{choose(['dungeon','moyu','board'][Math.floor(Math.random()*3)]);if(box)box.classList.remove('is-drawing')},240)};
@@ -28,7 +28,7 @@ const progress=document.querySelector('[data-scroll-progress]'),back=document.qu
 const onScroll=()=>{const max=document.documentElement.scrollHeight-innerHeight,p=max>0?scrollY/max:0;if(progress)progress.style.transform=`scaleX(${Math.min(1,Math.max(0,p))})`;if(back)back.classList.toggle('show',scrollY>520)};
 addEventListener('scroll',onScroll,{passive:true});addEventListener('keydown',e=>{if(e.key==='Escape')closeNav()});addEventListener('resize',()=>{if(innerWidth>720)closeNav()});
 apply();onScroll();
-if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){root.classList.add('motion-ready');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('is-visible');io.unobserve(e.target)}}),{threshold:.08,rootMargin:'0px 0px -5%'});document.querySelectorAll('.page-home .hero,.quick-pick,.game-card,.coming-card,.principles,.records,.page-record .record-hero,.page-record .docket>section').forEach(el=>{el.classList.add('reveal');io.observe(el)})}
+if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){root.classList.add('motion-ready');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('is-visible');io.unobserve(e.target)}}),{threshold:.08,rootMargin:'0px 0px -5%'});document.querySelectorAll('.page-home .hero,.quick-pick,.game-card,.coming-card,.principles,.records,.page-record .record-hero,.page-record .docket>section,.page-detail .hero,.page-detail .section,.page-detail .final').forEach(el=>{el.classList.add('reveal');io.observe(el)})}
 const first=document.querySelector('[data-game-choice][aria-pressed="true"]')?.dataset.gameChoice;
 if(first&&first!=='random')choose(first);
 })();
