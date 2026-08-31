@@ -53,6 +53,7 @@ const GUIDE_IDS = Object.freeze(['move', 'combat', 'gear', 'stairs', 'return']);
 const AUDIO_PREF_KEY = 'de-audio-v1';
 const AUDIO_PREF_VERSION = 1;
 const AUDIO_DEFAULTS = Object.freeze({ music:0.60, sfx:0.78, muted:false });
+const HAPTICS_DEFAULT = true;
 const RUN_MODE_CLASSIC = 'classic';
 const RUN_MODE_GREEDY = 'greedy';
 const MANA_RULES = Object.freeze({
@@ -290,18 +291,23 @@ function loadAudioPrefs() {
         music: Number.isFinite(Number(raw.music)) ? clampAudio01(raw.music) : AUDIO_DEFAULTS.music,
         sfx: Number.isFinite(Number(raw.sfx)) ? clampAudio01(raw.sfx) : AUDIO_DEFAULTS.sfx,
         muted: !!raw.muted,
+        haptics: typeof raw.haptics === 'boolean' ? raw.haptics : HAPTICS_DEFAULT,
       };
     }
   } catch (e) { /* invalid/missing preference falls back to recommended mix */ }
-  return { v:AUDIO_PREF_VERSION, ...AUDIO_DEFAULTS };
+  return { v:AUDIO_PREF_VERSION, ...AUDIO_DEFAULTS, haptics:HAPTICS_DEFAULT };
 }
 let audioPrefs = loadAudioPrefs();
 function audioSnapshot() {
-  return Object.freeze({ music:audioPrefs.music, sfx:audioPrefs.sfx, muted:audioPrefs.muted });
+  return Object.freeze({ music:audioPrefs.music, sfx:audioPrefs.sfx, muted:audioPrefs.muted, haptics:audioPrefs.haptics });
 }
 function saveAudioPrefs() {
   try { localStorage.setItem(AUDIO_PREF_KEY, JSON.stringify(audioPrefs)); }
   catch (e) { /* audio preference is non-critical */ }
+}
+function haptic(pattern) {
+  if (!audioPrefs.haptics || reducedMotion || typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return false;
+  try { return !!navigator.vibrate(pattern); } catch (e) { return false; }
 }
 function broadcastAudioPrefs() {
   if (typeof document === 'undefined' || typeof CustomEvent !== 'function') return;
@@ -1088,17 +1094,42 @@ function noiseLayer(dur, opts={}) {
 function delayedSfx(ms, fn) { setTimeout(() => { if (!audioPrefs.muted) fn(); }, ms); }
 const sfx = {
   hit() {
-    toneLayer(138, .085, { endFreq:82, type:'triangle', gain:.045, cutoff:900 });
-    noiseLayer(.050, { freq:1050, q:.72, gain:.028 });
+    const kind = arguments[0] || 'warrior';
+    if (kind === 'ranger') {
+      noiseLayer(.036, { freq:2450, q:1.2, gain:.025 });
+      toneLayer(310, .065, { endFreq:180, type:'square', gain:.024, cutoff:1500 });
+    } else if (kind === 'mage') {
+      toneLayer(510, .10, { endFreq:820, type:'sine', gain:.032, cutoff:2800 });
+      noiseLayer(.055, { freq:1750, q:.8, gain:.018 });
+    } else if (kind === 'assassin') {
+      noiseLayer(.045, { freq:3100, q:1.4, gain:.030 });
+      toneLayer(220, .07, { endFreq:110, type:'sawtooth', gain:.022, cutoff:1300 });
+    } else {
+      toneLayer(138, .085, { endFreq:82, type:'triangle', gain:.045, cutoff:900 });
+      noiseLayer(.050, { freq:1050, q:.72, gain:.028 });
+    }
   },
   crit() {
-    toneLayer(118, .12, { endFreq:64, type:'triangle', gain:.060, cutoff:800 });
-    noiseLayer(.075, { freq:1500, q:.9, gain:.042 });
-    toneLayer(720, .085, { endFreq:330, type:'sine', gain:.024, cutoff:2400, delay:.012 });
+    const kind = arguments[0] || 'warrior';
+    this.hit(kind);
+    toneLayer(kind === 'mage' ? 980 : 720, .12, { endFreq:330, type:'sine', gain:.032, cutoff:3000, delay:.012 });
+    noiseLayer(.085, { freq:1850, q:.9, gain:.044 });
   },
   hurt() {
     toneLayer(92, .16, { endFreq:54, type:'sine', gain:.052, cutoff:650 });
     noiseLayer(.105, { freq:360, q:.65, gain:.030 });
+  },
+  kill(boss=false) {
+    toneLayer(boss ? 82 : 110, boss ? .28 : .15, { endFreq:48, type:'triangle', gain:boss ? .058 : .038, cutoff:720 });
+    noiseLayer(boss ? .18 : .09, { freq:boss ? 420 : 780, q:.65, gain:boss ? .042 : .026 });
+  },
+  dodge() {
+    noiseLayer(.06, { freq:2700, q:1.1, gain:.018 });
+    toneLayer(540, .085, { endFreq:880, type:'sine', gain:.018, cutoff:3000 });
+  },
+  warning() {
+    toneLayer(180, .12, { endFreq:145, type:'square', gain:.028, cutoff:900 });
+    delayedSfx(105, () => toneLayer(180, .12, { endFreq:145, type:'square', gain:.028, cutoff:900 }));
   },
   pickup() {
     toneLayer(740, .10, { endFreq:900, type:'sine', gain:.024, cutoff:2600 });
@@ -1153,6 +1184,11 @@ function syncAudioControls() {
     master.textContent = audioPrefs.muted ? ui('总静音：开','Master Mute: On') : ui('总静音：关','Master Mute: Off');
     master.setAttribute('aria-pressed', String(audioPrefs.muted));
   }
+  const haptics = $('audio-haptics');
+  if (haptics) {
+    haptics.textContent = audioPrefs.haptics ? ui('触觉反馈：开','Haptics: On') : ui('触觉反馈：关','Haptics: Off');
+    haptics.setAttribute('aria-pressed', String(audioPrefs.haptics));
+  }
 }
 function setAudioMix(kind, percent) {
   if (kind !== 'music' && kind !== 'sfx') return;
@@ -1171,8 +1207,14 @@ function setAudioMuted(value, announce=true) {
   if (announce) msg(audioPrefs.muted ? ui('声音已静音。','Audio muted.') : ui('声音已恢复。','Audio restored.'));
 }
 function toggleAudioMuted(announce=true) { setAudioMuted(!audioPrefs.muted, announce); }
+function toggleHaptics() {
+  audioPrefs = { ...audioPrefs, haptics:!audioPrefs.haptics };
+  saveAudioPrefs(); syncAudioControls(); broadcastAudioPrefs();
+  if (audioPrefs.haptics) haptic(24);
+  msg(audioPrefs.haptics ? ui('触觉反馈已开启。','Haptics enabled.') : ui('触觉反馈已关闭。','Haptics disabled.'));
+}
 function resetAudioMix() {
-  audioPrefs = { v:AUDIO_PREF_VERSION, ...AUDIO_DEFAULTS };
+  audioPrefs = { v:AUDIO_PREF_VERSION, ...AUDIO_DEFAULTS, haptics:audioPrefs.haptics };
   saveAudioPrefs(); applySfxMix(); syncAudioControls(); broadcastAudioPrefs();
   sfx.pickup();
   msg(ui('声音已恢复推荐混音：音乐 60% / 音效 78%。','Recommended mix restored: Music 60% / SFX 78%.'), 'good');
@@ -1184,8 +1226,8 @@ let player, monsters = [], items = [], npcs = [], traps = [], secrets = [];
 let depth, turns, state;
 let classId = 'warrior';
 let logLines = [];
-const floaters = [], particles = [], arrows = [];
-let trauma = 0, hitstop = 0;
+const floaters = [], particles = [], arrows = [], impactFx = [];
+let trauma = 0, hitstop = 0, hurtFlash = 0;
 let selectedBagIndex = -1;
 let view = { x: 0, y: 0, cols: MAP_W, rows: MAP_H };
 let shopStock = [];
@@ -1201,6 +1243,15 @@ try {
 
 function addTrauma(n) { if (!reducedMotion) trauma = Math.min(1, trauma + n); }
 function addHitstop(sec) { if (!reducedMotion) hitstop = Math.max(hitstop, sec); }
+function resetCombatPresentation() {
+  floaters.length = 0; particles.length = 0; arrows.length = 0; impactFx.length = 0;
+  trauma = 0; hitstop = 0; hurtFlash = 0;
+}
+function playerImpactCue(severe=false) {
+  hurtFlash = Math.max(hurtFlash, severe ? .72 : .48);
+  addHitstop(severe ? .055 : .035);
+  haptic(severe ? [28, 22, 42] : 22);
+}
 
 // ================= 消息 =================
 function renderLog() {
@@ -1232,8 +1283,8 @@ function incomingCombatMsg(text, damage) {
 const rarityLogCls = r => r >= 4 ? 'gold' : r === 3 ? 'epic' : 'good';
 
 // ================= 特效 =================
-function floater(ent, text, color) {
-  floaters.push({ x: ent.fx * TILE + TILE / 2, y: ent.fy * TILE, text, color, life: 1 });
+function floater(ent, text, color, scale=1) {
+  floaters.push({ x: ent.fx * TILE + TILE / 2, y: ent.fy * TILE, text, color, scale, life: 1 });
 }
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {
@@ -2589,7 +2640,9 @@ const npcAt = (x, y) => (npcs || []).find(n => n.x === x && n.y === y);
 function viewportFor(width) {
   if (width <= 520) return { cols: 15, rows: 15 };
   if (width <= 900) return { cols: 17, rows: 17 };
-  return { cols: MAP_W, rows: MAP_H };
+  if (width <= 1180) return { cols: 23, rows: 17 };
+  if (width < 1680) return { cols: 27, rows: 19 };
+  return { cols: 31, rows: 21 };
 }
 function updateCamera() {
   if (!player) return;
@@ -2647,13 +2700,24 @@ const CLASS_COMBAT_FX_STYLE = Object.freeze({
   mage:{ main:'#6fa4ff', soft:'#becbff' },
   assassin:{ main:'#bb70eb', soft:'#f49bdb' },
 });
-function applyDamageToMonster(m, dmg, crit) {
+function impactCue(m, kind=classId, crit=false) {
+  const style = CLASS_COMBAT_FX_STYLE[kind] || CLASS_COMBAT_FX_STYLE.warrior;
+  const dx = (m.fx - player.fx) * TILE, dy = (m.fy - player.fy) * TILE;
+  impactFx.push({
+    x:m.fx * TILE + TILE / 2, y:m.fy * TILE + TILE / 2,
+    angle:Math.atan2(dy, dx), kind, color:style.main, soft:style.soft,
+    crit:!!crit, life:1,
+  });
+  haptic(crit ? [22, 16, 34] : 16);
+}
+function applyDamageToMonster(m, dmg, crit, impactKind=classId) {
   m.hp -= dmg; m.hurtT = 1;
-  floater(m, `-${dmg}`, crit ? '#eda23a' : '#fff');
-  burst(m.fx, m.fy, m.color, crit ? 10 : 5);
+  floater(m, `-${dmg}`, crit ? '#ffd061' : '#fff', crit ? 1.34 : 1.06);
+  burst(m.fx, m.fy, m.color, crit ? 12 : 6);
+  impactCue(m, impactKind, crit);
   addTrauma(crit ? 0.28 : 0.12);
   addHitstop(crit ? 0.07 : 0.04);
-  crit ? sfx.crit() : sfx.hit();
+  crit ? sfx.crit(impactKind) : sfx.hit(impactKind);
   const leech = Math.round(dmg * pLeech() / 100 * healMult());
   if (leech > 0 && player.hp < pMaxHp()) {
     player.hp = Math.min(pMaxHp(), player.hp + leech);
@@ -2731,7 +2795,7 @@ function playerRangedAttack(m, attackClass=classId) {
   const crit = rng() * 100 < pCrit();
   if (crit) dmg = Math.round(dmg * pCritMul());
   const wasAlive = m.hp > 0;
-  applyDamageToMonster(m, dmg, crit);
+  applyDamageToMonster(m, dmg, crit, attackClass);
   if (wasAlive && m.hp <= 0) {
     const reaper = mechanicPower('reaper');
     if (reaper && player.skillCd > 0) {
@@ -2769,8 +2833,9 @@ function monsterAttack(m, armorBreak = false, damageScale = 1) {
   lunge(m, player.x, player.y);
   // 游侠被动「灵巧」：一成几率闪开近战攻击（不挡远程——远程是游侠的克制面）
   if (classId === 'ranger' && player.hp > 0 && rng() < 0.10) {
-    floater(player, ui('闪避','Dodge'), '#7ec8e3');
+    floater(player, ui('闪避','Dodge'), '#7ec8e3', 1.08);
     msg(ui(`${m.name}的攻击被你灵巧闪开。`, `You dodged ${visibleWorldName(m.name)}'s attack.`));
+    sfx.dodge(); haptic(10);
     return;
   }
   const raw = Math.max(1, Math.round((m.atk + ri(-1, 1)) * Math.max(0.1, Number(damageScale) || 1)));
@@ -2785,7 +2850,8 @@ function monsterAttack(m, armorBreak = false, damageScale = 1) {
   player.hp -= dmg; player.hurtT = 1;
   armReprisal();
   floater(player, `-${dmg}`, '#ff6b6b');
-  addTrauma(armorBreak ? 0.48 : 0.35); sfx.hurt();
+  addTrauma(armorBreak ? 0.48 : 0.35);
+  playerImpactCue(armorBreak); sfx.hurt();
   if (m.poison) {
     player.poison = Math.max(player.poison || 0, 3);
     msg(ui('毒素渗进伤口。','Poison seeps into the wound.'), 'bad');
@@ -2838,6 +2904,7 @@ function killMonster(m) {
   monsters.splice(monsters.indexOf(m), 1);
   player.kills++; player.xp += m.xp;
   burst(m.fx, m.fy, m.color, 14);
+  sfx.kill(!!(m.boss || m.midBoss));
   addDecal(m.x, m.y);
   msg(ui(`${m.name}被消灭了！（+${m.xp} 经验）`, `${visibleWorldName(m.name)} was slain! (+${m.xp} XP)`), 'good');
   if (boomHit) {
@@ -2846,7 +2913,7 @@ function killMonster(m) {
     floater(player, `-${dmg}`, '#e0a73a');
     burst(m.fx, m.fy, '#e0a73a', 22);
     msg(ui(`${m.name} 炸裂开来，你受到 ${dmg} 点溅射伤害！`, `${visibleWorldName(m.name)} exploded, dealing ${dmg} splash damage to you!`), 'bad');
-    sfx.hurt();
+    playerImpactCue(true); sfx.hurt();
     if (player.hp <= 0) { die(); updateHud(); return; }
   }
   if (m.boss) {
@@ -3838,7 +3905,8 @@ function engagementStrike(m) {
   if (!m || m.hp <= 0 || state !== 'playing') return false;
   if (Math.abs(m.x - player.x) + Math.abs(m.y - player.y) !== 1) return false;
   floater(m, ui('追击!','PRESS!'), '#e0a73a');
-  monsterAttack(m, false, 0.60);
+  const pressureScale = (m.elite || m.boss || m.midBoss) ? 0.55 : 0.45;
+  monsterAttack(m, false, pressureScale);
   return true;
 }
 function randomStep(m) {
@@ -3862,7 +3930,8 @@ function monsterRangedAttack(m, armorBreak = false) {
   player.hp -= dmg; player.hurtT = 1;
   armReprisal();
   floater(player, `-${dmg}`, '#ff6b6b');
-  addTrauma(armorBreak ? 0.45 : 0.32); sfx.hurt();
+  addTrauma(armorBreak ? 0.45 : 0.32);
+  playerImpactCue(armorBreak); sfx.hurt();
   if ((m.elite || m.boss || m.midBoss) && player.hp > 0) applyGrievous();
   if (m.poison) {
     player.poison = Math.max(player.poison || 0, 3);
@@ -3954,8 +4023,10 @@ function guardianStartSpecial(m,s,spec) {
     targetX:player.x, targetY:player.y, startHp:m.hp,
     axis, line:axis==='row'?player.y:axis==='col'?player.x:null,
   };
-  floater(m, spec.title, spec.color);
+  floater(m, spec.title, spec.color, 1.12);
   msg(`${spec.title}: ${spec.warn}`, 'bad');
+  if (typeof sfx !== 'undefined' && sfx && typeof sfx.warning === 'function') sfx.warning();
+  if (typeof haptic === 'function') haptic([18, 45, 18]);
 }
 function guardianLineClear(m,axis) {
   if (axis==='row') {
@@ -4304,13 +4375,22 @@ function drawAtlasEntity(e, image, index, cols, rows, width, height, now) {
   drawShadow(e.fx * TILE + TILE / 2, e.fy * TILE + TILE - 4, width * .3, height * .09);
   ctx.save();
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(image, sx, sy, sw, sh, px - width / 2, py - height / 2, width, height);
-  if (e.hurtT > 0) {
-    ctx.globalAlpha = Math.min(.75, e.hurtT);
+  const hurt = clamp(Number(e.hurtT) || 0, 0, 1);
+  ctx.translate(px, py);
+  if (hurt > 0 && !reducedMotion) ctx.scale(1 + hurt * .09, 1 - hurt * .07);
+  ctx.drawImage(image, sx, sy, sw, sh, -width / 2, -height / 2, width, height);
+  if (hurt > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = Math.min(.82, hurt);
+    ctx.filter = 'brightness(3.8) saturate(0)';
+    ctx.drawImage(image, sx, sy, sw, sh, -width / 2, -height / 2, width, height);
+    ctx.restore();
+    ctx.globalAlpha = Math.min(.78, hurt);
     ctx.strokeStyle = '#fff3dd';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(px, py, Math.max(width, height) * .43, 0, Math.PI * 2);
+    ctx.arc(0, 0, Math.max(width, height) * .43, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();
@@ -4629,6 +4709,34 @@ function draw(now) {
   drawEquippedHero(now);
   drawClassCombatFx(now);
 
+  for (const fx of impactFx) {
+    const p = 1 - fx.life;
+    const alpha = Math.max(0, fx.life);
+    const radius = (fx.crit ? 9 : 6) + p * (fx.crit ? 25 : 17);
+    ctx.save();
+    ctx.translate(fx.x, fx.y);
+    ctx.rotate(fx.angle);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = fx.color;
+    ctx.fillStyle = fx.soft;
+    ctx.lineWidth = fx.crit ? 3.5 : 2.2;
+    ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
+    if (fx.kind === 'mage') {
+      ctx.beginPath(); ctx.arc(0, 0, radius * .58, 0, Math.PI * 2); ctx.stroke();
+    } else if (fx.kind === 'ranger') {
+      ctx.beginPath(); ctx.moveTo(-radius, 0); ctx.lineTo(radius, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(2, -5); ctx.lineTo(radius, 0); ctx.lineTo(2, 5); ctx.stroke();
+    } else {
+      ctx.lineWidth = fx.crit ? 6 : 4;
+      ctx.beginPath();
+      ctx.moveTo(-radius * .8, fx.kind === 'assassin' ? -radius * .55 : radius * .45);
+      ctx.lineTo(radius * .9, fx.kind === 'assassin' ? radius * .45 : -radius * .55);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   for (const a of arrows) {
@@ -4680,15 +4788,23 @@ function draw(now) {
   ctx.fillStyle = lg;
   ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
 
-  ctx.font = 'bold 15px "Segoe UI",sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const f of floaters) {
     ctx.globalAlpha = Math.max(0, f.life);
+    ctx.font = `900 ${Math.round(15 * (f.scale || 1))}px "Segoe UI",sans-serif`;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(20,8,5,.86)';
+    ctx.strokeText(f.text, f.x, f.y);
     ctx.fillStyle = f.color;
     ctx.fillText(f.text, f.x, f.y);
   }
   ctx.globalAlpha = 1;
   ctx.restore();
+
+  if (hurtFlash > 0) {
+    ctx.fillStyle = `rgba(150,16,12,${Math.min(.34, hurtFlash * .42)})`;
+    ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
+  }
 
   const vg = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height * .35,
     canvas.width / 2, canvas.height / 2, canvas.width * .62);
@@ -4731,8 +4847,12 @@ function frame(t) {
   }
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 160 * dt; p.life -= dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.vy += 160 * dt;
     if (p.life <= 0) particles.splice(i, 1);
+  }
+  for (let i = impactFx.length - 1; i >= 0; i--) {
+    impactFx[i].life -= dt * (impactFx[i].crit ? 2.5 : 3.6);
+    if (impactFx[i].life <= 0) impactFx.splice(i, 1);
   }
   for (let i = arrows.length - 1; i >= 0; i--) {
     const a = arrows[i];
@@ -4740,6 +4860,7 @@ function frame(t) {
     if (a.t >= a.dur) arrows.splice(i, 1);
   }
   if (trauma > 0) trauma = Math.max(0, trauma - dt * 1.6);
+  if (hurtFlash > 0) hurtFlash = Math.max(0, hurtFlash - dt * 2.8);
   draw(t / 1000);
   scheduleFrame();
 }
@@ -5144,6 +5265,41 @@ function ensureTownMarket() {
   }
   return meta.market;
 }
+function townReadinessPlan() {
+  const market = ensureTownMarket();
+  if (!meta || !market) return { rows:[], total:0, ready:false, available:false, affordable:false };
+  const need = {
+    potion:Math.max(0, 2 - (meta.potions || 0)),
+    escape:Math.max(0, 1 - (meta.escapes || 0)),
+  };
+  const rows = Object.entries(need).filter(([, count]) => count > 0).map(([id, count]) => ({
+    id, count, price:townMarketPrice(id, market.tier),
+    available:(market.stock[id] || 0) >= count,
+  }));
+  const total = rows.reduce((sum, row) => sum + row.price * row.count, 0);
+  return {
+    rows, total, ready:rows.length === 0,
+    available:rows.every(row => row.available),
+    affordable:(meta.gold || 0) >= total,
+  };
+}
+function buyTownReadiness() {
+  if (state !== 'town' || !meta) return false;
+  const plan = townReadinessPlan();
+  if (plan.ready) { msg(ui('基础补给已经齐备。','Core supplies are already ready.'), 'good'); return true; }
+  if (!plan.available) { msg(ui('本轮市集库存不足，无法一键补齐。','This market cycle lacks enough stock to complete the kit.'), 'bad'); return false; }
+  if (!plan.affordable) { msg(ui(`补齐基础物资需要 ${plan.total} G，金库不足。`, `Completing the core kit costs ${plan.total} G; the vault is short.`), 'bad'); return false; }
+  const market = ensureTownMarket();
+  for (const row of plan.rows) {
+    meta.gold -= row.price * row.count;
+    market.stock[row.id] -= row.count;
+    for (let i = 0; i < row.count; i++) TOWN_MARKET_SUPPLIES[row.id].apply(meta);
+  }
+  sfx.shop();
+  msg(ui(`军需清单已补齐：2 瓶药水、1 张回城卷轴（${plan.total} G）。`, `Quartermaster kit complete: 2 Potions and 1 Return Scroll (${plan.total} G).`), 'gold');
+  saveMeta(); renderTown();
+  return true;
+}
 
 // 酒馆是受控的长期成长金币池：每次远征归来至多一杯，每个角色档最多八杯。
 // 小幅永久收益让“活着回城”更有意义，但低权重攻击成长与硬上限避免刷酒取代装备。
@@ -5360,9 +5516,17 @@ function renderTownCheckpoints() {
   }
   panel.appendChild(grid);
   const depart = $('btn-depart');
-  if (depart) depart.textContent = selectedTownCheckpoint === 1
-    ? ui('从第 1 层出发', 'Depart for Floor 1')
-    : ui(`从已征服区 · 第 ${selectedTownCheckpoint} 层出发`, `Depart from conquered ground · Floor ${selectedTownCheckpoint}`);
+  if (depart) {
+    const readiness = townReadinessPlan();
+    const destination = selectedTownCheckpoint === 1
+      ? ui('从第 1 层出发', 'Depart for Floor 1')
+      : ui(`从已征服区 · 第 ${selectedTownCheckpoint} 层出发`, `Depart from conquered ground · Floor ${selectedTownCheckpoint}`);
+    depart.textContent = `${destination} · ${readiness.ready ? ui('补给齐备','Kit Ready') : ui('补给不足','Low Supplies')}`;
+    depart.classList.toggle('town-depart-warning', !readiness.ready);
+    depart.title = readiness.ready
+      ? ui('基础补给齐备，可以直接出发。','Core supplies are ready for departure.')
+      : ui('仍可冒险出发，但建议至少准备 2 瓶药水和 1 张回城卷轴。','You may still depart, but 2 Potions and 1 Return Scroll are recommended.');
+  }
 }
 function syncMetaFromPlayer(died) {
   if (!player) return;
@@ -5462,11 +5626,25 @@ function enterTown() {
   persistRun();
   showTown();
 }
+function townCanvasSizeFor(width = window.innerWidth) {
+  return width <= 760 ? { width: 720, height: 480 } : { width: 1120, height: 460 };
+}
+function applyTownViewport(width = window.innerWidth) {
+  const cv = $('town-scene');
+  if (!cv) return;
+  const next = townCanvasSizeFor(width);
+  if (cv.width !== next.width || cv.height !== next.height) {
+    cv.width = next.width;
+    cv.height = next.height;
+    townStars = null;
+  }
+}
 function showTown() {
   hideOverlay();
   hideUi('title-screen'); hideUi('class-screen'); hideUi('pause-screen');
   hideUi('shop-screen'); hideUi('talent-screen'); hideUi('shrine-screen'); hideUi('echo-screen');
   showUi('town-screen');
+  applyTownViewport();
   townLastFrame = 0; townPromptKey = '';
   renderTown();
   renderTownFocus(false); updateTownPrompt();
@@ -6039,11 +6217,20 @@ function renderTown() {
     const next = tier >= 10
       ? ui('小镇已完成最终扩建','Town expansion complete')
       : ui(`再征服第 ${tier * 10} 层守卫，进入阶段 ${tier + 1}`, `Defeat the Floor ${tier * 10} guardian to reach Tier ${tier + 1}`);
-    const ready = (meta.potions || 0) >= 2 && (meta.escapes || 0) >= 1;
+    const readiness = townReadinessPlan();
+    const ready = readiness.ready;
+    const kitActionLabel = !readiness.available
+      ? ui('本轮库存不足', 'Market Stock Short')
+      : !readiness.affordable
+        ? ui(`还差 ${Math.max(0, readiness.total - (meta.gold || 0))} G`, `Need ${Math.max(0, readiness.total - (meta.gold || 0))} G More`)
+        : ui(`一键补齐 ${readiness.total} G`, `Complete Kit ${readiness.total} G`);
+    const kitButton = ready
+      ? `<button type="button" class="town-ready-action" disabled>${ui('基础补给齐备','Core Kit Ready')}</button>`
+      : `<button type="button" class="town-ready-action" data-townready="1"${(!readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
     growth.innerHTML =
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
-      `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span></div>` +
+      `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
       `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('可交互广场 · 安全仓库 · 限量市集 · 锻造强化 · 余烬酒馆 · 已征服区出发','Walkable Plaza · Safe Stash · Limited Market · Forge Upgrades · Ember Tavern · Conquered-Depth Departures')}</span></div>`;
   }
   renderTownCheckpoints();
@@ -6290,7 +6477,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   // 每次远征使用独立派生种子，保证同一次数可复现
   setSeed('greedy-' + PROFILE_ID + '-' + classId + '-' + meta.runs);
   saveMeta();
-  logLines = []; floaters.length = 0; particles.length = 0; selectedBagIndex = -1;
+  logLines = []; resetCombatPresentation(); selectedBagIndex = -1;
   hideOverlay();
   hideUi('title-screen'); hideUi('class-screen'); hideUi('pause-screen'); hideUi('shop-screen');
   hideUi('talent-screen'); hideUi('shrine-screen'); hideUi('echo-screen'); hideUi('town-screen');
@@ -6402,7 +6589,7 @@ function newGame(chosen) {
     plunder: 0, fastRegen: 0,
     talents: [], echoMode: false,
   };
-  logLines = []; floaters.length = 0; particles.length = 0; selectedBagIndex = -1;
+  logLines = []; resetCombatPresentation(); selectedBagIndex = -1;
   hideOverlay();
   hideUi('title-screen'); hideUi('class-screen'); hideUi('pause-screen'); hideUi('shop-screen');
   hideUi('talent-screen'); hideUi('shrine-screen'); hideUi('echo-screen');
@@ -6509,6 +6696,7 @@ document.querySelectorAll('[data-open-audio]').forEach(btn => btn.addEventListen
 if ($('audio-settings-close')) $('audio-settings-close').addEventListener('click', () => hideUi('audio-settings-screen'));
 if ($('st-potion-wrap')) $('st-potion-wrap').addEventListener('click', () => { ensureAudio(); usePotion(); });
 if ($('audio-master')) $('audio-master').addEventListener('click', () => toggleAudioMuted(true));
+if ($('audio-haptics')) $('audio-haptics').addEventListener('click', toggleHaptics);
 if ($('audio-defaults')) $('audio-defaults').addEventListener('click', resetAudioMix);
 if ($('audio-music')) $('audio-music').addEventListener('input', e => setAudioMix('music', e.target.value));
 if ($('audio-sfx')) {
@@ -6592,6 +6780,8 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (wth) { ensureAudio(); withdrawStash(+wth.dataset.withdraw); return; }
   const buy = e.target.closest('[data-townbuy]');
   if (buy) { ensureAudio(); buyTown(buy.dataset.townbuy); return; }
+  const ready = e.target.closest('[data-townready]');
+  if (ready) { ensureAudio(); buyTownReadiness(); return; }
   const toast = e.target.closest('[data-taverndrink]');
   if (toast) { ensureAudio(); drinkAtTavern(); return; }
   const wsp = e.target.closest('[data-wheelspin]');
@@ -6692,7 +6882,10 @@ if (canvas) {
     clickNav(tx, ty);
   });
 }
-window.addEventListener('resize', () => applyViewport());
+window.addEventListener('resize', () => {
+  applyViewport();
+  if (state === 'town') applyTownViewport();
+});
 
 if (typeof window !== 'undefined') {
   window.DE_TEST = {
@@ -6707,7 +6900,7 @@ if (typeof window !== 'undefined') {
     get items() { return items; },
     get npcs() { return npcs; },
     get traps() { return traps; },
-    viewportFor, heroSpriteKeyFor,
+    viewportFor, townCanvasSizeFor, heroSpriteKeyFor,
     lootIconIds: [...LOOT_ICON_IDS],
     runProfile: { ...RUN_PROFILE },
     get seed() { return RUN_SEED; },

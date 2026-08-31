@@ -12,7 +12,7 @@ node test/current-suite.cjs
 ```
 
 The `tests` array inside `current-suite.cjs` is the sole machine-readable list of current gates.
-At the v1.4.2 governance freeze it contains 34 focused contracts, including production entry,
+At the v1.5.0 governance freeze it contains 36 focused contracts, including production entry,
 single-authority, save/control, 1→100/Endless, town, art, audio, release and repository governance.
 
 Run the authority layer independently with:

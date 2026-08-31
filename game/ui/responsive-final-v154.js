@@ -26,7 +26,7 @@
     @media (max-width:900px) and (orientation:portrait) {
       html.de-mobile-ui #actions button{min-height:44px!important}
       html.de-mobile-ui #actions [data-act="attack"],
-      html.de-mobile-ui #actions [data-act="skill"]{min-height:52px!important}
+      html.de-mobile-ui #actions [data-act="skill"]{min-height:44px!important}
     }
   `;
   document.head.appendChild(style);

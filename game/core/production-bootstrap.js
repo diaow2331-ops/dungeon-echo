@@ -1,4 +1,4 @@
-/* Dungeon Echo production authority bootstrap v1.4.2.
+/* Dungeon Echo production authority bootstrap v1.5.0.
  *
  * Production policy is deliberately simple:
  * - game/core/game.js is the sole dungeon/town Canvas renderer;
@@ -108,7 +108,7 @@
   if (autoFresh) window.__DE_FRESH_CLASS_SELECT_PENDING = true;
 
   const AUTHORITY = Object.freeze({
-    version:'1.4.2',
+    version:'1.5.0',
     renderer:'game/core/game.js',
     gameplayState:'game/core/game.js',
     gameplayInput:'game/core/game.js',
@@ -120,7 +120,7 @@
   });
 
   window.__DE_PRODUCTION_AUTHORITY_V130 = Object.freeze({
-    version:'1.4.2',
+    version:'1.5.0',
     owner:'production-authority',
     renderOwner:'game/core/game.js',
     gameplayStateOwner:'game/core/game.js',
