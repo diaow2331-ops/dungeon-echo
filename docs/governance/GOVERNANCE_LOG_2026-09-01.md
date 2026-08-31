@@ -38,4 +38,4 @@ The first town-growth slice gave buildings persistent levels, visual landmarks a
 Storage epoch remains `v130`. New fields (`market.restockUsed`, `tavernRewardCounts`) are optional and sanitized/migrated by the existing meta owner.
 
 ### Verification
-A new `town-services-v180.cjs` gate covers the service progression contract, including baseline non-regression, qualitative unlocks, economy delegation, persistent bounded tavern rewards and responsive service UI.
+`town-services-v180.cjs` covers the static/pure service contract, including baseline non-regression, qualitative unlocks, economy delegation, persistent bounded tavern rewards and responsive service UI. `town-services-runtime-v180.cjs` boots the canonical core and verifies the actual town flow: old one-click readiness, Key-enhanced road service, one guarded-caravan refill, night-market price reduction, smithy retemper gates and the two-use ATK-toast cap.
