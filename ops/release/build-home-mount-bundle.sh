@@ -21,10 +21,10 @@ command -v sha256sum >/dev/null
 command -v bash >/dev/null
 command -v node >/dev/null
 
-test "$site_version" = '1.11.2' || { echo "unexpected site version: $site_version" >&2; exit 2; }
+test "$site_version" = '1.11.3' || { echo "unexpected site version: $site_version" >&2; exit 2; }
 test "$game_version" = '1.5.0' || { echo "unexpected Dungeon Echo version: $game_version" >&2; exit 2; }
 test "$moyu_version" = '1.26.5' || { echo "unexpected Moyu version: $moyu_version" >&2; exit 2; }
-test "$board_version" = '0.1.1' || { echo "unexpected Board Trio version: $board_version" >&2; exit 2; }
+test "$board_version" = '0.2.0' || { echo "unexpected Board Trio version: $board_version" >&2; exit 2; }
 git -C "$repo_root" merge-base --is-ancestor "$accepted_site_v133" HEAD || { echo 'accepted site v1.3.3 boundary is not an ancestor of HEAD' >&2; exit 2; }
 
 for file in \
@@ -45,6 +45,7 @@ for file in \
   "$source_root/build-site-v1110.cjs" \
   "$source_root/build-site-v1111.cjs" \
   "$source_root/build-site-v1112.cjs" \
+  "$source_root/build-site-v1113.cjs" \
   "$source_root/public/assets/site-v1110/style.css" \
   "$source_root/public/assets/site-v1110/site.js" \
   "$source_root/public/assets/site-v1100/wang-jian-landscape-1668.jpg" \
@@ -153,6 +154,13 @@ node "$source_root/build-site-v1112.cjs" \
   "$stage_root/site/public/about/index.html" \
   "$stage_root/site/public/privacy/index.html" \
   "$stage_root/site/public/contact/index.html"
+node "$source_root/build-site-v1113.cjs" \
+  "$stage_root/site/public/index.html" \
+  "$stage_root/site/public/toys/dungeon-echo/index.html" \
+  "$stage_root/site/public/toys/moyu/index.html" \
+  "$stage_root/site/public/about/index.html" \
+  "$stage_root/site/public/privacy/index.html" \
+  "$stage_root/site/public/contact/index.html"
 
 home="$stage_root/site/public/index.html"
 de_detail="$stage_root/site/public/toys/dungeon-echo/index.html"
@@ -162,7 +170,7 @@ privacy="$stage_root/site/public/privacy/index.html"
 contact="$stage_root/site/public/contact/index.html"
 ads_txt="$stage_root/site/public/ads.txt"
 
-grep -Fq 'data-site-version="1.11.2"' "$home"
+grep -Fq 'data-site-version="1.11.3"' "$home"
 grep -Fq 'name="google" content="notranslate"' "$home"
 grep -Fq 'window.__91HWL_PREFS' "$home"
 grep -Fq -- '--fs-body:16px' "$home"
@@ -173,7 +181,8 @@ grep -Fq 'site-home-v160' "$home"
 ! grep -Fq 'site-home-v150' "$home"
 grep -Fq '浏览器游戏' "$home"
 grep -Fq '方寸棋局 · Board Trio' "$home"
-grep -Fq '03 / v0.1.1' "$home"
+grep -Fq '03 / v0.2.0' "$home"
+grep -Fq '切换棋类保留当前对局' "$home"
 grep -Fq 'https://play.91hwl.cn/board-games/' "$home"
 ! grep -Fq '下一款开发中' "$home"
 grep -Fq 'Browser games.' "$home"
@@ -198,7 +207,7 @@ grep -Fq '浏览器游戏' "$home"
 grep -Fq 'dungeon-roster.webp' "$home"
 grep -Fq 'game-media-moyu' "$home"
 grep -Fq 'quick-result' "$home"
-grep -Fq 'data-site-version="1.11.2"' "$de_detail"
+grep -Fq 'data-site-version="1.11.3"' "$de_detail"
 grep -Fq "softwareVersion\":\"$game_version\"" "$de_detail"
 grep -Fq '强化战斗打击反馈' "$de_detail"
 grep -Fq 'property="og:url" content="https://91hwl.cn/toys/dungeon-echo/"' "$de_detail"
@@ -206,7 +215,7 @@ grep -Fq 'name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguel
 grep -Fq 'GitHub / Source' "$de_detail"
 grep -Fq 'MIT · OPEN SOURCE' "$de_detail"
 grep -Fq 'ca-pub-2648680835467283' "$de_detail"
-grep -Fq 'data-site-version="1.11.2"' "$moyu_detail"
+grep -Fq 'data-site-version="1.11.3"' "$moyu_detail"
 grep -Fq "softwareVersion\":\"$moyu_version\"" "$moyu_detail"
 grep -Fq '画面与信息都更清楚' "$moyu_detail"
 grep -Fq 'Clearer world, readable UI' "$moyu_detail"
@@ -230,18 +239,18 @@ grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$ads_txt
 
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
-grep -Fq "test \"\$version\" = '1.11.2'" "$source_root/deploy.sh"
+grep -Fq "test \"\$version\" = '1.11.3'" "$source_root/deploy.sh"
 grep -Fq 'Dungeon Echo v1.5.0 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'Clock Out Alive v1.26.5 detail marker missing' "$source_root/deploy.sh"
 grep -Fq 'site-v1110/style.css' "$source_root/deploy.sh"
 grep -Fq 'homepage Board Trio card missing' "$source_root/deploy.sh"
 grep -Fq 'mailto:diaow2331@gmail.com' "$source_root/deploy.sh"
-grep -Fq 'web-toys-v1112' "$source_root/deploy.sh"
+grep -Fq 'web-toys-v1113' "$source_root/deploy.sh"
 grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$source_root/deploy.sh"
 grep -Fq 'previous_home_sha256=' "$source_root/deploy.sh"
 ! grep -Fq 'EXPECTED_INDEX_SHA256' "$source_root/deploy.sh"
 ! grep -Fq 'live homepage changed unexpectedly' "$source_root/deploy.sh"
-grep -Fq 'public site v1.11.2 check failed' "$source_root/healthcheck.sh"
+grep -Fq 'public site v1.11.3 check failed' "$source_root/healthcheck.sh"
 grep -Fq 'site-v1110/style.css' "$source_root/healthcheck.sh"
 grep -Fq 'homepage Board Trio card' "$source_root/healthcheck.sh"
 grep -Fq '隐私说明' "$source_root/healthcheck.sh"

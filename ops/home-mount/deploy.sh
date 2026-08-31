@@ -40,17 +40,18 @@ test -x "$HEALTHCHECK" || fail 'healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.11.2' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.11.2"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+test "$version" = '1.11.3' || fail "unexpected site version: $version"
+grep -Fq 'data-site-version="1.11.3"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
-grep -Fq 'site-v1110/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.11.2 shared design missing'
+grep -Fq 'site-v1110/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.11.3 shared design missing'
 grep -Fq 'quick-pick' "$PUBLIC_ROOT/index.html" || fail 'homepage quick-pick interaction missing'
 grep -Fq 'hero-showcase' "$PUBLIC_ROOT/index.html" || fail 'homepage game-art hero missing'
 grep -Fq '浏览器游戏' "$PUBLIC_ROOT/index.html" || fail 'homepage Chinese hero copy missing'
 grep -Fq '方寸棋局 · Board Trio' "$PUBLIC_ROOT/index.html" || fail 'homepage Board Trio card missing'
+grep -Fq '03 / v0.2.0' "$PUBLIC_ROOT/index.html" || fail 'homepage Board Trio v0.2.0 marker missing'
 ! grep -Fq '下一款开发中' "$PUBLIC_ROOT/index.html" || fail 'stale future-game slot remains'
 grep -Fq 'game-media-moyu' "$PUBLIC_ROOT/index.html" || fail 'Moyu visual cover hook missing'
 grep -Fq 'dungeon-roster.webp' "$PUBLIC_ROOT/index.html" || fail 'Dungeon visual cover hook missing'
@@ -81,7 +82,7 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1112.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1113.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
@@ -133,7 +134,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v1112.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v1113.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -157,13 +158,13 @@ rm -rf -- "$SITE_ROOT/$ASSET_REL"
 cp -a "$PUBLIC_ROOT/$ASSET_REL" "$SITE_ROOT/$ASSET_REL"
 chown -R --reference="$SITE_ROOT/index.html" "$SITE_ROOT/$ASSET_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1112.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1113.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
-grep -Fq 'site-v1110/style.css' "$SITE_ROOT/index.html" || fail 'homepage v1.11.2 design write verification failed'
+grep -Fq 'site-v1110/style.css' "$SITE_ROOT/index.html" || fail 'homepage v1.11.3 design write verification failed'
 grep -Fq 'quick-pick' "$SITE_ROOT/index.html" || fail 'homepage quick-pick write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/style.css" "$SITE_ROOT/$ASSET_REL/style.css" || fail 'shared CSS write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/site.js" "$SITE_ROOT/$ASSET_REL/site.js" || fail 'shared interaction write verification failed'
@@ -171,6 +172,7 @@ cmp -s "$PUBLIC_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" "$SITE_ROOT/$ASSET
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1265.jpg" "$SITE_ROOT/$ASSET_REL/moyu-run-v1265.jpg" || fail 'Moyu cover write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/dungeon-roster.webp" "$SITE_ROOT/$ASSET_REL/dungeon-roster.webp" || fail 'Dungeon cover write verification failed'
 grep -Fq '方寸棋局 · Board Trio' "$SITE_ROOT/index.html" || fail 'homepage Board Trio write verification failed'
+grep -Fq '03 / v0.2.0' "$SITE_ROOT/index.html" || fail 'homepage Board Trio v0.2.0 write verification failed'
 ! grep -Fq '下一款开发中' "$SITE_ROOT/index.html" || fail 'stale future-game slot written'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$SITE_ROOT/$ADS_REL" || fail 'ads.txt write verification failed'
 nginx -t
