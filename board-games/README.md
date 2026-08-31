@@ -2,8 +2,16 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.6.3**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.7.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
 
+
+## v0.7.0 dual-end experience release
+
+- Reorganizes live match data into a stable HUD: current game/status and AI state on the left, move count and Go capture totals in the center, actions on the right, and clocks/audio/time controls in their own compact row.
+- Desktop, portrait mobile and mobile landscape now use different density rules instead of stretching one layout across every viewport. Mobile uses one-line top navigation, compact game tabs, larger touch targets and a denser action grid.
+- AI setup remains visible before a match, then collapses on mobile after Start so the board reaches the viewport sooner; Restart restores the setup gate. Local two-player setup remains visible.
+- Notifications are overlayed above the board instead of entering document flow, eliminating layout jumps when selecting a point, starting a match, capturing, undoing or receiving rule feedback.
+- Fullscreen and short landscape modes reserve board space from the real available height, while clocks, capture totals and primary actions remain readable. Reduced-motion users no longer receive capture/check animations.
 
 ## v0.6.3 Go capture feedback release
 

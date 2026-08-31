@@ -22,9 +22,13 @@ assert(html.includes('死子确认')&&html.includes('中国面积计分'),'Go sc
 assert(html.includes('id="startMatchBtn"')&&html.includes('id="clearDataBtn"'),'AI start / data-reset controls missing');
 assert(html.includes('id="volumeRange"')&&html.includes('id="volumeValue"'),'music volume control missing');
 assert(html.includes('id="goCaptureStats"')&&html.includes('id="goCaptureLayer"')&&html.includes('id="goCaptureText"'),'Go capture feedback surface missing');
+assert(html.includes('class="status-lockup"')&&html.includes('class="live-metrics"')&&html.includes('id="moveCount"'),'stable live-match HUD hierarchy missing');
+assert(game.includes('dataset.opponent=opponent')&&game.includes('function placeNotice()'),'responsive match-state / stable notice overlay contract missing');
+assert(css.includes('v0.7.0 dual-end experience')&&css.includes('@media(max-width:1024px) and (orientation:landscape)'),'dual-end responsive layout contract missing');
 assert(game.includes('function showGoCaptureFx(')&&game.includes('res.capturedStones'),'Go capture animation runtime missing');
 assert(rules.includes('capturedStones.push'),'Go rule engine must expose removed-stone coordinates');
 assert(game.includes('function startMatch()')&&game.includes('if(!matchStarted||!aiEnabled()'),'AI must not open before explicit match start');
+assert(game.includes('!(aiEnabled()&&matchStarted)'),'AI match must expose Restart immediately so setup can be reopened before the first move');
 assert(game.includes('function clearBoardData()'),'Board Trio runtime reset missing');
 const ui=read('board-games/ui.js');
 assert(ui.includes("startsWith('board-trio-')")&&ui.includes("board-trio-volume-v1"),'BoardUI scoped reset / volume persistence missing');
