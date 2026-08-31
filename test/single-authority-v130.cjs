@@ -187,6 +187,7 @@ for (const rel of [
   'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',
   'art/hero-atlas-v11.png','art/monster-atlas-v11.png','art/guardian-atlas-v11.png',

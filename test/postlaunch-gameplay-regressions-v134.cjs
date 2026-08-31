@@ -63,6 +63,7 @@ for (const rel of [
   'game/domain/inventory/equipment-rules-v130.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',
 ]) vm.runInThisContext(fs.readFileSync(path.join(root, rel), 'utf8'), { filename: rel });

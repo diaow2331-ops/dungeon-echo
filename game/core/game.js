@@ -148,6 +148,7 @@ function defaultMeta(classId) {
     totalKills: 0, wins: 0, wheelTotal: 0, gotLegend: 0, achv: {},
     wheelSpins: 0, wheelResets: 0, wheelSlots: null,
     market: null,
+    contractId: 'none',
     tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
     bag: [], stash: [],
@@ -198,6 +199,7 @@ function sanitizeMeta(raw) {
       marketIds.every(id => Number.isInteger(marketStock[id]) && marketStock[id] >= 0 && marketStock[id] <= 99)) {
     base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock } };
   }
+  base.contractId = EXPEDITION_RULES.normalizeContractId(raw.contractId);
   base.tavernVisits = Math.min(8, num(raw.tavernVisits, 0));
   base.tavernLastRun = Number.isInteger(raw.tavernLastRun) && raw.tavernLastRun >= -1 ? raw.tavernLastRun : -1;
   const tavernRewardIds = ['hearth', 'edge', 'fortune', 'prosperity'];
@@ -921,6 +923,11 @@ const ENDLESS_AFTER = !!(RUN_PROFILE.floorRules && RUN_PROFILE.floorRules.endles
 const CONTENT_RULES = typeof window !== 'undefined' ? window.DE_CONTENT_RULES_V130 : null;
 if (!CONTENT_RULES || CONTENT_RULES.authority !== 'content-classification')
   throw new Error('Dungeon Echo content-classification authority missing');
+const EXPEDITION_RULES = typeof window !== 'undefined' ? window.DE_EXPEDITION_RULES_V170 : null;
+if (!EXPEDITION_RULES || EXPEDITION_RULES.authority !== 'expedition-variation-policy')
+  throw new Error('Dungeon Echo expedition-variation-policy authority missing');
+const currentExpeditionContractId = () => EXPEDITION_RULES.normalizeContractId(
+  greedyMode && player && player.contractId ? player.contractId : 'none');
 const themeIdx = d => CONTENT_RULES.themeIndex(d, THEMES.length, RUN_PROFILE.floorRules.themeBandSize);
 const PROFILE_TEXT_EN = Object.freeze({
   intro:'A hundred-floor abyss opens below. Choose an echo, cut through {maxDepth} floors, reclaim the {heart} from {boss} — or descend forever.',
@@ -2359,6 +2366,7 @@ function genLevel() {
     spawnRest(rooms);
     spawnChest(rooms);
     spawnShrine(rooms);
+    spawnExpeditionEvent(rooms);
     spawnTraps();
     spawnCasks(rooms);
     spawnSecret(rooms);
@@ -2382,10 +2390,17 @@ function randomFloorIn(rooms, minDistFromPlayer) {
   return pickSpawn(minDistFromPlayer || 1);
 }
 
-function makeMonster(base, p) {
+function monsterThreatScale(d, elite=false, bossLike=false) {
+  if (bossLike) return 1;
+  const depthThreat = 0.05 + Math.min(0.13, Math.max(0, Number(d) - 1) * 0.00135);
+  return 1 + depthThreat + (elite ? 0.04 : 0);
+}
+function makeMonster(base, p, options={}) {
   const FR = RUN_PROFILE.floorRules;
   const traits = (base.traits || []).slice();
-  const elite = !base.boss && !base.midBoss && rng() < FR.eliteChance;
+  const contractId = currentExpeditionContractId();
+  const eliteRollChance = EXPEDITION_RULES.eliteChance(FR.eliteChance, contractId);
+  const elite = !base.boss && !base.midBoss && (!!options.forceElite || rng() < eliteRollChance);
   let scale = 1;
   if (!base.boss && !base.midBoss && typeof base.min === 'number') {
     const band = clamp((depth - base.min) / Math.max(1, base.max - base.min), 0, 1);
@@ -2394,7 +2409,10 @@ function makeMonster(base, p) {
   if (player && player.echoMode && depth > MAX_DEPTH) {
     scale *= 1 + (depth - MAX_DEPTH) * 0.08;
   }
-  const atkValue = Math.round(base.atk * (elite ? FR.eliteAtkMult : 1) * scale);
+  const bossLike = !!(base.boss || base.midBoss);
+  const contractAtk = !bossLike ? EXPEDITION_RULES.monsterAtkMultiplier(contractId) : 1;
+  const threatScale = monsterThreatScale(depth, elite, bossLike);
+  const atkValue = Math.round(base.atk * (elite ? FR.eliteAtkMult : 1) * scale * contractAtk * threatScale);
   const normalPressure = base.boss || base.midBoss ? 1 : 1.70 + Math.min(0.30, Math.max(0, depth - 1) * 0.0031);
   const hpPressure = elite ? normalPressure * 0.86 : normalPressure;
   const defPressure = base.boss || base.midBoss ? Number(base.def) || 0 :
@@ -2407,7 +2425,8 @@ function makeMonster(base, p) {
     def: defPressure,
     atk: atkValue,
     atkOrigin: atkValue,
-    xp: Math.round(base.xp * (elite ? 2 : 1) * (player && player.echoMode ? 1.2 : 1)),
+    xp: Math.round(base.xp * (elite ? 2 : 1) * (player && player.echoMode ? 1.2 : 1) *
+      ((!base.boss && !base.midBoss) ? EXPEDITION_RULES.monsterXpMultiplier(contractId) : 1)),
     elite, boss: !!base.boss, midBoss: !!base.midBoss,
     regen: !!base.regen || traits.includes('regen'),
     boom: !!base.boom || traits.includes('boom'),
@@ -2420,7 +2439,14 @@ function makeMonster(base, p) {
   };
   m.hp = m.maxHp;
   normalizeGuardianIdentity(m);
-  if (elite) m.name = '精英·' + m.name;
+  if (elite) {
+    const affixPool = EXPEDITION_RULES.eliteAffixPool(depth, traits);
+    const affix = affixPool.length ? affixPool[rnd(affixPool.length)] : null;
+    if (affix === 'enrage') { m.enrage = true; m.eliteAffix = 'enrage'; m.name = '狂怒·精英·' + m.name; }
+    else if (affix === 'leech') { m.leech = Math.max(Number(m.leech) || 0, 0.18); m.eliteAffix = 'leech'; m.name = '吸血·精英·' + m.name; }
+    else if (affix === 'boom') { m.boom = true; m.eliteAffix = 'boom'; m.name = '爆裂·精英·' + m.name; }
+    else m.name = '精英·' + m.name;
+  }
   return m;
 }
 
@@ -2530,7 +2556,8 @@ function spawnRest(rooms) {
 }
 
 function spawnChest(rooms) {
-  if (rng() > (RUN_PROFILE.chestChance || 0.5)) return;
+  const chance = EXPEDITION_RULES.chestChance(RUN_PROFILE.chestChance || 0.5, currentExpeditionContractId());
+  if (rng() > chance) return;
   const p = pickSpawn(6) || randomFloorIn(rooms, 6);
   if (!p) return;
   items.push({
@@ -2550,12 +2577,133 @@ function spawnShrine(rooms) {
 
 function spawnTraps() {
   const FR = RUN_PROFILE.floorRules || {};
-  const n = ri(FR.trapCountLo || 0, FR.trapCountHi || 0);
+  const n = ri(FR.trapCountLo || 0, FR.trapCountHi || 0) +
+    EXPEDITION_RULES.trapBonus(currentExpeditionContractId());
   for (let i = 0; i < n; i++) {
     const p = pickSpawn(5);
     if (!p) break;
     traps.push({ x: p.x, y: p.y, armed: true, dmg: 2 + Math.floor(depth / 5) });
   }
+}
+
+function spawnExpeditionEvent(rooms) {
+  if (!EXPEDITION_RULES.eventEligible(depth, MAX_DEPTH, echoModeNow())) return;
+  if (rng() > EXPEDITION_RULES.eventChance(currentExpeditionContractId())) return;
+  const p = pickNpcSpawn(rooms.slice(1), 5);
+  if (!p) return;
+  const kinds = EXPEDITION_RULES.eventKinds(depth);
+  if (!kinds.length) return;
+  const eventKind = kinds[rnd(kinds.length)];
+  npcs.push({
+    type:'event', eventKind, used:false, trialResolved:false,
+    x:p.x, y:p.y, fx:p.x, fy:p.y,
+    name:'异常回响',
+  });
+  msg(ui('你察觉到一处不稳定的异常回响。靠近后可以选择是否接受它的交易。',
+    'You sense an unstable echo event. Approach it to decide whether to accept its bargain.'), 'epic');
+}
+
+function expeditionEventCopy(kind) {
+  if (kind === 'blood-offering') return {
+    title:ui('血契祭台','Blood Offering'),
+    copy:ui('献出 18% 最大生命，换取一件稀有以上装备。代价立即支付。',
+      'Pay 18% Max HP for a Rare-or-better item. The cost is immediate.'),
+    accept:ui('献血换取遗物','Offer Blood'),
+  };
+  if (kind === 'echo-trial') return {
+    title:ui('精英试炼','Elite Trial'),
+    copy:ui('唤来两名带词缀的精英。全部击败后获得额外金币；逃跑则赏金作废。',
+      'Summon two affixed elites. Defeat both for bonus Gold; retreating forfeits the bounty.'),
+    accept:ui('接受试炼','Accept Trial'),
+  };
+  return {
+    title:ui('诅咒钱匣','Cursed Cache'),
+    copy:ui('支付 1 瓶药水换取金币；若没有药水，则以 10% 最大生命代偿。',
+      'Pay 1 Potion for Gold; with no Potion, the cache takes 10% Max HP instead.'),
+    accept:ui('打开钱匣','Open Cache'),
+  };
+}
+
+function openExpeditionEvent(npc) {
+  if (!npc || npc.used) { msg(ui('这处异常回响已经沉寂。','This echo event has gone dormant.')); return; }
+  shrineTarget = npc;
+  state = 'shrine';
+  const row = expeditionEventCopy(npc.eventKind);
+  if ($('shrine-title')) $('shrine-title').textContent = row.title;
+  if ($('shrine-copy')) $('shrine-copy').textContent = row.copy;
+  if ($('btn-shrine-ok')) $('btn-shrine-ok').textContent = row.accept;
+  if ($('btn-shrine-leave')) $('btn-shrine-leave').textContent = ui('暂不触碰','Leave It');
+  showUi('shrine-screen');
+}
+
+function settleExpeditionTrial(trialId) {
+  if (!trialId || monsters.some(m => m && m.eventTrialId === trialId)) return false;
+  const event = npcs.find(n => n && n.type === 'event' && n.eventTrialId === trialId);
+  if (!event || event.trialResolved) return false;
+  event.trialResolved = true;
+  const reward = Math.max(0, Number(event.trialReward) || 0);
+  player.gold += reward;
+  msg(ui(`精英试炼完成。异常回响吐出 ${reward} G。`,
+    `Elite Trial complete. The echo releases ${reward} Gold.`), 'gold');
+  sfx.win();
+  return true;
+}
+
+function applyExpeditionEvent(npc) {
+  const spec = EXPEDITION_RULES.eventSpec(npc.eventKind, depth);
+  npc.used = true;
+  if (spec.kind === 'blood-offering') {
+    const cost = Math.max(1, Math.floor(pMaxHp() * spec.hpRatio));
+    if (player.hp <= cost) {
+      npc.used = false;
+      msg(ui('你的生命不足以支付这份血契。','You do not have enough life to pay this blood offering.'), 'bad');
+      return false;
+    }
+    player.hp -= cost;
+    const loot = genEquip(depth, spec.minRarity);
+    if (player.inv.length < BAG_CAP) player.inv.push(loot);
+    else dropAt(player.x, player.y, { type:'equip', item:loot, emoji:'', name:'装备' });
+    msg(ui(`血契抽走 ${cost} 点生命，换来【${loot.name}】。`,
+      `The pact takes ${cost} HP and yields [${visibleItemName(loot)}].`), rarityLogCls(loot.rarity));
+    sfx.chest(); renderBag();
+  } else if (spec.kind === 'echo-trial') {
+    const pool = monsterPoolFor(depth);
+    const trialId = `echo-trial-${depth}-${turns}-${Math.floor(rng() * 1e9)}`;
+    let spawned = 0;
+    for (let i=0; i<spec.eliteCount; i++) {
+      const pos = pickSpawn(3);
+      if (!pos) break;
+      const monster = makeMonster(pick(pool), pos, { forceElite:true });
+      monster.eventTrialId = trialId;
+      monsters.push(monster);
+      spawned++;
+    }
+    if (!spawned) {
+      npc.used = false;
+      msg(ui('回响没有找到可供试炼的落点。','The echo cannot find space for the trial.'), 'bad');
+      return false;
+    }
+    npc.eventTrialId = trialId;
+    npc.trialReward = spec.rewardGold;
+    msg(ui(`试炼开启：${spawned} 名精英现身。全部击败可得 ${spec.rewardGold} G。`,
+      `Trial started: ${spawned} elites appeared. Defeat them all for ${spec.rewardGold} Gold.`), 'bad');
+    sfx.warning();
+  } else {
+    if ((player.potions || 0) >= spec.potionCost) {
+      player.potions -= spec.potionCost;
+      msg(ui(`钱匣吞掉 ${spec.potionCost} 瓶药水。`,`The cache consumes ${spec.potionCost} Potion.`), 'bad');
+    } else {
+      const cost = Math.max(1, Math.floor(pMaxHp() * spec.fallbackHpRatio));
+      player.hp = Math.max(1, player.hp - cost);
+      msg(ui(`没有药水可供献祭，钱匣改为抽走 ${cost} 点生命。`,
+        `With no Potion to take, the cache drains ${cost} HP instead.`), 'bad');
+    }
+    player.gold += spec.rewardGold;
+    msg(ui(`你从诅咒钱匣中取出 ${spec.rewardGold} G。`,
+      `You take ${spec.rewardGold} Gold from the cursed cache.`), 'gold');
+    sfx.pickup();
+  }
+  return true;
 }
 
 // 木桶：地牢常见的可破坏容器。走到上面即打破，随机滚出金币/药水/装备，
@@ -2954,6 +3102,14 @@ function killMonster(m) {
     else if (r < KL.equip)
       dropAt(m.x, m.y, { type: 'equip', item: genEquip(depth), emoji: '', name: '装备' });
   }
+  if (m.elite) {
+    const bounty = EXPEDITION_RULES.eliteBounty(depth, currentExpeditionContractId());
+    if (bounty > 0) {
+      player.gold += bounty;
+      msg(ui(`猎杀号令赏金 +${bounty} G。`, `Elite Hunt bounty +${bounty} Gold.`), 'gold');
+    }
+  }
+  if (m.eventTrialId) settleExpeditionTrial(m.eventTrialId);
   const kh = Math.round(pKillHeal() * healMult());
   if (greedyMode && meta) meta.totalKills = (meta.totalKills || 0) + 1;
   recordKill(m);
@@ -3463,6 +3619,13 @@ function applyShrine() {
   hideUi('shrine-screen');
   shrineTarget = null;
   if (!npc || npc.used) { state = 'playing'; return; }
+  if (npc.type === 'event') {
+    applyExpeditionEvent(npc);
+    state = 'playing';
+    if ($('btn-shrine-ok')) $('btn-shrine-ok').textContent = ui('祈祷','Pray');
+    if ($('btn-shrine-leave')) $('btn-shrine-leave').textContent = ui('离开','Leave');
+    persistRun(); updateHud(); return;
+  }
   npc.used = true;
   const roll = rng();
   if (roll < 0.28) {
@@ -3811,6 +3974,7 @@ function tryMove(dx, dy) {
   const shop = npcAt(nx, ny);
   if (shop && shop.type === 'shop') { openShop(); return; }
   if (shop && shop.type === 'shrine') { openShrine(shop); return; }
+  if (shop && shop.type === 'event') { openExpeditionEvent(shop); return; }
   if (shop && shop.type === 'rest') { useRest(shop); return; }
   const m = monsterAt(nx, ny);
   if (m) {
@@ -3907,7 +4071,7 @@ function engagementStrike(m) {
   if (!m || m.hp <= 0 || state !== 'playing') return false;
   if (Math.abs(m.x - player.x) + Math.abs(m.y - player.y) !== 1) return false;
   floater(m, ui('追击!','PRESS!'), '#e0a73a');
-  const pressureScale = (m.elite || m.boss || m.midBoss) ? 0.55 : 0.45;
+  const pressureScale = (m.boss || m.midBoss) ? 0.62 : m.elite ? 0.68 : 0.55;
   monsterAttack(m, false, pressureScale);
   return true;
 }
@@ -4495,6 +4659,7 @@ function drawDungeonProp(index, px, py, width, height, alpha = 1) {
 const trapPropForDepth = d => d >= 75 ? DUNGEON_PROP_ART.voidRift
   : d >= 50 ? DUNGEON_PROP_ART.lavaVent : d >= 25 ? DUNGEON_PROP_ART.iceCrystal : DUNGEON_PROP_ART.webNest;
 const dungeonNpcProp = type => type === 'shrine' ? DUNGEON_PROP_ART.angelShrine
+  : type === 'event' ? DUNGEON_PROP_ART.voidRift
   : type === 'rest' ? DUNGEON_PROP_ART.campfire : type === 'shop' ? DUNGEON_PROP_ART.marketStall : -1;
 function drawMinimap() {
   if (!mctx || !map || !player) return;
@@ -4613,10 +4778,10 @@ function draw(now) {
 
   for (const n of npcs) {
     if (!visible[n.y][n.x]) continue;
-    const spr = n.type === 'shrine' ? SPRITES.shrine : n.type === 'rest' ? SPRITES.camp : SPRITES.merchant;
+    const spr = n.type === 'shrine' || n.type === 'event' ? SPRITES.shrine : n.type === 'rest' ? SPRITES.camp : SPRITES.merchant;
     const prop = dungeonNpcProp(n.type);
     const px = n.fx * TILE + TILE / 2, py = n.fy * TILE + TILE / 2;
-    const dims = n.type === 'shop' ? [34, 32] : n.type === 'shrine' ? [31, 36] : [30, 30];
+    const dims = n.type === 'shop' ? [34, 32] : (n.type === 'shrine' || n.type === 'event') ? [31, 36] : [30, 30];
     if (prop < 0 || !drawDungeonProp(prop, px, py, dims[0], dims[1], .98))
       drawEntity(n, spr || SPRITES.merchant, 30, now);
   }
@@ -4939,8 +5104,10 @@ function updateHud() {
       ? ui('> 撞向商人即可交易','> Walk into the merchant to trade')
       : shopHere && shopHere.type === 'shrine'
         ? ui('> 撞向神龛即可祈祷','> Walk into the shrine to pray')
-        : shopHere && shopHere.type === 'rest'
-          ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
+        : shopHere && shopHere.type === 'event'
+          ? ui('> 撞向异常回响，决定是否接受交易','> Walk into the echo event to consider its bargain')
+          : shopHere && shopHere.type === 'rest'
+            ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
           : ui('> J 主动攻击 · K 技能（C 兼容）· 点击已探索地块移动','> J Basic Attack · K Skill (C alias) · click explored tiles to move');
   const fab = $('descend-fab');
   if (fab) fab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
@@ -5216,6 +5383,8 @@ function closeShop() {
 function closeShrine() {
   hideUi('shrine-screen');
   shrineTarget = null;
+  if ($('btn-shrine-ok')) $('btn-shrine-ok').textContent = ui('祈祷','Pray');
+  if ($('btn-shrine-leave')) $('btn-shrine-leave').textContent = ui('离开','Leave');
   state = 'playing';
 }
 
@@ -5471,6 +5640,30 @@ function selectTownCheckpoint(target) {
   selectedTownCheckpoint = checkpointDepth;
   renderTown();
   return true;
+}
+function availableTownContracts() {
+  return EXPEDITION_RULES.availableContracts(townTierForArt());
+}
+function selectTownContract(id) {
+  if (state !== 'town' || !meta) return false;
+  const normalized = EXPEDITION_RULES.normalizeContractId(id);
+  if (!availableTownContracts().some(row => row.id === normalized)) return false;
+  meta.contractId = normalized;
+  saveMeta();
+  renderTown();
+  return true;
+}
+function renderTownContracts() {
+  const panel = $('town-contracts');
+  if (!panel || !meta) return;
+  const rows = availableTownContracts();
+  if (!rows.some(row => row.id === meta.contractId)) meta.contractId = 'none';
+  const selected = EXPEDITION_RULES.normalizeContractId(meta.contractId);
+  panel.innerHTML = `<div class="checkpoint-head"><b>${ui('远征委托','Expedition Contract')}</b><small>${ui('出发前选择 · 仅影响下一次远征','Choose before departure · affects the next expedition')}</small></div>` +
+    `<div class="town-contract-grid">${rows.map(row => {
+      const active = row.id === selected;
+      return `<button type="button" data-contract="${row.id}" class="${active ? 'active' : ''}" aria-pressed="${active}"><b>${ui(row.zh,row.en)}</b><small>${ui(row.zhDesc,row.enDesc)}</small></button>`;
+    }).join('')}</div>`;
 }
 function renderTownCheckpoints() {
   const panel = $('town-checkpoints');
@@ -6221,9 +6414,10 @@ function renderTown() {
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
-      `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('可交互广场 · 安全仓库 · 限量市集 · 锻造强化 · 余烬酒馆 · 已征服区出发','Walkable Plaza · Safe Stash · Limited Market · Forge Upgrades · Ember Tavern · Conquered-Depth Departures')}</span></div>`;
+      `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('可交互广场 · 安全仓库 · 限量市集 · 锻造强化 · 余烬酒馆 · 远征委托 · 已征服区出发','Walkable Plaza · Safe Stash · Limited Market · Forge Upgrades · Ember Tavern · Expedition Contracts · Conquered-Depth Departures')}</span></div>`;
   }
   renderTownCheckpoints();
+  renderTownContracts();
   const itemTag = it => {
     const f = it.forge || 0;
     const forgeTag = f ? ` +${f}` : '';
@@ -6457,6 +6651,8 @@ function departTown(targetDepth = selectedTownCheckpoint) {
     grivResist: meta.grivResist || 0, plunder: meta.plunder || 0,
     fastRegen: !!meta.fastRegen,
     talents: (meta.talents || []).slice(),
+    contractId: availableTownContracts().some(row => row.id === EXPEDITION_RULES.normalizeContractId(meta.contractId))
+      ? EXPEDITION_RULES.normalizeContractId(meta.contractId) : 'none',
     echoMode: false,
   };
   ensurePlayerMana(player, classId);
@@ -6477,6 +6673,8 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   msg(fmtText(runText('intro')));
   guideFirstRunStart();
   msg(ui(`第 ${meta.runs} 次下潜：从第 ${startDepth} 层出发。搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, `Descent ${meta.runs}: departing from Floor ${startDepth}. Loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!`), 'gold');
+  const contract = EXPEDITION_RULES.CONTRACTS.find(row => row.id === player.contractId);
+  if (contract && contract.id !== 'none') msg(ui(`本次委托：${contract.zh}。${contract.zhDesc}`, `Expedition contract: ${contract.en}. ${contract.enDesc}`), 'epic');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
@@ -6762,6 +6960,8 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (service) { townActiveService = service.dataset.service || townActiveService; renderTownFocus(false); }
   const checkpoint = e.target.closest('[data-checkpoint]');
   if (checkpoint) { ensureAudio(); selectTownCheckpoint(+checkpoint.dataset.checkpoint); return; }
+  const contract = e.target.closest('[data-contract]');
+  if (contract) { ensureAudio(); selectTownContract(contract.dataset.contract); return; }
   const dep = e.target.closest('[data-deposit]');
   if (dep) { ensureAudio(); depositStash(+dep.dataset.deposit); return; }
   const depAll = e.target.closest('[data-depositall]');
@@ -6856,7 +7056,7 @@ if ($('refine-grid')) $('refine-grid').addEventListener('click', e => {
 });
 if ($('btn-shrine-ok')) $('btn-shrine-ok').addEventListener('click', () => { ensureAudio(); applyShrine(); });
 if ($('btn-shrine-leave')) $('btn-shrine-leave').addEventListener('click', () => {
-  ensureAudio(); hideUi('shrine-screen'); shrineTarget = null; state = 'playing';
+  ensureAudio(); closeShrine();
 });
 if ($('btn-echo-leave')) $('btn-echo-leave').addEventListener('click', () => { ensureAudio(); chooseEchoLeave(); });
 if ($('btn-echo-stay')) $('btn-echo-stay').addEventListener('click', () => { ensureAudio(); chooseEchoStay(); });
@@ -6906,7 +7106,7 @@ if (typeof window !== 'undefined') {
     genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
     persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
-    makeMonster, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
+    makeMonster, monsterThreatScale, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
     weaponBaseForDrop, starterWeaponForClass, weaponClassOf, canEquipForClass, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,

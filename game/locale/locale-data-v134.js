@@ -122,7 +122,7 @@
   function worldName(value) {
     const raw=String(value||'');
     if(!isEnglish||!raw)return raw;
-    const prefixes=[['精英·','Elite · '],['回响·','Echo · ']];
+    const prefixes=[['狂怒·','Frenzied · '],['吸血·','Vampiric · '],['爆裂·','Volatile · '],['精英·','Elite · '],['回响·','Echo · ']];
     for(const [zh,en] of prefixes)if(raw.startsWith(zh))return en+worldName(raw.slice(zh.length));
     return WORLD_NAME_EN[raw]||raw;
   }

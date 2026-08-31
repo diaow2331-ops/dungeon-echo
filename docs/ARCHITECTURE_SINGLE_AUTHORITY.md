@@ -44,9 +44,10 @@ Quarantine is not a trash can. It is the staging area for previously completed w
 
 ## Current pure domain authorities
 
-The v1.6.0 release has no staged pure library waiting to be shipped. Town checkpoint/readiness
-policy completed its atomic authority transfer and is now loaded before core. Core remains the
-sole owner of stateful town orchestration.
+The v1.7.0 release has no staged pure library waiting to be shipped. Town checkpoint/readiness
+policy remains loaded before core, and the new expedition variation policy is likewise a pure
+production authority. Core remains the sole owner of stateful town/dungeon orchestration, RNG,
+combat execution, rewards and persistence.
 
 Cross-responsibility boundaries are strict:
 
@@ -55,7 +56,8 @@ Cross-responsibility boundaries are strict:
 - progression owns XP thresholds, level deltas and talent-due classification; caps/clamps/next-talent/skill-evolution helpers remain dormant;
 - content classifies floor eligibility without spawning or consuming RNG;
 - town domain owns checkpoint unlocks and expedition-readiness thresholds; core owns town movement, purchases, selection state, persistence and presentation;
-- combat owns the canonical critical-damage multiplier; defense, grievous/healing, incoming/outgoing damage, thorns and kill-heal helpers remain dormant pure exports.
+- expedition domain owns deterministic contract availability/modifiers, dungeon-event specifications and elite-affix eligibility; core consumes RNG, spawns actors, mutates combat/reward state and persists the selected contract;
+- combat owns the canonical critical-damage multiplier; live monster threat scaling, engagement strikes, defense, damage application and turn consequences remain core-owned.
 
 ## Restoring a quarantined feature
 

@@ -1,11 +1,12 @@
 {
-  "version": "1.6.0",
-  "cacheGeneration": 180,
+  "version": "1.7.0",
+  "cacheGeneration": 181,
   "policy": "one-responsibility-one-production-authority",
   "authorities": {
     "gameplayState": "game/core/game.js",
     "turnFlow": "game/core/game.js",
     "combat": "game/core/game.js",
+    "monsterThreatTuning": "game/core/game.js",
     "economy": "game/core/game.js",
     "progression": "game/core/game.js",
     "townGameplay": "game/core/game.js",
@@ -34,7 +35,10 @@
     "townSupplyPricing": "game/domain/economy/economy-rules-v130.js",
     "tavernPricing": "game/domain/economy/economy-rules-v130.js",
     "quickDivePricing": "game/domain/economy/economy-rules-v130.js",
-    "wheelPricing": "game/domain/economy/economy-rules-v130.js"
+    "wheelPricing": "game/domain/economy/economy-rules-v130.js",
+    "expeditionContractPolicy": "game/domain/expedition/expedition-rules-v170.js",
+    "dungeonEventPolicy": "game/domain/expedition/expedition-rules-v170.js",
+    "eliteAffixPolicy": "game/domain/expedition/expedition-rules-v170.js"
   },
   "plannedExtraction": {
     "combat": "game/domain/combat/",
