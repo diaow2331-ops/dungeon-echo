@@ -262,6 +262,7 @@ grep -Fq '如何提交有效反馈' "$contact"
 grep -Fq 'contact-side' "$contact"
 ! grep -Fq 'data-copy-email' "$contact"
 grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$contact"
+! grep -Fq 'data-copy-email' "$source_root/public/assets/site-v1110/site.js"
 for page in "$home" "$de_detail" "$moyu_detail" "$about" "$privacy" "$contact"; do
   ! grep -Eiq 'mailto:|https://x\.com/' "$page" || { echo "personal contact route remains in built site: $page" >&2; exit 2; }
 done

@@ -45,16 +45,18 @@ Build from a clean reviewed commit. Builders package immutable tracked bytes and
 
 `main` is the only long-lived production branch. Use short-lived focused branches, merge through PR, then delete merged heads. Historical branches are not archives; Git history, release notes and governance logs provide provenance.
 
-## Public release-root composition
+## Public-source security hygiene
 
-The shared play.91hwl.cn filesystem is a deployment composition surface, not a source-of-truth directory. ops/release/play-release-root-policy.sh is the sole authority for which root entries may be carried from one immutable release to the next.
+SECURITY.md is the security-reporting and public-data authority. Public source, generated site pages and release notes must not contain personal email addresses, personal social handles, credentials, authentication material or private infrastructure access details. Run node test/public-repo-safety.cjs as a current release gate.
 
-Component deployers must call play_copy_release_root instead of cloning the previous release root wholesale, then call play_assert_release_root before activation. This preserves the three game routes and explicitly allowed site-level files while dropping unrelated archives, authentication tools, hidden rollback folders or other accidental passengers.
+Commit identity is metadata, not application content. Maintainers who want address privacy must use a GitHub no-reply author address. Historical author metadata is not rewritten during routine maintenance; history rewriting is a separately coordinated disruptive operation.
 
-A component deployer may replace only its own game directory. Adding a new root-level public artifact requires changing the canonical policy and its regression test in the same PR.
+## Play-release root composition
 
-## Public identity and secret hygiene
+ops/release/play-release-root-policy.sh is the sole repository-level policy for composing /srv/91hwl-play releases. It is deployment infrastructure, not shared gameplay runtime. Component deployers may replace only their own game subtree and may preserve only allowlisted public root entries. Arbitrary files, archives, credential exports and rollback folders must never hitchhike into a new release.
 
-The public repository and static site must not publish personal email addresses, personal social handles, authentication/session exports, passwords, API tokens, private keys or other nonessential identifiers. Vulnerability reports route through SECURITY.md and the repository Security Policy; ordinary reproducible bugs route through GitHub Issues.
+The component builders package that policy into each immutable deployment bundle. test/play-release-root-policy.cjs proves all three deployers consume the same policy and rejects unrestricted previous-release cloning.
 
-node test/public-repo-safety.cjs is a current merge gate. The final public-site build stage also rejects personal mail and social routes so a historical migration stage cannot silently reintroduce them.
+## Public-site version handoff
+
+Component VERSION files remain the only version authorities. The 91hwl home bundle reads them at build time and records DUNGEON_VERSION, MOYU_VERSION and BOARD_VERSION as immutable release snapshots. Those snapshot files are verification inputs for the matching deploy/healthcheck only; they are not new long-lived authorities.

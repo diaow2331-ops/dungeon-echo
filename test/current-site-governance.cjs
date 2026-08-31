@@ -6,6 +6,8 @@ const siteVersion=read('ops/home-mount/SITE_VERSION').trim();
 const de=read('VERSION').trim(),moyu=read('moyu/VERSION').trim(),board=read('board-games/VERSION').trim();
 assert.equal(siteVersion,'1.11.7');
 for(const v of [de,moyu,board])assert.match(v,/^\d+\.\d+\.\d+$/);
+const siteJs=read('ops/home-mount/public/assets/site-v1110/site.js');
+assert(!siteJs.includes('data-copy-email')&&!siteJs.includes('copyEmail'),'current site JS must not retain personal-mail copy/fallback behavior');
 const builder=read('ops/release/build-home-mount-bundle.sh');
 const finalStage=read('ops/home-mount/build-site-v1117.cjs');
 const deploy=read('ops/home-mount/deploy.sh'),health=read('ops/home-mount/healthcheck.sh');

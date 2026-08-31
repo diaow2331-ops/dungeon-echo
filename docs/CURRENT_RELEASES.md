@@ -7,7 +7,9 @@ This file is the repository-level pointer to the releases currently presented by
 | Dungeon Echo | v1.6.0 | `VERSION` | `ops/release/build-site-bundle.sh` |
 | Clock Out Alive / 摸鱼到下班 | v1.26.5 | `moyu/VERSION` | `ops/release/build-moyu-bundle.sh` |
 | Board Trio / 方寸棋局 | v0.6.2 | `board-games/VERSION` | `ops/release/build-board-games-bundle.sh` |
-| 91hwl public site | v1.11.6 | `ops/home-mount/SITE_VERSION` | `ops/release/build-home-mount-bundle.sh` |
+| 91hwl public site | v1.11.7 | `ops/home-mount/SITE_VERSION` | `ops/release/build-home-mount-bundle.sh` |
+| Board Trio / 方寸棋局 | v0.6.2 | `board-games/VERSION` | `ops/release/build-board-games-bundle.sh` |
+| 91hwl public site | v1.11.7 | `ops/home-mount/SITE_VERSION` | `ops/release/build-home-mount-bundle.sh` |
 
 `ops/release/build-web-toys-release.sh` and `ops/release/build-public-release-zip.sh` are aggregate entry points. They read the component version authorities instead of owning duplicate release numbers.
 
