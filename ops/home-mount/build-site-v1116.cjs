@@ -1,0 +1,23 @@
+'use strict';
+const fs=require('fs');
+const paths=process.argv.slice(2);
+if(paths.length!==6)throw new Error('usage: node build-site-v1116.cjs HOME DUNGEON MOYU ABOUT PRIVACY CONTACT');
+const [homePath,...rest]=paths,OLD='1.11.5',VERSION='1.11.6';
+function upgrade(path){
+  let s=fs.readFileSync(path,'utf8');
+  if(!s.includes(`data-site-version="${OLD}"`))throw new Error(`site v${OLD} marker missing: ${path}`);
+  return s.replaceAll(`data-site-version="${OLD}"`,`data-site-version="${VERSION}"`).replaceAll(`site v${OLD}`,`site v${VERSION}`);
+}
+let home=upgrade(homePath);
+const oldZh='五子棋、中国象棋与围棋共用一套轻量棋桌。围棋加入死子确认、双方计分确认与整盘重复局面校验；三种棋均支持悔棋、认输与防误触重开。';
+const newZh='五子棋、中国象棋与围棋共用一套轻量棋桌。三种棋新增逐手棋谱、复盘与双方棋钟；围棋继续支持死子确认、双方计分确认与整盘重复局面校验。';
+const oldEn='Gomoku, Xiangqi and Go share one lightweight board table. Go adds dead-group review, two-side score confirmation and whole-board repetition prevention; all three support undo, resignation and guarded restart.';
+const newEn='Gomoku, Xiangqi and Go share one lightweight board table with per-move records, replay and optional per-side clocks; Go retains scoring agreement and whole-board repetition prevention.';
+if(!home.includes('03 / v0.3.0'))throw new Error('Board Trio v0.3.0 homepage marker missing');
+if(!home.includes(oldZh)||!home.includes(oldEn))throw new Error('Board Trio v0.3.0 release copy missing');
+home=home.replaceAll('v0.3.0','v0.4.0').replace(oldZh,newZh).replace(oldEn,newEn);
+fs.writeFileSync(homePath,home);
+for(const p of rest)fs.writeFileSync(p,upgrade(p));
+for(const p of paths){const s=fs.readFileSync(p,'utf8');if(!s.includes('data-site-version="1.11.6"'))throw new Error('v1.11.6 site marker missing: '+p);if(!s.includes('site-v1110/style.css')||!s.includes('site-v1110/site.js'))throw new Error('v1.11 asset contract missing: '+p)}
+if(!home.includes('03 / v0.4.0')||!home.includes(newZh)||!home.includes(newEn))throw new Error('Board Trio v0.4.0 homepage refresh missing');
+console.log('site_v1116_board_v040=PASS');
