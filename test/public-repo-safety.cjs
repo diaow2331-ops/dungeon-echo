@@ -75,6 +75,10 @@ for (const abs of walk(root)) {
   for (const match of text.matchAll(emailRe)) {
     if (!allowedEmail(match[0])) findings.push(`personal/non-example email: ${rel}`);
   }
+
+  if (rel.startsWith('ops/home-mount/') && /https:\/\/x\.com\//i.test(text)) {
+    findings.push(`personal/social route in public site source: ${rel}`);
+  }
 }
 
 const unique = [...new Set(findings)].sort();

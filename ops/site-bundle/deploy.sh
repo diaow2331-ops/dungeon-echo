@@ -7,6 +7,9 @@ RELEASES_DIR="$SITE_ROOT/releases"
 CURRENT_LINK="$SITE_ROOT/current"
 GAME_SOURCE="$BUNDLE_ROOT/public/dungeon-echo"
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
+ROOT_POLICY="$BUNDLE_ROOT/ops/play-release-root-policy.sh"
+test -r "$ROOT_POLICY" || { echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: release-root policy missing" >&2; exit 1; }
+source "$ROOT_POLICY"
 EXPECTED_VERSION=1.6.0
 EXPECTED_GENERATION=180
 
@@ -81,11 +84,13 @@ rollback(){
 }
 trap rollback EXIT
 
-cp -aL "$previous_release/." "$tmp_dir/"
+play_copy_release_root "$previous_release" "$tmp_dir"
 rm -rf -- "$tmp_dir/dungeon-echo"
 mkdir -p "$tmp_dir/dungeon-echo"
 cp -a "$GAME_SOURCE/." "$tmp_dir/dungeon-echo/"
 test -r "$tmp_dir/moyu/index.html" || fail 'existing /moyu/ was not preserved'
+test -r "$tmp_dir/board-games/index.html" || fail 'existing /board-games/ was not preserved'
+play_assert_release_root "$tmp_dir" || fail 'release root contains unapproved entries'
 test -r "$tmp_dir/dungeon-echo/en/index.html" || fail 'English route was not staged'
 find "$tmp_dir" -type d -exec chmod 0755 {} +
 find "$tmp_dir" -type f -exec chmod 0644 {} +

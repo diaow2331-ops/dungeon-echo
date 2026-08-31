@@ -84,3 +84,7 @@ player evidence → focused issue → short-lived branch → focused PR → squa
 ```
 
 No open PR normally means no non-`main` work branch should remain.
+
+## Security release gates
+
+Before operations/release changes are merged, run node test/public-repo-safety.cjs and node test/play-release-root-policy.cjs in addition to the current suite. Public site contact routes must remain repository-based, and component deployers must use the canonical play-root policy.

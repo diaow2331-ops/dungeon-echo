@@ -27,7 +27,7 @@ ok(/grid-template-columns: 140px minmax\(0, 1fr\)/.test(css) && /repeat\(3, minm
 ok(zh.includes('id="audio-haptics"') && en.includes('id="audio-haptics"'), 'both fixed locales expose the haptics toggle');
 ok(zh.includes('?v=180') && en.includes('?v=180'), 'both fixed locales publish cache generation 180');
 ok(authority.version==='1.6.0' && authority.cacheGeneration===180, 'v1.6 release authority is version/cache coherent');
-ok(siteVersion==='1.11.6' && homeBuilder.includes('build-site-v1112.cjs') && homeBuilder.includes('build-site-v1113.cjs') && homeBuilder.includes('build-site-v1114.cjs') && homeBuilder.includes('build-site-v1115.cjs') && homeBuilder.includes('build-site-v1116.cjs'), 'Dungeon v1.5 companion stage remains in the immutable site chain through current v1.11.6');
+ok(siteVersion==='1.11.7' && homeBuilder.includes('build-site-v1112.cjs') && homeBuilder.includes('build-site-v1113.cjs') && homeBuilder.includes('build-site-v1114.cjs') && homeBuilder.includes('build-site-v1115.cjs') && homeBuilder.includes('build-site-v1116.cjs') && homeBuilder.includes('build-site-v1117.cjs'), 'Dungeon v1.5 companion stage remains in the immutable site chain through current v1.11.7');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);

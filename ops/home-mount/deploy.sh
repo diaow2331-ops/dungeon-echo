@@ -33,6 +33,9 @@ for file in \
   "$PUBLIC_ROOT/$ASSET_REL/dungeon-roster.webp" \
   "$PUBLIC_ROOT/$ADS_REL" \
   "$BUNDLE_ROOT/VERSION" \
+  "$BUNDLE_ROOT/DUNGEON_VERSION" \
+  "$BUNDLE_ROOT/MOYU_VERSION" \
+  "$BUNDLE_ROOT/BOARD_VERSION" \
   "$BUNDLE_ROOT/SHA256SUMS"; do
   test -r "$file" || fail "missing required file: $file"
 done
@@ -40,29 +43,32 @@ test -x "$HEALTHCHECK" || fail 'healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.11.6' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.11.6"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+expected_de="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/DUNGEON_VERSION")"
+expected_moyu="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/MOYU_VERSION")"
+expected_board="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/BOARD_VERSION")"
+test "$version" = '1.11.7' || fail "unexpected site version: $version"
+grep -Fq "data-site-version=\"$version\"" "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
-grep -Fq 'site-v1110/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.11.6 shared design missing'
+grep -Fq 'site-v1110/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage shared design missing'
 grep -Fq 'quick-pick' "$PUBLIC_ROOT/index.html" || fail 'homepage quick-pick interaction missing'
 grep -Fq 'hero-showcase' "$PUBLIC_ROOT/index.html" || fail 'homepage game-art hero missing'
 grep -Fq '浏览器游戏' "$PUBLIC_ROOT/index.html" || fail 'homepage Chinese hero copy missing'
 grep -Fq '方寸棋局 · Board Trio' "$PUBLIC_ROOT/index.html" || fail 'homepage Board Trio card missing'
-grep -Fq '03 / v0.4.0' "$PUBLIC_ROOT/index.html" || fail 'homepage Board Trio v0.4.0 marker missing'
+grep -Fq "03 / v$expected_board" "$PUBLIC_ROOT/index.html" || fail "homepage Board Trio v$expected_board marker missing"
 ! grep -Fq '下一款开发中' "$PUBLIC_ROOT/index.html" || fail 'stale future-game slot remains'
 grep -Fq 'game-media-moyu' "$PUBLIC_ROOT/index.html" || fail 'Moyu visual cover hook missing'
 grep -Fq 'dungeon-roster.webp' "$PUBLIC_ROOT/index.html" || fail 'Dungeon visual cover hook missing'
 grep -Fq 'id="navToggle"' "$PUBLIC_ROOT/index.html" || fail 'mobile directory control missing'
 grep -Fq '公开开发' "$PUBLIC_ROOT/index.html" || fail 'homepage public-development copy missing'
-grep -Fq 'mailto:diaow2331@gmail.com' "$PUBLIC_ROOT/index.html" || fail 'homepage visible contact email missing'
+grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$PUBLIC_ROOT/index.html" || fail 'homepage private security route missing'
 grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage AdSense client missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
-grep -Fq 'softwareVersion":"1.5.0"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.5.0 detail marker missing'
-grep -Fq '强化战斗打击反馈' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.5.0 release copy missing'
-grep -Fq 'softwareVersion":"1.26.5"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.26.5 detail marker missing'
+grep -Fq "softwareVersion\":\"$expected_de\"" "$PUBLIC_ROOT/$DE_REL/index.html" || fail "Dungeon Echo v$expected_de detail marker missing"
+grep -Fq '强化战斗打击反馈' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo release copy missing'
+grep -Fq "softwareVersion\":\"$expected_moyu\"" "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail "Clock Out Alive v$expected_moyu detail marker missing"
 grep -Fq '画面与信息都更清楚' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
 grep -Fq 'Clearer world, readable UI' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
 grep -Fq '这是一个独立浏览器游戏站。' "$PUBLIC_ROOT/$ABOUT_REL/index.html" || fail 'about page marker missing'
@@ -71,7 +77,7 @@ grep -Fq '隐私说明' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy 
 grep -Fq 'privacy-side' "$PUBLIC_ROOT/$PRIVACY_REL/index.html" || fail 'privacy page identity missing'
 grep -Fq '如何提交有效反馈' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page content marker missing'
 grep -Fq 'contact-side' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact page identity missing'
-grep -Fq 'mailto:diaow2331@gmail.com' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact email marker missing'
+grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$PUBLIC_ROOT/$CONTACT_REL/index.html" || fail 'contact security-policy marker missing'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$PUBLIC_ROOT/$ADS_REL" || fail 'ads.txt content mismatch'
 
 # The validated immutable bundle is authoritative. Existing live content is
@@ -82,7 +88,7 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1116.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1117.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
@@ -134,7 +140,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v1116.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v1117.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -158,13 +164,13 @@ rm -rf -- "$SITE_ROOT/$ASSET_REL"
 cp -a "$PUBLIC_ROOT/$ASSET_REL" "$SITE_ROOT/$ASSET_REL"
 chown -R --reference="$SITE_ROOT/index.html" "$SITE_ROOT/$ASSET_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1116.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1117.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
-grep -Fq 'site-v1110/style.css' "$SITE_ROOT/index.html" || fail 'homepage v1.11.6 design write verification failed'
+grep -Fq 'site-v1110/style.css' "$SITE_ROOT/index.html" || fail 'homepage design write verification failed'
 grep -Fq 'quick-pick' "$SITE_ROOT/index.html" || fail 'homepage quick-pick write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/style.css" "$SITE_ROOT/$ASSET_REL/style.css" || fail 'shared CSS write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/site.js" "$SITE_ROOT/$ASSET_REL/site.js" || fail 'shared interaction write verification failed'
@@ -172,7 +178,7 @@ cmp -s "$PUBLIC_ROOT/$ASSET_REL/wang-jian-landscape-1668.jpg" "$SITE_ROOT/$ASSET
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/moyu-run-v1265.jpg" "$SITE_ROOT/$ASSET_REL/moyu-run-v1265.jpg" || fail 'Moyu cover write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/dungeon-roster.webp" "$SITE_ROOT/$ASSET_REL/dungeon-roster.webp" || fail 'Dungeon cover write verification failed'
 grep -Fq '方寸棋局 · Board Trio' "$SITE_ROOT/index.html" || fail 'homepage Board Trio write verification failed'
-grep -Fq '03 / v0.4.0' "$SITE_ROOT/index.html" || fail 'homepage Board Trio v0.4.0 write verification failed'
+grep -Fq "03 / v$expected_board" "$SITE_ROOT/index.html" || fail "homepage Board Trio v$expected_board write verification failed"
 ! grep -Fq '下一款开发中' "$SITE_ROOT/index.html" || fail 'stale future-game slot written'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$SITE_ROOT/$ADS_REL" || fail 'ads.txt write verification failed'
 nginx -t

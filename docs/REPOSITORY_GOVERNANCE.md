@@ -44,3 +44,17 @@ Build from a clean reviewed commit. Builders package immutable tracked bytes and
 ## Branch discipline
 
 `main` is the only long-lived production branch. Use short-lived focused branches, merge through PR, then delete merged heads. Historical branches are not archives; Git history, release notes and governance logs provide provenance.
+
+## Public release-root composition
+
+The shared play.91hwl.cn filesystem is a deployment composition surface, not a source-of-truth directory. ops/release/play-release-root-policy.sh is the sole authority for which root entries may be carried from one immutable release to the next.
+
+Component deployers must call play_copy_release_root instead of cloning the previous release root wholesale, then call play_assert_release_root before activation. This preserves the three game routes and explicitly allowed site-level files while dropping unrelated archives, authentication tools, hidden rollback folders or other accidental passengers.
+
+A component deployer may replace only its own game directory. Adding a new root-level public artifact requires changing the canonical policy and its regression test in the same PR.
+
+## Public identity and secret hygiene
+
+The public repository and static site must not publish personal email addresses, personal social handles, authentication/session exports, passwords, API tokens, private keys or other nonessential identifiers. Vulnerability reports route through SECURITY.md and the repository Security Policy; ordinary reproducible bugs route through GitHub Issues.
+
+node test/public-repo-safety.cjs is a current merge gate. The final public-site build stage also rejects personal mail and social routes so a historical migration stage cannot silently reintroduce them.

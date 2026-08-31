@@ -29,7 +29,7 @@ let about=upgrade(aboutPath,'site-v180 record-about');
 let privacy=upgrade(privacyPath,'site-v180 record-privacy');
 let contact=upgrade(contactPath,'site-v180 record-contact');
 privacy=swapArt(privacy,'<aside class="record-emblem privacy-emblem" aria-label="隐私案卷"><span class="emblem-seal">私</span><div><small>PRIVACY / LOCAL FIRST</small><b><span class="zh">少取、明示、可选择。</span><span class="en">Collect less. Explain clearly. Keep choice.</span></b></div></aside>');
-contact=swapArt(contact,'<aside class="record-letter" aria-label="联系渠道"><small>来函处 / CONTACT DESK</small><b>diaow2331@gmail.com</b><span><span class="zh">BUG · 建议 · 合作 · 隐私</span><span class="en">BUGS · IDEAS · COLLAB · PRIVACY</span></span><i aria-hidden="true">九一</i></aside>');
+contact=swapArt(contact,'<aside class="record-letter" aria-label="联系渠道"><small>来函处 / CONTACT DESK</small><b>GitHub Security Policy</b><span><span class="zh">BUG · 建议 · 合作 · 隐私</span><span class="en">BUGS · IDEAS · COLLAB · PRIVACY</span></span><i aria-hidden="true">九一</i></aside>');
 about=about.replace('<figure class="record-art">','<figure class="record-art about-art">');
 for(const [p,s] of [[dungeonPath,dungeon],[moyuPath,moyu],[aboutPath,about],[privacyPath,privacy],[contactPath,contact]])fs.writeFileSync(p,s);
 for(const p of paths){const s=fs.readFileSync(p,'utf8');if(!s.includes('data-site-version="1.8.0"')||!s.includes('site-v180/style.css')||!s.includes('site-v180/site.js')||!s.includes('id="navToggle"'))throw new Error('v1.8 shared shell missing: '+p)}

@@ -71,7 +71,7 @@ test "$actual_board" = "$expected_board" || fail "Board Trio version mismatch: $
 grep -Fq "data-site-version=\"$expected_site\"" "$home_body" || fail "site version marker missing: $expected_site"
 grep -Fq 'GitHub / Source' "$home_body" || fail 'homepage GitHub CTA missing'
 grep -Fq '方寸棋局 · Board Trio' "$home_body" || fail 'homepage Board Trio card missing'
-grep -Fq 'mailto:diaow2331@gmail.com' "$home_body" || fail 'homepage contact email missing'
+grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$home_body" || fail 'homepage security-policy route missing'
 echo "revision=$revision"
 echo "dungeon_echo_version=$actual_de"
 echo "moyu_version=$actual_moyu"

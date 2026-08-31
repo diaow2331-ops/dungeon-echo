@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SITE_ROOT=/srv/91hwl-play; RELEASES_DIR=$SITE_ROOT/releases; CURRENT_LINK=$SITE_ROOT/current; SOURCE=$BUNDLE_ROOT/public/moyu; HEALTHCHECK=$BUNDLE_ROOT/ops/healthcheck.sh
+SITE_ROOT=/srv/91hwl-play; RELEASES_DIR=$SITE_ROOT/releases; CURRENT_LINK=$SITE_ROOT/current; SOURCE=$BUNDLE_ROOT/public/moyu; HEALTHCHECK=$BUNDLE_ROOT/ops/healthcheck.sh; ROOT_POLICY=$BUNDLE_ROOT/ops/play-release-root-policy.sh
+test -r "$ROOT_POLICY" || { echo "MOYU_SITE_DEPLOY_ERROR: release-root policy missing" >&2; exit 1; }; source "$ROOT_POLICY"
 fail(){ echo "MOYU_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'; test "$#" -eq 0 || fail 'this deployer accepts no arguments'
 for f in "$SOURCE/index.html" "$SOURCE/style.css" "$SOURCE/visual-v1113.css" "$SOURCE/responsive-v1120.css" "$SOURCE/game.js" "$SOURCE/VERSION" "$SOURCE/assets/sprites/hero-v125.webp" "$SOURCE/assets/sprites/hero.json" "$SOURCE/assets/scenes-v126/workstation.svg" "$SOURCE/assets/scenes-v126/meeting.svg" "$SOURCE/assets/scenes-v126/pantry.svg" "$SOURCE/assets/scenes-v126/gym.svg" "$SOURCE/assets/sprites/office-hazards-v124.webp" "$BUNDLE_ROOT/VERSION" "$BUNDLE_ROOT/REVISION" "$BUNDLE_ROOT/SHA256SUMS"; do test -r "$f" || fail "missing $f"; done
@@ -13,6 +14,6 @@ grep -Fq "dataset.gameVersion='1.26.5'" "$SOURCE/game.js" || fail 'runtime marke
 release_name="$(date -u +%Y%m%dT%H%M%SZ)-moyu-${revision:0:12}"; release_dir="$RELEASES_DIR/$release_name"; tmp_dir="$(mktemp -d "$RELEASES_DIR/.moyu-${revision:0:12}.XXXXXX")"; next_link="$SITE_ROOT/.current-moyu-${revision:0:12}"; switched=false
 rollback(){ rc=$?; if test "$rc" -ne 0; then if test "$switched" = true; then r="$SITE_ROOT/.rollback-moyu-${revision:0:12}"; ln -s "$previous_release" "$r"; mv -Tf "$r" "$CURRENT_LINK"; systemctl reload nginx >/dev/null 2>&1 || true; fi; rm -rf -- "$tmp_dir"; rm -f -- "$next_link"; echo 'moyu_site_deploy=ROLLED_BACK' >&2; fi; exit "$rc"; }
 trap rollback EXIT
-cp -aL "$previous_release/." "$tmp_dir/"; rm -rf -- "$tmp_dir/moyu"; mkdir -p "$tmp_dir/moyu"; cp -a "$SOURCE/." "$tmp_dir/moyu/"; test -r "$tmp_dir/dungeon-echo/index.html" || fail 'Dungeon Echo was not preserved'; find "$tmp_dir" -type d -exec chmod 0755 {} +; find "$tmp_dir" -type f -exec chmod 0644 {} +
+play_copy_release_root "$previous_release" "$tmp_dir"; rm -rf -- "$tmp_dir/moyu"; mkdir -p "$tmp_dir/moyu"; cp -a "$SOURCE/." "$tmp_dir/moyu/"; test -r "$tmp_dir/dungeon-echo/index.html" || fail 'Dungeon Echo was not preserved'; test -r "$tmp_dir/board-games/index.html" || fail 'Board Trio was not preserved'; play_assert_release_root "$tmp_dir" || fail 'release root contains unapproved entries'; find "$tmp_dir" -type d -exec chmod 0755 {} +; find "$tmp_dir" -type f -exec chmod 0644 {} +
 mv "$tmp_dir" "$release_dir"; ln -s "$release_dir" "$next_link"; mv -Tf "$next_link" "$CURRENT_LINK"; switched=true; nginx -t; systemctl reload nginx; "$HEALTHCHECK"; trap - EXIT
 echo "site_release=$release_dir"; echo "moyu_revision=$revision"; echo "moyu_version=$version"; echo 'moyu_site_deploy=PASS'

@@ -41,3 +41,22 @@ Deployment provenance is intentionally not appended by mutating the repository a
 - Added `test/current-release-pointers.cjs` to verify every game in `games.json` plus the public-site version against its canonical version file.
 - Added that gate to `test/current-suite.cjs` and codified component version files as the sole machine-readable release authorities.
 - This closes a repository-level failure mode where a focused release for one game could silently publish stale metadata for another game.
+
+## Security and release-composition follow-up
+
+A second global pass after the v1.6.0 modular merge found two production-hygiene defects outside Dungeon gameplay code:
+
+- the public repository safety gate was failing because historical/current site build inputs still contained a personal contact address, while SECURITY.md explicitly forbids nonessential personal identifiers in the public tree;
+- component deployers copied the entire previous play.91hwl.cn release root before replacing one game, so unrelated files could persist forever. The live root demonstrated this with an authentication-exporter archive and a hidden Board rollback directory.
+
+Remediation:
+
+- removed personal mailbox and personal social routes from the current public source/build chain;
+- routed sensitive reports through the repository Security Policy and ordinary bugs through Issues;
+- promoted `test/public-repo-safety.cjs` into the current suite and added a current public-site governance gate;
+- added `ops/release/play-release-root-policy.sh` as the only root-composition authority;
+- changed all three component deployers to preserve only approved shared-root entries and to assert the result before activation;
+- added `test/play-release-root-policy.cjs` and packaged the same policy into every component release bundle;
+- advanced the public-site presentation version to v1.11.7 and synchronized component labels from their canonical version files instead of hard-coded duplicate versions.
+
+Pre-merge verification on the working tree: `node test/current-suite.cjs` completed 44 current gates with 0 failures; repository event safety, public-repository safety, cross-game boundaries and release-root policy all passed.

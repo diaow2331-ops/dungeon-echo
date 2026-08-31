@@ -62,6 +62,7 @@ grep -Fq "newAdventure:'gameplay-reset-preserve-preferences'" "$bundle/public/du
 
 install -m 0755 "$repo_root/ops/site-bundle/deploy.sh" "$bundle/ops/deploy.sh"
 install -m 0755 "$repo_root/ops/site-bundle/healthcheck.sh" "$bundle/ops/healthcheck.sh"
+install -m 0644 "$repo_root/ops/release/play-release-root-policy.sh" "$bundle/ops/play-release-root-policy.sh"
 install -m 0644 "$repo_root/ops/site-bundle/README.txt" "$bundle/README.txt"
 printf '%s\n' "$version" > "$bundle/VERSION"
 printf '%s\n' "$revision" > "$bundle/REVISION"
