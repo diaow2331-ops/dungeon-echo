@@ -33,6 +33,25 @@
       ]),
     }),
     Object.freeze({
+      id:'drowned_bell', minDepth:12, maxDepth:55,
+      zh:'沉钟航团', en:'Drowned Bell Company',
+      zhStory:'一支没有海的航团把深渊当成航道。他们在每次出发前敲一次铜钟，直到某天钟声从地下更深处先响了回来。',
+      enStory:'A company with no sea treated the abyss as a shipping route. They rang one bronze bell before every departure, until one day the bell answered first from somewhere deeper below.',
+      pieces:Object.freeze({
+        weapon:Object.freeze({ zh:weaponNames('镇潮砍刀','潮讯长弓','沉钟仪杖','锚链短刃'), en:weaponNames('Tidebreaker Cleaver','Tidings Longbow','Drowned-Bell Staff','Anchor-Chain Knife'), zhLore:'刃根有一圈干涸盐霜。没人能解释地底为什么会留下海盐。', enLore:'A ring of dried salt crusts the base of the blade. No one can explain sea salt this far underground.' }),
+        armor:Object.freeze({ zh:'浸盐航衣', en:'Salt-Soaked Voyage Coat', zhLore:'布料硬得像晒干的帆，夹层里却缝着一张从未抵达任何港口的货单。', enLore:'The cloth is stiff as a dried sail. Inside is a cargo manifest for a port no one ever reached.' }),
+        helmet:Object.freeze({ zh:'听潮铜盔', en:'Tide-Listening Helm', zhLore:'贴近耳朵时能听见极轻的回声，像有人隔着很深的水敲钟。', enLore:'Held close to the ear, it carries a faint echo like a bell struck beneath very deep water.' }),
+        boots:Object.freeze({ zh:'逆流长靴', en:'Upcurrent Boots', zhLore:'鞋底钉子全部向后倾斜，像主人一生都在逆着某种看不见的水流前进。', enLore:'Every nail in the sole leans backward, as if its owner spent a lifetime walking against an unseen current.' }),
+        ring:Object.freeze({ zh:'第十三声钟戒', en:'Thirteenth Bell Ring', zhLore:'航团日志只记录十二次钟响。戒面内侧偏偏刻着十三。', enLore:'The company log records twelve bell strokes. The inner band is engraved with thirteen.' }),
+        amulet:Object.freeze({ zh:'无港航标', en:'Beacon Without a Harbor', zhLore:'小小的金属牌永远指向地下，而不是任何已知方位。', enLore:'The tiny metal marker always points downward, never toward any known direction.' }),
+      }),
+      bonuses:Object.freeze([
+        Object.freeze({ pieces:2, id:'bell_brace', zh:'压舱：固定减伤 +1', en:'Ballast: Fixed DR +1', stats:Object.freeze({fixedDr:1}) }),
+        Object.freeze({ pieces:4, id:'bell_drain', zh:'回潮：吸血 +4%', en:'Returning Tide: Leech +4%', stats:Object.freeze({leech:4}) }),
+        Object.freeze({ pieces:6, id:'bell_ration', zh:'航团配给：药水治疗 +25%', en:'Company Rations: Potion healing +25%', stats:Object.freeze({potionBoost:25}) }),
+      ]),
+    }),
+    Object.freeze({
       id:'star_hunt', minDepth:28, maxDepth:76,
       zh:'逐星遗誓', en:'Star-Hunter Oath',
       zhStory:'有人相信深渊顶部的星光会移动，于是六名猎手用一生追逐那条“会逃跑的天河”。他们没有找到出口，却留下了最准确的深层地图。',
@@ -52,6 +71,25 @@
       ]),
     }),
     Object.freeze({
+      id:'rust_saints', minDepth:42, maxDepth:90,
+      zh:'锈钟圣徒', en:'Rust-Bell Saints',
+      zhStory:'六名修士相信地牢的齿轮声是神谕。他们把坏掉的机械带回礼拜堂，一件件擦亮，最后却发现钟从来不是为人敲的。',
+      enStory:'Six monks believed the dungeon gears spoke prophecy. They carried broken mechanisms back to their chapel and polished them one by one, until they learned the bell was never tolling for people.',
+      pieces:Object.freeze({
+        weapon:Object.freeze({ zh:weaponNames('赎罪齿剑','钟舌猎弓','旧礼仪杖','祷轮短刃'), en:weaponNames('Penitent Gearblade','Clapper Huntbow','Old-Liturgy Staff','Prayer-Wheel Knife'), zhLore:'武器护手嵌着一枚不再转动的铜齿轮，齿间卡着干掉的蜡。', enLore:'A stopped bronze gear is set into the guard, with dried chapel wax packed between its teeth.' }),
+        armor:Object.freeze({ zh:'锈圣衣', en:'Rusted Vestment', zhLore:'胸甲本该是白色，如今只剩被机油浸透的褐色。内衬依旧一尘不染。', enLore:'The cuirass was once white and is now brown with machine oil. The inner lining remains spotless.' }),
+        helmet:Object.freeze({ zh:'听谕兜帽', en:'Hood of the Heard Omen', zhLore:'罩住耳朵后，佩戴者只能听见自己的呼吸和远处极慢的金属摩擦声。', enLore:'With the ears covered, the wearer hears only breathing and a very slow scrape of metal somewhere far away.' }),
+        boots:Object.freeze({ zh:'跪行者铁靴', en:'Iron Boots of the Kneeling Pilgrim', zhLore:'膝部没有磨损，鞋尖却磨平了。修士们所谓的“跪行”似乎并不是跪着走。', enLore:'The knees show no wear, yet the toes are ground flat. The saints’ “kneeling pilgrimage” was apparently not done on their knees.' }),
+        ring:Object.freeze({ zh:'停摆时环', en:'Stopped-Hour Ring', zhLore:'内圈有十二格刻度，却永远停在第七格。无论摔落还是敲击都不会移动。', enLore:'Twelve marks circle the band, yet it always stops at the seventh. Neither falls nor hammer blows move it.' }),
+        amulet:Object.freeze({ zh:'无声钟舌', en:'Silent Bell Clapper', zhLore:'这枚小钟舌没有配套的钟。摇动时也没有声音，但附近的火焰会轻轻偏向它。', enLore:'This small clapper has no bell and makes no sound, yet nearby flames lean toward it when shaken.' }),
+      }),
+      bonuses:Object.freeze([
+        Object.freeze({ pieces:2, id:'saint_timing', zh:'静听：暴击 +5%', en:'Listen: Crit +5%', stats:Object.freeze({crit:5}) }),
+        Object.freeze({ pieces:4, id:'saint_shell', zh:'旧礼甲：固定减伤 +2', en:'Old Rite Mail: Fixed DR +2', stats:Object.freeze({fixedDr:2}) }),
+        Object.freeze({ pieces:6, id:'saint_return', zh:'钟后余生：击杀回复 +7', en:'Life After the Bell: Kill healing +7', stats:Object.freeze({regen:7}) }),
+      ]),
+    }),
+    Object.freeze({
       id:'void_court', minDepth:60, maxDepth:999,
       zh:'虚空王庭', en:'Void Court',
       zhStory:'最深处没有王国，但有人仍然为一个不存在的王准备冠冕、礼服与宴席。六件遗物的尺寸属于六个不同的人。',
@@ -68,6 +106,25 @@
         Object.freeze({ pieces:2, id:'court_blood', zh:'空宴：吸血 +5%', en:'Empty Feast: Leech +5%', stats:Object.freeze({leech:5}) }),
         Object.freeze({ pieces:4, id:'court_gaze', zh:'觐见：暴击 +10%', en:'Audience: Crit +10%', stats:Object.freeze({crit:10}) }),
         Object.freeze({ pieces:6, id:'court_decree', zh:'无王敕令：暴击伤害强化 +45', en:'Kingless Decree: Critical power +45', stats:Object.freeze({critPower:45}) }),
+      ]),
+    }),
+    Object.freeze({
+      id:'shattered_moon', minDepth:72, maxDepth:999,
+      zh:'碎月遗仪', en:'Shattered Moon Rite',
+      zhStory:'一座没有天空的观测台曾坚持记录“月相”。最后一页只写着：月亮不是碎了，是有人把它一片片搬到了地下。',
+      enStory:'An observatory with no sky kept recording “moon phases.” Its final page says only: the moon did not shatter; someone carried it underground piece by piece.',
+      pieces:Object.freeze({
+        weapon:Object.freeze({ zh:weaponNames('缺月长刃','弦月猎弓','月蚀仪杖','碎辉短刃'), en:weaponNames('Crescent-Missing Blade','Crescent Huntbow','Eclipse Instrument Staff','Shardglow Knife'), zhLore:'刃面像镜子，却永远映不出佩戴者的脸，只能映出头顶不存在的月光。', enLore:'The blade is mirror-bright yet never reflects its bearer, only moonlight from a sky that is not there.' }),
+        armor:Object.freeze({ zh:'无夜观测服', en:'Nightless Observatory Coat', zhLore:'衣领内侧缝着三十张极小的月相图，其中有四张从未出现在任何历法里。', enLore:'Thirty tiny lunar diagrams line the collar. Four of the phases exist in no known calendar.' }),
+        helmet:Object.freeze({ zh:'碎辉目镜', en:'Shardglow Visor', zhLore:'镜片有一道贯穿中央的裂缝。透过裂缝看火焰时，火会变成冷白色。', enLore:'A crack runs through the lens. Flames seen through it turn cold white.' }),
+        boots:Object.freeze({ zh:'落月无声靴', en:'Silent Moonfall Boots', zhLore:'鞋底没有尘土，只有极细的银粉。银粉在黑暗里会缓慢向上飘。', enLore:'The soles hold no dust, only fine silver powder that drifts upward in darkness.' }),
+        ring:Object.freeze({ zh:'蚀环', en:'Eclipse Ring', zhLore:'戒面由两层金属组成。外环每天都会比前一天多遮住内环一点。', enLore:'Two metals form the band. Each day the outer ring covers a little more of the inner one.' }),
+        amulet:Object.freeze({ zh:'第零片月石', en:'Moonstone Shard Zero', zhLore:'档案把月石碎片从“一”开始编号，这一片却比所有记录都更早。', enLore:'Archive shards are numbered from One. This fragment is older than every recorded piece and is marked Zero.' }),
+      }),
+      bonuses:Object.freeze([
+        Object.freeze({ pieces:2, id:'moon_sip', zh:'冷辉：药水治疗 +20%', en:'Cold Glow: Potion healing +20%', stats:Object.freeze({potionBoost:20}) }),
+        Object.freeze({ pieces:4, id:'moon_cycle', zh:'缺相循环：技能冷却 -1 回合（仍受最低 2 回合限制）', en:'Missing Phase: Skill cooldown -1 turn (minimum 2 still applies)', stats:Object.freeze({skillHaste:1}) }),
+        Object.freeze({ pieces:6, id:'moon_break', zh:'碎月临界：暴击伤害强化 +40', en:'Shattered Moon: Critical power +40', stats:Object.freeze({critPower:40}) }),
       ]),
     }),
   ]);
@@ -163,6 +220,14 @@
       if(slot==='ring') return Object.freeze({hp:10+Math.floor(d/3)});
       if(slot==='amulet') return Object.freeze({regen:2});
     }
+    if(setId==='drowned_bell'){
+      if(slot==='weapon') return Object.freeze({atk:1+Math.floor(d/22)});
+      if(slot==='armor') return Object.freeze({def:1});
+      if(slot==='helmet') return Object.freeze({hp:7+Math.floor(d/5)});
+      if(slot==='boots') return Object.freeze({hp:9+Math.floor(d/4)});
+      if(slot==='ring') return Object.freeze({leech:2});
+      if(slot==='amulet') return Object.freeze({regen:2});
+    }
     if(setId==='star_hunt'){
       if(slot==='weapon') return Object.freeze({atk:2+Math.floor(d/18)});
       if(slot==='armor') return Object.freeze({def:1});
@@ -171,6 +236,14 @@
       if(slot==='ring') return Object.freeze({crit:4});
       if(slot==='amulet') return Object.freeze({atk:1+Math.floor(d/25)});
     }
+    if(setId==='rust_saints'){
+      if(slot==='weapon') return Object.freeze({atk:2+Math.floor(d/20)});
+      if(slot==='armor') return Object.freeze({def:2});
+      if(slot==='helmet') return Object.freeze({def:1});
+      if(slot==='boots') return Object.freeze({hp:12+Math.floor(d/4)});
+      if(slot==='ring') return Object.freeze({crit:3});
+      if(slot==='amulet') return Object.freeze({regen:3});
+    }
     if(setId==='void_court'){
       if(slot==='weapon') return Object.freeze({atk:3+Math.floor(d/15)});
       if(slot==='armor') return Object.freeze({def:2+Math.floor(d/35)});
@@ -178,6 +251,14 @@
       if(slot==='boots') return Object.freeze({leech:3});
       if(slot==='ring') return Object.freeze({leech:4});
       if(slot==='amulet') return Object.freeze({crit:5});
+    }
+    if(setId==='shattered_moon'){
+      if(slot==='weapon') return Object.freeze({atk:3+Math.floor(d/16)});
+      if(slot==='armor') return Object.freeze({hp:18+Math.floor(d/3)});
+      if(slot==='helmet') return Object.freeze({crit:5});
+      if(slot==='boots') return Object.freeze({crit:3});
+      if(slot==='ring') return Object.freeze({crit:6});
+      if(slot==='amulet') return Object.freeze({leech:4});
     }
     return Object.freeze({});
   }

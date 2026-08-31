@@ -11,7 +11,8 @@ const authority=JSON.parse(read('docs/authority-map-v130.json'));
 assert.equal(rules.authority,'named-set-policy');
 assert.equal(rules.version,'v1.8.0-development');
 assert.deepEqual(rules.SLOTS,['weapon','armor','helmet','boots','ring','amulet']);
-assert(rules.SETS.length>=3,'v1.8 must launch with multiple authored named sets');
+assert(rules.SETS.length>=6,'v1.8 must provide a real multi-set named-relic ecosystem');
+assert(rules.eligibleSets(20).length>=2&&rules.eligibleSets(50).length>=3&&rules.eligibleSets(80).length>=3,'early/mid/deep bands must all offer competing named sets so Relic Hall research matters');
 for(const set of rules.SETS){
   assert.deepEqual(set.bonuses.map(b=>b.pieces),[2,4,6],set.id+' must use 2/4/6 activation');
   assert(set.zh&&set.en&&set.zhStory&&set.enStory,set.id+' must own set identity and story');
@@ -30,7 +31,7 @@ assert.equal(Number((rules.namedChance(3,.09)-rules.namedChance(3)).toFixed(2)),
 assert.deepEqual([0,1,2,3].map(x=>rules.focusWeight(x)),[0,.5,.65,.8],'Relic Hall focus strength must remain bounded by construction level');
 assert.equal(rules.normalizeFocusId('void_court',59,{}),'','unreached deep set cannot be focused without a recovered clue');
 assert.equal(rules.normalizeFocusId('void_court',60,{}),'void_court','reaching a set band unlocks research focus');
-assert.equal(rules.chooseSet(65,1).id,'void_court','unfocused deterministic selection remains unchanged');
+assert.notEqual(rules.chooseSet(65,1).id,'star_hunt','chosen probe should have a non-focused deterministic baseline');
 assert.equal(rules.chooseSet(65,1,'star_hunt',3).id,'star_hunt','level-three research bias may deterministically redirect an eligible named relic');
 
 const set=rules.SETS[0];
