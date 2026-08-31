@@ -51,6 +51,7 @@ const tests = [
   'fixed-locale-routes-v131.cjs',
   'cache-bust-v140.cjs',
   'release.cjs',
+  'current-release-pointers.cjs',
   'current-repository-governance-v133.cjs',
 ];
 

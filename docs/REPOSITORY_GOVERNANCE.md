@@ -18,6 +18,13 @@ This repository contains multiple independently releasable browser games. Mainte
 
 There is no shared gameplay runtime by default. A new shared module requires all of the following in the same change: at least two concrete consumers, a named responsibility, a sole authority, a dependency direction, a release-packaging rule, and an updated boundary test. Stateful gameplay logic is presumed game-local unless a separate architecture decision proves otherwise.
 
+## Release metadata authority
+
+Component version files are the sole machine-readable version authorities. `docs/CURRENT_RELEASES.md` is a human-readable pointer and must match those files exactly; it must never become an independent version source.
+
+A focused release for one game must not downgrade or rewrite another game's release pointer. `test/current-release-pointers.cjs` enforces this against every game listed in `games.json` plus the public-site version.
+Feature tests must read canonical version files when they need release/cache markers; historical feature-test filenames may remain for provenance, but their assertions must not become a second version authority. Presentation tests should prefer stable structure/behavior contracts over exact localized copy unless the copy itself is the contract.
+
 ## Change scope
 
 A focused product PR should normally touch one game source root plus the minimum repository/release metadata required for that product. Changes spanning two games require an explicit integration reason in the PR description. Refactors must not move files between game roots merely for cosmetic consistency.
