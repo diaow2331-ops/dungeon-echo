@@ -1,8 +1,7 @@
-/* Dungeon Echo production equipment-transaction-pricing authority v1.3.0.
+/* Dungeon Echo production deterministic economy-pricing authority v1.6.0.
  *
- * Sole production authority for canonical forge/sell price quotes from an item-value input.
- * Town supply, dungeon-heal, quick-dive and wheel helpers remain dormant pure exports and are
- * not production decisions without separate atomic authority transfers.
+ * Sole production authority for the pricing/stock algorithms named in the authority map:
+ * equipment forge/sell, town supply, tavern toast, quick dive and wheel operations.
  *
  * Boundary rule: no item valuation, gold/stock mutation, transaction commit, RNG, UI or storage.
  */
@@ -76,17 +75,24 @@
     return count * (8 + depth * 4);
   }
 
-  function wheelSpinCost(spins=0) {
-    return 40 + nonNegativeInt(spins) * 20;
+  function tavernToastCost(visits=0, tier=1) {
+    const t = clamp(Number(tier) || 1, 1, 10);
+    return Math.round((90 + nonNegativeInt(visits) * 70 + t * 25) / 5) * 5;
   }
 
-  function wheelResetCost(resets=0) {
-    return 60 + nonNegativeInt(resets) * 40;
+  function wheelSpinCost(spins=0, tier=1) {
+    const t = clamp(Number(tier) || 1, 1, 10);
+    return 40 + nonNegativeInt(spins) * 20 + t * 20;
+  }
+
+  function wheelResetCost(resets=0, tier=1) {
+    const t = clamp(Number(tier) || 1, 1, 10);
+    return 60 + nonNegativeInt(resets) * 40 + t * 45;
   }
 
   const api = Object.freeze({
-    version:'v1.3.0-production',
-    authority:'equipment-transaction-pricing',
+    version:'v1.6.0-production',
+    authority:'economy-pricing',
     sources:Object.freeze(['game/core/game.js']),
     round5,
     townTier,
@@ -98,6 +104,7 @@
     forgeCost,
     sellPrice,
     quickDiveCost,
+    tavernToastCost,
     wheelSpinCost,
     wheelResetCost,
   });

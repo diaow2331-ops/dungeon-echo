@@ -2028,8 +2028,11 @@ function itemValueScore(it) {
   return statScore + mechanicValueBonus(it, statScore);
 }
 const ECONOMY_RULES = typeof window !== 'undefined' ? window.DE_ECONOMY_RULES_V130 : null;
-if (!ECONOMY_RULES || ECONOMY_RULES.authority !== 'equipment-transaction-pricing')
-  throw new Error('Dungeon Echo equipment-transaction-pricing authority missing');
+if (!ECONOMY_RULES || ECONOMY_RULES.authority !== 'economy-pricing')
+  throw new Error('Dungeon Echo economy-pricing authority missing');
+const TOWN_RULES = typeof window !== 'undefined' ? window.DE_TOWN_RULES_V130 : null;
+if (!TOWN_RULES || TOWN_RULES.authority !== 'town-checkpoint-readiness-policy')
+  throw new Error('Dungeon Echo town-checkpoint-readiness-policy authority missing');
 const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueScore(it), it.forge || 0);
 const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);
 function genEquip(d, minRarity = 0) {
@@ -3390,8 +3393,7 @@ function descend() {
 // ================= 快速下潜（付费跳层） =================
 const QUICK_DIVE_STEP = 5;
 function quickDiveCost(fromDepth, n) {
-  const floors = Math.max(0, Math.floor(n) || 0);
-  return floors * (8 + Math.max(1, Math.floor(fromDepth)) * 4);
+  return ECONOMY_RULES.quickDiveCost(fromDepth, n);
 }
 function quickDive(n) {
   if (state !== 'playing') return;
@@ -5220,34 +5222,30 @@ function closeShrine() {
 // ================= 贪婪远征：城镇 / 回城 / 元进度 =================
 const TOWN_MARKET_SUPPLIES = Object.freeze({
   potion: { zh:'治疗药水', en:'Healing Potion', base:SHOP.potionPrice || 16,
-    stock:tier => 4 + Math.floor((tier - 1) / 3), held:m => m.potions || 0,
+    held:m => m.potions || 0,
     apply:m => { m.potions = (m.potions || 0) + 1; } },
   scroll: { zh:'传送卷轴', en:'Teleport Scroll', base:SHOP.scrollPrice || 28,
-    stock:tier => 2 + Math.floor((tier - 1) / 4), held:m => m.scrolls || 0,
+    held:m => m.scrolls || 0,
     apply:m => { m.scrolls = (m.scrolls || 0) + 1; } },
   escape: { zh:'回城卷轴', en:'Return Scroll', base:SHOP.escapePrice || 26,
-    stock:tier => tier >= 5 ? 2 : 1, held:m => m.escapes || 0,
+    held:m => m.escapes || 0,
     apply:m => { m.escapes = (m.escapes || 0) + 1; } },
   key: { zh:'锈蚀钥匙', en:'Rusty Key', base:SHOP.keyPrice || 22,
-    stock:tier => 2 + (tier >= 4 ? 1 : 0) + (tier >= 8 ? 1 : 0), held:m => m.keys || 0,
+    held:m => m.keys || 0,
     apply:m => { m.keys = (m.keys || 0) + 1; } },
   insurance: { zh:'保险符', en:'Insurance Charm', base:SHOP.insurancePrice || 120,
-    stock:() => 1, held:m => m.insurance || 0,
+    held:m => m.insurance || 0,
     apply:m => { m.insurance = (m.insurance || 0) + 1; } },
 });
 const TOWN_MARKET_IDS = Object.freeze(Object.keys(TOWN_MARKET_SUPPLIES));
-function townMarketPriceScale(tier) {
-  const t = clamp(Math.floor(Number(tier) || 1), 1, 10) - 1;
-  return 1 + .42 * t + .065 * t * t;
-}
 function townMarketPrice(id, tier) {
   const def = TOWN_MARKET_SUPPLIES[id];
   if (!def) return 0;
-  return Math.max(5, Math.round((def.base * townMarketPriceScale(tier)) / 5) * 5);
+  return ECONOMY_RULES.townSupplyPrice(def.base, tier);
 }
 function freshTownMarket(tier = townTierForArt()) {
   const stock = {};
-  for (const id of TOWN_MARKET_IDS) stock[id] = Math.max(0, Math.floor(TOWN_MARKET_SUPPLIES[id].stock(tier)));
+  for (const id of TOWN_MARKET_IDS) stock[id] = ECONOMY_RULES.townSupplyStock(id, tier);
   return { v:1, cycleRun:Math.max(0, Math.floor(Number(meta && meta.runs) || 0)), tier, stock };
 }
 function validTownMarket(row) {
@@ -5268,10 +5266,7 @@ function ensureTownMarket() {
 function townReadinessPlan() {
   const market = ensureTownMarket();
   if (!meta || !market) return { rows:[], total:0, ready:false, available:false, affordable:false };
-  const need = {
-    potion:Math.max(0, 2 - (meta.potions || 0)),
-    escape:Math.max(0, 1 - (meta.escapes || 0)),
-  };
+  const need = TOWN_RULES.expeditionSupplyNeeds(meta);
   const rows = Object.entries(need).filter(([, count]) => count > 0).map(([id, count]) => ({
     id, count, price:townMarketPrice(id, market.tier),
     available:(market.stock[id] || 0) >= count,
@@ -5311,8 +5306,7 @@ const TAVERN_REWARDS = Object.freeze([
   { id:'prosperity', weight:15, zh:'商路黑啤', en:'Caravan Stout', zhEffect:'金币获取永久 +1%', enEffect:'Permanent Gold Find +1%', apply:m => { m.goldFind += 1; } },
 ]);
 function tavernCost() {
-  const visits = Math.max(0, Math.floor(Number(meta && meta.tavernVisits) || 0));
-  return Math.round((90 + visits * 70 + townTierForArt() * 25) / 5) * 5;
+  return ECONOMY_RULES.tavernToastCost(meta && meta.tavernVisits, townTierForArt());
 }
 function tavernRewardById(id) { return TAVERN_REWARDS.find(row => row.id === id) || null; }
 function tavernAvailable() {
@@ -5350,7 +5344,7 @@ function drinkAtTavern() {
   return true;
 }
 
-const TOWN_CHECKPOINTS = Object.freeze([1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
+const TOWN_CHECKPOINTS = TOWN_RULES.CHECKPOINTS;
 const TOWN_HOTSPOTS = Object.freeze([
   { id:'quartermaster', cell:TOWN_NPC_ART.quartermaster, x:.11, y:.83, face:1, service:'stash', zh:'军需官', en:'Quartermaster' },
   { id:'smith', cell:TOWN_NPC_ART.smith, activeCell:TOWN_NPC_ART.smithAction, x:.27, y:.82, face:1, service:'bag', zh:'铁匠', en:'Smith' },
@@ -5468,13 +5462,12 @@ function advanceTownAvatar(now) {
   updateTownPrompt();
 }
 function unlockedTownCheckpoints() {
-  const best = Math.max(0, Math.floor(Number(meta && meta.bestDepth) || 0));
-  return TOWN_CHECKPOINTS.filter(d => d === 1 || best >= d);
+  return TOWN_RULES.unlockedCheckpoints(meta && meta.bestDepth);
 }
 function selectTownCheckpoint(target) {
   if (state !== 'town' || !meta) return false;
   const checkpointDepth = Math.max(1, Math.floor(Number(target) || 1));
-  if (!unlockedTownCheckpoints().includes(checkpointDepth)) return false;
+  if (!TOWN_RULES.isCheckpointUnlocked(checkpointDepth, meta.bestDepth)) return false;
   selectedTownCheckpoint = checkpointDepth;
   renderTown();
   return true;
@@ -5654,12 +5647,10 @@ function showTown() {
 // 8 个奖品槽随元档持久化；每格最多结算一次，只有付费重置才能换新盘。
 // 抽奖/重置同时按操作次数与城镇阶段递增，死亡不会免费洗盘或清掉成本。
 const WHEEL_SLOTS = 8;
-const WHEEL_BASE_SPIN = 40, WHEEL_SPIN_STEP = 20;
-const WHEEL_BASE_RESET = 60, WHEEL_RESET_STEP = 40;
 const wheelDepth = () => Math.max(3, meta ? (meta.bestDepth || 0) : 0);
-const wheelTownTier = () => clamp(Math.ceil(Math.max(1, Number(meta && meta.bestDepth) || 1) / 10), 1, 10);
-const spinCost = () => WHEEL_BASE_SPIN + (meta && meta.wheelSpins || 0) * WHEEL_SPIN_STEP + wheelTownTier() * 20;
-const resetWheelCost = () => WHEEL_BASE_RESET + (meta && meta.wheelResets || 0) * WHEEL_RESET_STEP + wheelTownTier() * 45;
+const wheelTownTier = () => ECONOMY_RULES.townTier(meta && meta.bestDepth);
+const spinCost = () => ECONOMY_RULES.wheelSpinCost(meta && meta.wheelSpins, wheelTownTier());
+const resetWheelCost = () => ECONOMY_RULES.wheelResetCost(meta && meta.wheelResets, wheelTownTier());
 function genWheelSlot() {
   const bd = wheelDepth();
   // v2 平衡奖池：装备合计仅 5%（稀有≥2 的 4% + 史诗≥3 的 1%）——
@@ -5870,8 +5861,7 @@ function startWheelKick() {
 let townStars = null;
 let townRafId = 0;
 function townTierForArt() {
-  const best = Math.max(1, Number(meta && meta.bestDepth) || 1);
-  return clamp(Math.ceil(best / 10), 1, 10);
+  return ECONOMY_RULES.townTier(meta && meta.bestDepth);
 }
 function drawTownNpcFigure(ctx, index, x, baseY, now, facing = 1, scale = 1) {
   const bob = reducedMotion ? 0 : Math.sin(now * .0026 + x * .013) * 1.15;

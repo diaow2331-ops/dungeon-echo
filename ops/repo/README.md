@@ -69,6 +69,12 @@ Historical commit titles are not rewritten merely for cosmetics: rewriting them 
 
 See `CONTRIBUTING.md` for title examples and the complete branch lifecycle policy.
 
+## Multi-game isolation
+
+`games.json` is the product catalog authority. Each game keeps its own version authority and immutable builder. Source roots must not import another game's runtime. Run `bash ops/repo/check-game-boundaries.sh` for any multi-game or catalog change.
+
+Do not create a shared runtime as a shortcut. Shared code requires an explicit authority decision and an updated boundary contract.
+
 ## Post-launch maintenance rule
 
 After public launch, repository maintenance should follow this sequence:

@@ -25,8 +25,8 @@ ok(/typeof sfx !== 'undefined'.*sfx\.warning/.test(game) && /typeof haptic === '
 ok(/#town-screen #btn-depart\.town-depart-warning/.test(css), 'town departure warning has a visible state');
 ok(/grid-template-columns: 140px minmax\(0, 1fr\)/.test(css) && /repeat\(3, minmax\(0, 1fr\)\)/.test(css), 'small-screen touch controls use the compact split layout');
 ok(zh.includes('id="audio-haptics"') && en.includes('id="audio-haptics"'), 'both fixed locales expose the haptics toggle');
-ok(zh.includes('?v=179') && en.includes('?v=179'), 'both fixed locales publish cache generation 179');
-ok(authority.version==='1.5.0' && authority.cacheGeneration===179, 'v1.5 release authority is version/cache coherent');
+ok(zh.includes('?v=180') && en.includes('?v=180'), 'both fixed locales publish cache generation 180');
+ok(authority.version==='1.6.0' && authority.cacheGeneration===180, 'v1.6 release authority is version/cache coherent');
 ok(siteVersion==='1.11.6' && homeBuilder.includes('build-site-v1112.cjs') && homeBuilder.includes('build-site-v1113.cjs') && homeBuilder.includes('build-site-v1114.cjs') && homeBuilder.includes('build-site-v1115.cjs') && homeBuilder.includes('build-site-v1116.cjs'), 'Dungeon v1.5 companion stage remains in the immutable site chain through current v1.11.6');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);

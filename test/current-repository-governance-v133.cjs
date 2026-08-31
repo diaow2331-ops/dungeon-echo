@@ -11,6 +11,8 @@ const manifest=fs.readFileSync('ops/release/static-files.txt','utf8').split(/\r?
 const maintenance=fs.readFileSync('docs/MAINTENANCE.md','utf8');
 const testPolicy=fs.readFileSync('test/README.md','utf8');
 const repoPolicy=fs.readFileSync('ops/repo/README.md','utf8');
+const repositoryGovernance=fs.readFileSync('docs/REPOSITORY_GOVERNANCE.md','utf8');
+const gameBoundaries=fs.readFileSync('ops/repo/check-game-boundaries.sh','utf8');
 
 assert.strictEqual(version,authority.version,'VERSION must equal the authority map release');
 assert.match(version,/^1\.\d+\.\d+$/);
@@ -36,4 +38,7 @@ assert(!/Semantic version:\s*`?1\.\d+\.\d+/.test(maintenance),'maintenance guide
 assert(testPolicy.includes('test/current-suite.cjs')&&testPolicy.includes('Historical tests'));
 assert(repoPolicy.includes('`main` is protected at the GitHub repository level'));
 assert(repoPolicy.includes('deletes merged head branches automatically'));
+assert(repoPolicy.includes('check-game-boundaries.sh'));
+assert(repositoryGovernance.includes('games.json')&&repositoryGovernance.includes('Source isolation'));
+assert(gameBoundaries.includes('test/games-boundaries.cjs'));
 console.log('current_repository_governance_v133=PASS');

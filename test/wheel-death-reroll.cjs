@@ -2,6 +2,7 @@
 const assert=require('assert');
 const fs=require('fs');
 const vm=require('vm');
+const ECONOMY_RULES=require(require('path').resolve(__dirname,'..','game/domain/economy/economy-rules-v130.js'));
 const core=fs.readFileSync(require('path').resolve(__dirname,'..','game/core/game.js'),'utf8');
 assert(!core.includes("'de-town-wheel-state-v1'"),'retired wheel shadow sidecar must stay absent');
 assert(!core.includes('meta.wheelSpins = 0; meta.wheelResets = 0; meta.wheelSlots = null;'),'death must not reset wheel lifecycle');
@@ -14,7 +15,7 @@ assert(start>=0&&end>start,'wheel executable region must be discoverable');
 const equip={name:'Test Blade',score:9};
 const slots=[{kind:'equip',item:equip},...Array.from({length:7},()=>({kind:'nothing'}))];
 const sb={
-  console, Math, BAG_CAP:12,
+  console, Math, BAG_CAP:12, ECONOMY_RULES,
   meta:{bestDepth:1,gold:1000,wheelSpins:0,wheelResets:0,wheelTotal:0,wheelSlots:slots,bag:[],stash:[],potions:0,scrolls:0,keys:0,escapes:0,insurance:0},
   state:'town',
   clamp:(v,lo,hi)=>Math.max(lo,Math.min(hi,v)),

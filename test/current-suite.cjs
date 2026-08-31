@@ -13,6 +13,7 @@ const compat = path.join(__dirname, 'layout-compat.cjs');
 const tests = [
   'repository-event-safety.cjs',
   'games-catalog.cjs',
+  'games-boundaries.cjs',
   'board-games-rules.cjs',
   'board-games-ai-v050.cjs',
   'board-games-mechanics-v040.cjs',

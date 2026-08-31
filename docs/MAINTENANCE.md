@@ -21,12 +21,13 @@ Do not copy semantic-version/cache literals into governance prose merely to make
 **One responsibility has exactly one production authority.**
 
 The canonical gameplay owner is `game/core/game.js`. It owns live gameplay state, turn flow,
-combat execution, town gameplay, Canvas rendering, keyboard/touch gameplay input, gameplay
-persistence, expedition records, audio preferences and the SFX graph.
+combat execution, stateful town orchestration and transactions, Canvas rendering, keyboard/touch
+gameplay input, gameplay persistence, expedition records, audio preferences and the SFX graph.
 
 Narrow supporting authorities are allowed only for responsibilities explicitly listed in
-`docs/authority-map-v130.json`. Pure domain libraries may calculate rules, but must not acquire
-live gameplay state, input, Canvas, timers, or storage ownership.
+`docs/authority-map-v130.json`. Pure domain libraries may calculate rules, but must not acquire live gameplay state, input, Canvas,
+timers, RNG-driven transaction ownership, or storage ownership. Town checkpoint/readiness policy and
+economy pricing are explicit production authorities; core remains the sole transaction committer.
 
 ## Production graph
 
@@ -65,7 +66,8 @@ cleanup and deployment changes merely to reduce PR count.
 ## Test policy
 
 `node test/current-suite.cjs` is the explicit full current repository/release gate.
-`bash ops/check-authority-local.sh` is the explicit authority gate.
+`bash ops/check-authority-local.sh` is the explicit Dungeon authority gate.
+`bash ops/repo/check-game-boundaries.sh` is the explicit cross-game repository-boundary gate.
 
 Historical tests remain useful recovery evidence but are not release claims. See `test/README.md`.
 Never claim the whole suite passed unless it was actually executed on the exact source tree.

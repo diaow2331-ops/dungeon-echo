@@ -1,10 +1,8 @@
-/* Dungeon Echo staged town rules v1.3.0.
+/* Dungeon Echo production town checkpoint/readiness policy v1.6.0.
  *
- * Pure town/checkpoint policy extracted from the canonical core and quarantined town work.
- * This library owns NO production authority yet and is not shipped.
- *
- * Boundary rule: town owns checkpoint/readiness policy only. Economy owns prices/costs;
- * inventory owns item movement; render/UI owns presentation; persistence owns storage.
+ * Sole production authority for deterministic town checkpoint unlocks and
+ * expedition-readiness thresholds. Core owns town state, transactions, UI,
+ * rendering, persistence and input; this library never mutates them.
  */
 (() => {
   'use strict';
@@ -42,16 +40,25 @@
     return CHECKPOINTS.includes(target) ? target : null;
   }
 
+  function expeditionSupplyNeeds(supplies={}) {
+    const potions = nonNegativeInt(supplies.potions);
+    const escapes = nonNegativeInt(supplies.escapes);
+    return Object.freeze({
+      potion: Math.max(0, 2 - potions),
+      escape: Math.max(0, 1 - escapes),
+    });
+  }
+
   function expeditionReadiness(supplies={}) {
     const potions = nonNegativeInt(supplies.potions);
     const escapes = nonNegativeInt(supplies.escapes);
     const keys = nonNegativeInt(supplies.keys);
-    const ready = potions >= 2 && escapes >= 1;
+    const needs = expeditionSupplyNeeds({potions, escapes});
     const missing = [];
-    if (potions < 2) missing.push('potions');
-    if (escapes < 1) missing.push('escape');
+    if (needs.potion > 0) missing.push('potions');
+    if (needs.escape > 0) missing.push('escape');
     return Object.freeze({
-      ready,
+      ready: needs.potion === 0 && needs.escape === 0,
       potions,
       escapes,
       keys,
@@ -60,18 +67,16 @@
   }
 
   const api = Object.freeze({
-    version: 'v1.3.0-staged',
-    authority: 'none',
-    sources: Object.freeze([
-      'game/core/game.js',
-      'archive/quarantine-v130/gameplay/town/town-system.js',
-    ]),
+    version: 'v1.6.0-production',
+    authority: 'town-checkpoint-readiness-policy',
+    sources: Object.freeze(['game/core/game.js']),
     CHECKPOINTS,
     unlockedCheckpoints,
     deepestUnlockedCheckpoint,
     isCheckpointUnlocked,
     normalizeCheckpointSelection,
     checkpointUnlockedByGuardian,
+    expeditionSupplyNeeds,
     expeditionReadiness,
   });
 
