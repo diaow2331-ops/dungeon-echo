@@ -29,7 +29,7 @@
       bonuses:Object.freeze([
         Object.freeze({ pieces:2, id:'watch_line', zh:'守线：固定减伤 +2', en:'Hold the Line: Fixed DR +2', stats:Object.freeze({fixedDr:2}) }),
         Object.freeze({ pieces:4, id:'watch_flask', zh:'余烬药酒：药水治疗 +20%', en:'Ember Draught: Potion healing +20%', stats:Object.freeze({potionBoost:20}) }),
-        Object.freeze({ pieces:6, id:'watch_home', zh:'全员归岗：击杀回复 +5', en:'All Posts Manned: Kill healing +5', stats:Object.freeze({regen:5}) }),
+        Object.freeze({ pieces:6, id:'watch_home', zh:'全员归岗：等待后，下一次敌人直击伤害 -50%', en:'All Posts Manned: after Wait, the next direct enemy hit deals -50%', stats:Object.freeze({}), capstone:Object.freeze({ mechanic:'brace', power:2 }) }),
       ]),
     }),
     Object.freeze({
@@ -48,7 +48,7 @@
       bonuses:Object.freeze([
         Object.freeze({ pieces:2, id:'bell_brace', zh:'压舱：固定减伤 +1', en:'Ballast: Fixed DR +1', stats:Object.freeze({fixedDr:1}) }),
         Object.freeze({ pieces:4, id:'bell_drain', zh:'回潮：吸血 +4%', en:'Returning Tide: Leech +4%', stats:Object.freeze({leech:4}) }),
-        Object.freeze({ pieces:6, id:'bell_ration', zh:'航团配给：药水治疗 +25%', en:'Company Rations: Potion healing +25%', stats:Object.freeze({potionBoost:25}) }),
+        Object.freeze({ pieces:6, id:'bell_ration', zh:'第十三声：喝下药水时直接清除重伤', en:'Thirteenth Bell: drinking a Potion clears Grievous immediately', stats:Object.freeze({}), capstone:Object.freeze({ mechanic:'clarity', power:2 }) }),
       ]),
     }),
     Object.freeze({
@@ -67,7 +67,7 @@
       bonuses:Object.freeze([
         Object.freeze({ pieces:2, id:'hunt_eye', zh:'校准：暴击 +6%', en:'Calibration: Crit +6%', stats:Object.freeze({crit:6}) }),
         Object.freeze({ pieces:4, id:'hunt_tempo', zh:'追迹：技能冷却 -1 回合（仍受最低 2 回合限制）', en:'Trailcraft: Skill cooldown -1 turn (minimum 2 still applies)', stats:Object.freeze({skillHaste:1}) }),
-        Object.freeze({ pieces:6, id:'hunt_focus', zh:'星落一击：暴击伤害强化 +30', en:'Falling Star: Critical power +30', stats:Object.freeze({critPower:30}) }),
+        Object.freeze({ pieces:6, id:'hunt_focus', zh:'星落一击：施放职业技能后，下一回合的下一次普攻伤害 +40%', en:'Falling Star: after a class skill, the next basic attack next turn deals +40%', stats:Object.freeze({}), capstone:Object.freeze({ mechanic:'echo_edge', power:2 }) }),
       ]),
     }),
     Object.freeze({
@@ -86,7 +86,7 @@
       bonuses:Object.freeze([
         Object.freeze({ pieces:2, id:'saint_timing', zh:'静听：暴击 +5%', en:'Listen: Crit +5%', stats:Object.freeze({crit:5}) }),
         Object.freeze({ pieces:4, id:'saint_shell', zh:'旧礼甲：固定减伤 +2', en:'Old Rite Mail: Fixed DR +2', stats:Object.freeze({fixedDr:2}) }),
-        Object.freeze({ pieces:6, id:'saint_return', zh:'钟后余生：击杀回复 +7', en:'Life After the Bell: Kill healing +7', stats:Object.freeze({regen:7}) }),
+        Object.freeze({ pieces:6, id:'saint_return', zh:'听钟入定：等待时额外恢复 2 回合技能冷却', en:'Listen Between Bells: Wait restores 2 additional turns of skill cooldown', stats:Object.freeze({}), capstone:Object.freeze({ mechanic:'meditate', power:2 }) }),
       ]),
     }),
     Object.freeze({
@@ -105,7 +105,7 @@
       bonuses:Object.freeze([
         Object.freeze({ pieces:2, id:'court_blood', zh:'空宴：吸血 +5%', en:'Empty Feast: Leech +5%', stats:Object.freeze({leech:5}) }),
         Object.freeze({ pieces:4, id:'court_gaze', zh:'觐见：暴击 +10%', en:'Audience: Crit +10%', stats:Object.freeze({crit:10}) }),
-        Object.freeze({ pieces:6, id:'court_decree', zh:'无王敕令：暴击伤害强化 +45', en:'Kingless Decree: Critical power +45', stats:Object.freeze({critPower:45}) }),
+        Object.freeze({ pieces:6, id:'court_decree', zh:'无王敕令：普攻击杀敌人时额外返还 2 回合技能冷却', en:'Kingless Decree: basic-attack kills refund 2 additional turns of skill cooldown', stats:Object.freeze({}), capstone:Object.freeze({ mechanic:'reaper', power:2 }) }),
       ]),
     }),
     Object.freeze({
@@ -124,7 +124,7 @@
       bonuses:Object.freeze([
         Object.freeze({ pieces:2, id:'moon_sip', zh:'冷辉：药水治疗 +20%', en:'Cold Glow: Potion healing +20%', stats:Object.freeze({potionBoost:20}) }),
         Object.freeze({ pieces:4, id:'moon_cycle', zh:'缺相循环：技能冷却 -1 回合（仍受最低 2 回合限制）', en:'Missing Phase: Skill cooldown -1 turn (minimum 2 still applies)', stats:Object.freeze({skillHaste:1}) }),
-        Object.freeze({ pieces:6, id:'moon_break', zh:'碎月临界：暴击伤害强化 +40', en:'Shattered Moon: Critical power +40', stats:Object.freeze({critPower:40}) }),
+        Object.freeze({ pieces:6, id:'moon_break', zh:'碎月余辉：施放职业技能后，下一次敌人直击伤害 -40%', en:'Shardglow Afterimage: after a class skill, the next direct enemy hit deals -40%', stats:Object.freeze({}), capstone:Object.freeze({ mechanic:'afterimage', power:2 }) }),
       ]),
     }),
   ]);
@@ -172,6 +172,13 @@
     const value=String(id||'');
     return focusableSets(bestDepth,ledger).some(set=>set.id===value) ? value : '';
   }
+  function namedPieceSlot(hashValue=0) {
+    let h=(Math.floor(Number(hashValue)||0)>>>0);
+    // Avalanche before modulo so authored six-piece slots do not inherit low-bit patterns
+    // from a caller's deterministic hash. This does not consume runtime RNG.
+    h^=h>>>16; h=Math.imul(h,0x7feb352d); h^=h>>>15; h=Math.imul(h,0x846ca68b); h^=h>>>16;
+    return SLOTS[(h>>>0)%SLOTS.length];
+  }
   function chooseSet(depth,hashValue=0,focusSetId='',relicHallLevel=0) {
     const pool=eligibleSets(depth);
     if(!pool.length) return null;
@@ -209,6 +216,14 @@
     for(const row of activeBonuses(equip)) for(const [key,val] of Object.entries(row.stats||{}))
       out[key]=(out[key]||0)+(Number(val)||0);
     return Object.freeze(out);
+  }
+  function activeCapstones(equip) {
+    const rows=[];
+    for(const bonus of activeBonuses(equip)) if(bonus.capstone) rows.push(Object.freeze({
+      setId:bonus.setId, bonusId:bonus.id, mechanic:bonus.capstone.mechanic, power:bonus.capstone.power,
+      zh:bonus.zh, en:bonus.en,
+    }));
+    return Object.freeze(rows);
   }
   function signatureStats(setId,slot,depth) {
     const d=Math.max(1,Math.floor(Number(depth)||1));
@@ -275,8 +290,8 @@
     version:'v1.8.0-development',
     authority:'named-set-policy',
     SLOTS, SETS,
-    setById, piece, eligibleSets, namedChance, focusWeight, focusableSets, normalizeFocusId, chooseSet,
-    equippedCounts, activeBonuses, statBonuses, signatureStats,
+    setById, piece, eligibleSets, namedChance, focusWeight, focusableSets, normalizeFocusId, namedPieceSlot, chooseSet,
+    equippedCounts, activeBonuses, statBonuses, activeCapstones, signatureStats,
     collectionKey, collectionProgress,
   });
 

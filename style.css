@@ -464,6 +464,8 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 }
 .relic-set-bonuses span b { color:#9a8a78; font-size:11px; }
 .relic-set-bonuses span.active { border-color:rgba(215,166,64,.74); color:#d7c5aa; background:rgba(57,39,20,.58); }
+.relic-set-bonuses span.capstone { border-width:2px; }
+.relic-set-bonuses span.capstone b::after { content:' · 6-PIECE'; font-size:8px; letter-spacing:.7px; opacity:.72; }
 .relic-set-bonuses span.active b { color:#f2d27b; }
 .relic-focus-action { width:100%; min-height:31px; margin-top:10px; padding:5px 9px; border-color:rgba(139,104,53,.55); color:#c9b48f; }
 .relic-focus-action.active { border-color:rgba(230,177,70,.82); color:#f3d793; background:linear-gradient(180deg,rgba(71,47,20,.82),rgba(36,24,13,.9)); }
@@ -471,8 +473,11 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 .named-relic-set { margin-top:4px; color:#d9ad58; font-size:11px; font-weight:700; }
 .named-relic-lore { margin:7px 0; padding:7px 9px; border-left:2px solid rgba(201,151,65,.68); color:#c9b9a2; background:rgba(41,29,19,.48); font-style:italic; line-height:1.5; }
 .named-relic-signature { color:#e4c37e; font-size:11px; }
+.named-relic-stat-head { margin-top:7px; color:#968772; font-size:9px; letter-spacing:.8px; text-transform:uppercase; }
+.named-relic-secondary { color:#8b918f !important; font-size:10px; }
 .named-relic-bonuses { display:grid; gap:3px; margin:6px 0; }
 .named-relic-bonuses span { color:#756e67; font-size:10px; }
+.named-relic-bonuses span.capstone { margin-top:2px; padding-top:3px; border-top:1px solid rgba(194,145,62,.28); }
 .named-relic-bonuses span.active { color:#efce85; }
 .town-named-item { display:grid; gap:2px; color:#efd08b; }
 .town-named-item > small { display:block; }

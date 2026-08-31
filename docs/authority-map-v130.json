@@ -31,6 +31,7 @@
     "namedRelicIdentityLore": "game/domain/inventory/set-rules-v180.js",
     "setBonusThresholdPolicy": "game/domain/inventory/set-rules-v180.js",
     "namedRelicResearchPolicy": "game/domain/inventory/set-rules-v180.js",
+    "namedRelicCapstonePolicy": "game/domain/inventory/set-rules-v180.js",
     "relicCollectionPersistence": "game/core/game.js",
     "relicResearchPersistence": "game/core/game.js",
     "equipmentTransactionPricing": "game/domain/economy/economy-rules-v130.js",

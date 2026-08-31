@@ -2097,10 +2097,22 @@ const relicLedgerCount = () => meta && meta.relicLedger
 const forgeCost = it => ECONOMY_RULES.forgeCost(
   itemValueScore(it), it.forge || 0, TOWN_GROWTH_RULES.forgeDiscount(currentTownWorks()));
 const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);
+function namedRelicBaseForSlot(slot, d, hashValue) {
+  const h = (Math.floor(Number(hashValue) || 0) >>> 0);
+  if (slot === 'weapon') {
+    const own = WEAPON_BASES.filter(b => b.cls === classId && d >= b.min);
+    return own.length ? own[Math.max(0, own.length - 1 - (h % Math.min(2, own.length)))] : weaponBaseForDrop(d);
+  }
+  const bases = slot === 'armor' ? ARMOR_BASES : slot === 'helmet' ? HELMET_BASES :
+    slot === 'boots' ? BOOT_BASES : slot === 'ring' ? RING_BASES : AMULET_BASES;
+  const pool = bases.filter(b => d >= b.min);
+  if (!pool.length) return bases[0];
+  return pool[Math.max(0, pool.length - 1 - (h % Math.min(2, pool.length)))];
+}
 function genEquip(d, minRarity = 0) {
   const roll = rng();
   // 六栏位分布：武器 .30 护甲 .25 头盔 .15 靴 .15 戒指 .10 项链 .05
-  const slot = roll < .30 ? 'weapon' : roll < .55 ? 'armor' : roll < .70 ? 'helmet' :
+  let slot = roll < .30 ? 'weapon' : roll < .55 ? 'armor' : roll < .70 ? 'helmet' :
     roll < .85 ? 'boots' : roll < .95 ? 'ring' : 'amulet';
   const bases = slot === 'armor' ? ARMOR_BASES :
     slot === 'helmet' ? HELMET_BASES :
@@ -2110,14 +2122,20 @@ function genEquip(d, minRarity = 0) {
   let base = slot === 'weapon' ? weaponBaseForDrop(d) :
     pool[Math.max(0, pool.length - 1 - rnd(Math.min(2, pool.length)))];
   const rarity = rollRarity(minRarity);
-  const namedHash = hashSeed([RUN_SEED, d, slot, rarity, base && base.name, classId].join('|'));
+  // Reuse the already-consumed slot roll as per-drop entropy. No extra RNG call is introduced:
+  // named identity must not collapse every same-floor/same-base item onto the same set/piece.
+  const namedEntropy = Math.floor(roll * 4294967296) >>> 0;
+  const namedHash = hashSeed([RUN_SEED, d, slot, rarity, base && base.name, classId, namedEntropy].join('|'));
   const namedRoll = (namedHash >>> 0) / 4294967295;
   const namedSet = namedRoll < SET_RULES.namedChance(rarity, TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()))
     ? SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics')) : null;
-  // Named set weapons are relics for the active hero, not anonymous world weapon-family noise.
-  if (namedSet && slot === 'weapon') {
-    const own = WEAPON_BASES.filter(b => b.cls === classId && d >= b.min);
-    if (own.length) base = own[Math.max(0, own.length - 1 - (Math.abs(namedHash) % Math.min(2, own.length)))];
+  // Ordinary gear keeps the classic weighted slot mix. Once a named relic is rolled, however,
+  // its six authored pieces are peers: do not make the amulet a hidden 5% bottleneck merely
+  // because ordinary loot uses a 30/25/15/15/10/5 slot distribution.
+  if (namedSet) {
+    const pieceHash = hashSeed([namedHash, namedSet.id, 'piece'].join('|'));
+    slot = SET_RULES.namedPieceSlot(pieceHash);
+    base = namedRelicBaseForSlot(slot, d, pieceHash >>> 3);
   }
   const stats = {};
   if (base.atk) stats.atk = base.atk;
@@ -2161,6 +2179,10 @@ function mechanicPower(id) {
   for (const it of Object.values(player.equip)) {
     if (!it || it.mechanic !== id) continue;
     best = Math.max(best, Math.max(1, Math.min(2, Number(it.mechanicPower) || 1)));
+  }
+  for (const row of SET_RULES.activeCapstones(player.equip)) {
+    if (row.mechanic !== id) continue;
+    best = Math.max(best, Math.max(1, Math.min(2, Number(row.power) || 1)));
   }
   return best;
 }
@@ -3989,14 +4011,15 @@ function tooltipHtml(it, compareSlot) {
     html += `<div class="named-relic-set">${esc(ui(it.setNameZh || (set && set.zh) || '', it.setNameEn || (set && set.en) || ''))} · ${count}/6 ${ui('已装备','equipped')}</div>`;
     if (lore) html += `<div class="named-relic-lore">“${esc(lore)}”</div>`;
     if (sig) html += `<div class="named-relic-signature">${ui('遗物固有','Relic signature')} · ${esc(sig)}</div>`;
-    if (set) html += `<div class="named-relic-bonuses">${set.bonuses.map(b => `<span class="${count >= b.pieces ? 'active' : ''}">${b.pieces}/6 · ${esc(ui(b.zh,b.en))}</span>`).join('')}</div>`;
+    if (set) html += `<div class="named-relic-bonuses">${set.bonuses.map(b => `<span class="${count >= b.pieces ? 'active' : ''}${b.capstone ? ' capstone' : ''}">${b.capstone ? '✦ ' : ''}${b.pieces}/6 · ${esc(ui(b.zh,b.en))}</span>`).join('')}</div>`;
   }
+  if (it.namedSet) html += `<div class="named-relic-stat-head">${ui('装备总属性','Total Item Stats')}</div>`;
   if (it.stats.atk) html += `<div>${esc(AFFIX_LABEL.atk(it.stats.atk))}</div>`;
   if (it.stats.def) html += `<div>${esc(AFFIX_LABEL.def(it.stats.def))}</div>`;
   if (it.stats.hp)  html += `<div>${esc(AFFIX_LABEL.hp(it.stats.hp))}</div>`;
   for (const a of (it.affixes || [])) {
     const label = AFFIX_LABEL[a.k];
-    if (label) html += `<div class="affix">${esc(label(a.v))}</div>`;
+    if (label) html += `<div class="affix${it.namedSet ? ' named-relic-secondary' : ''}">${it.namedSet ? ui('附带 · ','Secondary · ') : ''}${esc(label(a.v))}</div>`;
   }
   const mechanicText = mechanicDescription(it);
   if (mechanicText) html += `<div class="affix">${esc(mechanicText)}</div>`;
@@ -7075,7 +7098,7 @@ function renderTownRelics() {
         return `<article class="relic-piece${found ? ' found' : ''}${active ? ' equipped' : ''}"><div class="relic-piece-head"><span>${esc(visibleSlotName(slot))}</span><b>${esc(pieceName)}</b>${active ? `<em>${ui('穿戴中','Equipped')}</em>` : ''}</div><p>${esc(lore)}</p></article>`;
       }).join('');
       const bonuses = set.bonuses.map(b =>
-        `<span class="${worn >= b.pieces ? 'active' : ''}"><b>${b.pieces}/6</b>${esc(ui(b.zh,b.en))}</span>`
+        `<span class="${worn >= b.pieces ? 'active' : ''}${b.capstone ? ' capstone' : ''}"><b>${b.capstone ? '✦ ' : ''}${b.pieces}/6</b>${esc(ui(b.zh,b.en))}</span>`
       ).join('');
       const focusButton = focusable
         ? `<button type="button" class="relic-focus-action${focused ? ' active' : ''}" data-relicfocus="${set.id}">${focused ? ui(`追查中 · ${focusPct}%`,`Tracking · ${focusPct}%`) : ui('追查此套线索','Track This Set')}</button>`
