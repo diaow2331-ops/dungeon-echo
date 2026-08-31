@@ -60,12 +60,12 @@ function group(b,x,y){const color=b[y][x];if(!color)return{stones:[],libs:new Se
 function boardKey(b){return b.map(r=>r.map(v=>v||'.').join('')).join('/')}
 function goPlay(b,x,y,color,koKey=null,repeatKeys=null){
   if(!inside(b,x,y)||b[y][x])return{ok:false,reason:'occupied'};
-  const next=clone(b),opp=color==='b'?'w':'b';next[y][x]=color;let captured=0;
-  for(const [nx,ny] of neighbors(next,x,y)){if(next[ny][nx]!==opp)continue;const g=group(next,nx,ny);if(g.libs.size===0){for(const [sx,sy] of g.stones)next[sy][sx]=null;captured+=g.stones.length}}
+  const next=clone(b),opp=color==='b'?'w':'b';next[y][x]=color;let captured=0;const capturedStones=[];
+  for(const [nx,ny] of neighbors(next,x,y)){if(next[ny][nx]!==opp)continue;const g=group(next,nx,ny);if(g.libs.size===0){for(const [sx,sy] of g.stones){next[sy][sx]=null;capturedStones.push({x:sx,y:sy,color:opp})}captured+=g.stones.length}}
   if(group(next,x,y).libs.size===0)return{ok:false,reason:'suicide'};
   const key=boardKey(next);if(koKey&&key===koKey)return{ok:false,reason:'ko'};
   if(repeatKeys){const repeated=typeof repeatKeys.has==='function'?repeatKeys.has(key):Array.isArray(repeatKeys)&&repeatKeys.includes(key);if(repeated)return{ok:false,reason:'repeat'}}
-  return{ok:true,board:next,captured,key};
+  return{ok:true,board:next,captured,capturedStones,key};
 }
 function goScore(b,komi=7.5){
   let black=0,white=komi;const seen=new Set;

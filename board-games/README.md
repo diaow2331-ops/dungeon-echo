@@ -2,8 +2,14 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.6.2**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.6.3**. Planned production route: `https://play.91hwl.cn/board-games/`.
 
+
+## v0.6.3 Go capture feedback release
+
+- Go captures now expose the exact removed-stone coordinates from the rule engine, allowing the UI to animate captured stones fading/lifting away from their original intersections.
+- A local `提 N / Capture N` badge appears at the played point for a capture, while persistent Black/White capture counters remain visible beside the clocks, including fullscreen play.
+- Rules remain Chinese area scoring with 7.5 komi, suicide prohibition, whole-board repetition prevention, two-pass scoring entry and dead-group confirmation. Capture counts are informational under area scoring and do not change the final score.
 
 ## v0.6.2 settings and audio control release
 

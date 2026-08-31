@@ -1,11 +1,11 @@
 (()=>{
 'use strict';
-const R=window.BoardRules,AI=window.BoardAI,U=window.BoardUI||{lang:()=>'zh',t:(zh)=>zh,musicEnabled:()=>true,volume:()=>1,resetLocalData:()=>{}},T=(zh,en)=>U.t(zh,en),canvas=document.getElementById('board'),ctx=canvas.getContext('2d'),playcard=document.querySelector('.playcard'),boardWrap=canvas.parentElement,captureFx=document.getElementById('captureFx'),checkFx=document.getElementById('checkFx');
+const R=window.BoardRules,AI=window.BoardAI,U=window.BoardUI||{lang:()=>'zh',t:(zh)=>zh,musicEnabled:()=>true,volume:()=>1,resetLocalData:()=>{}},T=(zh,en)=>U.t(zh,en),canvas=document.getElementById('board'),ctx=canvas.getContext('2d'),playcard=document.querySelector('.playcard'),boardWrap=canvas.parentElement,captureFx=document.getElementById('captureFx'),checkFx=document.getElementById('checkFx'),goCaptureLayer=document.getElementById('goCaptureLayer'),goCaptureText=document.getElementById('goCaptureText');
 const statusEl=document.getElementById('status'),gameName=document.getElementById('gameName'),hint=document.getElementById('ruleHint'),moveCount=document.getElementById('moveCount'),noticeEl=document.getElementById('notice'),sessionHint=document.getElementById('sessionHint');
 const restartBtn=document.getElementById('restartBtn'),undoBtn=document.getElementById('undoBtn'),confirmBtn=document.getElementById('confirmBtn'),resumeBtn=document.getElementById('resumeBtn'),resignBtn=document.getElementById('resignBtn'),passBtn=document.getElementById('passBtn'),sizeWrap=document.getElementById('goSizeWrap'),sizeSelect=document.getElementById('goSize');
 const timeSelect=document.getElementById('timeControl'),clockA=document.getElementById('clockA'),clockB=document.getElementById('clockB'),clockALabel=document.getElementById('clockALabel'),clockBLabel=document.getElementById('clockBLabel'),clockATime=document.getElementById('clockATime'),clockBTime=document.getElementById('clockBTime');
 const recordList=document.getElementById('recordList'),reviewLabel=document.getElementById('reviewLabel'),reviewPrevBtn=document.getElementById('reviewPrevBtn'),reviewNextBtn=document.getElementById('reviewNextBtn'),reviewLiveBtn=document.getElementById('reviewLiveBtn'),reviewBranchBtn=document.getElementById('reviewBranchBtn');
-const opponentSelect=document.getElementById('opponentMode'),difficultySelect=document.getElementById('difficulty'),seatSelect=document.getElementById('humanSeat'),aiState=document.getElementById('aiState'),startMatchBtn=document.getElementById('startMatchBtn'),clearDataBtn=document.getElementById('clearDataBtn');
+const opponentSelect=document.getElementById('opponentMode'),difficultySelect=document.getElementById('difficulty'),seatSelect=document.getElementById('humanSeat'),aiState=document.getElementById('aiState'),startMatchBtn=document.getElementById('startMatchBtn'),clearDataBtn=document.getElementById('clearDataBtn'),goCaptureStats=document.getElementById('goCaptureStats'),goBlackCaptures=document.getElementById('goBlackCaptures'),goWhiteCaptures=document.getElementById('goWhiteCaptures');
 const names={gomoku:{zh:'五子棋',en:'Gomoku'},xiangqi:{zh:'中国象棋',en:'Xiangqi'},go:{zh:'围棋',en:'Go'}},nameOf=key=>names[key][U.lang()]||names[key].zh,sessions=Object.create(null),coordLetters='ABCDEFGHJKLMNOPQRST';
 const sideName=color=>mode==='xiangqi'?(color==='r'?T('红方','Red'):T('黑方','Black')):(color==='b'?T('黑方','Black'):T('白方','White'));
 const sideShort=color=>mode==='xiangqi'?(color==='r'?T('红','R'):T('黑','B')):(color==='b'?T('黑','B'):T('白','W'));
@@ -32,6 +32,13 @@ function humanSideName(){return sideName(humanColor())}
 function clickSound(freq=240,dur=.045){if(!U.musicEnabled())return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(Math.max(.0001,.035*Math.max(0,Math.min(1,U.volume?U.volume():1))),audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+dur);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+dur)}catch{}}
 function showBoardFx(el,x,y){if(!el||mode!=='xiangqi')return;const g=geom(),cr=canvas.getBoundingClientRect(),wr=boardWrap.getBoundingClientRect();el.style.left=(cr.left-wr.left+(g.m+x*g.sx)*(cr.width/g.w))+'px';el.style.top=(cr.top-wr.top+(g.m+y*g.sy)*(cr.height/g.h))+'px';el.classList.remove('play');void el.offsetWidth;el.classList.add('play')}
 function xiangqiOccurrence(nextBoard,nextTurn){const key=R.xiangqiKey(nextBoard,nextTurn);return 1+history.reduce((n,s)=>n+(R.xiangqiKey(s.board,s.turn)===key?1:0),0)}
+function showGoCaptureFx(stones,count,moveX,moveY){
+  if(!goCaptureLayer||!goCaptureText||mode!=='go'||!count||!stones?.length)return;
+  goCaptureLayer.replaceChildren();const g=geom(),cr=canvas.getBoundingClientRect(),wr=boardWrap.getBoundingClientRect(),scaleX=cr.width/g.w,scaleY=cr.height/g.h;
+  for(const stoneInfo of stones){const el=document.createElement('i');el.className='go-captured-stone '+(stoneInfo.color==='b'?'black':'white');el.style.left=(cr.left-wr.left+(g.m+stoneInfo.x*g.sx)*scaleX)+'px';el.style.top=(cr.top-wr.top+(g.m+stoneInfo.y*g.sy)*scaleY)+'px';el.style.width=(g.sx*scaleX*.92)+'px';el.style.height=(g.sy*scaleY*.92)+'px';goCaptureLayer.append(el)}
+  goCaptureText.textContent=T(`提 ${count}`,`Capture ${count}`);goCaptureText.style.left=(cr.left-wr.left+(g.m+moveX*g.sx)*scaleX)+'px';goCaptureText.style.top=(cr.top-wr.top+(g.m+moveY*g.sy)*scaleY)+'px';goCaptureText.classList.remove('play');void goCaptureText.offsetWidth;goCaptureText.classList.add('play');
+  setTimeout(()=>goCaptureLayer.replaceChildren(),720)
+}
 function cancelAI(){
   clearTimeout(aiTimer);aiTimer=0;aiBusy=false;aiRequest++;
   if(aiWorker){aiWorker.terminate();aiWorker=null}
@@ -63,7 +70,7 @@ function queueAI(delay=220){
     const payload={game:mode,board:R.clone(board),color:turn,level:difficulty,options:aiOptions()};
     if(typeof Worker!=='function'){fallbackAI(id,payload);return}
     try{
-      aiWorker=aiWorker||new Worker('ai-worker.js?v=062');
+      aiWorker=aiWorker||new Worker('ai-worker.js?v=063');
       aiWorker.onmessage=event=>finishAI(event.data);
       aiWorker.onerror=()=>{if(id!==aiRequest||!aiBusy)return;aiWorker.terminate();aiWorker=null;fallbackAI(id,payload)};
       aiWorker.postMessage({id,...payload});
@@ -114,7 +121,7 @@ function goWinnerText(){if(!winner)return'';return sideName(winner)+T('胜',' wi
 function syncUrl(){const url=new URL(location.href);url.searchParams.set('game',mode);if(mode==='go')url.searchParams.set('size',sizeSelect.value);else url.searchParams.delete('size');url.searchParams.set('opponent',opponent);if(opponent==='ai'){url.searchParams.set('difficulty',difficulty);url.searchParams.set('seat',humanSeat)}else{url.searchParams.delete('difficulty');url.searchParams.delete('seat')}window.history.replaceState(null,'',url)}
 function sync(){
   const inReview=reviewing!==null,waitingStart=aiEnabled()&&!matchStarted,aiTurn=matchStarted&&aiEnabled()&&((scoring&&scoreApprover===aiColor())||(!scoring&&turn===aiColor())),setupLocked=inReview||history.length>1||scoring||!!winner||(aiEnabled()&&matchStarted);
-  gameName.textContent=nameOf(mode);moveCount.textContent=T(Math.max(0,history.length-1)+' 手',Math.max(0,history.length-1)+' moves');
+  gameName.textContent=nameOf(mode);moveCount.textContent=T(Math.max(0,history.length-1)+' 手',Math.max(0,history.length-1)+' moves');goCaptureStats.hidden=mode!=='go';goBlackCaptures.textContent=T(`黑提 ${captures.b}`,`Black captured ${captures.b}`);goWhiteCaptures.textContent=T(`白提 ${captures.w}`,`White captured ${captures.w}`);
   sizeWrap.hidden=mode!=='go';passBtn.hidden=mode!=='go'||scoring||!!winner;resumeBtn.hidden=mode!=='go'||!scoring||!!winner;startMatchBtn.hidden=opponent!=='ai'||matchStarted||history.length>1||scoring||!!winner;
   confirmBtn.hidden=mode==='xiangqi'||!!winner;confirmBtn.textContent=scoring?sideName(scoreApprover)+T('确认',' confirm'):T('落子','Play');
   confirmBtn.disabled=waitingStart||inReview||aiTurn||aiBusy||!!winner||mode==='xiangqi'||(!scoring&&!pending);passBtn.disabled=waitingStart||inReview||aiTurn||aiBusy;resumeBtn.disabled=waitingStart||inReview||aiBusy;startMatchBtn.disabled=inReview||aiBusy;
@@ -180,7 +187,7 @@ function onXiangqi(x,y,fromAI=false){
 }
 function goRepeatKeys(){return new Set(history.map(s=>R.boardKey(s.board)))}
 function goIssueText(reason){return reason==='ko'?T('劫争：此处暂不可立即回提','Ko: immediate recapture is not allowed.'):reason==='repeat'?T('全局同形：不能形成此前出现过的整盘局面','Repetition: this whole-board position has appeared before.'):reason==='suicide'?T('禁自杀：此处无气','Suicide is not allowed here.'):T('该点已有棋子','That intersection is occupied.')}
-function onGo(x,y,fromAI=false){if((!fromAI&&humanBlocked())||winner||scoring||reviewing!==null||!insidePoint(x,y))return false;if(!settleClock())return false;cursor={x,y};const mover=turn,koKey=history.length>=2?R.boardKey(history[history.length-2].board):null,res=R.goPlay(board,x,y,turn,koKey,goRepeatKeys());if(!res.ok){showNotice(goIssueText(res.reason),'warn');clickSound(100,.07);draw();return false}board=res.board;captures[turn]+=res.captured;last={x,y};passes=0;recordLabel=`${sideShort(mover)} ${coord(x,y)}${res.captured?T(' · 提',' · capture ')+res.captured:''}`;clickSound(res.captured?155:245);if(res.captured)showNotice(T(`提子 ${res.captured} 枚`,`Captured ${res.captured}`),'ok');turn=turn==='b'?'w':'b';snapshot();sync();draw();queueAI();return true}
+function onGo(x,y,fromAI=false){if((!fromAI&&humanBlocked())||winner||scoring||reviewing!==null||!insidePoint(x,y))return false;if(!settleClock())return false;cursor={x,y};const mover=turn,koKey=history.length>=2?R.boardKey(history[history.length-2].board):null,res=R.goPlay(board,x,y,turn,koKey,goRepeatKeys());if(!res.ok){showNotice(goIssueText(res.reason),'warn');clickSound(100,.07);draw();return false}board=res.board;captures[turn]+=res.captured;last={x,y};passes=0;recordLabel=`${sideShort(mover)} ${coord(x,y)}${res.captured?T(' · 提',' · capture ')+res.captured:''}`;clickSound(res.captured?155:245);if(res.captured)showNotice(T(`提子 ${res.captured} 枚`,`Captured ${res.captured}`),'ok');turn=turn==='b'?'w':'b';snapshot();sync();draw();if(res.captured)showGoCaptureFx(res.capturedStones,res.captured,x,y);queueAI();return true}
 function placementIssue(x,y){if(!insidePoint(x,y))return 'outside';if(board[y][x])return 'occupied';if(mode==='go'){const koKey=history.length>=2?R.boardKey(history[history.length-2].board):null,res=R.goPlay(board,x,y,turn,koKey,goRepeatKeys());if(!res.ok)return res.reason}return null}
 function selectPlacement(x,y){if(humanBlocked()||winner||scoring||reviewing!==null||mode==='xiangqi')return false;cursor={x,y};const issue=placementIssue(x,y);if(issue){pending=null;sync();showNotice(goIssueText(issue),'warn');clickSound(100,.07);draw();return false}pending={x,y};sync();showNotice(T('已选择落点，点击“落子”确认','Point selected. Press Play to confirm.'),'info',2400);draw();return true}
 function confirmPlacement(){if(humanBlocked()||!pending||winner||scoring||reviewing!==null||mode==='xiangqi')return false;const{x,y}=pending;pending=null;return mode==='gomoku'?onGomoku(x,y):onGo(x,y)}
@@ -249,5 +256,5 @@ if(['ai','local'].includes(requestedOpponent))opponent=requestedOpponent;if(AI.L
 if(!['ai','local'].includes(opponent))opponent='ai';if(!AI.LEVELS[difficulty])difficulty='normal';if(!['first','second'].includes(humanSeat))humanSeat='first';
 opponentSelect.value=opponent;difficultySelect.value=difficulty;seatSelect.value=humanSeat;saveMatchSettings();activeKey=sessionKey();syncUrl();
 document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===mode));
-canvas.tabIndex=0;reset();resize();setInterval(tickClocks,250);window.addEventListener('beforeunload',cancelAI);document.documentElement.dataset.gameVersion='0.6.2';
+canvas.tabIndex=0;reset();resize();setInterval(tickClocks,250);window.addEventListener('beforeunload',cancelAI);document.documentElement.dataset.gameVersion='0.6.3';
 })();

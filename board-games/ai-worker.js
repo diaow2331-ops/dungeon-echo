@@ -1,5 +1,5 @@
 'use strict';
-importScripts('rules.js?v=062','ai.js?v=062');
+importScripts('rules.js?v=063','ai.js?v=063');
 self.addEventListener('message',event=>{
   const request=event.data||{},id=request.id;
   try{
