@@ -4,9 +4,9 @@ BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; URL=https://play
 fail(){ echo "BOARD_GAMES_HEALTHCHECK_ERROR: $*" >&2; exit 1; }
 version="$(tr -d '
 ' < "$BUNDLE_ROOT/VERSION")"; work="$(mktemp -d /tmp/board-games-health.XXXXXX)"; trap 'rm -rf "$work"' EXIT
-curl -fsSL --noproxy '*' --resolve "$ORIGIN" "$URL" -o "$work/index.html" || fail 'HTML missing'; grep -Fq '<meta name="version" content="0.5.0"' "$work/index.html" || fail 'version marker missing'
-for f in rules.js ai.js ai-worker.js game.js style.css VERSION; do curl -fsSL --noproxy '*' --resolve "$ORIGIN" "${URL}$f" -o "$work/$f" || fail "$f missing"; done
+curl -fsSL --noproxy '*' --resolve "$ORIGIN" "$URL" -o "$work/index.html" || fail 'HTML missing'; grep -Fq '<meta name="version" content="0.6.0"' "$work/index.html" || fail 'version marker missing'; grep -Fq 'id="langBtn"' "$work/index.html" || fail 'language control missing'; grep -Fq 'id="fullscreenBtn"' "$work/index.html" || fail 'fullscreen control missing'; grep -Fq 'class="top-action home-action"' "$work/index.html" || fail 'home control missing'
+for f in ui.js rules.js ai.js ai-worker.js game.js style.css VERSION; do curl -fsSL --noproxy '*' --resolve "$ORIGIN" "${URL}$f" -o "$work/$f" || fail "$f missing"; done
 test "$(tr -d '
-[:space:]' < "$work/VERSION")" = "$version" || fail 'VERSION mismatch'; grep -Fq "dataset.gameVersion='0.5.0'" "$work/game.js" || fail 'runtime marker missing'
+[:space:]' < "$work/VERSION")" = "$version" || fail 'VERSION mismatch'; grep -Fq "dataset.gameVersion='0.6.0'" "$work/game.js" || fail 'runtime marker missing'
 curl -fsSL --noproxy '*' --resolve "$ORIGIN" https://play.91hwl.cn/dungeon-echo/ -o /dev/null || fail 'Dungeon Echo preservation failed'; curl -fsSL --noproxy '*' --resolve "$ORIGIN" https://play.91hwl.cn/moyu/ -o /dev/null || fail 'Moyu preservation failed'
 echo "public_url=$URL"; echo "public_version=$version"; echo 'board_games_healthcheck=PASS'

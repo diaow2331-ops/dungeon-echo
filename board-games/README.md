@@ -2,7 +2,16 @@
 
 Three browser-native board games sharing one lightweight shell: Gomoku, Xiangqi and Go.
 
-Current release: **v0.5.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+Current release: **v0.6.0**. Planned production route: `https://play.91hwl.cn/board-games/`.
+
+
+## v0.6.0 bilingual immersive release
+
+- Complete Chinese / English UI switch covers setup, clocks, status, notices, review controls and accessibility labels; the language preference persists locally.
+- A visible Home control returns directly to 91hwl.cn from the game interface.
+- Fullscreen mode uses the browser Fullscreen API and collapses explanatory sections so the board, match controls and clocks receive the viewport.
+- Canvas sizing becomes fullscreen-height-aware, including the taller Xiangqi board and narrow mobile screens.
+- A low-volume procedural pentatonic background score provides a calm, classical atmosphere without downloading audio assets or calling an API; it starts only after user interaction and follows the persisted sound preference.
 
 ## v0.5.0 local AI release
 
