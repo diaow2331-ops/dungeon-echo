@@ -53,6 +53,9 @@ assert(!deathBlock.includes('registerReturnedRelics('),'death must not create pe
 assert(core.includes("service:'relics', zh:'遗物书记', en:'Relic Curator'"),'walkable town must have a Relic Curator hotspot');
 assert(core.includes("ui('遗物馆','RELICS')"),'town growth art must visibly gain a Relic Hall marker');
 assert(core.includes('function renderTownRelics()'),'town must render a persistent relic archive');
+assert(core.includes('function completedRelicSets(')&&core.includes("recordTownChronicle({ kind:'set', id:set.id })"),'completing all six pieces must become a first-class town-history event');
+assert(core.includes("if (row.kind === 'set') return !!SET_RULES.setById(row.id)"),'completed-set chronicle rows must sanitize through the named-set authority');
+assert(core.includes('六件遗物终于重新聚在一起')&&core.includes('All six relics stand together again'),'safe return with a completed set must deliver explicit collection payoff');
 assert(core.includes('relicFocusSet')&&core.includes('function selectRelicFocus(setId)'),'core must persist and expose Relic Hall research focus');
 assert(core.includes("SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics'))"),'item generation must consume the bounded research focus through set policy');
 assert(core.includes("setStat('fixedDr')")&&core.includes("setStat('crit')")&&core.includes("setStat('skillHaste')"),'set bonuses must affect canonical combat/stat paths');

@@ -13,7 +13,7 @@ The plaza now exposes four bounded three-stage projects:
 Projects are gated by town tier and Gold. Their levels persist in the existing v130 Greedy meta record and are clamped by the pure town-growth policy on load.
 
 ## Pillar 2 — Town visibly remembers investment
-Town project levels are shown in walkable NPC nameplates. The town Canvas also gains bounded project landmarks (smithy fire/furnace detail, market awning/crates, tavern lanterns, deeper Relic Hall framing), so investment changes the home base rather than only numbers in a panel. The Relic Hall facade now carries six small collection markers: empty, partial, completed and currently researched sets read differently at a glance, while the plaza ledger separately counts loose relics and completed six-piece sets.
+Town project levels are shown in walkable NPC nameplates. The town Canvas also gains bounded project landmarks (smithy fire/furnace detail, market awning/crates, tavern lanterns, deeper Relic Hall framing), so investment changes the home base rather than only numbers in a panel. The Relic Hall facade now carries six small collection markers: empty, partial, completed and currently researched sets read differently at a glance, while the plaza ledger separately counts loose relics and completed six-piece sets. Returning with the sixth missing piece creates a dedicated chronicle entry and completion message, so finishing a set is treated as a town event rather than just another stat change.
 
 ## Pillar 3 — Fixed named six-piece sets
 Named relics use the existing six equipment slots and activate at 2 / 4 / 6 pieces. Each fixed piece has its own name, lore and signature stats. Named relics keep at most one random secondary affix so identity remains primary.

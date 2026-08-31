@@ -223,6 +223,7 @@ function sanitizeMeta(raw) {
     if (row.kind === 'project') return !!TOWN_GROWTH_RULES.project(row.id) && Number.isInteger(row.level) && row.level >= 1 && row.level <= 3;
     if (row.kind === 'event') return !!TOWN_GROWTH_RULES.eventById(row.id);
     if (row.kind === 'resident') return !!TOWN_GROWTH_RULES.residentById(row.id);
+    if (row.kind === 'set') return !!SET_RULES.setById(row.id);
     if (row.kind === 'relic') return !!SET_RULES.setById(row.setId) && SET_RULES.SLOTS.includes(row.slot);
     return false;
   }).slice(-8).map(row => ({ ...row }));
@@ -5826,6 +5827,10 @@ function renderTownCheckpoints() {
       : ui('仍可冒险出发，但建议至少准备 2 瓶药水和 1 张回城卷轴。','You may still depart, but 2 Potions and 1 Return Scroll are recommended.');
   }
 }
+function completedRelicSets(ledger = meta && meta.relicLedger) {
+  if (!ledger) return [];
+  return SET_RULES.SETS.filter(set => SET_RULES.collectionProgress(ledger, set.id).found >= SET_RULES.SLOTS.length);
+}
 function registerReturnedRelics(items) {
   if (!meta) return [];
   meta.relicLedger = meta.relicLedger && typeof meta.relicLedger === 'object' ? meta.relicLedger : {};
@@ -6353,8 +6358,7 @@ function drawTownEventNotice(ctx, now, W, H) {
   ctx.restore();
 }
 function completedRelicSetCount(ledger = meta && meta.relicLedger) {
-  if (!ledger) return 0;
-  return SET_RULES.SETS.filter(set => SET_RULES.collectionProgress(ledger, set.id).found >= SET_RULES.SLOTS.length).length;
+  return completedRelicSets(ledger).length;
 }
 function drawTownRelicCaseMarkers(ctx, now, ax, ay) {
   if (!meta || !meta.relicLedger) return;
@@ -6664,6 +6668,10 @@ function townChronicleText(row) {
   if (row.kind === 'resident') {
     const resident = TOWN_GROWTH_RULES.residentById(row.id);
     return resident ? ui('新居民：' + resident.zh + '在镇上住下了。', 'New resident: ' + resident.en + ' settled in town.') : '';
+  }
+  if (row.kind === 'set') {
+    const set = SET_RULES.setById(row.id);
+    return set ? ui('六件齐聚：' + set.zh + '完成陈列。', 'Six-piece collection completed: ' + set.en + '.') : '';
   }
   if (row.kind === 'relic') {
     const piece = SET_RULES.piece(row.setId,row.slot,meta.classId);
@@ -7208,10 +7216,13 @@ function useEscape() {
   meta.lastReturnDepth = Math.max(0, Number(depth) || 0);
   recordTownChronicle({ kind:'return', depth:meta.lastReturnDepth });
   const arrivedResidents = recordResidentArrivals(residentsBefore);
+  const completedBefore = new Set(completedRelicSets(meta.relicLedger || {}).map(set => set.id));
   const returnedRelics = registerReturnedRelics([
     ...(meta.bag || []),
     ...Object.values(meta.equip || {}).filter(Boolean),
   ]);
+  const newlyCompletedSets = completedRelicSets(meta.relicLedger || {}).filter(set => !completedBefore.has(set.id));
+  for (const set of newlyCompletedSets) recordTownChronicle({ kind:'set', id:set.id });
   const stagedTownEvent = stageTownReturnEvent(returnedRelics.length);
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
@@ -7225,6 +7236,10 @@ function useEscape() {
       `The relic curator catalogued ${returnedRelics.length} new named relic${returnedRelics.length === 1 ? '' : 's'}: ${returnedRelics.map(p => p.en).join(', ')}.`
     ), 'epic');
   }
+  if (newlyCompletedSets.length) msg(ui(
+    `遗物馆第一次完整陈列了：${newlyCompletedSets.map(set => `【${set.zh}】`).join('、')}。六件遗物终于重新聚在一起。`,
+    `The Relic Hall completed its first display of: ${newlyCompletedSets.map(set => `[${set.en}]`).join(', ')}. All six relics stand together again.`
+  ), 'epic');
   if (stagedTownEvent) {
     const row = TOWN_GROWTH_RULES.eventById(stagedTownEvent.id);
     if (row) msg(ui(`镇上有新动静：【${row.zh}】。`, `Something is happening in town: [${row.en}].`), 'good');
