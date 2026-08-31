@@ -6352,6 +6352,42 @@ function drawTownEventNotice(ctx, now, W, H) {
   ctx.fillText('!',x,y-23);
   ctx.restore();
 }
+function completedRelicSetCount(ledger = meta && meta.relicLedger) {
+  if (!ledger) return 0;
+  return SET_RULES.SETS.filter(set => SET_RULES.collectionProgress(ledger, set.id).found >= SET_RULES.SLOTS.length).length;
+}
+function drawTownRelicCaseMarkers(ctx, now, ax, ay) {
+  if (!meta || !meta.relicLedger) return;
+  const ledger = meta.relicLedger;
+  const focusId = meta.relicFocusSet || '';
+  const pulse = .58 + .22 * Math.sin(now / 310);
+  const rows = SET_RULES.SETS.slice(0, 6);
+  ctx.save();
+  for (let i = 0; i < rows.length; i++) {
+    const set = rows[i];
+    const progress = SET_RULES.collectionProgress(ledger, set.id).found;
+    const col = i % 3, row = Math.floor(i / 3);
+    const x = ax - 14 + col * 14, y = ay - 11 + row * 8;
+    const complete = progress >= SET_RULES.SLOTS.length;
+    const focused = focusId === set.id;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 3); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 3); ctx.lineTo(x - 3, y); ctx.closePath();
+    ctx.fillStyle = complete ? '#f3d98e' : progress > 0 ? '#b88a4a' : 'rgba(87,70,52,.72)';
+    ctx.fill();
+    if (focused) {
+      ctx.strokeStyle = `rgba(238,196,92,${pulse.toFixed(2)})`;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    if (progress > 0 && !complete) {
+      ctx.fillStyle = '#2a1a10';
+      ctx.font = '700 5px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(progress), x, y + .2);
+    }
+  }
+  ctx.restore();
+}
 function drawTownGrowthVisual(ctx, now, W, H, G) {
   drawTownProjectLandmarks(ctx, now, W, H);
   drawTownEventNotice(ctx, now, W, H);
@@ -6376,12 +6412,11 @@ function drawTownGrowthVisual(ctx, now, W, H, G) {
     ctx.lineWidth = 1.2;
     ctx.fillRect(ax - 28, ay - 19, 56, 31);
     ctx.strokeRect(ax - 27.5, ay - 18.5, 55, 30);
+    drawTownRelicCaseMarkers(ctx, now, ax, ay);
     ctx.fillStyle = relicCount ? '#e4be6d' : '#8d7657';
-    ctx.font = '700 12px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.font = '600 8px "Segoe UI", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('◇', ax, ay - 7);
-    ctx.font = '600 9px "Segoe UI", "Microsoft YaHei", sans-serif';
-    ctx.fillText(ui('遗物馆','RELICS'), ax, ay + 4);
+    ctx.fillText(ui('遗物馆','RELICS'), ax, ay + 7);
     if (relicCount) {
       ctx.fillStyle = '#f3d98e';
       ctx.font = '700 8px "Segoe UI", sans-serif';
@@ -6874,6 +6909,7 @@ function renderTown() {
       ? `<button type="button" class="town-ready-action" disabled>${ui('基础补给齐备','Core Kit Ready')}</button>`
       : `<button type="button" class="town-ready-action" data-townready="1"${(!readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
     const relicFound = Object.keys(meta.relicLedger || {}).filter(k => meta.relicLedger[k]).length;
+    const completedSets = completedRelicSetCount(meta.relicLedger || {});
     const checkpointCount = unlockedTownCheckpoints().length;
     const residentCount = TOWN_HOTSPOTS.length + activeTownResidents().length;
     const returnNote = (meta.lastReturnDepth || 0) > 0
@@ -6883,7 +6919,7 @@ function renderTown() {
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
-      `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物馆 ${relicFound}/${SET_RULES.SETS.length * 6} · 已记录出发点 ${checkpointCount} · 广场常驻 ${residentCount}`, `Relic Hall ${relicFound}/${SET_RULES.SETS.length * 6} · Departure records ${checkpointCount} · Plaza residents ${residentCount}`)}</span></div>` +
+      `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物 ${relicFound}/${SET_RULES.SETS.length * 6} · 完整套装 ${completedSets}/${SET_RULES.SETS.length} · 广场常驻 ${residentCount}`, `Relics ${relicFound}/${SET_RULES.SETS.length * 6} · Complete sets ${completedSets}/${SET_RULES.SETS.length} · Plaza residents ${residentCount}`)}</span></div>` +
       `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>` +
       townChronicleHtml() +
       townEventHtml() +

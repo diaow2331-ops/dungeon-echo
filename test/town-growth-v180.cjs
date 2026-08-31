@@ -50,6 +50,8 @@ assert(core.includes("TOWN_GROWTH_RULES.marketStockBonus(currentTownWorks())"),'
 assert(core.includes("TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks())"),'relic project must feed named-drop policy');
 assert(core.includes('TOWN_GROWTH_RULES.tavernToastCap(currentTownWorks())'),'tavern project must feed bounded toast cap');
 assert(core.includes("ui(row.zh, row.en) + (workLevel ?"),'walkable town nameplates must reflect construction level');
+assert(core.includes('function completedRelicSetCount(')&&core.includes('function drawTownRelicCaseMarkers('),'Relic Hall must turn collection progress into visible town-state presentation');
+assert(core.includes('SET_RULES.collectionProgress(ledger, set.id).found')&&core.includes('Complete sets ${completedSets}/${SET_RULES.SETS.length}'),'town must visibly distinguish loose relics from completed six-piece sets');
 assert(css.includes('.town-work-grid')&&css.includes('.town-work-card'),'town projects need dedicated responsive presentation');
 
 for(const [name,html] of [['zh',zh],['en',en]]){
