@@ -8,6 +8,7 @@ Increase player-facing variety without reopening the v1.6 authority architecture
 2. **Expedition contracts** — choose one bounded risk/reward modifier before departure.
 3. **Dungeon echo events** — optional Blood Offering, Cursed Cache and Elite Trial encounters create floor-level decisions.
 4. **Elite affixes** — elites can become Frenzied, Vampiric or Volatile instead of being only stat-scaled enemies.
+5. **Readable monster pressure** — stronger depth scaling and selected telegraphed Armor Break users raise danger without hidden armor bypass or a second combat authority.
 
 ## Authority design
 - `game/domain/expedition/expedition-rules-v170.js`: deterministic contract/event/elite eligibility and values only.

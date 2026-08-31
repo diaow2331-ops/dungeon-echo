@@ -10,8 +10,9 @@ Living Town + Expedition Variety. This release increases decision density withou
 - Veteran Oath raises ordinary enemy ATK and XP for higher-risk progression.
 - Optional dungeon echo events: Blood Offering, Cursed Cache and Elite Trial.
 - Elites can roll Frenzied, Vampiric or Volatile affixes.
-- Ordinary monsters now gain a modest depth-based ATK pressure curve.
-- Engagement strikes rise from 45%/55% to 55% normal, 68% elite and 62% guardian/boss pressure.
+- Ordinary monsters now gain a firmer depth-based ATK pressure curve: +7% at Floor 1, rising to +24% at Floor 100; elites add another +6%.
+- Engagement strikes rise to 60% normal, 74% elite and 66% guardian/boss pressure.
+- Selected heavy ordinary enemies gain the existing telegraphed Armor Break pattern, so they are stronger without becoming hidden-stat checks: create distance or break line-of-sight during the warning turn.
 - Guardian and final-boss authored ATK values are not multiplied by the new ordinary-monster pressure curve.
 
 ## Architecture

@@ -75,8 +75,9 @@ A player-facing expansion was implemented after the v1.6 modular-authority audit
 - Town-tier-gated expedition contracts.
 - Optional Blood Offering, Cursed Cache and Elite Trial encounters.
 - Frenzied, Vampiric and Volatile elite identities.
-- Modest ordinary-monster ATK pressure scaling with depth.
-- Engagement pressure increased to make adjacency and positioning consequential while preserving telegraphed counterplay.
+- Ordinary-monster ATK pressure now rises from +7% at Floor 1 to +24% at Floor 100; elites add +6%, while guardian/final-boss authored ATK remains exempt.
+- Engagement pressure is 60% normal / 74% elite / 66% guardian or boss.
+- Six heavy ordinary enemy lines reuse the existing one-turn telegraphed Armor Break runtime, adding counterplay through spacing and line-of-sight rather than hidden armor bypass.
 - Guardian/final-boss authored ATK values remain outside the ordinary-monster pressure multiplier.
 
 ### Compatibility and release
