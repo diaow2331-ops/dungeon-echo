@@ -29,6 +29,7 @@ const tests = [
   'current-control-contract-v132.cjs',
   'decision-clarity-v133.cjs',
   'core-balance-v140.cjs',
+  'dungeon-v150-feedback-flow.cjs',
   'single-authority-v140.cjs',
   'postlaunch-ux-v140.cjs',
   'postlaunch-gameplay-regressions-v134.cjs',

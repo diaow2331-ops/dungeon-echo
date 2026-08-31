@@ -16,7 +16,7 @@
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=178">
+<link rel="stylesheet" href="style.css?v=179">
 </head>
 <body>
 <div id="wrap">
@@ -96,7 +96,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">移动：方向键 / WASD / 点击地图 · J 主动攻击 · K 职业技能（C 兼容）· Shift+Enter 快速下潜 · 空格等待 · Q 药水 · E 卷轴 · T 回城 · Enter 下楼 · Esc 暂停 · 顶部“保存”主动存档 · 点击背包查看 · 再选择装备/丢弃 · M 总静音 · 声音按钮独立调音乐/音效 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现） · 正式版 <b>v1.4.2</b></footer>
+  <footer id="help">移动：方向键 / WASD / 点击地图 · J 主动攻击 · K 职业技能（C 兼容）· Shift+Enter 快速下潜 · 空格等待 · Q 药水 · E 卷轴 · T 回城 · Enter 下楼 · Esc 暂停 · 顶部“保存”主动存档 · 点击背包查看 · 再选择装备/丢弃 · M 总静音 · 声音按钮独立调音乐/音效 · F 全屏 · 死亡后 R 重开 · 运行种子 <b id="seed-label">—</b>（可用 ?seed=… 复现） · 正式版 <b>v1.5.0</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">重新开始 (R)</button></div></div>
 
@@ -124,7 +124,7 @@
 
   <div id="class-screen" class="hidden"><div class="title-card wide"><p class="kicker">选择回响</p><h2>你是谁</h2><p class="lede class-lede">选择你的战斗节奏。每个职业都能抵达第 100 层，但会用完全不同的方式承担风险。</p><div id="class-grid"></div><button type="button" id="btn-class-back" class="ghost">返回</button></div></div>
   <div id="pause-screen" class="hidden"><div class="title-card"><h2>暂停</h2><p class="lede" id="pause-copy">进度已自动写入本地。</p><div class="title-actions"><button type="button" id="btn-resume" class="primary">继续</button><button type="button" id="btn-save-now">立即保存</button><button type="button" id="btn-save-quit">保存并回标题</button><button type="button" data-open-audio>声音设置</button></div></div></div>
-  <div id="audio-settings-screen" class="hidden"><div class="title-card audio-card"><p class="kicker">Audio Mix</p><h2>声音设置</h2><p class="lede">背景音乐与战斗音效独立混音，并保存到当前设备。</p><div class="audio-mix-row"><label for="audio-music">背景音乐</label><input id="audio-music" type="range" min="0" max="100" step="1" value="60"><output id="audio-music-value" for="audio-music">60%</output></div><div class="audio-mix-row"><label for="audio-sfx">游戏音效</label><input id="audio-sfx" type="range" min="0" max="100" step="1" value="78"><output id="audio-sfx-value" for="audio-sfx">78%</output></div><p class="audio-note">推荐混音：音乐 60% / 音效 78%。M 仍作为快速总静音。</p><div class="title-actions"><button type="button" id="audio-master" aria-pressed="false">总静音：关</button><button type="button" id="audio-defaults">恢复 60 / 78</button><button type="button" id="audio-settings-close" class="primary">完成</button></div></div></div>
+  <div id="audio-settings-screen" class="hidden"><div class="title-card audio-card"><p class="kicker">Audio Mix</p><h2>声音设置</h2><p class="lede">背景音乐与战斗音效独立混音，并保存到当前设备。</p><div class="audio-mix-row"><label for="audio-music">背景音乐</label><input id="audio-music" type="range" min="0" max="100" step="1" value="60"><output id="audio-music-value" for="audio-music">60%</output></div><div class="audio-mix-row"><label for="audio-sfx">游戏音效</label><input id="audio-sfx" type="range" min="0" max="100" step="1" value="78"><output id="audio-sfx-value" for="audio-sfx">78%</output></div><p class="audio-note">推荐混音：音乐 60% / 音效 78%。M 仍作为快速总静音。</p><div class="title-actions"><button type="button" id="audio-master" aria-pressed="false">总静音：关</button><button type="button" id="audio-haptics" aria-pressed="true">触觉反馈：开</button><button type="button" id="audio-defaults">恢复 60 / 78</button><button type="button" id="audio-settings-close" class="primary">完成</button></div></div></div>
   <div id="shop-screen" class="hidden"><div class="title-card wide"><p class="kicker">蒙面商人</p><h2>地下市集</h2><p class="lede" id="shop-gold">金币 0</p><div id="shop-list"></div><button type="button" id="btn-shop-leave" class="primary">离开摊位</button></div></div>
   <div id="talent-screen" class="hidden"><div class="title-card wide"><p class="kicker">回响觉醒</p><h2>选择一项天赋</h2><p class="lede">每三级，地牢会在你体内留下一道新的回响。</p><div id="talent-grid"></div></div></div>
   <div id="refine-screen" class="hidden"><div class="title-card wide"><p class="kicker">Forge Refinement</p><h2 id="refine-title">+3 精炼</h2><p class="lede" id="refine-copy">选择一条确定的装备成长路线。</p><div id="refine-grid"></div></div></div>
@@ -197,17 +197,17 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=178"></script>
-<script src="profiles/classic-100.profile.js?v=178"></script>
-<script src="game/locale/locale-data-v134.js?v=178"></script>
-<script src="game/domain/content/content-rules-v130.js?v=178"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=178"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=178"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=178"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=178"></script>
-<script src="game/core/game.js?v=178"></script>
-<script src="game/locale/core-locale-data-v139.js?v=178"></script>
-<script src="game/input/desktop-controls.js?v=178"></script>
-<script src="game/core/runtime-bootstrap.js?v=178"></script>
+<script src="game/core/production-bootstrap.js?v=179"></script>
+<script src="profiles/classic-100.profile.js?v=179"></script>
+<script src="game/locale/locale-data-v134.js?v=179"></script>
+<script src="game/domain/content/content-rules-v130.js?v=179"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=179"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=179"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=179"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=179"></script>
+<script src="game/core/game.js?v=179"></script>
+<script src="game/locale/core-locale-data-v139.js?v=179"></script>
+<script src="game/input/desktop-controls.js?v=179"></script>
+<script src="game/core/runtime-bootstrap.js?v=179"></script>
 </body>
 </html>

@@ -40,13 +40,13 @@ test -x "$HEALTHCHECK" || fail 'healthcheck missing'
 (cd "$BUNDLE_ROOT" && sha256sum --check --status SHA256SUMS) || fail 'bundle checksum verification failed'
 
 version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
-test "$version" = '1.11.1' || fail "unexpected site version: $version"
-grep -Fq 'data-site-version="1.11.1"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
+test "$version" = '1.11.2' || fail "unexpected site version: $version"
+grep -Fq 'data-site-version="1.11.2"' "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
 grep -Fq 'data-carry' "$PUBLIC_ROOT/index.html" || fail 'homepage preference-carry links missing'
 grep -Fq 'GitHub / Source' "$PUBLIC_ROOT/index.html" || fail 'homepage source CTA missing'
-grep -Fq 'site-v1110/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.11.1 shared design missing'
+grep -Fq 'site-v1110/style.css' "$PUBLIC_ROOT/index.html" || fail 'homepage v1.11.2 shared design missing'
 grep -Fq 'quick-pick' "$PUBLIC_ROOT/index.html" || fail 'homepage quick-pick interaction missing'
 grep -Fq 'hero-showcase' "$PUBLIC_ROOT/index.html" || fail 'homepage game-art hero missing'
 grep -Fq '浏览器游戏' "$PUBLIC_ROOT/index.html" || fail 'homepage Chinese hero copy missing'
@@ -59,8 +59,8 @@ grep -Fq '公开开发' "$PUBLIC_ROOT/index.html" || fail 'homepage public-devel
 grep -Fq 'mailto:diaow2331@gmail.com' "$PUBLIC_ROOT/index.html" || fail 'homepage visible contact email missing'
 grep -Fq 'ca-pub-2648680835467283' "$PUBLIC_ROOT/index.html" || fail 'homepage AdSense client missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
-grep -Fq 'softwareVersion":"1.4.2"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 detail marker missing'
-grep -Fq '1120×460 可步行广场' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.4.2 town copy missing'
+grep -Fq 'softwareVersion":"1.5.0"' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.5.0 detail marker missing'
+grep -Fq '强化战斗打击反馈' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo v1.5.0 release copy missing'
 grep -Fq 'softwareVersion":"1.26.5"' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'Clock Out Alive v1.26.5 detail marker missing'
 grep -Fq '画面与信息都更清楚' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
 grep -Fq 'Clearer world, readable UI' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu English release copy missing'
@@ -81,7 +81,7 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1111.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1112.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
@@ -133,7 +133,7 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v1111.tmp"
+index_tmp="$SITE_ROOT/.index.web-toys-v1112.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -157,13 +157,13 @@ rm -rf -- "$SITE_ROOT/$ASSET_REL"
 cp -a "$PUBLIC_ROOT/$ASSET_REL" "$SITE_ROOT/$ASSET_REL"
 chown -R --reference="$SITE_ROOT/index.html" "$SITE_ROOT/$ASSET_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1111.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1112.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
-grep -Fq 'site-v1110/style.css' "$SITE_ROOT/index.html" || fail 'homepage v1.11.1 design write verification failed'
+grep -Fq 'site-v1110/style.css' "$SITE_ROOT/index.html" || fail 'homepage v1.11.2 design write verification failed'
 grep -Fq 'quick-pick' "$SITE_ROOT/index.html" || fail 'homepage quick-pick write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/style.css" "$SITE_ROOT/$ASSET_REL/style.css" || fail 'shared CSS write verification failed'
 cmp -s "$PUBLIC_ROOT/$ASSET_REL/site.js" "$SITE_ROOT/$ASSET_REL/site.js" || fail 'shared interaction write verification failed'

@@ -1,0 +1,33 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const root = process.env.DE_ROOT || path.resolve(__dirname, '..');
+const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
+const game = read('game/core/game.js');
+const css = read('style.css');
+const zh = read('index.html');
+const en = read('en/index.html');
+const authority = JSON.parse(read('docs/authority-map-v130.json'));
+const siteVersion = read('ops/home-mount/SITE_VERSION').trim();
+const homeBuilder = read('ops/release/build-home-mount-bundle.sh');
+let pass=0, fail=0;
+const ok=(cond,name)=>{ if(cond){pass++;console.log('  PASS '+name)} else {fail++;console.log('  FAIL '+name)} };
+
+ok(/const HAPTICS_DEFAULT = true/.test(game) && /function haptic\(pattern\)/.test(game), 'optional haptics are core-owned');
+ok(/haptics:audioPrefs\.haptics/.test(game), 'recommended audio reset preserves the haptics preference');
+ok(/function resetCombatPresentation\(\)/.test(game) && /impactFx\.length = 0/.test(game) && /hurtFlash = 0/.test(game), 'new-run presentation reset owns v1.5 transient feedback');
+ok((game.match(/resetCombatPresentation\(\); selectedBagIndex = -1/g)||[]).length===2, 'classic and Greedy starts both clear transient combat presentation');
+ok(/width <= 1180\) return \{ cols: 23, rows: 17 \}/.test(game) && /width < 1680\) return \{ cols: 27, rows: 19 \}/.test(game), 'desktop camera uses intermediate v1.5 viewport bands');
+ok(/function townReadinessPlan\(\)/.test(game) && /function buyTownReadiness\(\)/.test(game), 'Greedy town owns one-action core readiness');
+ok(/Market Stock Short/.test(game) && /Need \$\{Math\.max\(0, readiness\.total - \(meta\.gold \|\| 0\)\)\} G More/.test(game), 'readiness action explains why it is unavailable');
+ok(/town-depart-warning/.test(game) && /Low Supplies/.test(game) && /You may still depart/.test(game), 'low-supply departure is warned but not blocked');
+ok(/typeof sfx !== 'undefined'.*sfx\.warning/.test(game) && /typeof haptic === 'function'\) haptic\(\[18, 45, 18\]\)/.test(game) && /sfx\.dodge\(\); haptic\(10\)/.test(game), 'guardian and dodge cues are bounded multimodal feedback');
+ok(/#town-screen #btn-depart\.town-depart-warning/.test(css), 'town departure warning has a visible state');
+ok(/grid-template-columns: 140px minmax\(0, 1fr\)/.test(css) && /repeat\(3, minmax\(0, 1fr\)\)/.test(css), 'small-screen touch controls use the compact split layout');
+ok(zh.includes('id="audio-haptics"') && en.includes('id="audio-haptics"'), 'both fixed locales expose the haptics toggle');
+ok(zh.includes('?v=179') && en.includes('?v=179'), 'both fixed locales publish cache generation 179');
+ok(authority.version==='1.5.0' && authority.cacheGeneration===179, 'v1.5 release authority is version/cache coherent');
+ok(siteVersion==='1.11.2' && homeBuilder.includes('build-site-v1112.cjs'), 'public-site companion refresh is wired into the immutable builder');
+
+console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
+process.exit(fail ? 1 : 0);

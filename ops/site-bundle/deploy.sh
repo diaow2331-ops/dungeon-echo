@@ -7,8 +7,8 @@ RELEASES_DIR="$SITE_ROOT/releases"
 CURRENT_LINK="$SITE_ROOT/current"
 GAME_SOURCE="$BUNDLE_ROOT/public/dungeon-echo"
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
-EXPECTED_VERSION=1.4.2
-EXPECTED_GENERATION=178
+EXPECTED_VERSION=1.5.0
+EXPECTED_GENERATION=179
 
 fail(){ echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
@@ -18,7 +18,7 @@ for cmd in nginx curl sha256sum; do command -v "$cmd" >/dev/null || fail "missin
 for f in \
   "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html" "$GAME_SOURCE/VERSION" \
   "$GAME_SOURCE/game/core/game.js" "$GAME_SOURCE/game/core/production-bootstrap.js" \
-  "$GAME_SOURCE/game/core/runtime-bootstrap.js" "$GAME_SOURCE/game/core/release-stamp-v142.js" \
+  "$GAME_SOURCE/game/core/runtime-bootstrap.js" "$GAME_SOURCE/game/core/release-stamp-v150.js" \
   "$GAME_SOURCE/game/input/desktop-controls.js" \
   "$GAME_SOURCE/art/hero-atlas-v11.png" "$GAME_SOURCE/art/monster-atlas-v11.png" \
   "$GAME_SOURCE/art/guardian-atlas-v11.png" "$GAME_SOURCE/art/final-boss-v11.png" \
@@ -44,12 +44,12 @@ test "$(tr -d '\r\n[:space:]' < "$GAME_SOURCE/VERSION")" = "$version" || fail 'g
 
 for entry in "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html"; do
   grep -Fq "?v=$EXPECTED_GENERATION" "$entry" || fail "generation $EXPECTED_GENERATION missing: $entry"
-  ! grep -Eq '\?v=(153|157|166|167|168|169)' "$entry" || fail "historical cache generation remains: $entry"
+  ! grep -Eq '\?v=(153|157|166|167|168|169|178)' "$entry" || fail "historical cache generation remains: $entry"
   ! grep -Eq 'game/systems/|combat-controls|core-screen-owner|town-canvas-locale|town-workspace|forge-feedback|combat-hint-polish|expedition-pressure|audio-director|mobile-ux|expedition-record' "$entry" || fail "second authority reference remains: $entry"
 done
 
 grep -Fq "const assetVersion = '$EXPECTED_GENERATION'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime generation mismatch'
-grep -Fq 'release-stamp-v142.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime release stamp mismatch'
+grep -Fq 'release-stamp-v150.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime release stamp mismatch'
 grep -Fq "followers:'presentation-only'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime followers are not presentation-only'
 grep -Fq "gameplayStateOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'gameplay state owner mismatch'
 grep -Fq "gameplayInputOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'gameplay input owner mismatch'
