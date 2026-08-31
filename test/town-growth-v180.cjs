@@ -15,7 +15,9 @@ assert.deepEqual(growth.PROJECTS.map(x=>x.id),['smithy','market','relics','taver
 for(const row of growth.PROJECTS){
   assert.equal(row.levels.length,3,row.id+' should have three bounded construction stages');
   assert(row.levels.every((x,i)=>x.cost>0 && x.tier>=2 && (!i || x.cost>row.levels[i-1].cost)),row.id+' upgrade curve must be bounded and rising');
+  assert(row.levels[1].cost>row.levels[0].cost*2&&row.levels[2].cost>row.levels[1].cost*2,row.id+' construction costs must remain a meaningful multi-stage Gold sink');
 }
+assert.equal(growth.PROJECTS.flatMap(row=>row.levels).reduce((sum,row)=>sum+row.cost,0),35500,'the complete v1.8 town build should remain a long-horizon 35,500 G investment');
 const clean=growth.sanitizeLevels({});
 assert.equal(growth.level(clean,'smithy'),0);
 assert.equal(Number(growth.forgeDiscount({smithy:3}).toFixed(2)),.15);
@@ -42,11 +44,11 @@ let check=growth.canUpgrade({},'smithy',{tier:1,gold:999,relics:99});
 assert.equal(check.reason,'tier');
 check=growth.canUpgrade({},'smithy',{tier:2,gold:0,relics:99});
 assert.equal(check.reason,'gold');
-check=growth.canUpgrade({},'smithy',{tier:2,gold:120,relics:99});
+check=growth.canUpgrade({},'smithy',{tier:2,gold:750,relics:99});
 assert(check.ok&&check.next.nextLevel===1);
-check=growth.canUpgrade({relics:1},'relics',{tier:6,gold:999,relics:7});
+check=growth.canUpgrade({relics:1},'relics',{tier:6,gold:9999,relics:7});
 assert.equal(check.reason,'relics');
-check=growth.canUpgrade({relics:1},'relics',{tier:6,gold:999,relics:8});
+check=growth.canUpgrade({relics:1},'relics',{tier:6,gold:9999,relics:8});
 assert(check.ok);
 
 assert.equal(economy.forgeCost(100,0),150);

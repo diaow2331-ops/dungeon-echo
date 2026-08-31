@@ -13,36 +13,36 @@
       id:'smithy',
       zh:'旧炉重燃', en:'Rekindled Smithy',
       levels:Object.freeze([
-        Object.freeze({ tier:2, cost:120, zh:'重修风箱', en:'Restore the Bellows', effectZh:'锻造费用 -5% · 铁匠铺开始稳定营业', effectEn:'Forge cost -5% · the smithy becomes a dependable service' }),
-        Object.freeze({ tier:4, cost:320, zh:'添置淬火槽', en:'Build a Quench Trough', effectZh:'锻造费用 -10% · 开放付费重淬', effectEn:'Forge cost -10% · unlock paid retempering' }),
-        Object.freeze({ tier:7, cost:700, zh:'重铸主炉', en:'Recast the Main Furnace', effectZh:'锻造费用 -15% · 大师装备也可保留淬炼并重淬', effectEn:'Forge cost -15% · masterworked gear can be safely retempered' }),
+        Object.freeze({ tier:2, cost:750, zh:'重修风箱', en:'Restore the Bellows', effectZh:'锻造费用 -5% · 铁匠铺开始稳定营业', effectEn:'Forge cost -5% · the smithy becomes a dependable service' }),
+        Object.freeze({ tier:4, cost:2200, zh:'添置淬火槽', en:'Build a Quench Trough', effectZh:'锻造费用 -10% · 开放付费重淬', effectEn:'Forge cost -10% · unlock paid retempering' }),
+        Object.freeze({ tier:7, cost:5200, zh:'重铸主炉', en:'Recast the Main Furnace', effectZh:'锻造费用 -15% · 大师装备也可保留淬炼并重淬', effectEn:'Forge cost -15% · masterworked gear can be safely retempered' }),
       ]),
     }),
     Object.freeze({
       id:'market',
       zh:'东门商道', en:'East-Gate Trade Road',
       levels:Object.freeze([
-        Object.freeze({ tier:2, cost:100, zh:'修整驿道', en:'Repair the Caravan Road', effectZh:'每类库存 +1 · 一键整备额外补齐 1 把钥匙', effectEn:'Stock +1 each · one-click kit also tops up 1 Key' }),
-        Object.freeze({ tier:5, cost:280, zh:'设立护商队', en:'Fund Caravan Guards', effectZh:'每类库存 +2 · 每轮可召回护商队补货一次', effectEn:'Stock +2 each · one guarded-caravan restock per cycle' }),
-        Object.freeze({ tier:8, cost:640, zh:'开放夜市', en:'Open the Night Market', effectZh:'每类库存 +3 · 夜市补给价格 -8%', effectEn:'Stock +3 each · Night Market supply price -8%' }),
+        Object.freeze({ tier:2, cost:650, zh:'修整驿道', en:'Repair the Caravan Road', effectZh:'每类库存 +1 · 一键整备额外补齐 1 把钥匙', effectEn:'Stock +1 each · one-click kit also tops up 1 Key' }),
+        Object.freeze({ tier:5, cost:1900, zh:'设立护商队', en:'Fund Caravan Guards', effectZh:'每类库存 +2 · 每轮可召回护商队补货一次', effectEn:'Stock +2 each · one guarded-caravan restock per cycle' }),
+        Object.freeze({ tier:8, cost:4800, zh:'开放夜市', en:'Open the Night Market', effectZh:'每类库存 +3 · 夜市补给价格 -8%', effectEn:'Stock +3 each · Night Market supply price -8%' }),
       ]),
     }),
     Object.freeze({
       id:'relics',
       zh:'遗物馆扩建', en:'Relic Hall Expansion',
       levels:Object.freeze([
-        Object.freeze({ tier:3, cost:150, relics:2, zh:'整理旧展柜', en:'Restore the Old Cases', effectZh:'具名发现率 +3% · 套装追查倾向 50%', effectEn:'Named chance +3% · set research preference 50%' }),
-        Object.freeze({ tier:6, cost:420, relics:8, zh:'建立编目室', en:'Build the Cataloguing Room', effectZh:'具名发现率 +6% · 套装追查倾向 65%', effectEn:'Named chance +6% · set research preference 65%' }),
-        Object.freeze({ tier:9, cost:900, relics:14, zh:'开放深层展厅', en:'Open the Deep Gallery', effectZh:'具名发现率 +9% · 套装追查倾向 80%', effectEn:'Named chance +9% · set research preference 80%' }),
+        Object.freeze({ tier:3, cost:950, relics:2, zh:'整理旧展柜', en:'Restore the Old Cases', effectZh:'具名发现率 +3% · 套装追查倾向 50%', effectEn:'Named chance +3% · set research preference 50%' }),
+        Object.freeze({ tier:6, cost:3000, relics:8, zh:'建立编目室', en:'Build the Cataloguing Room', effectZh:'具名发现率 +6% · 套装追查倾向 65%', effectEn:'Named chance +6% · set research preference 65%' }),
+        Object.freeze({ tier:9, cost:6500, relics:14, zh:'开放深层展厅', en:'Open the Deep Gallery', effectZh:'具名发现率 +9% · 套装追查倾向 80%', effectEn:'Named chance +9% · set research preference 80%' }),
       ]),
     }),
     Object.freeze({
       id:'tavern',
       zh:'余烬酒馆', en:'Ember Tavern',
       levels:Object.freeze([
-        Object.freeze({ tier:3, cost:140, zh:'扩建后堂', en:'Open the Back Room', effectZh:'祝酒上限 +1 · 每次从 2 杯中选择', effectEn:'Toast cap +1 · choose from 2 drinks each return' }),
-        Object.freeze({ tier:6, cost:380, zh:'添置老酒窖', en:'Open the Old Cellar', effectZh:'祝酒上限 +2 · 每次从 3 杯中选择', effectEn:'Toast cap +2 · choose from 3 drinks each return' }),
-        Object.freeze({ tier:9, cost:820, zh:'设立远征者长桌', en:'Build the Delvers Long Table', effectZh:'祝酒上限 +3 · 四种祝酒全部可选', effectEn:'Toast cap +3 · all four toasts become selectable' }),
+        Object.freeze({ tier:3, cost:850, zh:'扩建后堂', en:'Open the Back Room', effectZh:'祝酒上限 +1 · 每次从 2 杯中选择', effectEn:'Toast cap +1 · choose from 2 drinks each return' }),
+        Object.freeze({ tier:6, cost:2700, zh:'添置老酒窖', en:'Open the Old Cellar', effectZh:'祝酒上限 +2 · 每次从 3 杯中选择', effectEn:'Toast cap +2 · choose from 3 drinks each return' }),
+        Object.freeze({ tier:9, cost:6000, zh:'设立远征者长桌', en:'Build the Delvers Long Table', effectZh:'祝酒上限 +3 · 四种祝酒全部可选', effectEn:'Toast cap +3 · all four toasts become selectable' }),
       ]),
     }),
   ]);
