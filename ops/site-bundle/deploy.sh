@@ -21,7 +21,7 @@ for cmd in nginx curl sha256sum; do command -v "$cmd" >/dev/null || fail "missin
 for f in \
   "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html" "$GAME_SOURCE/VERSION" \
   "$GAME_SOURCE/game/core/game.js" "$GAME_SOURCE/game/core/production-bootstrap.js" \
-  "$GAME_SOURCE/game/core/runtime-bootstrap.js" "$GAME_SOURCE/game/core/release-stamp-v180.js" \
+  "$GAME_SOURCE/game/core/runtime-bootstrap.js" "$GAME_SOURCE/game/core/release-stamp-v181.js" \
   "$GAME_SOURCE/game/domain/town/town-rules-v130.js" "$GAME_SOURCE/game/domain/economy/economy-rules-v130.js" \
   "$GAME_SOURCE/game/domain/town/town-growth-rules-v180.js" "$GAME_SOURCE/game/domain/inventory/set-rules-v180.js" \
   "$GAME_SOURCE/game/domain/expedition/expedition-rules-v170.js" \
@@ -57,7 +57,7 @@ for entry in "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html"; do
 done
 
 grep -Fq "const assetVersion = '$EXPECTED_GENERATION'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime generation mismatch'
-grep -Fq 'release-stamp-v180.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime release stamp mismatch'
+grep -Fq 'release-stamp-v181.js' "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime release stamp mismatch'
 grep -Fq "followers:'presentation-only'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'runtime followers are not presentation-only'
 grep -Fq "gameplayStateOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/runtime-bootstrap.js" || fail 'gameplay state owner mismatch'
 grep -Fq "gameplayInputOwner:'game/core/game.js'" "$GAME_SOURCE/game/core/production-bootstrap.js" || fail 'gameplay input owner mismatch'
