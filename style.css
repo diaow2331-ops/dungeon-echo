@@ -1399,3 +1399,108 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
   #log { min-height: 110px; max-height: 240px; }
   footer#help { margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 18px; min-height: 18px; }
 }
+
+
+/* ===== v1.8.1 town viewport & scale polish ===== */
+@media (min-width: 761px) {
+  #town-screen { padding: 8px; }
+  #town-screen .town-shell {
+    width: min(1480px, calc(100vw - 16px));
+    height: min(1020px, calc(100dvh - 16px));
+    padding: 14px 18px 16px;
+    gap: 8px;
+  }
+  .town-heading {
+    grid-template-columns: minmax(240px, .9fr) minmax(320px, 1.1fr);
+    gap: 24px;
+  }
+  #town-screen .town-heading h2 { font-size: 30px; }
+  #town-screen .town-heading > .dim-note { font-size: 13px; }
+  #town-screen .title-actions button {
+    min-width: 0;
+    min-height: 40px;
+    padding-block: 8px;
+    font-size: clamp(12px, .9vw, 14px);
+  }
+  .town-tabs { gap: 6px; padding: 5px 6px; }
+  #town-screen .town-tabs button {
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 14px;
+  }
+  .town-page { padding: 10px 8px 3px; }
+  .town-single-page {
+    display: grid;
+    align-content: start;
+  }
+  .town-single-page > .town-service {
+    width: min(1180px, 100%);
+    min-height: 0;
+    margin: 0 auto;
+    padding: 22px 24px;
+  }
+  [data-town-page-panel="market"] > .town-service { width: min(1100px, 100%); }
+  [data-town-page-panel="tavern"] {
+    align-content: center;
+  }
+  [data-town-page-panel="tavern"] > .town-service { width: min(1040px, 100%); }
+  [data-town-page-panel="wheel"] {
+    align-content: center;
+  }
+  [data-town-page-panel="wheel"] > .town-service {
+    width: min(960px, 100%);
+    padding: 22px 28px 26px;
+  }
+  .town-service { padding: 15px 14px 13px; }
+  .town-service-stage {
+    grid-template-columns: 124px minmax(0, 1fr);
+    gap: 10px 16px;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+  }
+  .town-service-stage .service-art { width: 124px; }
+  .town-service-stage b { font-size: 13px; }
+  .town-service-stage span { font-size: 12px; }
+  .town-service-stage small { font-size: 11px; line-height: 1.5; }
+  .town-row { padding: 8px 10px; font-size: 14px; }
+  .town-row small { font-size: 12px; }
+  .town-growth > div { padding: 11px 13px; }
+  .town-growth b { font-size: 13px; }
+  .town-growth span { font-size: 12px; }
+  .town-work-card .work-card-art { width: min(142px, 100%); }
+  .town-plaza-stage > * { max-width: 1240px; }
+  #town-scene {
+    width: min(1240px, 100%);
+    max-height: min(56dvh, 510px);
+  }
+  #wheel-canvas {
+    width: clamp(300px, 30vw, 390px);
+    margin: 8px auto 10px;
+  }
+  .wheel-hint { padding-bottom: 10px; font-size: 13px; }
+  #town-wheel .row-actions { gap: 10px; }
+  #town-wheel .row-actions button {
+    min-height: 40px;
+    padding: 8px 18px;
+    font-size: 14px;
+  }
+}
+
+#wrap:fullscreen #town-screen,
+#wrap:-webkit-full-screen #town-screen {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  overflow: hidden;
+}
+#wrap:fullscreen #town-screen .town-shell,
+#wrap:-webkit-full-screen #town-screen .town-shell {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
