@@ -1,5 +1,8 @@
 # Governance Log — 2026-09-01
 
+## Dungeon Echo v1.8.0 release freeze
+The completed Living Town II + Named Relics branch is frozen as Dungeon Echo v1.8.0 on cache generation 182. The cutover is version-only: storage epoch remains `v130`, existing save keys remain stable, and no new gameplay owner or migration wrapper was introduced. Production runtime now loads `release-stamp-v180.js`; the allowlist, immutable builder, deployer, healthcheck, authored locale routes, current-release pointer and release tests share the same version/cache authority. The deployment contract now also requires and probes the v1.8 town, relic and NPC atlases plus the pure town-growth and named-set policy modules.
+
 ## v1.8 town character and dialogue admission
 The living-town audit found that contextual NPC writing existed but was presented only as adventure-log text, while the plaza still depended on the historical SVG character sheet. A shared-order pair of 4 × 4 WebP atlases now supplies transparent scene figures and matching authored dialogue portraits for all service NPCs, residents and action variants. Canonical interaction opens a responsive portrait card while preserving the same `npcLine` / `residentLine` result in the log; live chips read existing town/event/archive/depth state without creating new gameplay or persistence authority. The old SVG remains a load fallback, exact coordinates are pinned by `v180-town-character-art.map.json`, and public v1.7.0 remains unchanged. See `docs/DUNGEON_V180_TOWN_CHARACTER_ART_AUDIT.md`.
 

@@ -51,4 +51,4 @@ The 1→100 audit restored the authored permanent Level-50 ceiling through the c
 ## Compatibility
 - Storage epoch stays `v130`.
 - Missing `townWorks` sanitizes to zero levels.
-- Current public release remains v1.7.0 / cache generation 181 until v1.8 is explicitly frozen and released.
+- Frozen release boundary: v1.8.0 / cache generation 182. Storage epoch remains v130 so existing saves are preserved.

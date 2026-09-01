@@ -19,10 +19,10 @@ for(const [name,html] of [['zh',zh],['en',en]]){
     ok(html.indexOf(`${rel}?v=${generation}`)<html.indexOf(`game/core/game.js?v=${generation}`),`${name} ${rel} boots before core`);
   ok(scripts[scripts.length-1]===`game/core/runtime-bootstrap.js?v=${generation}`,`${name} runtime bootstrap is final synchronous script`);
 }
-ok(authority.version===version&&version==='1.7.0'&&authority.cacheGeneration===181,'authority map locks v1.7.0 cache generation 181');
+ok(authority.version===version&&version==='1.8.0'&&authority.cacheGeneration===182,'authority map locks v1.8.0 cache generation 182');
 ok(runtime.includes(`const assetVersion = '${generation}'`),'runtime followers use current cache key');
 ok(deployReadme.includes(`v${version} publishes cache generation ${generation}`),'deployment README declares current generation');
 ok(runtime.includes(`fresh('${stamp}')`),'runtime cache-busts current release stamp');
-ok(/version:'v33'/.test(runtime),'runtime current follower graph is bootstrap v33');
+ok(/version:'v34'/.test(runtime),'runtime current follower graph is bootstrap v34');
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail?1:0);

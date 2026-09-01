@@ -83,7 +83,7 @@ for(const [name,html] of [['zh',zh],['en',en]]){
   assert.equal((town.match(/data-town-page="/g)||[]).length,7,name+' must expose seven town tabs');
   assert.equal((town.match(/data-town-page-panel="/g)||[]).length,7,name+' must expose seven town panels');
   assert(town.includes('data-town-page="relics"')&&town.includes('id="town-relics"'),name+' must expose Relic Hall');
-  assert(html.includes('game/domain/inventory/set-rules-v180.js?v=181'),name+' must boot set policy before core');
+  assert(html.includes('game/domain/inventory/set-rules-v180.js?v=182'),name+' must boot set policy before core');
 }
 assert(!/[\u3400-\u9fff]/.test(en),'English authored route must remain CJK-free');
 assert(locale.includes('item.namedEn'),'locale must preserve fixed English relic names');
