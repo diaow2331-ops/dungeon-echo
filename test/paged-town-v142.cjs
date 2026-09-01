@@ -16,8 +16,11 @@ for(const [name,html] of [['zh',zh],['en',en]]){
 ok(/bag:'gear', stash:'gear', market:'market', tavern:'tavern', wheel:'wheel', relics:'relics', portal:'depart'/.test(core),'services map to focused pages');
 ok(/panel\.hidden = !active/.test(core)&&/aria-selected/.test(core)&&/function selectTownPage\(/.test(core),'page switching owns visibility and accessible tab state');
 ok(/const artScale = clamp\(H \/ 300, 1, 1\.34\)/.test(core),'large plaza scales character detail');
-ok(/#town-screen \.town-shell[\s\S]*height: min\(940px, calc\(100dvh - 24px\)\)[\s\S]*overflow: hidden/.test(css),'desktop town is fixed to the viewport');
+ok(/#town-screen \.town-shell[\s\S]*height: min\(980px, calc\(100dvh - 16px\)\)[\s\S]*overflow: hidden/.test(css),'desktop town is fixed to the viewport');
 ok(/\.town-page \{[\s\S]*overflow: auto/.test(css)&&/\.town-tabs[\s\S]*repeat\(7/.test(css),'town pages own overflow beneath seven desktop tabs');
+ok((zh.match(/id="btn-town-fullscreen"/g)||[]).length===1&&(en.match(/id="btn-town-fullscreen"/g)||[]).length===1&&/btn-town-fullscreen/.test(core),'town exposes a visible fullscreen control in both locales');
+ok(/#wheel-canvas[\s\S]*width: min\(380px, 82%\)/.test(css),'fortune wheel is promoted to a desktop focal size');
+ok(/town-single-page > \.town-service[\s\S]*width: min\(1120px, 100%\)[\s\S]*min-height: calc\(100% - 12px\)/.test(css),'single-service town pages use the available viewport instead of a narrow floating card');
 ok(/@media \(max-width: 760px\)[\s\S]*repeat\(3/.test(css),'mobile town keeps compact paged navigation');
 ok(!/[\u3400-\u9fff]/.test(en),'English paged town contains no CJK text');
 console.log(`\nRESULT ${pass} passed / ${fail} failed`);

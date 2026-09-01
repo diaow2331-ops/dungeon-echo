@@ -5,11 +5,11 @@ This package extends the existing play.91hwl.cn release tree. It preserves
 the existing /srv/91hwl-play/current symlink atomically, and rolls back on failed checks.
 
 Server usage:
-  unzip 91hwl-play-dungeon-echo-v1.8.0.zip -d /tmp/91hwl-play-dungeon-echo-v1.8.0
-  cd /tmp/91hwl-play-dungeon-echo-v1.8.0
+  unzip 91hwl-play-dungeon-echo-v1.8.1.zip -d /tmp/91hwl-play-dungeon-echo-v1.8.1
+  cd /tmp/91hwl-play-dungeon-echo-v1.8.1
   sudo ./ops/deploy.sh
 
-v1.8.0 publishes cache generation 182 as the Living Town II + Named Relics release:
+v1.8.1 publishes cache generation 183 as the Town Viewport + Fullscreen polish release:
 - Four persistent three-stage town projects change both presentation and service capability.
 - Six authored six-piece relic sets carry fixed names, lore, signatures and distinct 6/6 capstones.
 - Relic Hall research, return events, a town chronicle and unlockable residents make safe returns visible.
