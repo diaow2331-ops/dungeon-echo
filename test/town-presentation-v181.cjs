@@ -13,6 +13,7 @@ assert(/#town-screen \.town-shell\s*\{[\s\S]*?width:\s*min\(1480px/.test(css),'d
 assert(/#wheel-canvas\s*\{[\s\S]*?width:\s*clamp\(300px,\s*30vw,\s*390px\)/.test(css),'fortune wheel should scale beyond the old 230px cap');
 assert(/\.town-service-stage\s*\{[\s\S]*?grid-template-columns:\s*124px/.test(css),'service artwork should use the larger desktop column');
 assert(css.includes('#wrap:fullscreen #town-screen'),'town must receive explicit fullscreen layout rules');
+assert(css.includes('v1.8.1 town mobile shell correction') && /#town-screen \.town-primary-actions \{[\s\S]*?grid-template-columns:\s*repeat\(3/.test(css),'mobile town must restore compact shell padding and a non-cramped action grid');
 assert(core.includes("$('town-fullscreen-toggle')"),'core must bind and synchronize the town fullscreen control');
 assert(core.includes("[$('fullscreen-toggle'), $('town-fullscreen-toggle')]"),'both fullscreen controls must share one state authority');
 console.log('town-presentation-v181: PASS');
