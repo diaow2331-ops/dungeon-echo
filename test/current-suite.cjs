@@ -30,6 +30,7 @@ const tests = [
   'town-npc-distinct-v132.cjs',
   'living-town-v141.cjs',
   'paged-town-v142.cjs',
+  'town-presentation-v181.cjs',
   'resource-pressure-v132.cjs',
   'guardian-pressure-v132.cjs',
   'descent100.cjs',
