@@ -7692,13 +7692,14 @@ if ($('btn-achv-close')) $('btn-achv-close').addEventListener('click', () => {
 if ($('btn-help')) $('btn-help').addEventListener('click', () => { ensureAudio(); showUi('help-screen'); });
 if ($('btn-help-close')) $('btn-help-close').addEventListener('click', () => hideUi('help-screen'));
 function syncFullscreenUi() {
-  const button = $('fullscreen-toggle');
-  if (!button) return;
   const active = Boolean(fullscreenElement());
-  button.innerHTML = active
+  const label = active
     ? ui('<span aria-hidden="true">⛶</span> 退出全屏 <kbd>F</kbd>', '<span aria-hidden="true">⛶</span> Exit Fullscreen <kbd>F</kbd>')
     : ui('<span aria-hidden="true">⛶</span> 全屏 <kbd>F</kbd>', '<span aria-hidden="true">⛶</span> Fullscreen <kbd>F</kbd>');
-  if (button.setAttribute) button.setAttribute('aria-pressed', String(active));
+  [$('fullscreen-toggle'), $('town-fullscreen-toggle')].filter(Boolean).forEach(button => {
+    button.innerHTML = label;
+    if (button.setAttribute) button.setAttribute('aria-pressed', String(active));
+  });
 }
 async function toggleFullscreen() {
   const root = $('wrap');
@@ -7916,6 +7917,7 @@ for (const slot of ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet']) {
 }
 if ($('ov-restart')) $('ov-restart').addEventListener('click', () => { ensureAudio(); showTitle(); });
 if ($('fullscreen-toggle')) $('fullscreen-toggle').addEventListener('click', () => { ensureAudio(); toggleFullscreen(); });
+if ($('town-fullscreen-toggle')) $('town-fullscreen-toggle').addEventListener('click', () => { ensureAudio(); toggleFullscreen(); });
 if ($('btn-new')) $('btn-new').addEventListener('click', () => { ensureAudio(); showClassSelect(); });
 document.querySelectorAll('.depth-opt').forEach(btn => {
   btn.addEventListener('click', () => {
