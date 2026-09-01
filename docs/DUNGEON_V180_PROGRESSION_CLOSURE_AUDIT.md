@@ -59,7 +59,7 @@ A 30-seed deterministic progression sample showed:
 
 Therefore Veteran Oath now unlocks at **town Tier 2**, after the opening phase but while XP still has meaningful runway. At the permanent cap the town disables the Oath and explains why, so the player cannot accidentally accept +12% enemy ATK for zero progression reward.
 
-The Oath remains an early/mid permanent-progression accelerator. Deep progression after Level 50 is intentionally carried by equipment, six-piece collection, forging, town development and depth-based skill evolutions rather than uncapped base-stat inflation.
+The Oath remains an early/mid permanent-progression accelerator. Deep progression after Level 50 is intentionally carried by equipment, six-piece collection, forging, town development and depth-based skill evolutions rather than uncapped base-stat inflation. The closure audit also exposed that later skill evolutions had previously depended on future level-up screens; v1.8 now delivers unresolved Floor 20/40/60/80 evolutions directly from depth transitions, checkpoint departures, Quick Dive and restore. See `docs/DUNGEON_V180_SKILL_EVOLUTION_DELIVERY_AUDIT.md`.
 
 ## Authority
 

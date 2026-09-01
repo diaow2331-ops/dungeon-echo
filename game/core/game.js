@@ -3672,6 +3672,7 @@ function descend() {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); updateHud();
   persistRun();
+  openPendingSkillEvolution();
 }
 
 // ================= 快速下潜（付费跳层） =================
@@ -3702,6 +3703,7 @@ function quickDive(n) {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); updateHud();
   persistRun();
+  openPendingSkillEvolution();
 }
 
 function triggerTrap(x, y) {
@@ -3796,11 +3798,16 @@ function applyShrine() {
   updateHud();
 }
 
+function openPendingSkillEvolution() {
+  if (!pendingSkillEvolution()) return false;
+  openTalent();
+  return true;
+}
 function openTalent() {
-  pendingTalent = false;
+  const evolutionPicks = pendingSkillEvolution();
+  if (!evolutionPicks) pendingTalent = false;
   state = 'talent';
   const grid = $('talent-grid');
-  const evolutionPicks = pendingSkillEvolution();
   const pool = evolutionPicks ? [...evolutionPicks] : [...TALENTS];
   const picks = [];
   if (evolutionPicks) picks.push(...pool);
@@ -3819,6 +3826,7 @@ function openTalent() {
 
 function pickTalent(id) {
   const t = TALENTS.find(x => x.id === id) || skillEvolutionTalent(id);
+  const wasEvolution = !!(t && t.evolution);
   hideUi('talent-screen');
   if (t) {
     t.apply(player);
@@ -3830,6 +3838,11 @@ function pickTalent(id) {
   state = 'playing';
   renderBag(); renderEquip(); updateHud();
   persistRun();
+  if (wasEvolution && (pendingSkillEvolution() || pendingTalent)) {
+    openTalent();
+    persistRun();
+    return;
+  }
   endTurn();
 }
 
@@ -5391,6 +5404,7 @@ function restoreRun(raw) {
     return;
   }
   msg(ui('你从火堆旁醒来，记忆尚未散尽。','You wake beside the fire with your memories intact.'), 'good');
+  openPendingSkillEvolution();
 }
 
 // 弹窗打开期间锁定页面滚动，防止背景画布跟着滚动条上下摆动
@@ -7494,6 +7508,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
+  openPendingSkillEvolution();
 }
 function useEscape() {
   if (!greedyMode || state !== 'playing') return;
@@ -7982,7 +7997,7 @@ if (typeof window !== 'undefined') {
     descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack,
     quickDive, quickDiveCost, skillManaCost,
     pauseGame, resumeGame,
-    pickTalent, chooseEchoLeave, chooseEchoStay,
+    pickTalent, pendingSkillEvolution, openPendingSkillEvolution, chooseEchoLeave, chooseEchoStay,
     genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
     persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,

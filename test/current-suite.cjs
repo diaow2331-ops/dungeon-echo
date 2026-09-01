@@ -41,6 +41,7 @@ const tests = [
   'dungeon-v170-living-expedition.cjs',
   'expedition-contract-roles-v180.cjs',
   'progression-cap-runtime-v180.cjs',
+  'skill-evolution-delivery-v180.cjs',
   'monster-threat-v170.cjs',
   'named-relic-sets-v180.cjs',
   'named-relic-capstones-runtime-v180.cjs',
