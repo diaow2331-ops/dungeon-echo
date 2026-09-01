@@ -25,9 +25,9 @@ const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const health = read('ops/site-bundle/healthcheck.sh');
 
-assert.equal(version, '1.8.0', 'release test must lock the v1.8.0 boundary');
+assert.equal(version, '1.8.1', 'release test must lock the v1.8.1 boundary');
 assert.equal(authority.version, version, 'authority map version drifted');
-assert.equal(generation, '182', 'release test must lock cache generation 182');
+assert.equal(generation, '183', 'release test must lock cache generation 183');
 assert.equal(new Set(manifest).size, manifest.length, 'release manifest contains duplicates');
 assert(manifest.includes('VERSION') && manifest.includes(stampPath), 'semantic version and release stamp must ship');
 assert(manifest.every(rel => fs.existsSync(path.join(root, rel))), 'every allowlisted file must exist');

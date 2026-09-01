@@ -1,5 +1,8 @@
 # Governance Log — 2026-09-01
 
+## Dungeon Echo v1.8.1 town presentation patch
+The v1.8.0 content release exposed a desktop town-density regression: the overlay shell consumed most of the viewport while service content remained narrow, the Fortune wheel was capped near 230 px, existing town/relic artwork read too small, and the only visible fullscreen button sat behind the town overlay. v1.8.1 keeps all gameplay, economy, named-set, storage and art authorities unchanged while widening the desktop town shell, enlarging existing authored town/relic presentation, rebalancing the seven town tabs, and adding a fullscreen control inside the town header. The same toggleFullscreen authority owns both fullscreen buttons. Cache generation advances to 183; storage epoch remains v130.
+
 ## Dungeon Echo v1.8.0 release freeze
 The completed Living Town II + Named Relics branch is frozen as Dungeon Echo v1.8.0 on cache generation 182. The cutover is version-only: storage epoch remains `v130`, existing save keys remain stable, and no new gameplay owner or migration wrapper was introduced. Production runtime now loads `release-stamp-v180.js`; the allowlist, immutable builder, deployer, healthcheck, authored locale routes, current-release pointer and release tests share the same version/cache authority. The deployment contract now also requires and probes the v1.8 town, relic and NPC atlases plus the pure town-growth and named-set policy modules.
 

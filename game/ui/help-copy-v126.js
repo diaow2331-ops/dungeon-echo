@@ -1,4 +1,4 @@
-/* Dungeon Echo controls-copy coherence v1.8.0.
+/* Dungeon Echo controls-copy coherence v1.8.1.
  * DOM-only presentation follower: describes the canonical input contract owned by game.js.
  * It also repairs one stale English default HUD hint left behind by the retired J/K+Mana input path.
  */
@@ -24,7 +24,7 @@
     } else {
       p.innerHTML = '移动：<b>方向键 / WASD / 点击已探索地块</b><br>主动攻击：<b>J</b> · 职业技能：<b>K</b>（<b>C</b>兼容）· 快速下潜：<b>Shift+Enter</b><br>等待：<b>空格 / .</b> · 药水：<b>Q</b> · 卷轴：<b>E</b> · 回城：<b>T</b><br>下潜：<b>Enter</b> · 暂停：<b>Esc</b> · 声音：<b>M</b> · 全屏：<b>F</b>';
     }
-    p.dataset.helpCopy = '1.8.0-current-controls';
+    p.dataset.helpCopy = '1.8.1-current-controls';
     return true;
   }
 
@@ -59,7 +59,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(); });
   schedule();
   window.__DE_HELP_COPY_V126 = {
-    version:'1.8.0', owner:'help-copy-v126', locale:english?'en':'zh-CN',
+    version:'1.8.1', owner:'help-copy-v126', locale:english?'en':'zh-CN',
     syncHelp, syncHudHint, sync, schedule,
   };
 })();
