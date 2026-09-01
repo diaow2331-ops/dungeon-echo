@@ -7,7 +7,7 @@ GAME_URL=https://play.91hwl.cn/dungeon-echo/
 EN_URL=https://play.91hwl.cn/dungeon-echo/en/
 VERSION_URL=https://play.91hwl.cn/dungeon-echo/VERSION
 ORIGIN_RESOLVE=play.91hwl.cn:443:127.0.0.1
-ASSET_GENERATION=181
+ASSET_GENERATION=182
 PUBLIC_ATTEMPTS=6
 PUBLIC_DELAY=2
 
@@ -22,9 +22,9 @@ probe_game(){
   body="$work_dir/$label.body"; headers="$work_dir/$label.headers"
   curl --fail --silent --show-error --location --noproxy '*' --dump-header "$headers" --output "$body" "$@" || return 1
   grep -Fq 'Dungeon Echo' "$body" || return 1
-  grep -Fq 'v1.7.0' "$body" || return 1
+  grep -Fq 'v1.8.0' "$body" || return 1
   grep -Fq "?v=$ASSET_GENERATION" "$body" || return 1
-  ! grep -Eq '\?v=(153|157|166|167|168|169|178|179|180)' "$body" || return 1
+  ! grep -Eq '\?v=(153|157|166|167|168|169|178|179|180|181)' "$body" || return 1
   ! grep -Eq 'game/systems/|combat-controls|core-screen-owner|town-canvas-locale|town-workspace|forge-feedback|combat-hint-polish|expedition-pressure|audio-director|mobile-ux|expedition-record' "$body" || return 1
   grep -Eiq '^content-type:.*text/html' "$headers" || return 1
 }
@@ -54,9 +54,17 @@ probe_asset 'game/core/runtime-bootstrap.js' 'runtime.js' || fail 'runtime loade
 probe_asset 'game/input/desktop-controls.js' 'gamepad.js' || fail 'gamepad transport missing'
 probe_asset 'game/domain/town/town-rules-v130.js' 'town-rules.js' || fail 'town policy authority missing'
 probe_asset 'game/domain/economy/economy-rules-v130.js' 'economy-rules.js' || fail 'economy pricing authority missing'
+probe_asset 'game/domain/town/town-growth-rules-v180.js' 'town-growth-rules.js' || fail 'town growth policy authority missing'
+probe_asset 'game/domain/inventory/set-rules-v180.js' 'set-rules.js' || fail 'named relic policy authority missing'
 probe_asset 'game/domain/expedition/expedition-rules-v170.js' 'expedition-rules.js' || fail 'expedition variation authority missing'
+probe_asset 'art/named-relic-atlas-v180.webp' 'named-relic-atlas.webp' || fail 'named relic atlas missing'
+probe_asset 'art/town-growth-atlas-v180.webp' 'town-growth-atlas.webp' || fail 'town growth atlas missing'
+probe_asset 'art/town-npc-atlas-v180.webp' 'town-npc-atlas.webp' || fail 'town NPC scene atlas missing'
+probe_asset 'art/town-npc-portraits-v180.webp' 'town-npc-portraits.webp' || fail 'town NPC portrait atlas missing'
 grep -Fq "authority: 'town-checkpoint-readiness-policy'" "$work_dir/town-rules.js" || fail 'town policy authority mismatch'
 grep -Fq "authority:'economy-pricing'" "$work_dir/economy-rules.js" || fail 'economy pricing authority mismatch'
+grep -Fq "authority:'town-growth-policy'" "$work_dir/town-growth-rules.js" || fail 'town growth policy authority mismatch'
+grep -Fq "authority:'named-set-policy'" "$work_dir/set-rules.js" || fail 'named relic policy authority mismatch'
 grep -Fq "authority:'expedition-variation-policy'" "$work_dir/expedition-rules.js" || fail 'expedition variation authority mismatch'
 
 grep -Fq "const assetVersion = '$ASSET_GENERATION'" "$work_dir/runtime.js" || fail 'runtime generation mismatch'

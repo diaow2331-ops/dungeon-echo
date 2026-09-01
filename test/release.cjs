@@ -25,9 +25,9 @@ const builder = read('ops/release/build-site-bundle.sh');
 const deploy = read('ops/site-bundle/deploy.sh');
 const health = read('ops/site-bundle/healthcheck.sh');
 
-assert.equal(version, '1.7.0', 'release test must lock the v1.7.0 boundary');
+assert.equal(version, '1.8.0', 'release test must lock the v1.8.0 boundary');
 assert.equal(authority.version, version, 'authority map version drifted');
-assert.equal(generation, '181', 'release test must lock cache generation 181');
+assert.equal(generation, '182', 'release test must lock cache generation 182');
 assert.equal(new Set(manifest).size, manifest.length, 'release manifest contains duplicates');
 assert(manifest.includes('VERSION') && manifest.includes(stampPath), 'semantic version and release stamp must ship');
 assert(manifest.every(rel => fs.existsSync(path.join(root, rel))), 'every allowlisted file must exist');
@@ -40,8 +40,10 @@ const expectedScripts = [
   'game/locale/locale-data-v134.js',
   'game/domain/content/content-rules-v130.js',
   'game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/inventory/set-rules-v180.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/town/town-growth-rules-v180.js',
   'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',
@@ -83,7 +85,7 @@ assert(health.includes("followers:'presentation-only'") && !health.includes("fol
 
 const revision = run('git', ['rev-parse', 'HEAD']).stdout.trim();
 assert.match(revision, /^[0-9a-f]{40}$/);
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-v170-release-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'de-v180-release-'));
 const archive = path.join(tmp, `91hwl-play-dungeon-echo-v${version}.zip`);
 const build = run('bash', ['ops/release/build-site-bundle.sh', archive], { env:{ SOURCE_REVISION:revision } });
 assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
@@ -104,6 +106,11 @@ assert(packagedFiles.includes('public/dungeon-echo/game/core/game.js'));
 assert(packagedFiles.includes(`public/dungeon-echo/${stampPath}`));
 assert(packagedFiles.includes('public/dungeon-echo/game/ui/adaptive-bgm-v132.js'));
 assert(packagedFiles.includes('public/dungeon-echo/game/ui/forge-feedback-v132.js'));
+assert(packagedFiles.includes('public/dungeon-echo/game/domain/town/town-growth-rules-v180.js'));
+assert(packagedFiles.includes('public/dungeon-echo/game/domain/inventory/set-rules-v180.js'));
+for (const art of ['named-relic-atlas-v180.webp','town-growth-atlas-v180.webp','town-npc-atlas-v180.webp','town-npc-portraits-v180.webp']) {
+  assert(packagedFiles.includes(`public/dungeon-echo/art/${art}`));
+}
 assert(!packagedFiles.some(rel => /(?:^|\/)(?:archive|test)(?:\/|$)|dev\.html$/.test(rel)), 'final artifact contains dev/quarantine files');
 const deploySyntax = run('bash', ['-n', path.join(extracted, 'ops/deploy.sh')]);
 const healthSyntax = run('bash', ['-n', path.join(extracted, 'ops/healthcheck.sh')]);
@@ -111,4 +118,4 @@ assert.equal(deploySyntax.status, 0, deploySyntax.stderr);
 assert.equal(healthSyntax.status, 0, healthSyntax.stderr);
 
 fs.rmSync(tmp, { recursive:true, force:true });
-console.log('release_v1_7_0=PASS');
+console.log('release_v1_8_0=PASS');

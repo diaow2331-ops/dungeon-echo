@@ -14,15 +14,15 @@ for(const [name,html] of [['zh',zh],['en',en]]){
   const versions=[...html.matchAll(/\?v=(\d+)/g)].map(m=>m[1]),scripts=scriptSrcs(html);
   ok(versions.length>0&&versions.every(v=>v===generation),`${name} authored entry uses only cache generation ${generation}`);
   ok(html.includes(`style.css?v=${generation}`),`${name} stylesheet uses generation ${generation}`);
-  ok(scripts.length===14&&scripts.every(src=>src.endsWith(`?v=${generation}`)),`${name} boots 14 current-generation synchronous scripts`);
-  for(const rel of ['game/locale/locale-data-v134.js','game/domain/combat/combat-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/expedition/expedition-rules-v170.js'])
+  ok(scripts.length===16&&scripts.every(src=>src.endsWith(`?v=${generation}`)),`${name} boots 16 current-generation synchronous scripts`);
+  for(const rel of ['game/locale/locale-data-v134.js','game/domain/combat/combat-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/town/town-growth-rules-v180.js','game/domain/expedition/expedition-rules-v170.js'])
     ok(html.indexOf(`${rel}?v=${generation}`)<html.indexOf(`game/core/game.js?v=${generation}`),`${name} ${rel} boots before core`);
   ok(scripts[scripts.length-1]===`game/core/runtime-bootstrap.js?v=${generation}`,`${name} runtime bootstrap is final synchronous script`);
 }
-ok(authority.version===version&&version==='1.7.0'&&authority.cacheGeneration===181,'authority map locks v1.7.0 cache generation 181');
+ok(authority.version===version&&version==='1.8.0'&&authority.cacheGeneration===182,'authority map locks v1.8.0 cache generation 182');
 ok(runtime.includes(`const assetVersion = '${generation}'`),'runtime followers use current cache key');
 ok(deployReadme.includes(`v${version} publishes cache generation ${generation}`),'deployment README declares current generation');
 ok(runtime.includes(`fresh('${stamp}')`),'runtime cache-busts current release stamp');
-ok(/version:'v33'/.test(runtime),'runtime current follower graph is bootstrap v33');
+ok(/version:'v34'/.test(runtime),'runtime current follower graph is bootstrap v34');
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail?1:0);

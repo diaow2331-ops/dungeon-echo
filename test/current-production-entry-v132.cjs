@@ -18,8 +18,10 @@ const expected = [
   'game/locale/locale-data-v134.js',
   'game/domain/content/content-rules-v130.js',
   'game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/inventory/set-rules-v180.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/town/town-growth-rules-v180.js',
   'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',
@@ -35,10 +37,10 @@ for (const file of expected) {
   ok(fs.existsSync(path.join(root,file)), `production script exists: ${file}`);
   ok(manifest.includes(file), `production script ships: ${file}`);
 }
-ok([...zh.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=181$/.test(m[1])), 'Chinese synchronous scripts use cache generation 181');
-ok([...en.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=181$/.test(m[1])), 'English synchronous scripts use cache generation 181');
+ok([...zh.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=182$/.test(m[1])), 'Chinese synchronous scripts use cache generation 182');
+ok([...en.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=182$/.test(m[1])), 'English synchronous scripts use cache generation 182');
 ok(/classic-100/.test(productionBootstrap), 'production bootstrap forces the classic-100 public profile');
-ok(/assetVersion = '181'/.test(runtime) && /version:'v33'/.test(runtime), 'late presentation graph is generation 181 / runtime v33');
+ok(/assetVersion = '182'/.test(runtime) && /version:'v34'/.test(runtime), 'late presentation graph is generation 182 / runtime v34');
 
 const retired = [
   'game/core/save-integrity-system.js',

@@ -61,8 +61,10 @@ for (const p of PROFILE_IDS) {
 for (const rel of [
   'game/domain/content/content-rules-v130.js',
   'game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/inventory/set-rules-v180.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/town/town-growth-rules-v180.js',
   'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',
@@ -113,9 +115,23 @@ function clearFloor() {
   }
   return true;
 }
+function chooseVisibleTalent() {
+  if (T.state !== 'talent') return false;
+  const ids=[...String(el('talent-grid').innerHTML).matchAll(/data-talent="([^"]+)"/g)].map(m=>m[1]);
+  if (!ids.length) return false;
+  T.pickTalent(ids[0]);
+  return true;
+}
+function resolveTalentScreens() {
+  let n=0;
+  while (T.state === 'talent' && n++ < 12) {
+    if (!chooseVisibleTalent()) break;
+  }
+  return n;
+}
 
 while (T.depth < 100 && guard++ < 600) {
-  if (T.state === 'talent') { T.pickTalent('iron'); continue; }
+  if (T.state === 'talent') { resolveTalentScreens(); continue; }
   if (T.state !== 'playing') break;
   const mids = T.monsters.filter(m => m.midBoss).map(m => m.name);
   if (mids.length) seenMid.push({ depth: T.depth, names: mids });
@@ -166,6 +182,8 @@ if (T.depth === 100 && T.state === 'playing') {
 // 独立覆盖「留下」分支：心脏选择必须写入存档并真正进入 101 层。
 T.newGame('warrior');
 T.depth = 100;
+T.openPendingSkillEvolution();
+resolveTalentScreens();
 T.items.push({ type:'amulet', x:T.player.x, y:T.player.y, name:'终焉之心' });
 T.pickupHere();
 ok(T.state === 'echo', '第二次终局进入留下/离开选择');

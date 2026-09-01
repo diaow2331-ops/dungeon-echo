@@ -9,6 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317100b'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23e0a73a'%3EE%3C/text%3E%3C/svg%3E">
 <title>Dungeon Echo · 100-Floor Roguelike</title>
 <link rel="preload" href="art/loot-atlas.png" as="image">
+<link rel="preload" href="art/named-relic-atlas-v180.webp" as="image">
 <link rel="preload" href="art/title-backdrop.webp" as="image" fetchpriority="high">
 <link rel="preload" href="art/class-roster.webp" as="image">
 <link rel="preload" href="art/hero-atlas-v11.png" as="image">
@@ -17,7 +18,10 @@
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
-<link rel="stylesheet" href="style.css?v=181">
+<link rel="preload" href="art/town-growth-atlas-v180.webp" as="image">
+<link rel="preload" href="art/town-npc-atlas-v180.webp" as="image">
+<link rel="preload" href="art/town-npc-portraits-v180.webp" as="image">
+<link rel="stylesheet" href="style.css?v=182">
 </head>
 <body>
 <div id="wrap">
@@ -97,7 +101,7 @@
   </div>
 
   <div id="tooltip" class="hidden"></div>
-  <footer id="help">Move: arrows / WASD / click map · J Basic Attack · K Class Skill (C alias) · Shift+Enter Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · top Save button · click backpack to inspect · then Equip / Drop · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.7.0</b></footer>
+  <footer id="help">Move: arrows / WASD / click map · J Basic Attack · K Class Skill (C alias) · Shift+Enter Quick Dive · Space Wait · Q Potion · E Scroll · T Return · Enter Descend · Esc Pause · top Save button · click backpack to inspect · then Equip / Drop · M Master Mute · Audio button adjusts Music / SFX · F Fullscreen · R Restart after death · Run seed <b id="seed-label">—</b> (use ?seed=… to reproduce) · Release <b>v1.8.0</b></footer>
 
   <div id="overlay" class="hidden"><div id="panel"><h2 id="ov-title"></h2><div id="ov-body"></div><button id="ov-restart">Restart (R)</button></div></div>
 
@@ -144,6 +148,7 @@
         <button type="button" role="tab" aria-selected="false" data-town-page="market">Market</button>
         <button type="button" role="tab" aria-selected="false" data-town-page="tavern">Tavern</button>
         <button type="button" role="tab" aria-selected="false" data-town-page="wheel">Fortune</button>
+        <button type="button" role="tab" aria-selected="false" data-town-page="relics">Relics</button>
         <button type="button" role="tab" aria-selected="false" data-town-page="depart">Depart</button>
       </nav>
       <div class="town-pages">
@@ -167,12 +172,21 @@
         <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="wheel" hidden>
           <div class="town-service town-service-optional" data-service="wheel"><p class="kicker">Fortune Corner <span>optional · does not gate the expedition</span></p><div id="town-wheel"></div></div>
         </section>
+        <section class="town-page town-relic-page" role="tabpanel" data-town-page-panel="relics" hidden>
+          <div class="town-relic-head"><p class="kicker">Old Town Relic Hall <span>named relics safely returned are permanently catalogued</span></p><h3>An item should have a name before it has stats.</h3><p>Each fixed set contains six relics. Collection and activation are separate: returning a relic preserves its story, while equipping 2 / 4 / 6 pieces awakens set bonuses.</p></div>
+          <div id="town-relics" class="town-relics" aria-live="polite"></div>
+        </section>
         <section class="town-page town-depart-page" role="tabpanel" data-town-page-panel="depart" hidden>
           <div class="town-depart-copy"><p class="kicker">Town Portal</p><h3>Choose a conquered checkpoint and descend</h3><p>Reach a new ten-floor segment start and return safely to unlock it as a departure point.</p></div>
           <div id="town-checkpoints" class="checkpoint-panel" aria-live="polite"></div>
           <div id="town-contracts" class="checkpoint-panel town-contract-panel" aria-live="polite"></div>
         </section>
       </div>
+      <aside id="town-dialogue" class="town-dialogue" hidden aria-live="polite" aria-atomic="true">
+        <div id="town-dialogue-portrait" class="town-dialogue-portrait" aria-hidden="true"></div>
+        <div class="town-dialogue-copy"><header><div><strong id="town-dialogue-speaker"></strong><span id="town-dialogue-role"></span></div><span class="town-dialogue-mark" aria-hidden="true">◆</span></header><p id="town-dialogue-line"></p><div id="town-dialogue-context" class="town-dialogue-context"></div></div>
+        <button type="button" class="town-dialogue-close" data-town-dialogue-close aria-label="Close dialogue">×</button>
+      </aside>
     </div>
   </div>
 
@@ -198,19 +212,21 @@
     </div>
   </div>
 </div>
-<script src="game/core/production-bootstrap.js?v=181"></script>
-<script src="profiles/classic-100.profile.js?v=181"></script>
-<script src="game/locale/locale-data-v134.js?v=181"></script>
-<script src="game/domain/content/content-rules-v130.js?v=181"></script>
-<script src="game/domain/inventory/equipment-rules-v130.js?v=181"></script>
-<script src="game/domain/economy/economy-rules-v130.js?v=181"></script>
-<script src="game/domain/town/town-rules-v130.js?v=181"></script>
-<script src="game/domain/expedition/expedition-rules-v170.js?v=181"></script>
-<script src="game/domain/progression/progression-rules-v130.js?v=181"></script>
-<script src="game/domain/combat/combat-rules-v130.js?v=181"></script>
-<script src="game/core/game.js?v=181"></script>
-<script src="game/locale/core-locale-data-v139.js?v=181"></script>
-<script src="game/input/desktop-controls.js?v=181"></script>
-<script src="game/core/runtime-bootstrap.js?v=181"></script>
+<script src="game/core/production-bootstrap.js?v=182"></script>
+<script src="profiles/classic-100.profile.js?v=182"></script>
+<script src="game/locale/locale-data-v134.js?v=182"></script>
+<script src="game/domain/content/content-rules-v130.js?v=182"></script>
+<script src="game/domain/inventory/equipment-rules-v130.js?v=182"></script>
+<script src="game/domain/inventory/set-rules-v180.js?v=182"></script>
+<script src="game/domain/economy/economy-rules-v130.js?v=182"></script>
+<script src="game/domain/town/town-rules-v130.js?v=182"></script>
+<script src="game/domain/town/town-growth-rules-v180.js?v=182"></script>
+<script src="game/domain/expedition/expedition-rules-v170.js?v=182"></script>
+<script src="game/domain/progression/progression-rules-v130.js?v=182"></script>
+<script src="game/domain/combat/combat-rules-v130.js?v=182"></script>
+<script src="game/core/game.js?v=182"></script>
+<script src="game/locale/core-locale-data-v139.js?v=182"></script>
+<script src="game/input/desktop-controls.js?v=182"></script>
+<script src="game/core/runtime-bootstrap.js?v=182"></script>
 </body>
 </html>

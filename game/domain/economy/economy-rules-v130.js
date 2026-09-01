@@ -25,20 +25,29 @@
     return 1 + 0.42 * t + 0.065 * t * t;
   }
 
-  function townSupplyPrice(basePrice, tier) {
-    return round5((Number(basePrice) || 0) * townPriceScale(tier));
+  function townSupplyPrice(basePrice, tier, projectDiscount=0) {
+    const discount = clamp(Number(projectDiscount) || 0, 0, 0.15);
+    return round5((Number(basePrice) || 0) * townPriceScale(tier) * (1 - discount));
   }
 
-  function townSupplyStock(id, tier) {
+  function townMarketRestockCost(tier) {
     const t = clamp(Number(tier) || 1, 1, 10);
+    return round5(55 + t * 20);
+  }
+
+  function townSupplyStock(id, tier, projectBonus=0) {
+    const t = clamp(Number(tier) || 1, 1, 10);
+    const bonus = clamp(Math.floor(Number(projectBonus) || 0), 0, 3);
+    let base = 0;
     switch (id) {
-      case 'potion': return 4 + Math.floor((t - 1) / 3);
-      case 'scroll': return 2 + Math.floor((t - 1) / 4);
-      case 'escape': return t >= 5 ? 2 : 1;
-      case 'key': return 2 + (t >= 4 ? 1 : 0) + (t >= 8 ? 1 : 0);
-      case 'insurance': return 1;
+      case 'potion': base = 4 + Math.floor((t - 1) / 3); break;
+      case 'scroll': base = 2 + Math.floor((t - 1) / 4); break;
+      case 'escape': base = t >= 5 ? 2 : 1; break;
+      case 'key': base = 2 + (t >= 4 ? 1 : 0) + (t >= 8 ? 1 : 0); break;
+      case 'insurance': base = 1; break;
       default: return 0;
     }
+    return base + bonus;
   }
 
   function dungeonTier(depth) {
@@ -57,10 +66,21 @@
     return round5((Number(basePrice) || 24) * depthScale * missingScale);
   }
 
-  function forgeCost(itemValue, forgeLevel=0) {
+  function forgeCost(itemValue, forgeLevel=0, projectDiscount=0) {
     const value = Math.max(0, Number(itemValue) || 0);
     const level = nonNegativeInt(forgeLevel);
-    return 30 + Math.round(value * 1.2) * (level + 1);
+    const raw = 30 + Math.round(value * 1.2) * (level + 1);
+    const discount = clamp(Number(projectDiscount) || 0, 0, 0.25);
+    return discount > 0 ? Math.max(5, Math.round(raw * (1 - discount))) : raw;
+  }
+
+  function forgeRetemperCost(itemValue, forgeLevel=0, retemperCount=0, projectDiscount=0) {
+    const value = Math.max(0, Number(itemValue) || 0);
+    const level = nonNegativeInt(forgeLevel);
+    const count = Math.min(9, nonNegativeInt(retemperCount));
+    const raw = 45 + value * 0.55 + level * 30 + count * 55;
+    const discount = clamp(Number(projectDiscount) || 0, 0, 0.25);
+    return round5(raw * (1 - discount));
   }
 
   function sellPrice(itemValue, forgeLevel=0) {
@@ -99,9 +119,11 @@
     townPriceScale,
     townSupplyPrice,
     townSupplyStock,
+    townMarketRestockCost,
     dungeonTier,
     dungeonHealPrice,
     forgeCost,
+    forgeRetemperCost,
     sellPrice,
     quickDiveCost,
     tavernToastCost,

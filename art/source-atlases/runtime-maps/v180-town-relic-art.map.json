@@ -1,0 +1,21 @@
+{
+  "version": "v1.8.0-development",
+  "atlases": {
+    "namedRelics": {
+      "path": "art/named-relic-atlas-v180.webp",
+      "size": [1539, 1026],
+      "grid": [9, 6],
+      "cell": [171, 171],
+      "columns": ["warrior-weapon", "ranger-weapon", "mage-weapon", "assassin-weapon", "armor", "helmet", "boots", "ring", "amulet"],
+      "rows": ["ashen_watch", "drowned_bell", "star_hunt", "rust_saints", "void_court", "shattered_moon"]
+    },
+    "townGrowth": {
+      "path": "art/town-growth-atlas-v180.webp",
+      "size": [1256, 1256],
+      "grid": [4, 4],
+      "cell": [314, 314],
+      "columns": ["stage-0", "stage-1", "stage-2", "stage-3"],
+      "rows": ["smithy", "market", "tavern", "relics"]
+    }
+  }
+}

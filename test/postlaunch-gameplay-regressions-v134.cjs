@@ -61,8 +61,10 @@ for (const p of PROFILE_IDS) {
 for (const rel of [
   'game/domain/content/content-rules-v130.js',
   'game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/inventory/set-rules-v180.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/town/town-growth-rules-v180.js',
   'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',

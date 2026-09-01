@@ -7,7 +7,7 @@ let pass=0,fail=0; const ok=(c,n)=>{console.log((c?'  PASS ':'  FAIL ')+n);c?pas
 for(const [name,html] of [['zh',zh],['en',en]]){
   const town=html.slice(html.indexOf('id="town-screen"'),html.indexOf('id="achv-screen"'));
   ok(town.indexOf('town-primary-actions')>=0&&town.indexOf('town-primary-actions')<town.indexOf('town-tabs'),`${name} town keeps primary actions in its fixed header`);
-  ok((town.match(/data-town-page="/g)||[]).length===6&&(town.match(/data-town-page-panel="/g)||[]).length===6,`${name} town exposes six matching tabs and page panels`);
+  ok((town.match(/data-town-page="/g)||[]).length===7&&(town.match(/data-town-page-panel="/g)||[]).length===7,`${name} town exposes seven matching tabs and page panels`);
   ok(/data-town-page-panel="wheel"[^>]*hidden[\s\S]*data-service="wheel"/.test(town),`${name} Fortune Wheel owns a dedicated page`);
 }
 ok(/#town-screen \.town-shell[\s\S]*height:\s*min\(940px, calc\(100dvh - 24px\)\)[\s\S]*overflow:\s*hidden/.test(css),'town shell is fixed to the viewport');

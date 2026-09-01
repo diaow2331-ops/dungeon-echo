@@ -128,17 +128,41 @@
   }
   function itemName(item) {
     if(!item)return '';
-    const parts=[`${rarityName(item.rarity)}·${baseName(item)}`];
-    if(item.mechanic)parts.push(mechanicName(item.mechanic));
-    if(item.refinePath)parts.push(refineName(item.refinePath));
-    if(item.masterworked)parts.push(pick('淬炼','Masterwork'));
-    return parts.filter(Boolean).join(' · ');
+    return item.namedSet
+      ? (isEnglish ? String(item.namedEn||item.name||'') : String(item.name||''))
+      : `${rarityName(item.rarity)}·${baseName(item)}`;
+  }
+  function itemLore(item) {
+    if(!item)return '';
+    if(item.namedSet) return isEnglish ? String(item.loreEn||'') : String(item.loreZh||'');
+    const name=baseName(item), min=Math.max(1,Number(item.base&&item.base.min)||1);
+    if(min>=90) return isEnglish
+      ? `${name} appears only in records written after expedition maps stop agreeing with one another. Every returned specimen bears different damage, but the same cold residue.`
+      : `“${name}”只出现在远征地图开始彼此矛盾之后的记录里。每件带回来的损伤都不同，却都沾着同样冰冷的残留物。`;
+    if(min>=70) return isEnglish
+      ? `${name} was first catalogued by a team that returned without its cart, provisions, or third member. The item was the only thing they refused to sell.`
+      : `“${name}”最早由一支丢了车、补给和第三名队员的远征队带回。他们什么都肯卖，唯独不肯卖它。`;
+    if(min>=44) return isEnglish
+      ? `When ${name} began appearing, town ledgers also began using the phrase “light does not stay on the metal.” Smiths still dislike repairing it after dark.`
+      : `“${name}”开始出现的时期，镇务记录里也第一次反复出现“光留不在金属上”这句话。铁匠至今不喜欢天黑后修它。`;
+    if(min>=22) return isEnglish
+      ? `${name} is made from material found only beyond the first stable routes. A complete piece reaching town used to be enough reason to ring the gate bell twice.`
+      : `“${name}”使用的材料只在第一批稳定路线之外才能找到。过去只要有一件完整成品回镇，守门人就会多敲两次钟。`;
+    if(min>=10) return isEnglish
+      ? `${name} belongs to the era when the town first stopped calling deep expeditions “scouting.” Old examples often have their owner numbers deliberately scraped away.`
+      : `“${name}”来自小镇第一次不再把深层远征称作“侦察”的年代。旧件上的主人编号往往被人故意磨掉。`;
+    if(min>=5) return isEnglish
+      ? `${name} was once ordinary expedition issue. Surviving pieces are rarely clean; each has passed through more hands than the town quartermaster can trace.`
+      : `“${name}”曾经只是普通远征制式。如今还能见到的旧件几乎没有干净的，它们转过的手比军需官能查到的名字更多。`;
+    return isEnglish
+      ? `${name} is humble town-made gear. Its story is not who forged it, but how many first descents it survived and still found its way back through the gate.`
+      : `“${name}”只是小镇能做出的寻常装备。它的故事不在谁打造了它，而在它陪过多少次第一次下潜，又有多少次真的回到了城门以内。`;
   }
 
   window.DE_LOCALE_DATA = Object.freeze({
     version:'v134', locale, isEnglish, pick,
     baseId, baseName, rarityId, rarityName, slotName, className, affixText,
-    mechanicName, mechanicText, refineName, itemName, worldName,
+    mechanicName, mechanicText, refineName, itemName, itemLore, worldName,
     catalogs:Object.freeze({rarity:RARITY,class:CLASS,slot:SLOT,base:BASE,mechanic:MECHANIC,refine:REFINE,worldName:WORLD_NAME_EN}),
   });
 })();

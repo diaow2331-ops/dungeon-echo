@@ -149,7 +149,12 @@ function defaultMeta(classId) {
     wheelSpins: 0, wheelResets: 0, wheelSlots: null,
     market: null,
     contractId: 'none',
-    tavernVisits: 0, tavernLastRun: -1, tavernHistory: [],
+    townWorks: TOWN_GROWTH_RULES.sanitizeLevels({}),
+    townEvent: null,
+    townChronicle: [],
+    relicFocusSet: '',
+    relicLedger: {}, lastReturnDepth: 0,
+    tavernVisits: 0, tavernLastRun: -1, tavernHistory: [], tavernRewardCounts: {},
     equip: { weapon: starterWeaponForClass(c.id), armor: null, helmet:null, boots:null, ring: null, amulet:null },
     bag: [], stash: [],
     bestDepth: 0, runs: 0, deaths: 0,
@@ -197,14 +202,52 @@ function sanitizeMeta(raw) {
       Number.isInteger(market.tier) && market.tier >= 1 && market.tier <= 10 &&
       marketStock && typeof marketStock === 'object' &&
       marketIds.every(id => Number.isInteger(marketStock[id]) && marketStock[id] >= 0 && marketStock[id] <= 99)) {
-    base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock } };
+    base.market = { v: 1, cycleRun: market.cycleRun, tier: market.tier, stock: { ...marketStock }, restockUsed:market.restockUsed ? 1 : 0 };
   }
   base.contractId = EXPEDITION_RULES.normalizeContractId(raw.contractId);
-  base.tavernVisits = Math.min(8, num(raw.tavernVisits, 0));
+  base.townWorks = TOWN_GROWTH_RULES.sanitizeLevels(raw.townWorks);
+  base.townEvent = null;
+  if (raw.townEvent && typeof raw.townEvent === 'object' && !Array.isArray(raw.townEvent) && TOWN_GROWTH_RULES.eventById(raw.townEvent.id)) {
+    const effect = raw.townEvent.effect && typeof raw.townEvent.effect === 'object' ? raw.townEvent.effect : {};
+    base.townEvent = {
+      id:String(raw.townEvent.id), cost:Math.min(9999, num(raw.townEvent.cost, 0)),
+      effect:{
+        gold:Math.min(9999, num(effect.gold, 0)), marketRestock:effect.marketRestock ? 1 : 0,
+        escapes:Math.min(9, num(effect.escapes, 0)), keys:Math.min(9, num(effect.keys, 0)),
+      },
+    };
+  }
+  base.townChronicle = (Array.isArray(raw.townChronicle) ? raw.townChronicle : []).filter(row => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    if (row.kind === 'return') return Number.isInteger(row.depth) && row.depth >= 1 && row.depth <= 9999;
+    if (row.kind === 'project') return !!TOWN_GROWTH_RULES.project(row.id) && Number.isInteger(row.level) && row.level >= 1 && row.level <= 3;
+    if (row.kind === 'event') return !!TOWN_GROWTH_RULES.eventById(row.id);
+    if (row.kind === 'resident') return !!TOWN_GROWTH_RULES.residentById(row.id);
+    if (row.kind === 'set') return !!SET_RULES.setById(row.id);
+    if (row.kind === 'relic') return !!SET_RULES.setById(row.setId) && SET_RULES.SLOTS.includes(row.slot);
+    return false;
+  }).slice(-8).map(row => ({ ...row }));
+  base.relicLedger = {};
+  if (raw.relicLedger && typeof raw.relicLedger === 'object' && !Array.isArray(raw.relicLedger)) {
+    for (const set of SET_RULES.SETS) for (const slot of SET_RULES.SLOTS) {
+      const key = set.id + ':' + slot;
+      if (raw.relicLedger[key]) base.relicLedger[key] = 1;
+    }
+  }
+  base.lastReturnDepth = num(raw.lastReturnDepth, 0);
+  base.tavernVisits = Math.min(TOWN_GROWTH_RULES.tavernToastCap(base.townWorks), num(raw.tavernVisits, 0));
   base.tavernLastRun = Number.isInteger(raw.tavernLastRun) && raw.tavernLastRun >= -1 ? raw.tavernLastRun : -1;
   const tavernRewardIds = ['hearth', 'edge', 'fortune', 'prosperity'];
   base.tavernHistory = (Array.isArray(raw.tavernHistory) ? raw.tavernHistory : [])
     .filter(id => tavernRewardIds.includes(id)).slice(-4);
+  base.tavernRewardCounts = {};
+  for (const id of tavernRewardIds) {
+    const fromSaved = raw.tavernRewardCounts && typeof raw.tavernRewardCounts === 'object' && !Array.isArray(raw.tavernRewardCounts)
+      ? num(raw.tavernRewardCounts[id], 0) : 0;
+    const migrated = base.tavernHistory.filter(row => row === id).length;
+    const count = Math.max(fromSaved, migrated);
+    if (count > 0) base.tavernRewardCounts[id] = Math.min(99, count);
+  }
   base.totalKills = num(raw.totalKills, 0);
   base.wins = num(raw.wins, 0);
   base.wheelTotal = num(raw.wheelTotal, 0);
@@ -215,6 +258,7 @@ function sanitizeMeta(raw) {
       if (raw.achv[k]) base.achv[k] = 1;
   }
   base.bestDepth = num(raw.bestDepth, 0);
+  base.relicFocusSet = SET_RULES.normalizeFocusId(raw.relicFocusSet, base.bestDepth, base.relicLedger);
   base.runs = num(raw.runs, 0);
   base.deaths = num(raw.deaths, 0);
   base.talents = Array.isArray(raw.talents)
@@ -605,6 +649,8 @@ const equipmentWeaponsV13 = new Image();
 equipmentWeaponsV13.src = 'art/equipment-weapons-v13.png';
 const equipmentWearablesV13 = new Image();
 equipmentWearablesV13.src = 'art/equipment-wearables-v13.png';
+const namedRelicAtlasV180 = new Image();
+namedRelicAtlasV180.src = 'art/named-relic-atlas-v180.webp';
 const heroAtlasV11 = new Image();
 heroAtlasV11.src = 'art/hero-atlas-v11.png';
 const heroActionAtlasV2 = new Image();
@@ -622,6 +668,10 @@ const finalBossV11 = new Image();
 finalBossV11.src = 'art/final-boss-v11.png';
 const townBackdropV11 = new Image();
 townBackdropV11.src = 'art/town-backdrop-v11.webp';
+const townNpcAtlasV180 = new Image();
+townNpcAtlasV180.src = 'art/town-npc-atlas-v180.webp';
+const townNpcPortraitsV180 = new Image();
+townNpcPortraitsV180.src = 'art/town-npc-portraits-v180.webp';
 const townNpcAtlasV1 = new Image();
 townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg';
 const TOWN_NPC_ART = Object.freeze({
@@ -651,6 +701,33 @@ const lootMarkup = id => {
   const p = lootCoord(id);
   return `<span class="loot-icon" style="--ix:${p.x};--iy:${p.y}" aria-hidden="true"></span>`;
 };
+
+const NAMED_RELIC_WEAPON_COL = Object.freeze({ warrior:0, ranger:1, mage:2, assassin:3 });
+const NAMED_RELIC_SLOT_COL = Object.freeze({ armor:4, helmet:5, boots:6, ring:7, amulet:8 });
+function namedRelicArtCell(setId, slot, itemClass='warrior') {
+  if (!SET_RULES || !Array.isArray(SET_RULES.SETS)) return null;
+  const row = SET_RULES.SETS.findIndex(set => set.id === setId);
+  if (row < 0) return null;
+  const col = slot === 'weapon'
+    ? (NAMED_RELIC_WEAPON_COL[itemClass] ?? NAMED_RELIC_WEAPON_COL.warrior)
+    : NAMED_RELIC_SLOT_COL[slot];
+  return Number.isInteger(col) ? { x:col, y:row } : null;
+}
+function namedRelicMarkup(setId, slot, itemClass='warrior', extraClass='') {
+  const p = namedRelicArtCell(setId, slot, itemClass);
+  if (!p) return '';
+  return `<span class="named-relic-icon${extraClass ? ' ' + extraClass : ''}" style="--rx:${p.x};--ry:${p.y}" aria-hidden="true"></span>`;
+}
+function itemLootMarkup(item) {
+  if (item && item.namedSet) {
+    const itemClass = item.slot === 'weapon' && item.base && item.base.cls
+      ? item.base.cls
+      : (meta && meta.classId) || 'warrior';
+    const art = namedRelicMarkup(item.setId, item.setPiece || item.slot, itemClass);
+    if (art) return art;
+  }
+  return lootMarkup(item && item.icon);
+}
 
 const EQUIPMENT_SOURCE_BY_ICON = Object.freeze({
   'iron-sword':['weapon',0,0],'broad-sword':['weapon',1,0],'battle-axe':['weapon',3,1],'rune-blade':['weapon',3,0],
@@ -690,6 +767,19 @@ function equipmentArtSource(item) {
   return EQUIPMENT_SOURCE_BY_ICON[item.icon] || null;
 }
 function drawGroundEquipment(item, px, py, size=29) {
+  if (item && item.namedSet && imageReady(namedRelicAtlasV180)) {
+    const itemClass = item.slot === 'weapon' && item.base && item.base.cls
+      ? item.base.cls
+      : (meta && meta.classId) || 'warrior';
+    const cell = namedRelicArtCell(item.setId, item.setPiece || item.slot, itemClass);
+    if (cell) {
+      const cols=9, rows=6, sw=namedRelicAtlasV180.naturalWidth/cols, sh=namedRelicAtlasV180.naturalHeight/rows;
+      ctx.save(); ctx.imageSmoothingEnabled=true;
+      ctx.shadowColor='rgba(178,116,36,.72)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
+      ctx.drawImage(namedRelicAtlasV180,cell.x*sw,cell.y*sh,sw,sh,px-size/2,py-size/2,size,size);
+      ctx.restore(); return true;
+    }
+  }
   const src=equipmentArtSource(item); if(!src) return false;
   const [sheetId,sx,sy]=src;
   const image=sheetId==='weapon' ? equipmentWeaponsV13 : equipmentWearablesV13;
@@ -1938,6 +2028,9 @@ function weaponBaseForDrop(d) {
 const INVENTORY_RULES = typeof window !== 'undefined' ? window.DE_INVENTORY_RULES_V130 : null;
 if (!INVENTORY_RULES || INVENTORY_RULES.authority !== 'equipment-stat-scoring')
   throw new Error('Dungeon Echo equipment-stat-scoring authority missing');
+const SET_RULES = typeof window !== 'undefined' ? window.DE_SET_RULES_V180 : null;
+if (!SET_RULES || SET_RULES.authority !== 'named-set-policy')
+  throw new Error('Dungeon Echo named-set-policy authority missing');
 const eqScoreOf = stats => INVENTORY_RULES.equipmentStatScore(stats);
 function starterWeaponForClass(targetClass) {
   const base = WEAPON_BASES.find(b => b.cls === targetClass && Number(b.min) <= 1) || WEAPON_BASES.find(b => b.cls === targetClass);
@@ -2040,41 +2133,91 @@ if (!ECONOMY_RULES || ECONOMY_RULES.authority !== 'economy-pricing')
 const TOWN_RULES = typeof window !== 'undefined' ? window.DE_TOWN_RULES_V130 : null;
 if (!TOWN_RULES || TOWN_RULES.authority !== 'town-checkpoint-readiness-policy')
   throw new Error('Dungeon Echo town-checkpoint-readiness-policy authority missing');
-const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueScore(it), it.forge || 0);
+const TOWN_GROWTH_RULES = typeof window !== 'undefined' ? window.DE_TOWN_GROWTH_RULES_V180 : null;
+if (!TOWN_GROWTH_RULES || TOWN_GROWTH_RULES.authority !== 'town-growth-policy')
+  throw new Error('Dungeon Echo town-growth-policy authority missing');
+const currentTownWorks = () => greedyMode && meta && meta.townWorks ? meta.townWorks : {};
+const townWorkLevel = id => TOWN_GROWTH_RULES.level(currentTownWorks(), id);
+const relicLedgerCount = () => meta && meta.relicLedger
+  ? Object.keys(meta.relicLedger).filter(key => meta.relicLedger[key]).length : 0;
+const forgeCost = it => ECONOMY_RULES.forgeCost(
+  itemValueScore(it), it.forge || 0, TOWN_GROWTH_RULES.forgeDiscount(currentTownWorks()));
 const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);
+function namedRelicBaseForSlot(slot, d, hashValue) {
+  const h = (Math.floor(Number(hashValue) || 0) >>> 0);
+  if (slot === 'weapon') {
+    const own = WEAPON_BASES.filter(b => b.cls === classId && d >= b.min);
+    return own.length ? own[Math.max(0, own.length - 1 - (h % Math.min(2, own.length)))] : weaponBaseForDrop(d);
+  }
+  const bases = slot === 'armor' ? ARMOR_BASES : slot === 'helmet' ? HELMET_BASES :
+    slot === 'boots' ? BOOT_BASES : slot === 'ring' ? RING_BASES : AMULET_BASES;
+  const pool = bases.filter(b => d >= b.min);
+  if (!pool.length) return bases[0];
+  return pool[Math.max(0, pool.length - 1 - (h % Math.min(2, pool.length)))];
+}
 function genEquip(d, minRarity = 0) {
   const roll = rng();
   // 六栏位分布：武器 .30 护甲 .25 头盔 .15 靴 .15 戒指 .10 项链 .05
-  const slot = roll < .30 ? 'weapon' : roll < .55 ? 'armor' : roll < .70 ? 'helmet' :
+  let slot = roll < .30 ? 'weapon' : roll < .55 ? 'armor' : roll < .70 ? 'helmet' :
     roll < .85 ? 'boots' : roll < .95 ? 'ring' : 'amulet';
   const bases = slot === 'armor' ? ARMOR_BASES :
     slot === 'helmet' ? HELMET_BASES :
     slot === 'boots' ? BOOT_BASES :
     slot === 'ring' ? RING_BASES : AMULET_BASES;
   const pool = slot === 'weapon' ? null : bases.filter(b => d >= b.min);
-  const base = slot === 'weapon' ? weaponBaseForDrop(d) :
+  let base = slot === 'weapon' ? weaponBaseForDrop(d) :
     pool[Math.max(0, pool.length - 1 - rnd(Math.min(2, pool.length)))];
   const rarity = rollRarity(minRarity);
+  // Reuse the already-consumed slot roll as per-drop entropy. No extra RNG call is introduced:
+  // named identity must not collapse every same-floor/same-base item onto the same set/piece.
+  const namedEntropy = Math.floor(roll * 4294967296) >>> 0;
+  const namedHash = hashSeed([RUN_SEED, d, slot, rarity, base && base.name, classId, namedEntropy].join('|'));
+  const namedRoll = (namedHash >>> 0) / 4294967295;
+  const namedSet = namedRoll < SET_RULES.namedChance(
+    rarity,
+    TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()),
+    EXPEDITION_RULES.namedRelicChanceBonus(currentExpeditionContractId()))
+    ? SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics')) : null;
+  // Ordinary gear keeps the classic weighted slot mix. Once a named relic is rolled, however,
+  // its six authored pieces are peers: do not make the amulet a hidden 5% bottleneck merely
+  // because ordinary loot uses a 30/25/15/15/10/5 slot distribution.
+  if (namedSet) {
+    const pieceHash = hashSeed([namedHash, namedSet.id, 'piece'].join('|'));
+    slot = SET_RULES.namedPieceSlot(pieceHash);
+    base = namedRelicBaseForSlot(slot, d, pieceHash >>> 3);
+  }
   const stats = {};
   if (base.atk) stats.atk = base.atk;
   if (base.def) stats.def = base.def;
   if (base.hp)  stats.hp = base.hp;
   if (base.crit) stats.crit = base.crit;
   const affixes = [];
-  for (let i = 0; i < RARITIES[rarity].affixes; i++) {
+  // A named relic leads with its identity and fixed signature; keep at most one random secondary affix
+  // so the item does not collapse back into a stack of unrelated stat lines.
+  const affixCount = namedSet ? Math.min(1, RARITIES[rarity].affixes) : RARITIES[rarity].affixes;
+  for (let i = 0; i < affixCount; i++) {
     const a = genAffix(d);
     affixes.push(a);
     stats[a.k] = (stats[a.k] || 0) + a.v;
   }
+  const signatureStats = namedSet ? SET_RULES.signatureStats(namedSet.id, slot, d) : null;
+  if (signatureStats) for (const [k, v] of Object.entries(signatureStats)) stats[k] = (stats[k] || 0) + (Number(v) || 0);
   const spr = slot === 'weapon'
     ? (WEAPON_SPR_BY_ICON[base.icon] || 'sword')
     : slot === 'armor' ? 'armor' : slot === 'ring' ? 'ring' : 'trinket';
-  const mechanic = mechanicForFreshItem(slot, rarity, d, base, affixes);
+  const mechanic = namedSet ? null : mechanicForFreshItem(slot, rarity, d, base, affixes);
   const mechanicName = mechanic ? ` · ${MECHANIC_TRAITS[mechanic.id].name}` : '';
+  const namedPiece = namedSet ? SET_RULES.piece(namedSet.id, slot, classId) : null;
   return {
     slot, base, rarity, affixes, stats, spr, icon: base.icon,
     ...(mechanic ? { mechanic: mechanic.id, mechanicPower: mechanic.power } : {}),
-    name: `${RARITIES[rarity].name}·${base.name}${mechanicName}`,
+    ...(namedPiece ? {
+      namedSet:true, setId:namedPiece.setId, setPiece:namedPiece.slot,
+      namedEn:namedPiece.en, loreZh:namedPiece.zhLore, loreEn:namedPiece.enLore,
+      setNameZh:namedPiece.setNameZh, setNameEn:namedPiece.setNameEn,
+      signatureStats:{ ...(signatureStats || {}) },
+    } : {}),
+    name: namedPiece ? namedPiece.zh : `${RARITIES[rarity].name}·${base.name}${mechanicName}`,
     score: eqScoreOf(stats),
   };
 }
@@ -2085,6 +2228,10 @@ function mechanicPower(id) {
   for (const it of Object.values(player.equip)) {
     if (!it || it.mechanic !== id) continue;
     best = Math.max(best, Math.max(1, Math.min(2, Number(it.mechanicPower) || 1)));
+  }
+  for (const row of SET_RULES.activeCapstones(player.equip)) {
+    if (row.mechanic !== id) continue;
+    best = Math.max(best, Math.max(1, Math.min(2, Number(row.power) || 1)));
   }
   return best;
 }
@@ -2125,12 +2272,14 @@ function armReprisal() {
 
 const eqStat = k => ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet']
   .reduce((s, sl) => s + (player.equip[sl] ? (player.equip[sl].stats[k] || 0) : 0), 0);
+const namedSetStats = () => SET_RULES.statBonuses(player && player.equip ? player.equip : {});
+const setStat = k => Number(namedSetStats()[k]) || 0;
 const pMaxHp = () => player.hpBase + eqStat('hp');
 const pAtk   = () => player.atkBase + eqStat('atk');
 // 战士被动「坚甲」：天生扁平减伤，随等级成长（1级+1，每5级+1）——近战换血的生存根基
 const warriorDr = () => (classId === 'warrior' ? 1 + Math.floor((player.lvl - 1) / 5) : 0);
 const pArmor = () => eqStat('def');
-const pFixedDr = () => (player.flatDr || 0) + warriorDr();
+const pFixedDr = () => (player.flatDr || 0) + warriorDr() + setStat('fixedDr');
 const pDef = () => pArmor() + pFixedDr();
 const mitigatePlayerHit = (raw, armorScale = 1, ignoreArmor = false) => {
   const armor = ignoreArmor ? 0 : Math.floor(pArmor() * Math.max(0, armorScale));
@@ -2139,16 +2288,16 @@ const mitigatePlayerHit = (raw, armorScale = 1, ignoreArmor = false) => {
 const pCrit  = () => {
   const crisis = mechanicPower('crisis');
   const crisisBonus = crisis && player.hp <= pMaxHp() * 0.40 ? (crisis >= 2 ? 20 : 12) : 0;
-  return 5 + (classDef().critBase || 0) + (player.critBase || 0) + eqStat('crit') + crisisBonus;
+  return 5 + (classDef().critBase || 0) + (player.critBase || 0) + eqStat('crit') + setStat('crit') + crisisBonus;
 };
-const pLeech = () => (player.leechBase || 0) + eqStat('leech');
+const pLeech = () => (player.leechBase || 0) + eqStat('leech') + setStat('leech');
 const pGoldBonus = () => (player.goldFind || 0) + eqStat('gold');
 const pThorns   = () => (player.thornsBase || 0) + eqStat('thorns');
-const pKillHeal = () => (player.regenBase || 0) + eqStat('regen');
+const pKillHeal = () => (player.regenBase || 0) + eqStat('regen') + setStat('regen');
 const COMBAT_RULES = typeof window !== 'undefined' ? window.DE_COMBAT_RULES_V130 : null;
 if (!COMBAT_RULES || COMBAT_RULES.authority !== 'critical-damage-multiplier')
   throw new Error('Dungeon Echo critical-damage-multiplier authority missing');
-const pCritMul  = () => COMBAT_RULES.criticalMultiplier(player.critPower || 0);
+const pCritMul  = () => COMBAT_RULES.criticalMultiplier((player.critPower || 0) + setStat('critPower'));
 const pPlunder  = () => 1 + (player.plunder || 0) / 100;
 // —— 可读反制：隐藏随机穿甲已移除 ——
 // 普通攻击永远按护甲结算；高 DEF 不再提高任何隐藏的无视护甲概率。
@@ -3051,15 +3200,37 @@ function dropAt(x, y, it) {
 const PROGRESSION_RULES = typeof window !== 'undefined' ? window.DE_PROGRESSION_RULES_V130 : null;
 if (!PROGRESSION_RULES || PROGRESSION_RULES.authority !== 'level-up-arithmetic')
   throw new Error('Dungeon Echo level-up-arithmetic authority missing');
+function progressionLegacyFloor() {
+  return greedyMode && meta ? {
+    legacyLvl:Math.max(1, Number(meta.lvl) || 1),
+    legacyHp:Math.max(1, Number(meta.hpBase) || 1),
+    legacyAtk:Math.max(0, Number(meta.atkBase) || 0),
+  } : {};
+}
+function progressionLevelCap() {
+  const level = player ? player.lvl : 1;
+  return PROGRESSION_RULES.progressionCaps(classDef(), level, progressionLegacyFloor()).level;
+}
+function settleProgressionXpCap() {
+  if (!player) return;
+  const cap = progressionLevelCap();
+  if (player.lvl >= cap) player.xp = Math.min(Math.max(0, Number(player.xp) || 0), PROGRESSION_RULES.xpThreshold(cap) - 1);
+}
 function killMonster(m) {
   const boomHit = m.boom && player.hp > 0 &&
     Math.abs(m.x - player.x) + Math.abs(m.y - player.y) <= 1;
   monsters.splice(monsters.indexOf(m), 1);
-  player.kills++; player.xp += m.xp;
+  player.kills++;
+  const levelCap = progressionLevelCap();
+  const xpAwarded = player.lvl < levelCap ? m.xp : 0;
+  if (xpAwarded > 0) player.xp += xpAwarded;
+  else settleProgressionXpCap();
   burst(m.fx, m.fy, m.color, 14);
   sfx.kill(!!(m.boss || m.midBoss));
   addDecal(m.x, m.y);
-  msg(ui(`${m.name}被消灭了！（+${m.xp} 经验）`, `${visibleWorldName(m.name)} was slain! (+${m.xp} XP)`), 'good');
+  msg(xpAwarded > 0
+    ? ui(`${m.name}被消灭了！（+${xpAwarded} 经验）`, `${visibleWorldName(m.name)} was slain! (+${xpAwarded} XP)`)
+    : ui(`${m.name}被消灭了！（永久等级已达上限）`, `${visibleWorldName(m.name)} was slain! (Permanent level cap reached)`), 'good');
   if (boomHit) {
     const dmg = Math.max(2, mitigatePlayerHit(Math.round(m.atk * 0.55), .5, false));
     player.hp -= dmg; player.hurtT = 1;
@@ -3120,7 +3291,7 @@ function killMonster(m) {
     player.hp += h;
     floater(player, `+${h}`, '#7dd87d');
   }
-  while (player.xp >= PROGRESSION_RULES.xpThreshold(player.lvl)) {
+  while (player.lvl < levelCap && player.xp >= PROGRESSION_RULES.xpThreshold(player.lvl)) {
     player.xp -= PROGRESSION_RULES.xpThreshold(player.lvl);
     const delta = PROGRESSION_RULES.levelUpDelta();
     player.lvl++; player.hpBase += delta.hpBase; player.atkBase += delta.atkBase;
@@ -3131,6 +3302,7 @@ function killMonster(m) {
     msg(ui(`你升到了 ${player.lvl} 级！攻击+1，生命上限+6。`, `Level ${player.lvl}! ATK +1, Max HP +6.`), 'gold');
     if (PROGRESSION_RULES.talentDue(player.lvl)) pendingTalent = true;
   }
+  settleProgressionXpCap();
   if (!floorCleared && monsters.length === 0) {
     floorCleared = true;
     const bonus = 12 + depth * 3;
@@ -3299,7 +3471,7 @@ function usePotion() {
   // 回复量随最大生命保底（18%），修正深层「药水越来越不解渴」的衰减
   const heal = Math.min(pMaxHp() - player.hp,
     Math.round(Math.max(14 + depth * 2, pMaxHp() * 0.18)
-      * (1 + (player.potionBoost || 0) / 100) * healMult()));
+      * (1 + ((player.potionBoost || 0) + setStat('potionBoost')) / 100) * healMult()));
   player.hp += heal;
   player.poison = 0;
   const clarity = mechanicPower('clarity');
@@ -3431,7 +3603,7 @@ function useBaseSkill() {
   if (echo) player.echoEdgeTurn = turns + 1;
   const afterimage = mechanicPower('afterimage');
   if (afterimage) player.afterimageTurn = turns + 1;
-  player.skillCd = Math.max(2, sk.cd - (player.skillHaste || 0));
+  player.skillCd = Math.max(2, sk.cd - (player.skillHaste || 0) - setStat('skillHaste'));
   const overclock = mechanicPower('overclock');
   if (overclock && monsters.length < mobsBeforeSkill) {
     const refund = overclock >= 2 ? 2 : 1;
@@ -3546,6 +3718,7 @@ function descend() {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); updateHud();
   persistRun();
+  openPendingSkillEvolution();
 }
 
 // ================= 快速下潜（付费跳层） =================
@@ -3576,6 +3749,7 @@ function quickDive(n) {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); updateHud();
   persistRun();
+  openPendingSkillEvolution();
 }
 
 function triggerTrap(x, y) {
@@ -3670,11 +3844,16 @@ function applyShrine() {
   updateHud();
 }
 
+function openPendingSkillEvolution() {
+  if (!pendingSkillEvolution()) return false;
+  openTalent();
+  return true;
+}
 function openTalent() {
-  pendingTalent = false;
+  const evolutionPicks = pendingSkillEvolution();
+  if (!evolutionPicks) pendingTalent = false;
   state = 'talent';
   const grid = $('talent-grid');
-  const evolutionPicks = pendingSkillEvolution();
   const pool = evolutionPicks ? [...evolutionPicks] : [...TALENTS];
   const picks = [];
   if (evolutionPicks) picks.push(...pool);
@@ -3693,6 +3872,7 @@ function openTalent() {
 
 function pickTalent(id) {
   const t = TALENTS.find(x => x.id === id) || skillEvolutionTalent(id);
+  const wasEvolution = !!(t && t.evolution);
   hideUi('talent-screen');
   if (t) {
     t.apply(player);
@@ -3704,6 +3884,11 @@ function pickTalent(id) {
   state = 'playing';
   renderBag(); renderEquip(); updateHud();
   persistRun();
+  if (wasEvolution && (pendingSkillEvolution() || pendingTalent)) {
+    openTalent();
+    persistRun();
+    return;
+  }
   endTurn();
 }
 
@@ -3863,7 +4048,7 @@ function renderBag() {
   let html = '';
   for (let i = 0; i < BAG_CAP; i++) {
     const it = player.inv[i];
-    const icon = it ? lootMarkup(it.icon) : '';
+    const icon = it ? itemLootMarkup(it) : '';
     html += it
       ? `<div class="bagcell r${it.rarity}${i === selectedBagIndex ? ' selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(visibleItemName(it))}">${icon}<span class="dropx" data-drop="${i}" aria-label="${ui('丢弃','Drop')}">✕</span></div>`
       : `<div class="bagcell empty"></div>`;
@@ -3877,7 +4062,7 @@ function renderEquip() {
     const el = $('eq-' + slot); if (!el) continue;
     const it = player.equip[slot];
     const iconEl = el.querySelector('.eqicon');
-    iconEl.innerHTML = it ? lootMarkup(it.icon) : '<span aria-hidden="true">◇</span>';
+    iconEl.innerHTML = it ? itemLootMarkup(it) : '<span aria-hidden="true">◇</span>';
     const nameEl = el.querySelector('.eqname');
     if (it) {
       nameEl.textContent = visibleItemName(it);
@@ -3899,13 +4084,27 @@ function renderEquip() {
 
 function tooltipHtml(it, compareSlot) {
   const r = RARITIES[it.rarity];
-  let html = `<div class="tname r${it.rarity}">${esc(visibleItemName(it))}</div>`;
+  let html = `<div class="tname r${it.rarity}${it.namedSet ? ' named-relic-name' : ''}">${esc(visibleItemName(it))}</div>`;
+  if (it.namedSet) {
+    const set = SET_RULES.setById(it.setId);
+    const count = (SET_RULES.equippedCounts(player && player.equip || {})[it.setId] || 0);
+    const lore = ui(it.loreZh || '', it.loreEn || '');
+    const sig = Object.entries(it.signatureStats || {}).map(([k,v]) => {
+      const label = AFFIX_LABEL[k];
+      return label ? label(v) : `${k} +${v}`;
+    }).join(' · ');
+    html += `<div class="named-relic-set">${esc(ui(it.setNameZh || (set && set.zh) || '', it.setNameEn || (set && set.en) || ''))} · ${count}/6 ${ui('已装备','equipped')}</div>`;
+    if (lore) html += `<div class="named-relic-lore">“${esc(lore)}”</div>`;
+    if (sig) html += `<div class="named-relic-signature">${ui('遗物固有','Relic signature')} · ${esc(sig)}</div>`;
+    if (set) html += `<div class="named-relic-bonuses">${set.bonuses.map(b => `<span class="${count >= b.pieces ? 'active' : ''}${b.capstone ? ' capstone' : ''}">${b.capstone ? '✦ ' : ''}${b.pieces}/6 · ${esc(ui(b.zh,b.en))}</span>`).join('')}</div>`;
+  }
+  if (it.namedSet) html += `<div class="named-relic-stat-head">${ui('装备总属性','Total Item Stats')}</div>`;
   if (it.stats.atk) html += `<div>${esc(AFFIX_LABEL.atk(it.stats.atk))}</div>`;
   if (it.stats.def) html += `<div>${esc(AFFIX_LABEL.def(it.stats.def))}</div>`;
   if (it.stats.hp)  html += `<div>${esc(AFFIX_LABEL.hp(it.stats.hp))}</div>`;
   for (const a of (it.affixes || [])) {
     const label = AFFIX_LABEL[a.k];
-    if (label) html += `<div class="affix">${esc(label(a.v))}</div>`;
+    if (label) html += `<div class="affix${it.namedSet ? ' named-relic-secondary' : ''}">${it.namedSet ? ui('附带 · ','Secondary · ') : ''}${esc(label(a.v))}</div>`;
   }
   const mechanicText = mechanicDescription(it);
   if (mechanicText) html += `<div class="affix">${esc(mechanicText)}</div>`;
@@ -5064,7 +5263,9 @@ function updateHud() {
       : ui('使用治疗药水（Q）', 'Use Healing Potion (Q)');
   }
   $('st-lvl').textContent = player.lvl;
-  $('st-xp').textContent = `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
+  $('st-xp').textContent = player.lvl >= progressionLevelCap()
+    ? ui('(永久等级 MAX)','(Permanent Level MAX)')
+    : `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
   $('st-atk').textContent = pAtk();
   $('st-def').textContent = pDef();
   $('st-crit').textContent = pCrit() + '%';
@@ -5249,6 +5450,7 @@ function restoreRun(raw) {
     return;
   }
   msg(ui('你从火堆旁醒来，记忆尚未散尽。','You wake beside the fire with your memories intact.'), 'good');
+  openPendingSkillEvolution();
 }
 
 // 弹窗打开期间锁定页面滚动，防止背景画布跟着滚动条上下摆动
@@ -5412,16 +5614,18 @@ const TOWN_MARKET_IDS = Object.freeze(Object.keys(TOWN_MARKET_SUPPLIES));
 function townMarketPrice(id, tier) {
   const def = TOWN_MARKET_SUPPLIES[id];
   if (!def) return 0;
-  return ECONOMY_RULES.townSupplyPrice(def.base, tier);
+  return ECONOMY_RULES.townSupplyPrice(def.base, tier, TOWN_GROWTH_RULES.marketPriceDiscount(currentTownWorks()));
 }
 function freshTownMarket(tier = townTierForArt()) {
   const stock = {};
-  for (const id of TOWN_MARKET_IDS) stock[id] = ECONOMY_RULES.townSupplyStock(id, tier);
-  return { v:1, cycleRun:Math.max(0, Math.floor(Number(meta && meta.runs) || 0)), tier, stock };
+  const projectBonus = TOWN_GROWTH_RULES.marketStockBonus(currentTownWorks());
+  for (const id of TOWN_MARKET_IDS) stock[id] = ECONOMY_RULES.townSupplyStock(id, tier, projectBonus);
+  return { v:1, cycleRun:Math.max(0, Math.floor(Number(meta && meta.runs) || 0)), tier, stock, restockUsed:0 };
 }
 function validTownMarket(row) {
   return !!(row && row.v === 1 && Number.isInteger(row.cycleRun) && row.cycleRun >= 0 &&
     Number.isInteger(row.tier) && row.tier >= 1 && row.tier <= 10 && row.stock &&
+    (!('restockUsed' in row) || row.restockUsed === 0 || row.restockUsed === 1) &&
     TOWN_MARKET_IDS.every(id => Number.isInteger(row.stock[id]) && row.stock[id] >= 0 && row.stock[id] <= 99));
 }
 function ensureTownMarket() {
@@ -5434,10 +5638,57 @@ function ensureTownMarket() {
   }
   return meta.market;
 }
+function townMarketRestockCost() {
+  const market = ensureTownMarket();
+  return market ? ECONOMY_RULES.townMarketRestockCost(market.tier) : 0;
+}
+function townMarketNeedsRestock(market = ensureTownMarket()) {
+  if (!market) return false;
+  const full = freshTownMarket(market.tier).stock;
+  return TOWN_MARKET_IDS.some(id => (market.stock[id] || 0) < (full[id] || 0));
+}
+function townMarketRestockAvailable() {
+  const market = ensureTownMarket();
+  return !!(market && TOWN_GROWTH_RULES.marketRestockUnlocked(currentTownWorks()) &&
+    !market.restockUsed && townMarketNeedsRestock(market));
+}
+function restockTownMarket() {
+  if (state !== 'town' || !meta) return false;
+  if (!TOWN_GROWTH_RULES.marketRestockUnlocked(currentTownWorks())) {
+    msg(ui('先设立护商队，才有能力在同一轮远征周期内追回补给。', 'Fund Caravan Guards before recalling supplies within the same expedition cycle.'), 'bad');
+    return false;
+  }
+  const market = ensureTownMarket();
+  if (!market || market.restockUsed) {
+    msg(ui('这一轮已经召回过护商队了。', 'The guarded caravan has already been recalled this cycle.'), 'bad');
+    return false;
+  }
+  if (!townMarketNeedsRestock(market)) {
+    msg(ui('货架还是满的，现在没有必要召回商队。', 'The shelves are still full; there is no reason to recall the caravan yet.'), 'good');
+    return false;
+  }
+  const cost = townMarketRestockCost();
+  if ((meta.gold || 0) < cost) {
+    msg(ui(`召回护商队需要 ${cost} G，金库不足。`, `Recalling the guarded caravan costs ${cost} G; the vault is short.`), 'bad');
+    return false;
+  }
+  const full = freshTownMarket(market.tier).stock;
+  meta.gold -= cost;
+  for (const id of TOWN_MARKET_IDS) market.stock[id] = full[id];
+  market.restockUsed = 1;
+  saveMeta();
+  sfx.shop();
+  msg(ui(`护商队赶在城门关闭前补满了货架，花费 ${cost} G。`, `The guarded caravan refilled the shelves before the gate closed for ${cost} G.`), 'gold');
+  renderTown();
+  return true;
+}
+
 function townReadinessPlan() {
   const market = ensureTownMarket();
   if (!meta || !market) return { rows:[], total:0, ready:false, available:false, affordable:false };
-  const need = TOWN_RULES.expeditionSupplyNeeds(meta);
+  const need = { ...TOWN_RULES.expeditionSupplyNeeds(meta) };
+  const keyTarget = TOWN_GROWTH_RULES.marketReadinessKeyTarget(currentTownWorks());
+  if (keyTarget > 0) need.key = Math.max(0, keyTarget - Math.max(0, Number(meta.keys) || 0));
   const rows = Object.entries(need).filter(([, count]) => count > 0).map(([id, count]) => ({
     id, count, price:townMarketPrice(id, market.tier),
     available:(market.stock[id] || 0) >= count,
@@ -5462,17 +5713,20 @@ function buyTownReadiness() {
     for (let i = 0; i < row.count; i++) TOWN_MARKET_SUPPLIES[row.id].apply(meta);
   }
   sfx.shop();
-  msg(ui(`军需清单已补齐：2 瓶药水、1 张回城卷轴（${plan.total} G）。`, `Quartermaster kit complete: 2 Potions and 1 Return Scroll (${plan.total} G).`), 'gold');
+  const keyTarget = TOWN_GROWTH_RULES.marketReadinessKeyTarget(currentTownWorks());
+  const kitTextZh = keyTarget > 0 ? '2 瓶药水、1 张回城卷轴、至少 1 把钥匙' : '2 瓶药水、1 张回城卷轴';
+  const kitTextEn = keyTarget > 0 ? '2 Potions, 1 Return Scroll, and at least 1 Key' : '2 Potions and 1 Return Scroll';
+  msg(ui(`军需清单已补齐：${kitTextZh}（${plan.total} G）。`, `Quartermaster kit complete: ${kitTextEn} (${plan.total} G).`), 'gold');
   saveMeta(); renderTown();
   return true;
 }
 
-// 酒馆是受控的长期成长金币池：每次远征归来至多一杯，每个角色档最多八杯。
+// 酒馆是受控的长期成长金币池：每次远征归来至多一杯；基础上限八杯，城镇工程最多扩到十一杯。
 // 小幅永久收益让“活着回城”更有意义，但低权重攻击成长与硬上限避免刷酒取代装备。
-const TAVERN_MAX_TOASTS = 8;
+const tavernMaxToasts = () => TOWN_GROWTH_RULES.tavernToastCap(currentTownWorks());
 const TAVERN_REWARDS = Object.freeze([
   { id:'hearth', weight:50, zh:'炉火麦酒', en:'Hearth Ale', zhEffect:'生命上限永久 +2', enEffect:'Permanent Max HP +2', apply:m => { m.hpBase += 2; } },
-  { id:'edge', weight:10, zh:'猎人烈酒', en:"Hunter's Spirit", zhEffect:'基础攻击永久 +1', enEffect:'Permanent Base ATK +1', apply:m => { m.atkBase += 1; } },
+  { id:'edge', weight:10, cap:2, zh:'猎人烈酒', en:"Hunter's Spirit", zhEffect:'基础攻击永久 +1（最多 2 次）', enEffect:'Permanent Base ATK +1 (max 2)', apply:m => { m.atkBase += 1; } },
   { id:'fortune', weight:25, zh:'幸运苹果酒', en:'Lucky Cider', zhEffect:'暴击率永久 +1%', enEffect:'Permanent Crit +1%', apply:m => { m.critBase += 1; } },
   { id:'prosperity', weight:15, zh:'商路黑啤', en:'Caravan Stout', zhEffect:'金币获取永久 +1%', enEffect:'Permanent Gold Find +1%', apply:m => { m.goldFind += 1; } },
 ]);
@@ -5480,13 +5734,27 @@ function tavernCost() {
   return ECONOMY_RULES.tavernToastCost(meta && meta.tavernVisits, townTierForArt());
 }
 function tavernRewardById(id) { return TAVERN_REWARDS.find(row => row.id === id) || null; }
+function tavernRewardCount(id) { return meta && meta.tavernRewardCounts ? Math.max(0, Number(meta.tavernRewardCounts[id]) || 0) : 0; }
+function tavernRewardAvailable(row) { return !!(row && (!row.cap || tavernRewardCount(row.id) < row.cap)); }
+const tavernChoiceCount = () => TOWN_GROWTH_RULES.tavernChoiceCount(currentTownWorks());
+function tavernOfferChoices() {
+  const count = Math.max(1, Math.min(TAVERN_REWARDS.length, tavernChoiceCount()));
+  if (count <= 1) return [];
+  const pool = TAVERN_REWARDS.filter(tavernRewardAvailable);
+  if (!pool.length) return [];
+  const seed = Math.max(0, Math.floor(Number(meta && meta.runs) || 0)) +
+    Math.max(0, Math.floor(Number(meta && meta.tavernVisits) || 0)) * 3;
+  const start = seed % pool.length;
+  return Array.from({length:Math.min(count,pool.length)}, (_,i) => pool[(start + i) % pool.length]);
+}
+
 function tavernAvailable() {
-  if (!meta || (meta.tavernVisits || 0) >= TAVERN_MAX_TOASTS) return false;
+  if (!meta || (meta.tavernVisits || 0) >= tavernMaxToasts()) return false;
   return (meta.tavernLastRun ?? -1) < (meta.runs || 0);
 }
-function drinkAtTavern() {
+function drinkAtTavern(rewardId = '') {
   if (state !== 'town' || !meta) return false;
-  if ((meta.tavernVisits || 0) >= TAVERN_MAX_TOASTS) {
+  if ((meta.tavernVisits || 0) >= tavernMaxToasts()) {
     msg(ui('酒馆老板摇头：你的回响已经足够浓烈了。', 'The innkeeper shakes his head: your echo is strong enough already.'), 'gold');
     return false;
   }
@@ -5499,15 +5767,29 @@ function drinkAtTavern() {
     msg(ui(`酒钱需要 ${cost} G，金库还不够。`, `The toast costs ${cost} G; the vault is short.`), 'bad');
     return false;
   }
-  const total = TAVERN_REWARDS.reduce((sum, row) => sum + row.weight, 0);
-  let roll = rng() * total;
-  let reward = TAVERN_REWARDS[0];
-  for (const row of TAVERN_REWARDS) { roll -= row.weight; if (roll <= 0) { reward = row; break; } }
+  const choices = tavernOfferChoices();
+  if (choices.length && !rewardId) {
+    msg(ui('酒馆已经能让你选酒了——从本次酒单里挑一杯。', 'The tavern now lets you choose—pick one drink from the current list.'), 'good');
+    return false;
+  }
+  let reward = rewardId ? choices.find(row => row.id === rewardId) : null;
+  if (rewardId && !reward) {
+    msg(ui('这杯酒不在本次酒单里，或者这种回响已经达到上限。', 'That drink is not on the current list, or its echo has reached its cap.'), 'bad');
+    return false;
+  }
+  if (!reward) {
+    const pool = TAVERN_REWARDS.filter(tavernRewardAvailable);
+    const total = pool.reduce((sum, row) => sum + row.weight, 0);
+    let roll = rng() * total;
+    reward = pool[0];
+    for (const row of pool) { roll -= row.weight; if (roll <= 0) { reward = row; break; } }
+  }
   meta.gold -= cost;
   reward.apply(meta);
   meta.tavernVisits = (meta.tavernVisits || 0) + 1;
   meta.tavernLastRun = Math.max(0, Math.floor(Number(meta.runs) || 0));
   meta.tavernHistory = [...(meta.tavernHistory || []), reward.id].slice(-4);
+  meta.tavernRewardCounts = { ...(meta.tavernRewardCounts || {}), [reward.id]:tavernRewardCount(reward.id) + 1 };
   saveMeta();
   sfx.levelup();
   msg(ui(`你举杯喝下【${reward.zh}】：${reward.zhEffect}。`, `You raise [${reward.en}]: ${reward.enEffect}.`), 'gold');
@@ -5522,19 +5804,54 @@ const TOWN_HOTSPOTS = Object.freeze([
   { id:'innkeeper', cell:TOWN_NPC_ART.innkeeper, x:.43, y:.84, face:-1, service:'tavern', zh:'酒馆老板', en:'Innkeeper' },
   { id:'merchant', cell:TOWN_NPC_ART.travellingMerchant, x:.59, y:.82, face:-1, service:'market', zh:'行商', en:'Merchant' },
   { id:'oracle', cell:TOWN_NPC_ART.oracle, activeCell:TOWN_NPC_ART.oracleRitual, x:.72, y:.82, face:1, service:'wheel', zh:'占卜师', en:'Oracle' },
-  { id:'records', cell:TOWN_NPC_ART.recordsClerk, x:.82, y:.83, face:-1, action:'records', zh:'远征书记', en:'Records Clerk' },
+  { id:'records', cell:TOWN_NPC_ART.recordsClerk, x:.82, y:.83, face:-1, service:'relics', zh:'遗物书记', en:'Relic Curator' },
   { id:'portal', cell:TOWN_NPC_ART.portalWarden, activeCell:TOWN_NPC_ART.portalTechnician, x:.92, y:.82, face:-1, action:'portal', zh:'传送守卫', en:'Portal Warden' },
 ]);
+const TOWN_WORK_FOR_HOTSPOT = Object.freeze({ smith:'smithy', innkeeper:'tavern', merchant:'market', records:'relics' });
+const TOWN_NPC_ROLE = Object.freeze({
+  quartermaster:{ zh:'仓库与军需', en:'Stash & Supply' },
+  smith:{ zh:'锻造与整备', en:'Forge & Gear' },
+  innkeeper:{ zh:'余烬酒馆', en:'Ember Tavern' },
+  merchant:{ zh:'商路与补给', en:'Trade & Supplies' },
+  oracle:{ zh:'命运占卜', en:'Fortune Oracle' },
+  records:{ zh:'遗物馆藏', en:'Relic Archive' },
+  portal:{ zh:'传送门守备', en:'Portal Watch' },
+  provisioner:{ zh:'常驻补给商', en:'Resident Provisioner' },
+  apothecary:{ zh:'常驻药剂学徒', en:'Resident Apothecary' },
+  watch:{ zh:'常驻城镇守卫', en:'Resident Town Watch' },
+  scout:{ zh:'常驻远征斥候', en:'Resident Expedition Scout' },
+  technician:{ zh:'常驻传送技师', en:'Resident Portal Technician' },
+  alchemist:{ zh:'常驻炼金师', en:'Resident Alchemist' },
+});
+const TOWN_RESIDENT_VISUALS = Object.freeze({
+  provisioner:{ cell:TOWN_NPC_ART.provisioner, x:.52, y:.91, face:1, scale:.72 },
+  apothecary:{ cell:TOWN_NPC_ART.apothecaryApprentice, x:.65, y:.91, face:-1, scale:.72 },
+  watch:{ cell:TOWN_NPC_ART.townWatch, x:.035, y:.88, face:1, scale:.76 },
+  scout:{ cell:TOWN_NPC_ART.expeditionScout, x:.975, y:.91, face:-1, scale:.74 },
+  technician:{ cell:TOWN_NPC_ART.portalTechnician, x:.90, y:.91, face:1, scale:.70 },
+  alchemist:{ cell:TOWN_NPC_ART.alchemist, x:.66, y:.90, face:1, scale:.70 },
+});
 let selectedTownCheckpoint = 1;
 let townActiveService = 'plaza';
 let townPendingHotspot = '';
 let townLastFrame = 0;
 let townPromptKey = '';
 const townAvatar = { x:.5, y:.90, tx:.5, ty:.90, face:1 };
-function townHotspotById(id) { return TOWN_HOTSPOTS.find(row => row.id === id) || null; }
+function activeTownResidents() {
+  if (!meta) return [];
+  const roster = TOWN_GROWTH_RULES.residentRoster({
+    tier:townTierForArt(), works:meta.townWorks || {},
+  });
+  return roster.map(row => {
+    const visual = TOWN_RESIDENT_VISUALS[row.id];
+    return visual ? { ...row, ...visual, kind:'resident' } : null;
+  }).filter(Boolean);
+}
+function townInteractables() { return [...TOWN_HOTSPOTS, ...activeTownResidents()]; }
+function townHotspotById(id) { return townInteractables().find(row => row.id === id) || null; }
 function nearestTownHotspot(maxDistance = Infinity) {
   let best = null, bestDistance = Infinity;
-  for (const row of TOWN_HOTSPOTS) {
+  for (const row of townInteractables()) {
     const dx = townAvatar.x - row.x, dy = (townAvatar.y - row.y) * .72;
     const distance = Math.hypot(dx, dy);
     if (distance < bestDistance) { best = row; bestDistance = distance; }
@@ -5553,14 +5870,15 @@ function updateTownPrompt() {
     : ui('WASD / 方向键在广场漫步 · 点击角色自动走近 · E / Enter 交互', 'Walk the plaza with WASD / arrows · click a character to approach · E / Enter interacts');
 }
 const TOWN_PAGE_FOR_SERVICE = Object.freeze({
-  plaza:'plaza', bag:'gear', stash:'gear', market:'market', tavern:'tavern', wheel:'wheel', portal:'depart',
+  plaza:'plaza', bag:'gear', stash:'gear', market:'market', tavern:'tavern', wheel:'wheel', relics:'relics', portal:'depart',
 });
 const TOWN_DEFAULT_SERVICE_FOR_PAGE = Object.freeze({
-  plaza:'plaza', gear:'stash', market:'market', tavern:'tavern', wheel:'wheel', depart:'portal',
+  plaza:'plaza', gear:'stash', market:'market', tavern:'tavern', wheel:'wheel', relics:'relics', depart:'portal',
 });
 function townPageForService(service) { return TOWN_PAGE_FOR_SERVICE[service] || 'plaza'; }
 function selectTownPage(page, focusTab = false) {
   if (!Object.prototype.hasOwnProperty.call(TOWN_DEFAULT_SERVICE_FOR_PAGE, page)) return false;
+  hideTownDialogue();
   if (townPageForService(townActiveService) !== page) townActiveService = TOWN_DEFAULT_SERVICE_FOR_PAGE[page];
   renderTownFocus(focusTab);
   return true;
@@ -5584,13 +5902,67 @@ function renderTownFocus(focusTab = false) {
     if (active && focusTab && typeof tab.focus === 'function') tab.focus({ preventScroll:true });
   });
 }
+function townNpcLine(row) {
+  if (!row || !meta) return null;
+  const context = {
+    tier:townTierForArt(), bestDepth:meta.bestDepth || 0, lastReturnDepth:meta.lastReturnDepth || 0,
+    relics:relicLedgerCount(), works:meta.townWorks || {}, eventId:meta.townEvent ? meta.townEvent.id : '',
+  };
+  return row.kind === 'resident'
+    ? TOWN_GROWTH_RULES.residentLine(row.id, context)
+    : TOWN_GROWTH_RULES.npcLine(row.id, context);
+}
+function townDialogueTags(row) {
+  const tags = [];
+  if (townRowHasNews(row)) tags.push(ui('镇务新消息', 'New town matter'));
+  const workId = TOWN_WORK_FOR_HOTSPOT[row.id];
+  if (workId) tags.push(ui(`建设等级 ${townWorkLevel(workId)}`, `Project Lv ${townWorkLevel(workId)}`));
+  if (row.id === 'records') tags.push(ui(`馆藏 ${relicLedgerCount()} 件`, `${relicLedgerCount()} catalogued`));
+  else if (['scout','portal','technician'].includes(row.id)) tags.push(ui(`最深 ${Math.max(0, meta.bestDepth || 0)} 层`, `Deepest Floor ${Math.max(0, meta.bestDepth || 0)}`));
+  else tags.push(ui(`城镇阶段 ${townTierForArt()}`, `Town Tier ${townTierForArt()}`));
+  return tags.slice(0, 2);
+}
+function hideTownDialogue() {
+  const dialogue = $('town-dialogue');
+  if (!dialogue) return false;
+  dialogue.classList.remove('shown');
+  dialogue.hidden = true;
+  return true;
+}
+function showTownDialogue(row, line) {
+  const dialogue = $('town-dialogue');
+  if (!dialogue || !row || !line) return false;
+  const portrait = $('town-dialogue-portrait');
+  const cell = Math.max(0, Math.floor(Number(row.cell) || 0));
+  if (portrait) {
+    portrait.style.setProperty('--npc-x', `${(cell % 4) * 100 / 3}%`);
+    portrait.style.setProperty('--npc-y', `${Math.floor(cell / 4) * 100 / 3}%`);
+  }
+  const role = TOWN_NPC_ROLE[row.id] || { zh:'回响小镇居民', en:'Echo Town Resident' };
+  if ($('town-dialogue-speaker')) $('town-dialogue-speaker').textContent = ui(row.zh, row.en);
+  if ($('town-dialogue-role')) $('town-dialogue-role').textContent = ui(role.zh, role.en);
+  if ($('town-dialogue-line')) $('town-dialogue-line').textContent = ui(line.zh, line.en);
+  const context = $('town-dialogue-context');
+  if (context) {
+    context.replaceChildren(...townDialogueTags(row).map(label => {
+      const chip = document.createElement('span');
+      chip.textContent = label;
+      return chip;
+    }));
+  }
+  dialogue.dataset.npc = row.id;
+  dialogue.hidden = false;
+  void dialogue.offsetWidth;
+  dialogue.classList.add('shown');
+  return true;
+}
 function activateTownHotspot(row, focusTab = true) {
   if (!row || state !== 'town') return false;
   townPendingHotspot = '';
-  if (row.action === 'records') {
-    const button = $('btn-achv-town');
-    if (button) button.click();
-    return true;
+  const line = townNpcLine(row);
+  if (focusTab && line) {
+    showTownDialogue(row, line);
+    msg(ui(`${row.zh}：${line.zh}`, `${row.en}: ${line.en}`), 'good');
   }
   if (row.action === 'portal') {
     townActiveService = 'portal';
@@ -5599,7 +5971,7 @@ function activateTownHotspot(row, focusTab = true) {
     if (depart) depart.focus({ preventScroll:true });
     return true;
   }
-  townActiveService = row.service || 'stash';
+  townActiveService = row.kind === 'resident' ? 'plaza' : (row.service || 'stash');
   renderTownFocus(focusTab);
   return true;
 }
@@ -5646,10 +6018,22 @@ function selectTownCheckpoint(target) {
 function availableTownContracts() {
   return EXPEDITION_RULES.availableContracts(townTierForArt());
 }
+function townPermanentLevelCapReached() {
+  if (!meta) return false;
+  const c = CLASSES[meta.classId] || CLASSES.warrior;
+  const cap = PROGRESSION_RULES.progressionCaps(c, meta.lvl, {
+    legacyLvl:meta.lvl, legacyHp:meta.hpBase, legacyAtk:meta.atkBase,
+  }).level;
+  return (Number(meta.lvl) || 1) >= cap;
+}
+function townContractEnabled(id) {
+  const normalized = EXPEDITION_RULES.normalizeContractId(id);
+  return normalized !== 'oath' || !townPermanentLevelCapReached();
+}
 function selectTownContract(id) {
   if (state !== 'town' || !meta) return false;
   const normalized = EXPEDITION_RULES.normalizeContractId(id);
-  if (!availableTownContracts().some(row => row.id === normalized)) return false;
+  if (!availableTownContracts().some(row => row.id === normalized) || !townContractEnabled(normalized)) return false;
   meta.contractId = normalized;
   saveMeta();
   renderTown();
@@ -5659,12 +6043,19 @@ function renderTownContracts() {
   const panel = $('town-contracts');
   if (!panel || !meta) return;
   const rows = availableTownContracts();
-  if (!rows.some(row => row.id === meta.contractId)) meta.contractId = 'none';
+  if (!rows.some(row => row.id === meta.contractId) || !townContractEnabled(meta.contractId)) {
+    meta.contractId = 'none';
+    saveMeta();
+  }
   const selected = EXPEDITION_RULES.normalizeContractId(meta.contractId);
   panel.innerHTML = `<div class="checkpoint-head"><b>${ui('远征委托','Expedition Contract')}</b><small>${ui('出发前选择 · 仅影响下一次远征','Choose before departure · affects the next expedition')}</small></div>` +
     `<div class="town-contract-grid">${rows.map(row => {
       const active = row.id === selected;
-      return `<button type="button" data-contract="${row.id}" class="${active ? 'active' : ''}" aria-pressed="${active}"><b>${ui(row.zh,row.en)}</b><small>${ui(row.zhDesc,row.enDesc)}</small></button>`;
+      const enabled = townContractEnabled(row.id);
+      const desc = !enabled && row.id === 'oath'
+        ? ui('永久等级已达上限；该誓约本轮不再提供成长收益。','Permanent level cap reached; this Oath no longer provides progression value.')
+        : ui(row.zhDesc,row.enDesc);
+      return `<button type="button" data-contract="${row.id}" class="${active ? 'active' : ''}" aria-pressed="${active}" aria-disabled="${!enabled}"${enabled ? '' : ' disabled'}><b>${ui(row.zh,row.en)}</b><small>${desc}</small></button>`;
     }).join('')}</div>`;
 }
 function renderTownCheckpoints() {
@@ -5715,6 +6106,26 @@ function renderTownCheckpoints() {
       ? ui('基础补给齐备，可以直接出发。','Core supplies are ready for departure.')
       : ui('仍可冒险出发，但建议至少准备 2 瓶药水和 1 张回城卷轴。','You may still depart, but 2 Potions and 1 Return Scroll are recommended.');
   }
+}
+function completedRelicSets(ledger = meta && meta.relicLedger) {
+  if (!ledger) return [];
+  return SET_RULES.SETS.filter(set => SET_RULES.collectionProgress(ledger, set.id).found >= SET_RULES.SLOTS.length);
+}
+function registerReturnedRelics(items) {
+  if (!meta) return [];
+  meta.relicLedger = meta.relicLedger && typeof meta.relicLedger === 'object' ? meta.relicLedger : {};
+  const newly = [];
+  for (const item of (Array.isArray(items) ? items : [])) {
+    const key = SET_RULES.collectionKey(item);
+    if (!key || meta.relicLedger[key]) continue;
+    meta.relicLedger[key] = 1;
+    const piece = SET_RULES.piece(item.setId, item.setPiece, meta.classId);
+    if (piece) {
+      newly.push(piece);
+      recordTownChronicle({ kind:'relic', setId:item.setId, slot:item.setPiece });
+    }
+  }
+  return newly;
 }
 function syncMetaFromPlayer(died) {
   if (!player) return;
@@ -5832,6 +6243,7 @@ function showTown() {
   hideUi('title-screen'); hideUi('class-screen'); hideUi('pause-screen');
   hideUi('shop-screen'); hideUi('talent-screen'); hideUi('shrine-screen'); hideUi('echo-screen');
   showUi('town-screen');
+  hideTownDialogue();
   applyTownViewport();
   townLastFrame = 0; townPromptKey = '';
   renderTown();
@@ -6064,14 +6476,16 @@ function drawTownNpcFigure(ctx, index, x, baseY, now, facing = 1, scale = 1) {
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,.38)';
   ctx.beginPath(); ctx.ellipse(x, y + 1, 12 * scale, 3.2, 0, 0, Math.PI * 2); ctx.fill();
-  if (imageReady(townNpcAtlasV1)) {
+  const atlas = imageReady(townNpcAtlasV180) ? townNpcAtlasV180 : townNpcAtlasV1;
+  if (imageReady(atlas)) {
     const cols = 4, rows = 4;
-    const sw = townNpcAtlasV1.naturalWidth / cols, sh = townNpcAtlasV1.naturalHeight / rows;
+    const sw = atlas.naturalWidth / cols, sh = atlas.naturalHeight / rows;
     const sx = (index % cols) * sw, sy = Math.floor(index / cols) * sh;
     ctx.imageSmoothingEnabled = true;
     ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
     ctx.translate(x, y - 23 * scale); ctx.scale(facing, 1);
-    ctx.drawImage(townNpcAtlasV1, sx, sy, sw, sh, -18 * scale, -27 * scale, 36 * scale, 50 * scale);
+    const authoredScale = atlas === townNpcAtlasV180 ? 1.12 : 1;
+    ctx.drawImage(atlas, sx, sy, sw, sh, -20 * scale * authoredScale, -31 * scale * authoredScale, 40 * scale * authoredScale, 56 * scale * authoredScale);
   } else {
     ctx.fillStyle = 'rgba(24,18,20,.9)';
     ctx.beginPath(); ctx.arc(x, y - 16, 4.2 * scale, 0, Math.PI * 2); ctx.fill();
@@ -6104,8 +6518,18 @@ function drawTownHeroFigure(ctx, x, baseY, now, facing = 1, scale = 1) {
   }
   ctx.restore();
 }
+function townRowHasNews(row) {
+  if (!row || !meta || !meta.townEvent) return false;
+  const eventId = meta.townEvent.id;
+  return (eventId === 'relic_exhibition' && row.id === 'records') ||
+    (eventId === 'caravan_surplus' && (row.id === 'merchant' || row.id === 'provisioner')) ||
+    (eventId === 'scout_cache' && row.id === 'scout');
+}
 function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
-  const label = ui(row.zh, row.en);
+  const workId = TOWN_WORK_FOR_HOTSPOT[row.id];
+  const workLevel = workId ? townWorkLevel(workId) : 0;
+  const news = townRowHasNews(row);
+  const label = ui(row.zh, row.en) + (workLevel ? ui(` · 建设 ${workLevel}`, ` · Lv ${workLevel}`) : '') + (news ? ' · !' : '');
   ctx.save();
   ctx.font = `600 ${Math.round(10 * scale)}px "Segoe UI", "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -6123,12 +6547,10 @@ function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
 function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
   const near = nearestTownHotspot(.105);
   const artScale = clamp(H / 300, 1, 1.34);
-  const actors = TOWN_HOTSPOTS.map(row => ({ type:'hotspot', row, x:W * row.x, baseY:H * row.y }));
+  const actors = townInteractables().map(row => ({ type:row.kind === 'resident' ? 'resident' : 'hotspot', row, x:W * row.x, baseY:H * row.y }));
   const extras = [
-    { min:2, cell:TOWN_NPC_ART.provisioner, x:.52, y:.91, face:1, scale:.72 },
-    { min:3, cell:TOWN_NPC_ART.apothecaryApprentice, x:.65, y:.91, face:-1, scale:.72 },
-    { min:4, cell:TOWN_NPC_ART.townWatch, x:.035, y:.88, face:1, scale:.76 },
-    { min:5, cell:TOWN_NPC_ART.expeditionScout, x:.975, y:.91, face:-1, scale:.74 },
+    { min:6, cell:TOWN_NPC_ART.townWatch, x:.19, y:.91, face:-1, scale:.70 },
+    { min:9, cell:TOWN_NPC_ART.provisionerCrate, x:.50, y:.92, face:-1, scale:.68 },
   ];
   for (const row of extras) if (tier >= row.min)
     actors.push({ type:'extra', row, x:W * row.x, baseY:H * row.y });
@@ -6144,21 +6566,118 @@ function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
       continue;
     }
     const row = actor.row;
-    const selected = townActiveService === row.service || (row.action === 'portal' && townActiveService === 'portal');
+    const selected = row.kind !== 'resident' && (townActiveService === row.service || (row.action === 'portal' && townActiveService === 'portal'));
     const nearby = !!(near && near.row.id === row.id);
-    const pulse = !reducedMotion && row.activeCell !== undefined && (selected || nearby) && Math.floor(now / 620) % 2;
-    if (selected || nearby) {
+    const hasNews = townRowHasNews(row);
+    const pulse = !reducedMotion && row.activeCell !== undefined && (selected || nearby || hasNews) && Math.floor(now / 620) % 2;
+    if (selected || nearby || hasNews) {
       ctx.save();
       ctx.globalAlpha = .2 + .08 * Math.sin(now * .006);
       ctx.fillStyle = '#f2d27b';
       ctx.beginPath(); ctx.ellipse(actor.x, actor.baseY + 2, 18 * artScale, 5 * artScale, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
-    drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, (selected ? 1.02 : .94) * artScale);
-    drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby, artScale);
+    const figureScale = row.kind === 'resident'
+      ? (Number(row.scale) || .74) * (nearby ? 1.06 : 1)
+      : (selected ? 1.02 : .94);
+    drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, figureScale * artScale);
+    drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby || hasNews, (row.kind === 'resident' ? Math.max(.78, Number(row.scale) || .74) : 1) * artScale);
   }
 }
+function drawTownProjectLandmarks(ctx, now, W, H) {
+  const smithy=townWorkLevel('smithy'), market=townWorkLevel('market'), tavern=townWorkLevel('tavern'), relics=townWorkLevel('relics');
+  ctx.save();
+  if (smithy) {
+    const x=W*.27, y=H*.61, pulse=.45+.18*Math.sin(now/180);
+    ctx.fillStyle='rgba(35,20,14,.88)'; ctx.fillRect(x-22,y-10,44,18);
+    ctx.strokeStyle='rgba(202,128,54,.78)'; ctx.strokeRect(x-21.5,y-9.5,43,17);
+    ctx.fillStyle=`rgba(255,132,42,${pulse.toFixed(2)})`; ctx.fillRect(x-8,y-4,16,8);
+    ctx.fillStyle='rgba(46,38,35,.9)'; ctx.fillRect(x+12,y-22,7,13);
+    if (smithy>=2) { ctx.fillStyle='rgba(242,170,73,.82)'; ctx.fillRect(x-19,y-15,5,5); ctx.fillRect(x+14,y-16,5,5); }
+    if (smithy>=3) { ctx.strokeStyle='rgba(246,209,126,.7)'; ctx.beginPath(); ctx.moveTo(x-26,y+11); ctx.lineTo(x+26,y+11); ctx.stroke(); }
+  }
+  if (market) {
+    const x=W*.59, y=H*.63;
+    ctx.fillStyle='rgba(82,48,30,.88)'; ctx.fillRect(x-27,y-4,54,13);
+    ctx.fillStyle=market>=2?'rgba(153,61,50,.88)':'rgba(112,76,45,.82)';
+    ctx.beginPath(); ctx.moveTo(x-31,y-5); ctx.lineTo(x-20,y-19); ctx.lineTo(x+25,y-19); ctx.lineTo(x+31,y-5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#8b673b'; for(let i=0;i<market+1;i++) ctx.fillRect(x-25+i*15,y+10,9,7);
+    if(market>=3){ ctx.fillStyle='rgba(242,210,123,.78)'; ctx.fillRect(x+22,y-17,3,3); ctx.fillRect(x-25,y-17,3,3); }
+  }
+  if (tavern) {
+    const x=W*.43, y=H*.60, pulse=.62+.16*Math.sin(now/260);
+    for(let i=0;i<tavern+1;i++){
+      const lx=x+(i-(tavern/2))*14;
+      ctx.strokeStyle='rgba(96,68,42,.85)'; ctx.beginPath(); ctx.moveTo(lx,y-13); ctx.lineTo(lx,y-5); ctx.stroke();
+      ctx.fillStyle=`rgba(255,190,83,${pulse.toFixed(2)})`; ctx.fillRect(lx-3,y-5,6,7);
+    }
+  }
+  if (relics>=2) {
+    const x=W*.82, y=H*.58;
+    ctx.strokeStyle=relics>=3?'rgba(238,202,118,.86)':'rgba(173,131,73,.68)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x-35,y-24); ctx.lineTo(x-35,y+17); ctx.moveTo(x+35,y-24); ctx.lineTo(x+35,y+17); ctx.stroke();
+    if(relics>=3){ ctx.fillStyle='rgba(219,178,91,.72)'; ctx.fillRect(x-38,y-27,76,3); }
+  }
+  ctx.restore();
+}
+function drawTownEventNotice(ctx, now, W, H) {
+  if (!meta || !meta.townEvent) return;
+  const pulse=.68+.22*Math.sin(now/210);
+  const x=W*.51, y=H*.62;
+  ctx.save();
+  ctx.fillStyle='rgba(47,31,18,.92)';
+  ctx.fillRect(x-18,y-14,36,25);
+  ctx.strokeStyle='rgba(212,157,74,.78)';
+  ctx.strokeRect(x-17.5,y-13.5,35,24);
+  ctx.fillStyle='rgba(232,196,124,.82)';
+  ctx.fillRect(x-11,y-7,22,2);
+  ctx.fillRect(x-9,y-1,18,2);
+  ctx.fillStyle='rgba(111,78,42,.95)';
+  ctx.fillRect(x-2,y+11,4,17);
+  ctx.font='700 16px "Segoe UI", sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(255,207,104,'+pulse.toFixed(2)+')';
+  ctx.fillText('!',x,y-23);
+  ctx.restore();
+}
+function completedRelicSetCount(ledger = meta && meta.relicLedger) {
+  return completedRelicSets(ledger).length;
+}
+function drawTownRelicCaseMarkers(ctx, now, ax, ay) {
+  if (!meta || !meta.relicLedger) return;
+  const ledger = meta.relicLedger;
+  const focusId = meta.relicFocusSet || '';
+  const pulse = .58 + .22 * Math.sin(now / 310);
+  const rows = SET_RULES.SETS.slice(0, 6);
+  ctx.save();
+  for (let i = 0; i < rows.length; i++) {
+    const set = rows[i];
+    const progress = SET_RULES.collectionProgress(ledger, set.id).found;
+    const col = i % 3, row = Math.floor(i / 3);
+    const x = ax - 14 + col * 14, y = ay - 11 + row * 8;
+    const complete = progress >= SET_RULES.SLOTS.length;
+    const focused = focusId === set.id;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 3); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 3); ctx.lineTo(x - 3, y); ctx.closePath();
+    ctx.fillStyle = complete ? '#f3d98e' : progress > 0 ? '#b88a4a' : 'rgba(87,70,52,.72)';
+    ctx.fill();
+    if (focused) {
+      ctx.strokeStyle = `rgba(238,196,92,${pulse.toFixed(2)})`;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    if (progress > 0 && !complete) {
+      ctx.fillStyle = '#2a1a10';
+      ctx.font = '700 5px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(progress), x, y + .2);
+    }
+  }
+  ctx.restore();
+}
 function drawTownGrowthVisual(ctx, now, W, H, G) {
+  drawTownProjectLandmarks(ctx, now, W, H);
+  drawTownEventNotice(ctx, now, W, H);
   const tier = townTierForArt();
   const glow = .72 + .22 * Math.sin(now / 260);
   for (let i = 0; i < tier; i++) {
@@ -6168,6 +6687,29 @@ function drawTownGrowthVisual(ctx, now, W, H, G) {
     ctx.beginPath(); ctx.moveTo(x, 11); ctx.lineTo(x, 25 + (i % 2) * 4); ctx.stroke();
     ctx.fillStyle = `rgba(255,181,74,${glow.toFixed(2)})`;
     ctx.fillRect(x - 3, 24 + (i % 2) * 4, 6, 8);
+  }
+  if (tier >= 3) {
+    const relicCount = meta && meta.relicLedger
+      ? Object.keys(meta.relicLedger).filter(k => meta.relicLedger[k]).length : 0;
+    const ax = W * .82, ay = H * .58;
+    const pulse = .55 + .18 * Math.sin(now / 430);
+    ctx.save();
+    ctx.fillStyle = 'rgba(28,18,13,.88)';
+    ctx.strokeStyle = relicCount ? `rgba(226,177,82,${pulse.toFixed(2)})` : 'rgba(124,96,60,.58)';
+    ctx.lineWidth = 1.2;
+    ctx.fillRect(ax - 28, ay - 19, 56, 31);
+    ctx.strokeRect(ax - 27.5, ay - 18.5, 55, 30);
+    drawTownRelicCaseMarkers(ctx, now, ax, ay);
+    ctx.fillStyle = relicCount ? '#e4be6d' : '#8d7657';
+    ctx.font = '600 8px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ui('遗物馆','RELICS'), ax, ay + 7);
+    if (relicCount) {
+      ctx.fillStyle = '#f3d98e';
+      ctx.font = '700 8px "Segoe UI", sans-serif';
+      ctx.fillText(String(relicCount), ax + 21, ay - 13);
+    }
+    ctx.restore();
   }
   drawTownNpcPopulation(ctx, now, W, H, G, tier);
   if (tier >= 4) {
@@ -6347,6 +6889,7 @@ function ensureTownLoop() {
 
 
 let activeRefineItem = null;
+let activeRefineMode = 'refine';
 function refinePathLabel(path) {
   if (!path) return '';
   return LOCALE_DATA && typeof LOCALE_DATA.refineName === 'function'
@@ -6357,38 +6900,393 @@ function refineStatText(stats) {
     LOCALE_DATA && typeof LOCALE_DATA.affixText === 'function'
       ? LOCALE_DATA.affixText(key, value) : `${key} +${value}`).join(' · ');
 }
+function removeForgeStats(item, stats) {
+  if (!item || !stats) return;
+  item.stats = item.stats || {};
+  for (const [key, value] of Object.entries(stats)) {
+    item.stats[key] = (Number(item.stats[key]) || 0) - Number(value || 0);
+    if (Math.abs(item.stats[key]) < 0.0001) delete item.stats[key];
+  }
+  item.score = eqScoreOf(item.stats);
+}
+function smithyCanRefine(item) {
+  return !!(item && (Number(item.forge) || 0) >= 3 && !item.refinePath);
+}
+function smithyCanRetemper(item) {
+  const works = currentTownWorks();
+  const current = forgeRefinementPath(item);
+  return !!(item && current && TOWN_GROWTH_RULES.smithyRetemperUnlocked(works) &&
+    (!item.masterworked || TOWN_GROWTH_RULES.smithyMasterRetemperUnlocked(works)) &&
+    (FORGE_REFINEMENT_PATHS[item.slot] || []).some(row => row.id !== current.id));
+}
+function smithyCanMasterwork(item) {
+  return !!(item && (Number(item.forge) || 0) >= FORGE_MAX && item.refinePath && !item.masterworked);
+}
+function forgeRetemperCost(item) {
+  return ECONOMY_RULES.forgeRetemperCost(
+    itemValueScore(item), item && item.forge, item && item.retemperCount,
+    TOWN_GROWTH_RULES.forgeDiscount(currentTownWorks()));
+}
 function pendingRefineItem() {
   if (!meta) return null;
   return [...(meta.bag || []), ...(meta.stash || [])].find(it => it && it.refinePending && !it.refinePath) || null;
 }
-function openForgeRefinement(item) {
-  if (state !== 'town' || !item || !item.refinePending || item.refinePath) return;
-  const rows = FORGE_REFINEMENT_PATHS[item.slot] || [];
-  if (!rows.length) { item.refinePending = false; return; }
+function openForgeRefinement(item, mode = 'refine') {
+  if (state !== 'town' || !item) return false;
+  const retemper = mode === 'retemper';
+  if (retemper ? !smithyCanRetemper(item) : !smithyCanRefine(item)) return false;
+  let rows = FORGE_REFINEMENT_PATHS[item.slot] || [];
+  if (retemper) rows = rows.filter(row => row.id !== item.refinePath);
+  if (!rows.length) return false;
   activeRefineItem = item;
+  activeRefineMode = retemper ? 'retemper' : 'refine';
   const title = $('refine-title'), copy = $('refine-copy'), grid = $('refine-grid');
-  if (title) title.textContent = ui(`+3 精炼：为【${visibleItemName(item)}】定一个方向`, `+3 Refinement: choose a path for [${visibleItemName(item)}]`);
-  if (copy) copy.textContent = ui('精炼不会失败，也不会毁坏装备。这个选择会在 +5 时自动继续淬炼强化。', 'Refinement cannot fail or destroy the item. Your choice receives a second automatic upgrade at +5.');
-  if (grid) grid.innerHTML = rows.map(path => `<button type="button" class="refine-choice" data-refine="${path.id}"><b>${esc(refinePathLabel(path))} · ${esc(refineStatText(path.refine))}</b><small>${esc(ui(path.zhDesc, path.enDesc))}</small></button>`).join('');
+  if (title) title.textContent = retemper
+    ? ui(`重淬：【${visibleItemName(item)}】重新选择精炼路线`, `Retemper [${visibleItemName(item)}]: choose a new refinement path`)
+    : ui(`+3 精炼：为【${visibleItemName(item)}】定一个方向`, `+3 Refinement: choose a path for [${visibleItemName(item)}]`);
+  if (copy) copy.textContent = retemper
+    ? ui(`淬火槽允许保留强化等级并改换路线，本次重淬需 ${forgeRetemperCost(item)} G；主炉重铸后，大师淬炼装备也可安全改换路线。`, `The quench trough preserves forge level while changing path. This retemper costs ${forgeRetemperCost(item)} G; after the main furnace is rebuilt, masterworked gear can be safely retempered too.`)
+    : ui('精炼不会失败，也不会毁坏装备；选定路线后，装备到 +5 时会自动完成该路线的大师淬炼。', 'Refinement cannot fail or destroy the item; once a path is chosen, +5 automatically completes that path masterwork.');
+  if (grid) grid.innerHTML = rows.map(path => `<button type="button" class="refine-choice" data-refine="${path.id}"><b>${esc(refinePathLabel(path))} · ${esc(refineStatText(path.refine))}</b><small>${esc(ui(path.zhDesc, path.enDesc))}</small></button>`).join('') +
+    (retemper ? `<button type="button" class="refine-choice refine-cancel" data-refinecancel="1"><b>${ui('暂不重淬','Cancel Retemper')}</b><small>${ui('保留当前精炼路线，不花费金币。','Keep the current refinement path and spend no Gold.')}</small></button>` : '');
   showUi('refine-screen');
+  return true;
+}
+function closeForgeRetemper() {
+  if (activeRefineMode !== 'retemper') return false;
+  activeRefineItem = null;
+  activeRefineMode = 'refine';
+  hideUi('refine-screen');
+  return true;
+}
+function startForgeRefinement(item) {
+  if (!smithyCanRefine(item)) return false;
+  item.refinePending = true;
+  item.refineVersion = 1;
+  saveMeta();
+  return openForgeRefinement(item, 'refine');
 }
 function chooseForgeRefinement(pathId) {
   const item = activeRefineItem;
-  if (!item || !item.refinePending || item.refinePath) return;
+  if (!item) return;
   const path = (FORGE_REFINEMENT_PATHS[item.slot] || []).find(row => row.id === pathId);
   if (!path) return;
+  if (activeRefineMode === 'retemper') {
+    if (!smithyCanRetemper(item) || path.id === item.refinePath) return;
+    const cost = forgeRetemperCost(item);
+    if ((meta.gold || 0) < cost) {
+      msg(ui(`重淬需要 ${cost} G，金库不足。`, `Retempering costs ${cost} G; the vault is short.`), 'bad');
+      return;
+    }
+    const oldPath = forgeRefinementPath(item);
+    if (!oldPath) return;
+    meta.gold -= cost;
+    removeForgeStats(item, oldPath.refine);
+    if (item.masterworked) removeForgeStats(item, oldPath.master);
+    item.refinePath = path.id;
+    addForgeStats(item, path.refine);
+    if (item.masterworked) addForgeStats(item, path.master);
+    item.retemperCount = Math.min(9, Math.max(0, Number(item.retemperCount) || 0) + 1);
+    activeRefineItem = null;
+    activeRefineMode = 'refine';
+    hideUi('refine-screen');
+    sfx.levelup();
+    msg(ui(`重淬完成：【${visibleItemName(item)}】改为${refinePathLabel(path)}，花费 ${cost} G。`, `Retemper complete: [${visibleItemName(item)}] now follows ${refinePathLabel(path)} for ${cost} G.`), 'epic');
+    saveMeta(); renderTown();
+    return;
+  }
+  if (!item.refinePending || item.refinePath || !smithyCanRefine(item)) return;
   item.refinePath = path.id;
   item.refineVersion = 1;
   item.refinePending = false;
   addForgeStats(item, path.refine);
+  const masterPath = smithyCanMasterwork(item) ? applyForgeMasterwork(item) : null;
   activeRefineItem = null;
+  activeRefineMode = 'refine';
   hideUi('refine-screen');
   sfx.levelup();
-  msg(ui(`精炼完成：【${visibleItemName(item)}】获得 ${refineStatText(path.refine)}。`, `Refinement complete: [${visibleItemName(item)}] gained ${refineStatText(path.refine)}.`), 'epic');
+  const masterText = masterPath ? ui(' · 大师淬炼同时完成', ' · masterwork completed at the same time') : '';
+  msg(ui(`精炼完成：【${visibleItemName(item)}】获得 ${refineStatText(path.refine)}${masterText}。`, `Refinement complete: [${visibleItemName(item)}] gained ${refineStatText(path.refine)}${masterText}.`), 'epic');
   saveMeta(); renderTown();
+}
+function completeForgeMasterwork(item) {
+  if (!smithyCanMasterwork(item)) return false;
+  const path = applyForgeMasterwork(item);
+  if (!path) return false;
+  saveMeta();
+  sfx.levelup();
+  msg(ui(`大师淬炼完成：【${visibleItemName(item)}】获得 ${refineStatText(path.master)}。`, `Masterwork complete: [${visibleItemName(item)}] gained ${refineStatText(path.master)}.`), 'epic');
+  renderTown();
+  return true;
 }
 
 
+function recordTownChronicle(entry) {
+  if (!meta || !entry || typeof entry !== 'object') return;
+  meta.townChronicle = Array.isArray(meta.townChronicle) ? meta.townChronicle : [];
+  meta.townChronicle.push({ ...entry });
+  if (meta.townChronicle.length > 8) meta.townChronicle = meta.townChronicle.slice(-8);
+}
+function townChronicleText(row) {
+  if (!row) return '';
+  if (row.kind === 'return') return ui('第 ' + row.depth + ' 层平安归来。', 'Returned safely from Floor ' + row.depth + '.');
+  if (row.kind === 'project') {
+    const project = TOWN_GROWTH_RULES.project(row.id);
+    return project ? ui('工程完工：' + project.zh + ' Lv ' + row.level + '。', 'Project completed: ' + project.en + ' Lv ' + row.level + '.') : '';
+  }
+  if (row.kind === 'event') {
+    const event = TOWN_GROWTH_RULES.eventById(row.id);
+    return event ? ui('镇务处理：' + event.zh + '。', 'Town event resolved: ' + event.en + '.') : '';
+  }
+  if (row.kind === 'resident') {
+    const resident = TOWN_GROWTH_RULES.residentById(row.id);
+    return resident ? ui('新居民：' + resident.zh + '在镇上住下了。', 'New resident: ' + resident.en + ' settled in town.') : '';
+  }
+  if (row.kind === 'set') {
+    const set = SET_RULES.setById(row.id);
+    return set ? ui('六件齐聚：' + set.zh + '完成陈列。', 'Six-piece collection completed: ' + set.en + '.') : '';
+  }
+  if (row.kind === 'relic') {
+    const piece = SET_RULES.piece(row.setId,row.slot,meta.classId);
+    return piece ? ui('遗物入藏：' + piece.zh + '。', 'Relic catalogued: ' + piece.en + '.') : '';
+  }
+  return '';
+}
+function recordResidentArrivals(beforeIds) {
+  if (!meta) return [];
+  const before = beforeIds instanceof Set ? beforeIds : new Set(Array.isArray(beforeIds) ? beforeIds : []);
+  const arrived = activeTownResidents().filter(row => !before.has(row.id));
+  for (const row of arrived) recordTownChronicle({ kind:'resident', id:row.id });
+  return arrived;
+}
+function townChronicleHtml() {
+  const rows = Array.isArray(meta && meta.townChronicle) ? meta.townChronicle.slice(-5).reverse() : [];
+  if (!rows.length) return '';
+  return '<section class="town-chronicle"><b>' + ui('近事镇志','Recent Town Chronicle') + '</b><div>' +
+    rows.map(row => '<span>' + esc(townChronicleText(row)) + '</span>').join('') + '</div></section>';
+}
+function townProjectContext() {
+  return { tier:townTierForArt(), gold:meta ? (meta.gold || 0) : 0, relics:relicLedgerCount() };
+}
+const TOWN_GROWTH_ART_ROW = Object.freeze({ smithy:0, market:1, tavern:2, relics:3 });
+function townGrowthArtMarkup(projectId, level, extraClass='') {
+  const row = TOWN_GROWTH_ART_ROW[projectId];
+  if (!Number.isInteger(row)) return '';
+  const stage = clamp(Math.floor(Number(level)||0),0,3);
+  return `<i class="town-project-art${extraClass ? ' ' + extraClass : ''}" style="--tx:${stage};--ty:${row}" aria-hidden="true"></i>`;
+}
+function townServiceStageHtml(projectId, lockedZh, lockedEn) {
+  const row = TOWN_GROWTH_RULES.project(projectId);
+  if (!row) return '';
+  const level = TOWN_GROWTH_RULES.level(currentTownWorks(), projectId);
+  const effect = TOWN_GROWTH_RULES.currentEffect(currentTownWorks(), projectId);
+  const title = level > 0 ? ui(effect.zh,effect.en) : ui(lockedZh,lockedEn);
+  const detail = level > 0 ? ui(effect.effectZh,effect.effectEn) : ui('尚未扩建 · 基础服务仍可使用','Not yet expanded · basic service remains available');
+  return `<div class="town-service-stage${level ? ' built' : ' locked'}">${townGrowthArtMarkup(projectId,level,'service-art')}<div class="town-service-stage-copy"><b>${esc(ui(row.zh,row.en))} · Lv ${level}/3</b><span>${esc(title)}</span><small>${esc(detail)}</small></div></div>`;
+}
+function upgradeTownWork(id) {
+  if (state !== 'town' || !meta) return false;
+  const row = TOWN_GROWTH_RULES.project(id);
+  if (!row) return false;
+  const check = TOWN_GROWTH_RULES.canUpgrade(meta.townWorks || {}, id, townProjectContext());
+  if (!check.ok || !check.next) {
+    const next = check.next;
+    if (check.reason === 'max') msg(ui(`${row.zh}已经完成全部扩建。`, `${row.en} is fully upgraded.`), 'good');
+    else if (check.reason === 'tier') msg(ui(`需要城镇阶段 ${next.tier}。`, `Requires Town Tier ${next.tier}.`), 'bad');
+    else if (check.reason === 'relics') msg(ui(`需要遗物馆藏 ${next.relics} 件。`, `Requires ${next.relics} catalogued relics.`), 'bad');
+    else if (check.reason === 'gold') msg(ui(`建设需要 ${next.cost} G，金库不足。`, `Construction costs ${next.cost} Gold; the vault is short.`), 'bad');
+    return false;
+  }
+  const residentsBefore = new Set(activeTownResidents().map(resident => resident.id));
+  meta.gold -= check.next.cost;
+  const current = TOWN_GROWTH_RULES.level(meta.townWorks || {}, id);
+  meta.townWorks = { ...(meta.townWorks || {}), [id]:current + 1 };
+  recordTownChronicle({ kind:'project', id, level:current + 1 });
+  const arrivedResidents = recordResidentArrivals(residentsBefore);
+  if (id === 'market') meta.market = null;
+  saveMeta();
+  sfx.levelup();
+  msg(ui(
+    `城镇工程完成：【${row.zh}】${check.next.zh}。${check.next.effectZh}`,
+    `Town project completed: [${row.en}] ${check.next.en}. ${check.next.effectEn}`
+  ), 'epic');
+  if (arrivedResidents.length) msg(ui(
+    `工程完工后，有新居民在镇上住下：${arrivedResidents.map(r => r.zh).join('、')}。`,
+    `The finished project brought new residents: ${arrivedResidents.map(r => r.en).join(', ')}.`
+  ), 'good');
+  renderTown();
+  return true;
+}
+function renderTownWorks() {
+  const host = $('town-works');
+  if (!host || !meta) return;
+  const context = townProjectContext();
+  host.innerHTML =
+    `<header><div><b>${ui('城镇工程','Town Works')}</b><span>${ui('金库不只是存钱：把远征所得真正变成一个更强、更繁荣的据点。','The vault is not just storage: turn expedition wealth into a stronger, busier home base.')}</span></div>` +
+    `<small>${ui(`可用金库 ${meta.gold || 0} G`, `Vault ${meta.gold || 0} G`)}</small></header>` +
+    `<div class="town-work-grid">${TOWN_GROWTH_RULES.PROJECTS.map(row => {
+      const level = TOWN_GROWTH_RULES.level(meta.townWorks || {}, row.id);
+      const current = TOWN_GROWTH_RULES.currentEffect(meta.townWorks || {}, row.id);
+      const check = TOWN_GROWTH_RULES.canUpgrade(meta.townWorks || {}, row.id, context);
+      const next = check.next;
+      let label = ui('已全部完工','Fully Built');
+      if (next) {
+        if (check.reason === 'tier') label = ui(`阶段 ${next.tier} 解锁`, `Unlocks at Tier ${next.tier}`);
+        else if (check.reason === 'relics') label = ui(`馆藏 ${context.relics}/${next.relics}`, `Relics ${context.relics}/${next.relics}`);
+        else if (check.reason === 'gold') label = ui(`需要 ${next.cost} G`, `Need ${next.cost} G`);
+        else label = ui(`建设 ${next.cost} G`, `Build ${next.cost} G`);
+      }
+      const effect = current ? ui(current.effectZh,current.effectEn) : ui('尚未建设','Not yet built');
+      const nextName = next ? ui(next.zh,next.en) : ui('最终形态','Final form');
+      return `<article class="town-work-card${level >= row.levels.length ? ' complete' : ''}">${townGrowthArtMarkup(row.id,level,'work-card-art')}<div class="town-work-title"><b>${esc(ui(row.zh,row.en))}</b><em>Lv ${level}/${row.levels.length}</em></div>` +
+        `<p>${esc(effect)}</p><small>${ui('下一步','Next')}: ${esc(nextName)}</small>` +
+        `<button type="button" data-townwork="${row.id}"${check.ok ? '' : ' disabled'}>${esc(label)}</button></article>`;
+    }).join('')}</div>`;
+}
+function stageTownReturnEvent(newRelics = 0) {
+  if (!meta || meta.townEvent) return null;
+  const tier = ECONOMY_RULES.townTier(Math.max(meta.bestDepth || 0, Number(depth) || 0));
+  const offer = TOWN_GROWTH_RULES.eventForReturn({
+    tier,
+    relics:relicLedgerCount(),
+    newRelics:Math.max(0, Number(newRelics) || 0),
+    runs:meta.runs || 0,
+    lastReturnDepth:Math.max(meta.lastReturnDepth || 0, Number(depth) || 0),
+  });
+  if (!offer) return null;
+  meta.townEvent = {
+    id:offer.id,
+    cost:Math.max(0, Number(offer.cost) || 0),
+    effect:{ ...(offer.effect || {}) },
+  };
+  return meta.townEvent;
+}
+function currentTownEventOffer() {
+  if (!meta || !meta.townEvent) return null;
+  const row = TOWN_GROWTH_RULES.eventById(meta.townEvent.id);
+  if (!row) return null;
+  return {
+    ...row,
+    cost:Math.max(0, Number(meta.townEvent.cost) || 0),
+    effect:{ ...(meta.townEvent.effect || {}) },
+  };
+}
+function townEventEffectText(offer) {
+  if (!offer) return '';
+  const effect = offer.effect || {};
+  if (effect.gold) return ui('镇民捐赠与门票可收入 ' + effect.gold + ' G。', 'Donations and admission will add ' + effect.gold + ' Gold to the vault.');
+  if (effect.marketRestock) return ui('立即补满本轮市集补给库存。', 'Immediately restock the current town market.');
+  if (effect.escapes || effect.keys) return ui('获得回城卷轴 +' + (effect.escapes || 0) + '、钥匙 +' + (effect.keys || 0) + '。', 'Gain Return Scroll +' + (effect.escapes || 0) + ' and Key +' + (effect.keys || 0) + '.');
+  return ui('这件事会改变今天的城镇。', 'This will change the town today.');
+}
+function townEventHtml() {
+  const offer = currentTownEventOffer();
+  if (!offer) return '';
+  const affordable = !offer.cost || (meta.gold || 0) >= offer.cost;
+  const costText = offer.cost ? ui('花费 ' + offer.cost + ' G', 'Cost ' + offer.cost + ' G') : ui('无需花费', 'No cost');
+  const label = ui(offer.actionZh, offer.actionEn) + (offer.cost ? ' · ' + offer.cost + ' G' : '');
+  return '<section class="town-event-card"><div class="town-event-copy"><p class="kicker">' +
+    ui('今日镇务', 'Town Event') + '</p><h3>' + esc(ui(offer.zh, offer.en)) + '</h3><p>' +
+    esc(ui(offer.zhStory, offer.enStory)) + '</p><small>' + esc(townEventEffectText(offer)) + ' · ' +
+    esc(costText) + '</small></div><button type="button" data-townevent="resolve"' +
+    (affordable ? '' : ' disabled') + '>' + esc(label) + '</button></section>';
+}
+function resolveTownEvent() {
+  if (state !== 'town' || !meta) return false;
+  const offer = currentTownEventOffer();
+  if (!offer) return false;
+  if (offer.cost && (meta.gold || 0) < offer.cost) {
+    msg(ui('金库不足，暂时处理不了这件镇务。', 'The vault is too low to handle this town event yet.'), 'bad');
+    return false;
+  }
+  if (offer.cost) meta.gold -= offer.cost;
+  const effect = offer.effect || {};
+  if (effect.gold) meta.gold += Math.max(0, Number(effect.gold) || 0);
+  if (effect.marketRestock) {
+    const serviceRestockUsed = meta.market && meta.market.restockUsed ? 1 : 0;
+    meta.market = freshTownMarket(townTierForArt());
+    meta.market.restockUsed = serviceRestockUsed;
+  }
+  if (effect.escapes) meta.escapes = (meta.escapes || 0) + Math.max(0, Number(effect.escapes) || 0);
+  if (effect.keys) meta.keys = (meta.keys || 0) + Math.max(0, Number(effect.keys) || 0);
+  recordTownChronicle({ kind:'event', id:offer.id });
+  meta.townEvent = null;
+  saveMeta();
+  sfx.pickup();
+  msg(ui('镇务已经处理完毕。小镇今天和昨天有了一点不同。', 'The town matter is settled. Today the town is a little different from yesterday.'), 'good');
+  renderTown();
+  return true;
+}
+function selectRelicFocus(setId) {
+  if (state !== 'town' || !meta) return false;
+  const hallLevel = townWorkLevel('relics');
+  if (hallLevel <= 0) {
+    msg(ui('先扩建遗物馆，书记才有余力追查特定套装的线索。', 'Expand the Relic Hall before asking the curator to track a specific set.'), 'bad');
+    return false;
+  }
+  const requested = String(setId || '');
+  if (!requested || requested === meta.relicFocusSet) {
+    meta.relicFocusSet = '';
+    saveMeta();
+    msg(ui('遗物馆停止定向追查，重新整理全部线索。', 'The Relic Hall stops targeted research and returns to the full archive.'), 'good');
+    renderTown();
+    return true;
+  }
+  const normalized = SET_RULES.normalizeFocusId(requested, meta.bestDepth || 0, meta.relicLedger || {});
+  if (!normalized) {
+    msg(ui('这套遗物还没有足够线索，暂时无法定向研究。', 'There are not enough clues to focus research on that set yet.'), 'bad');
+    return false;
+  }
+  meta.relicFocusSet = normalized;
+  saveMeta();
+  const set = SET_RULES.setById(normalized);
+  const pct = Math.round(SET_RULES.focusWeight(hallLevel) * 100);
+  msg(ui(`遗物馆开始追查【${set.zh}】线索：出现具名遗物时，约 ${pct}% 会优先指向该套。`, `Relic Hall research now tracks [${set.en}]: about ${pct}% of eligible named relics will favor this set.`), 'epic');
+  renderTown();
+  return true;
+}
+function renderTownRelics() {
+  const host = $('town-relics');
+  if (!host || !meta) return;
+  const ledger = meta.relicLedger || {};
+  const equipped = SET_RULES.equippedCounts(meta.equip || {});
+  const totalFound = Object.keys(ledger).filter(k => ledger[k]).length;
+  const totalPieces = SET_RULES.SETS.length * SET_RULES.SLOTS.length;
+  const hallLevel = townWorkLevel('relics');
+  const focusSet = SET_RULES.setById(meta.relicFocusSet);
+  const focusPct = Math.round(SET_RULES.focusWeight(hallLevel) * 100);
+  const research = hallLevel > 0
+    ? `<div class="relic-research"><div><b>${ui('线索追查','Research Focus')}</b><span>${focusSet ? ui(`当前追查：${focusSet.zh} · 具名遗物偏向约 ${focusPct}%`, `Tracking: ${focusSet.en} · about ${focusPct}% of eligible named relics favor it`) : ui(`可指定一套进行追查 · 当前偏向强度 ${focusPct}%`, `Choose one set to track · current focus strength ${focusPct}%`)}</span></div>${focusSet ? `<button type="button" data-relicfocus="">${ui('取消追查','Clear Focus')}</button>` : ''}</div>`
+    : `<div class="relic-research locked"><div><b>${ui('线索追查未开放','Research Focus Locked')}</b><span>${ui('完成“整理旧展柜”后，可让遗物馆定向追查某一套六件遗物。','Complete “Restore the Old Cases” to let the Relic Hall track one six-piece set.')}</span></div></div>`;
+  host.innerHTML = townServiceStageHtml('relics','临时木架','Temporary Shelves') +
+    `<div class="relic-summary"><b>${ui('馆藏进度','Archive Progress')} ${totalFound}/${totalPieces}</b><span>${ui('只有安全带回小镇的具名遗物才会永久留下记录。','Only named relics safely returned to town are permanently catalogued.')}</span></div>` + research +
+    SET_RULES.SETS.map(set => {
+      const progress = SET_RULES.collectionProgress(ledger, set.id);
+      const worn = equipped[set.id] || 0;
+      const known = progress.found > 0 || (meta.bestDepth || 0) >= set.minDepth;
+      const focusable = hallLevel > 0 && SET_RULES.normalizeFocusId(set.id, meta.bestDepth || 0, ledger) === set.id;
+      const focused = meta.relicFocusSet === set.id;
+      const story = known
+        ? ui(set.zhStory,set.enStory)
+        : ui(`书记只知道这批遗物大约出现在第 ${set.minDepth} 层以后。`, `The curator only knows these relics begin appearing around Floor ${set.minDepth}.`);
+      const pieces = SET_RULES.SLOTS.map(slot => {
+        const piece = SET_RULES.piece(set.id, slot, meta.classId);
+        const found = !!ledger[set.id + ':' + slot];
+        const active = !!(meta.equip && meta.equip[slot] && meta.equip[slot].setId === set.id);
+        const pieceName = found ? ui(piece.zh,piece.en) : ui(`未归档的${visibleSlotName(slot)}`, `Uncatalogued ${visibleSlotName(slot)}`);
+        const lore = found ? ui(piece.zhLore,piece.enLore) : ui('故事仍留在地牢里。','Its story is still somewhere below.');
+        const art = namedRelicMarkup(set.id,slot,meta.classId,`relic-piece-art${found ? '' : ' uncharted'}`);
+        return `<article class="relic-piece${found ? ' found' : ''}${active ? ' equipped' : ''}">${art}<div class="relic-piece-copy"><div class="relic-piece-head"><span>${esc(visibleSlotName(slot))}</span><b>${esc(pieceName)}</b>${active ? `<em>${ui('穿戴中','Equipped')}</em>` : ''}</div><p>${esc(lore)}</p></div></article>`;
+      }).join('');
+      const bonuses = set.bonuses.map(b =>
+        `<span class="${worn >= b.pieces ? 'active' : ''}${b.capstone ? ' capstone' : ''}"><b>${b.capstone ? '✦ ' : ''}${b.pieces}/6</b>${esc(ui(b.zh,b.en))}</span>`
+      ).join('');
+      const focusButton = focusable
+        ? `<button type="button" class="relic-focus-action${focused ? ' active' : ''}" data-relicfocus="${set.id}">${focused ? ui(`追查中 · ${focusPct}%`,`Tracking · ${focusPct}%`) : ui('追查此套线索','Track This Set')}</button>`
+        : '';
+      return `<section class="relic-set-card${known ? '' : ' rumor'}${focused ? ' focused' : ''}"><header><div><p class="kicker">${ui('具名六件套','Named Six-Piece Set')}</p><h3>${esc(ui(set.zh,set.en))}</h3></div><strong>${ui(`馆藏 ${progress.found}/6 · 穿戴 ${worn}/6`, `Archive ${progress.found}/6 · Equipped ${worn}/6`)}</strong></header><p class="relic-set-story">${esc(story)}</p><div class="relic-piece-grid">${pieces}</div><div class="relic-set-bonuses">${bonuses}</div>${focusButton}</section>`;
+    }).join('');
+}
 function renderTown() {
   if (!meta) return;
   const head = $('town-head');
@@ -6404,22 +7302,38 @@ function renderTown() {
       : ui(`再征服第 ${tier * 10} 层守卫，进入阶段 ${tier + 1}`, `Defeat the Floor ${tier * 10} guardian to reach Tier ${tier + 1}`);
     const readiness = townReadinessPlan();
     const ready = readiness.ready;
-    const kitActionLabel = !readiness.available
-      ? ui('本轮库存不足', 'Market Stock Short')
-      : !readiness.affordable
-        ? ui(`还差 ${Math.max(0, readiness.total - (meta.gold || 0))} G`, `Need ${Math.max(0, readiness.total - (meta.gold || 0))} G More`)
-        : ui(`一键补齐 ${readiness.total} G`, `Complete Kit ${readiness.total} G`);
+    const quickReadyUnlocked = TOWN_GROWTH_RULES.marketReadinessUnlocked(currentTownWorks());
+    const kitActionLabel = !quickReadyUnlocked
+      ? ui('修整驿道后开放一键整备','One-click kit unlocks after road repair')
+      : !readiness.available
+        ? ui('本轮库存不足', 'Market Stock Short')
+        : !readiness.affordable
+          ? ui(`还差 ${Math.max(0, readiness.total - (meta.gold || 0))} G`, `Need ${Math.max(0, readiness.total - (meta.gold || 0))} G More`)
+          : ui(`一键补齐 ${readiness.total} G`, `Complete Kit ${readiness.total} G`);
     const kitButton = ready
       ? `<button type="button" class="town-ready-action" disabled>${ui('基础补给齐备','Core Kit Ready')}</button>`
-      : `<button type="button" class="town-ready-action" data-townready="1"${(!readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
+      : `<button type="button" class="town-ready-action" data-townready="1"${(!quickReadyUnlocked || !readiness.available || !readiness.affordable) ? ' disabled' : ''}>${kitActionLabel}</button>`;
+    const relicFound = Object.keys(meta.relicLedger || {}).filter(k => meta.relicLedger[k]).length;
+    const completedSets = completedRelicSetCount(meta.relicLedger || {});
+    const checkpointCount = unlockedTownCheckpoints().length;
+    const residentCount = TOWN_HOTSPOTS.length + activeTownResidents().length;
+    const returnNote = (meta.lastReturnDepth || 0) > 0
+      ? ui(`最近一次有人从第 ${meta.lastReturnDepth} 层活着回来，酒馆里还在谈这件事。`, `Someone returned alive from Floor ${meta.lastReturnDepth}; the tavern is still talking about it.`)
+      : ui('镇上的人还没有等到你的第一次平安归来。','The town is still waiting for your first safe return.');
     growth.innerHTML =
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
-      `<div><b>${ui('本阶段设施','Current Facilities')}</b><span>${ui('可交互广场 · 安全仓库 · 限量市集 · 锻造强化 · 余烬酒馆 · 远征委托 · 已征服区出发','Walkable Plaza · Safe Stash · Limited Market · Forge Upgrades · Ember Tavern · Expedition Contracts · Conquered-Depth Departures')}</span></div>`;
+      `<div><b>${ui('镇务动态','Town Ledger')}</b><span>${ui(`遗物 ${relicFound}/${SET_RULES.SETS.length * 6} · 完整套装 ${completedSets}/${SET_RULES.SETS.length} · 广场常驻 ${residentCount}`, `Relics ${relicFound}/${SET_RULES.SETS.length * 6} · Complete sets ${completedSets}/${SET_RULES.SETS.length} · Plaza residents ${residentCount}`)}</span></div>` +
+      `<div class="town-rumor"><b>${ui('街巷传闻','Street Rumor')}</b><span>${returnNote}</span></div>` +
+      townChronicleHtml() +
+      townEventHtml() +
+      `<section id="town-works" class="town-works" aria-live="polite"></section>`;
   }
   renderTownCheckpoints();
   renderTownContracts();
+  renderTownWorks();
+  renderTownRelics();
   const itemTag = it => {
     const f = it.forge || 0;
     const forgeTag = f ? ` +${f}` : '';
@@ -6430,7 +7344,10 @@ function renderTown() {
     const fitText = delta === null
       ? ui(`职业适配 ${fit}`, `Class fit ${fit}`)
       : ui(`职业适配 ${fit} · 较当前 ${delta >= 0 ? '+' : ''}${delta}`, `Class fit ${fit} · ${delta >= 0 ? '+' : ''}${delta} vs equipped`);
-    return `${esc(visibleItemName(it))}${forgeTag}<small>${ui(`${it.score} 分`, `Score ${it.score}`)} · ${esc(fitText)}</small>`;
+    const identity = it.namedSet
+      ? `<small class="town-item-identity">${esc(ui(it.setNameZh || '', it.setNameEn || ''))} · ${ui('具名遗物','Named Relic')}</small>`
+      : '';
+    return `<span class="${it.namedSet ? 'town-named-item' : ''}">${esc(visibleItemName(it))}${forgeTag}${identity}<small>${ui(`${it.score} 分`, `Score ${it.score}`)} · ${esc(fitText)}</small></span>`;
   };
   const tradeBtns = (where, i, it) => {
     const fc = forgeCost(it);
@@ -6441,9 +7358,17 @@ function renderTown() {
       ? ui('先完成 +3 精炼，再继续强化。', 'Complete the +3 refinement before forging further.')
       : maxed ? ui('已至 +5 极致','Maxed at +5')
       : ui(`强化到 +${(it.forge || 0) + 1}，需 ${fc} G`, `Forge to +${(it.forge || 0) + 1} for ${fc} G`);
+    const refineAction = smithyCanRefine(it)
+      ? `<button type="button" data-refineitem="${where}:${i}">${ui('+3 精炼','Refine')}</button>` : '';
+    const retemperCost = smithyCanRetemper(it) ? forgeRetemperCost(it) : 0;
+    const retemperAction = retemperCost
+      ? `<button type="button" data-retemper="${where}:${i}"${meta.gold < retemperCost ? ' disabled' : ''} title="${ui(`保留强化等级并改换精炼路线，${retemperCost} G`, `Keep forge level and change refinement path for ${retemperCost} G`)}">${ui(`重淬 ${retemperCost}G`,`Retemper ${retemperCost}G`)}</button>` : '';
+    const masterAction = smithyCanMasterwork(it)
+      ? `<button type="button" data-masterwork="${where}:${i}">${ui('大师淬炼','Masterwork')}</button>` : '';
     return `<span class="row-actions">` +
       `<button type="button" data-forge="${where}:${i}"${forgeDisabled ? ' disabled' : ''}` +
       ` title="${forgeTitle}">${pendingRefine ? ui('待精炼','Refine') : ui('强化','Forge')}</button>` +
+      refineAction + retemperAction + masterAction +
       `<button type="button" data-sell="${where}:${i}" title="${ui(`出售得 ${sellPrice(it)} G`, `Sell for ${sellPrice(it)} G`)}">${ui(`卖 ${sellPrice(it)}G`, `Sell ${sellPrice(it)}G`)}</button>` +
       `</span>`;
   };
@@ -6458,40 +7383,63 @@ function renderTown() {
       ? `<div class="town-row"><span></span><span class="row-actions"><button type="button" data-depositall="1">${ui('全部存入仓库','Store All')}</button></span></div>`
       : '');
   const stashEl = $('town-stash');
-  if (stashEl) stashEl.innerHTML = meta.stash.length
+  if (stashEl) stashEl.innerHTML = townServiceStageHtml('smithy','破旧铁砧','Old Anvil') + (meta.stash.length
     ? meta.stash.map((it, i) =>
       `<div class="town-row"><span>${itemTag(it)}</span>` +
       `<span class="row-actions"><button type="button" data-withdraw="${i}"${meta.bag.length >= BAG_CAP ? ' disabled' : ''}>${ui('取出','Withdraw')}</button>${tradeBtns('stash', i, it)}</span></div>`).join('')
-    : `<p class="dim-note">${ui('仓库是空的。把装备「存入」这里，死亡也夺不走。','The stash is empty. Store gear here to keep it safe from death.')}</p>`;
+    : `<p class="dim-note">${ui('仓库是空的。把装备「存入」这里，死亡也夺不走。','The stash is empty. Store gear here to keep it safe from death.')}</p>`);
   const shopEl = $('town-shop');
   if (shopEl) {
     const market = ensureTownMarket();
-    shopEl.innerHTML = market ? TOWN_MARKET_IDS.map(id => {
-      const def = TOWN_MARKET_SUPPLIES[id];
-      const price = townMarketPrice(id, market.tier);
-      const left = market.stock[id] || 0;
-      const held = def.held(meta);
-      const label = ui(def.zh, def.en);
-      return `<div class="shop-row" data-town-supply="${id}"><span>${esc(label)} ×1 <small>${ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`)}</small></span>` +
-        `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
-    }).join('') + `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>` : '';
+    if (market) {
+      const marketLevel = townWorkLevel('market');
+      const discountPct = Math.round(TOWN_GROWTH_RULES.marketPriceDiscount(currentTownWorks()) * 100);
+      const restockCost = townMarketRestockCost();
+      const restockUnlocked = TOWN_GROWTH_RULES.marketRestockUnlocked(currentTownWorks());
+      const restockAvailable = townMarketRestockAvailable();
+      const restockLabel = !restockUnlocked ? ui('设立护商队后开放补货','Restock unlocks with Caravan Guards')
+        : market.restockUsed ? ui('本轮护商队已召回','Caravan recall used this cycle')
+        : !townMarketNeedsRestock(market) ? ui('当前货架已满','Shelves are currently full')
+        : ui(`召回护商队 ${restockCost} G`,`Recall Caravan ${restockCost} G`);
+      shopEl.innerHTML = townServiceStageHtml('market','泥泞东门路','Muddy East Road') +
+        (discountPct ? `<div class="market-night-note">${ui(`夜市议价生效 · 全部补给 -${discountPct}%`,`Night Market pricing active · all supplies -${discountPct}%`)}</div>` : '') +
+        TOWN_MARKET_IDS.map(id => {
+          const def = TOWN_MARKET_SUPPLIES[id];
+          const price = townMarketPrice(id, market.tier);
+          const left = market.stock[id] || 0;
+          const held = def.held(meta);
+          const label = ui(def.zh, def.en);
+          return `<div class="shop-row" data-town-supply="${id}"><span>${esc(label)} ×1 <small>${ui(`持有 ${held} · 库存 ${left}`, `Held ${held} · Stock ${left}`)}</small></span>` +
+            `<b>${price} G</b><button type="button" data-townbuy="${id}"${left <= 0 || meta.gold < price ? ' disabled' : ''}>${left > 0 ? ui('购买','Buy') : ui('售罄','Sold out')}</button></div>`;
+        }).join('') +
+        `<div class="market-service-row"><span>${ui(`商道服务 · Lv ${marketLevel}/3`,`Trade-road service · Lv ${marketLevel}/3`)}</span><button type="button" data-townrestock="1"${(!restockAvailable || meta.gold < restockCost) ? ' disabled' : ''}>${esc(restockLabel)}</button></div>` +
+        `<p class="dim-note">${ui(`城镇阶段 ${market.tier} · 本轮库存固定；开启下一次远征后刷新。`, `Town Tier ${market.tier} · Stock is fixed for this expedition cycle and refreshes after the next expedition begins.`)}</p>`;
+    } else shopEl.innerHTML = '';
   }
   const tavernEl = $('town-tavern');
   if (tavernEl) {
     const visits = Math.max(0, meta.tavernVisits || 0);
     const cost = tavernCost();
     const available = tavernAvailable();
-    const complete = visits >= TAVERN_MAX_TOASTS;
+    const toastCap = tavernMaxToasts();
+    const complete = visits >= toastCap;
     const history = (meta.tavernHistory || []).map(tavernRewardById).filter(Boolean);
     const historyText = history.length
       ? history.map(row => ui(row.zhEffect, row.enEffect)).join(' · ')
       : ui('尚未留下酒馆回响', 'No tavern echoes yet');
-    tavernEl.innerHTML =
-      `<div class="tavern-offer"><b>${ui('回响祝酒','Echo Toast')}</b><span>${ui('每次远征归来限一杯 · 每档最多八杯','One after each expedition · eight per character')}</span></div>` +
-      `<p class="dim-note">${ui('不是免费刷属性：酒价递增、结果随机、攻击成长低权重，并有永久硬上限。','Not a free stat farm: rising price, random result, low-weight ATK, and a permanent hard cap.')}</p>` +
-      `<div class="tavern-history"><small>${ui(`已饮 ${visits}/${TAVERN_MAX_TOASTS}`, `Toasts ${visits}/${TAVERN_MAX_TOASTS}`)}</small><span>${esc(historyText)}</span></div>` +
-      `<button type="button" class="tavern-drink" data-taverndrink="1"${(!available || meta.gold < cost) ? ' disabled' : ''}>` +
-      `${complete ? ui('回响已满','Echo Complete') : available ? ui(`举杯 ${cost} G`,`Raise a Toast ${cost} G`) : ui('完成下一次远征后再来','Return from another expedition')}</button>`;
+    const choiceCount = tavernChoiceCount();
+    const choices = tavernOfferChoices();
+    const offerButtons = complete
+      ? `<button type="button" class="tavern-drink" disabled>${ui('回响已满','Echo Complete')}</button>`
+      : !available
+        ? `<button type="button" class="tavern-drink" disabled>${ui('完成下一次远征后再来','Return from another expedition')}</button>`
+        : choiceCount > 1
+          ? `<div class="tavern-choice-grid">${choices.map(row => `<button type="button" class="tavern-drink" data-taverndrink="${row.id}"${meta.gold < cost ? ' disabled' : ''}><b>${esc(ui(row.zh,row.en))}</b><small>${esc(ui(row.zhEffect,row.enEffect))}</small><em>${cost} G</em></button>`).join('')}</div>`
+          : `<button type="button" class="tavern-drink" data-taverndrink=""${meta.gold < cost ? ' disabled' : ''}>${ui(`随机举杯 ${cost} G`,`Random Toast ${cost} G`)}</button>`;
+    tavernEl.innerHTML = townServiceStageHtml('tavern','旧吧台','Old Taproom') +
+      `<div class="tavern-offer"><b>${ui('回响祝酒','Echo Toast')}</b><span>${ui(`每次远征归来限一杯 · 当前上限 ${toastCap} 杯 · 酒单 ${choiceCount} 选 1`, `One after each expedition · current cap ${toastCap} · choose 1 of ${choiceCount}`)}</span></div>` +
+      `<p class="dim-note">${choiceCount > 1 ? ui('酒馆扩建后，回响不再完全交给随机：从本次酒单里选一杯。','After expansion, the Echo is no longer fully random: choose one drink from the current list.') : ui('旧酒馆只能随机上一杯；扩建后会逐步开放可选酒单。','The old tavern serves a random toast; expansions gradually unlock a choice menu.')}</p>` +
+      `<div class="tavern-history"><small>${ui(`已饮 ${visits}/${toastCap}`, `Toasts ${visits}/${toastCap}`)}</small><span>${esc(historyText)}</span></div>` + offerButtons;
   }
   const wheelEl = $('town-wheel');
   if (wheelEl) {
@@ -6571,7 +7519,7 @@ function forgeItem(where, i) {
   const masterPath = it.forge === 5 ? applyForgeMasterwork(it) : null;
   sfx.levelup();
   const finish = masterPath
-    ? ui(` · ${refinePathLabel(masterPath)}淬炼完成`, ` · ${refinePathLabel(masterPath)} Masterwork completed`)
+    ? ui(` · ${refinePathLabel(masterPath)}大师淬炼完成`, ` · ${refinePathLabel(masterPath)} Masterwork completed`)
     : it.refinePending ? ui(' · 等待 +3 精炼选择', ' · +3 refinement choice ready') : '';
   msg(ui(`锻造成功！【${visibleItemName(it)}】强化至 +${it.forge}，花费 ${cost} G${finish}。`, `Forge success! [${visibleItemName(it)}] reached +${it.forge} for ${cost} G${finish}.`), 'epic');
   saveMeta(); renderTown();
@@ -6625,6 +7573,7 @@ function initGreedyRun(chosen) {
 }
 function departTown(targetDepth = selectedTownCheckpoint) {
   if (!greedyMode || !meta) return;
+  hideTownDialogue();
   const unlocked = unlockedTownCheckpoints();
   const requested = Math.max(1, Math.floor(Number(targetDepth) || 1));
   const startDepth = unlocked.includes(requested) ? requested : 1;
@@ -6680,6 +7629,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
+  openPendingSkillEvolution();
 }
 function useEscape() {
   if (!greedyMode || state !== 'playing') return;
@@ -6689,10 +7639,40 @@ function useEscape() {
   }
   player.escapes--;
   const banked = player.gold;
+  const residentsBefore = new Set(activeTownResidents().map(resident => resident.id));
   recordSafeReturn();
   syncMetaFromPlayer(false);
+  meta.lastReturnDepth = Math.max(0, Number(depth) || 0);
+  recordTownChronicle({ kind:'return', depth:meta.lastReturnDepth });
+  const arrivedResidents = recordResidentArrivals(residentsBefore);
+  const completedBefore = new Set(completedRelicSets(meta.relicLedger || {}).map(set => set.id));
+  const returnedRelics = registerReturnedRelics([
+    ...(meta.bag || []),
+    ...Object.values(meta.equip || {}).filter(Boolean),
+  ]);
+  const newlyCompletedSets = completedRelicSets(meta.relicLedger || {}).filter(set => !completedBefore.has(set.id));
+  for (const set of newlyCompletedSets) recordTownChronicle({ kind:'set', id:set.id });
+  const stagedTownEvent = stageTownReturnEvent(returnedRelics.length);
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
+  if (arrivedResidents.length) msg(ui(
+    `你的远征让小镇又热闹了一些：${arrivedResidents.map(r => r.zh).join('、')}来到这里定居。`,
+    `Your expedition made the town busier: ${arrivedResidents.map(r => r.en).join(', ')} settled here.`
+  ), 'good');
+  if (returnedRelics.length) {
+    msg(ui(
+      `遗物书记登记了 ${returnedRelics.length} 件新的具名遗物：${returnedRelics.map(p => p.zh).join('、')}。`,
+      `The relic curator catalogued ${returnedRelics.length} new named relic${returnedRelics.length === 1 ? '' : 's'}: ${returnedRelics.map(p => p.en).join(', ')}.`
+    ), 'epic');
+  }
+  if (newlyCompletedSets.length) msg(ui(
+    `遗物馆第一次完整陈列了：${newlyCompletedSets.map(set => `【${set.zh}】`).join('、')}。六件遗物终于重新聚在一起。`,
+    `The Relic Hall completed its first display of: ${newlyCompletedSets.map(set => `[${set.en}]`).join(', ')}. All six relics stand together again.`
+  ), 'epic');
+  if (stagedTownEvent) {
+    const row = TOWN_GROWTH_RULES.eventById(stagedTownEvent.id);
+    if (row) msg(ui(`镇上有新动静：【${row.zh}】。`, `Something is happening in town: [${row.en}].`), 'good');
+  }
 }
 function greedyDeathReturn(lostInv, lostGold) {
   syncMetaFromPlayer(true);
@@ -6956,6 +7936,8 @@ if ($('btn-greedy')) $('btn-greedy').addEventListener('click', () => {
   refreshTitle();
 });
 if ($('town-screen')) $('town-screen').addEventListener('click', e => {
+  const dialogueClose = e.target.closest('[data-town-dialogue-close]');
+  if (dialogueClose) { hideTownDialogue(); return; }
   const pageTab = e.target.closest('[data-town-page]');
   if (pageTab) { ensureAudio(); selectTownPage(pageTab.dataset.townPage, false); return; }
   const service = e.target.closest('.town-service[data-service]');
@@ -6964,6 +7946,12 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (checkpoint) { ensureAudio(); selectTownCheckpoint(+checkpoint.dataset.checkpoint); return; }
   const contract = e.target.closest('[data-contract]');
   if (contract) { ensureAudio(); selectTownContract(contract.dataset.contract); return; }
+  const townWork = e.target.closest('[data-townwork]');
+  if (townWork) { ensureAudio(); upgradeTownWork(townWork.dataset.townwork); return; }
+  const townEvent = e.target.closest('[data-townevent]');
+  if (townEvent) { ensureAudio(); resolveTownEvent(); return; }
+  const relicFocus = e.target.closest('[data-relicfocus]');
+  if (relicFocus) { ensureAudio(); selectRelicFocus(relicFocus.dataset.relicfocus || ''); return; }
   const dep = e.target.closest('[data-deposit]');
   if (dep) { ensureAudio(); depositStash(+dep.dataset.deposit); return; }
   const depAll = e.target.closest('[data-depositall]');
@@ -6972,10 +7960,12 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
   if (wth) { ensureAudio(); withdrawStash(+wth.dataset.withdraw); return; }
   const buy = e.target.closest('[data-townbuy]');
   if (buy) { ensureAudio(); buyTown(buy.dataset.townbuy); return; }
+  const restock = e.target.closest('[data-townrestock]');
+  if (restock) { ensureAudio(); restockTownMarket(); return; }
   const ready = e.target.closest('[data-townready]');
   if (ready) { ensureAudio(); buyTownReadiness(); return; }
   const toast = e.target.closest('[data-taverndrink]');
-  if (toast) { ensureAudio(); drinkAtTavern(); return; }
+  if (toast) { ensureAudio(); drinkAtTavern(toast.dataset.taverndrink || ''); return; }
   const wsp = e.target.closest('[data-wheelspin]');
   if (wsp) { ensureAudio(); spinWheel(); return; }
   const wrs = e.target.closest('[data-wheelreset]');
@@ -6985,6 +7975,30 @@ if ($('town-screen')) $('town-screen').addEventListener('click', e => {
     ensureAudio();
     const [w, i] = sel.dataset.sell.split(':');
     sellItem(w, +i);
+    return;
+  }
+  const refineItem = e.target.closest('[data-refineitem]');
+  if (refineItem) {
+    ensureAudio();
+    const [w, i] = refineItem.dataset.refineitem.split(':');
+    const item = (w === 'stash' ? meta.stash : meta.bag)[+i];
+    if (item) startForgeRefinement(item);
+    return;
+  }
+  const retemper = e.target.closest('[data-retemper]');
+  if (retemper) {
+    ensureAudio();
+    const [w, i] = retemper.dataset.retemper.split(':');
+    const item = (w === 'stash' ? meta.stash : meta.bag)[+i];
+    if (item) openForgeRefinement(item, 'retemper');
+    return;
+  }
+  const masterwork = e.target.closest('[data-masterwork]');
+  if (masterwork) {
+    ensureAudio();
+    const [w, i] = masterwork.dataset.masterwork.split(':');
+    const item = (w === 'stash' ? meta.stash : meta.bag)[+i];
+    if (item) completeForgeMasterwork(item);
     return;
   }
   const forg = e.target.closest('[data-forge]');
@@ -7003,7 +8017,7 @@ if ($('town-scene')) $('town-scene').addEventListener('pointerdown', e => {
   const x = clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
   const y = clamp((e.clientY - rect.top) / Math.max(1, rect.height), .79, .93);
   let nearest = null, distance = Infinity;
-  for (const row of TOWN_HOTSPOTS) {
+  for (const row of townInteractables()) {
     const d = Math.hypot(x - row.x, (y - row.y) * .72);
     if (d < distance) { nearest = row; distance = d; }
   }
@@ -7015,7 +8029,7 @@ if ($('town-scene')) $('town-scene').addEventListener('pointerdown', e => {
 });
 if ($('btn-depart')) $('btn-depart').addEventListener('click', () => { ensureAudio(); departTown(); });
 if ($('btn-town-exit')) $('btn-town-exit').addEventListener('click', () => {
-  ensureAudio(); saveMeta(); hideUi('town-screen'); state = 'title'; showTitle();
+  ensureAudio(); hideTownDialogue(); saveMeta(); hideUi('town-screen'); state = 'title'; showTitle();
 });
 if ($('btn-continue')) $('btn-continue').addEventListener('click', () => {
   ensureAudio();
@@ -7051,6 +8065,8 @@ if ($('talent-grid')) $('talent-grid').addEventListener('click', e => {
   pickTalent(btn.dataset.talent);
 });
 if ($('refine-grid')) $('refine-grid').addEventListener('click', e => {
+  const cancel = e.target.closest('[data-refinecancel]');
+  if (cancel) { ensureAudio(); closeForgeRetemper(); return; }
   const btn = e.target.closest('[data-refine]');
   if (!btn) return;
   ensureAudio();
@@ -7104,11 +8120,12 @@ if (typeof window !== 'undefined') {
     descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack,
     quickDive, quickDiveCost, skillManaCost,
     pauseGame, resumeGame,
-    pickTalent, chooseEchoLeave, chooseEchoStay,
+    pickTalent, pendingSkillEvolution, openPendingSkillEvolution, chooseEchoLeave, chooseEchoStay,
     genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
     persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, monsterThreatScale, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
+    progressionLevelCap, settleProgressionXpCap,
     weaponBaseForDrop, starterWeaponForClass, weaponClassOf, canEquipForClass, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,
@@ -7118,8 +8135,12 @@ if (typeof window !== 'undefined') {
     setGreedy, getMeta: () => meta,
     get meta() { return meta; },
     useEscape, departTown, depositStash, withdrawStash, buyTown,
-    tavernCost, tavernAvailable, drinkAtTavern, moveTownAvatar, setTownTarget, interactTown,
-    TOWN_HOTSPOTS, get townAvatar() { return { ...townAvatar }; },
+    townReadinessPlan, buyTownReadiness, townMarketPrice, townMarketRestockCost, townMarketRestockAvailable, restockTownMarket,
+    tavernCost, tavernAvailable, tavernOfferChoices, tavernRewardCount, drinkAtTavern,
+    smithyCanRetemper, smithyCanMasterwork, forgeRetemperCost, completeForgeMasterwork,
+    moveTownAvatar, setTownTarget, interactTown,
+    TOWN_HOTSPOTS, activeTownResidents, townInteractables, townNpcLine, townRowHasNews, selectRelicFocus,
+    townPermanentLevelCapReached, townContractEnabled, get townAvatar() { return { ...townAvatar }; },
     unlockedTownCheckpoints, selectTownCheckpoint, get selectedTownCheckpoint() { return selectedTownCheckpoint; },
     spinWheel, resetWheel, spinCost, resetWheelCost, applyWheelPrize, genWheelSlot,
     ACHV, checkAchv, getRecord: () => ({ ...ensureRecord(), achv:{...ensureRecord().achv} }),

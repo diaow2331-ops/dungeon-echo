@@ -11,9 +11,12 @@ const sandbox={ui:(zh,en)=>en,player:null,depth:100,classId:'warrior'}; vm.creat
 vm.runInContext(core.slice(evoStart,evoEnd)+'\n;globalThis.__evoCount=Object.keys(SKILL_EVOLUTION_TALENTS).length;',sandbox,{filename:'skill-evolution-init.js'});
 assert.equal(sandbox.__evoCount,32,'evolution initialization must execute and materialize 32 choices');
 assert(core.includes('function pendingSkillEvolution()'),'core must own milestone delivery');
+assert(core.includes('function openPendingSkillEvolution()'),'depth transitions must have an explicit pending-evolution delivery hook');
 assert(core.includes('for (const milestone of SKILL_EVOLUTION_MILESTONES)'),'earliest-missing milestone scan required');
 assert(core.includes('const evolutionPicks = pendingSkillEvolution();'),'talent screen must prioritize a pending evolution pair');
 assert(core.includes('if (evolutionPicks) picks.push(...pool);'),'pending milestone must expose exactly its pair, not random ordinary talents');
+assert(core.includes('if (!evolutionPicks) pendingTalent = false;'),'an overlapping ordinary level-up talent must survive until the depth evolution is resolved');
+assert(core.includes('wasEvolution && (pendingSkillEvolution() || pendingTalent)'),'evolution selection must chain missing milestones and any preserved ordinary talent without spending a turn between screens');
 assert(core.includes("TALENTS.find(x => x.id === id) || skillEvolutionTalent(id)"),'pickTalent must accept stable evolution ids');
 const ids=[...core.matchAll(/EVO\('(se_[^']+)'/g)].map(m=>m[1]);
 assert.equal(ids.length,32,'must contain 32 reviewed evolution choices');
@@ -27,6 +30,12 @@ assert(core.includes('function consumeSkillFollowup()'),'core must own follow-up
 const melee=core.slice(core.indexOf('function playerAttack('),core.indexOf('function findRangedTarget('));
 const ranged=core.slice(core.indexOf('function playerRangedAttack('),core.indexOf('function monsterAttack('));
 assert(melee.includes('consumeSkillFollowup()')&&ranged.includes('consumeSkillFollowup()'),'melee and ranged shared core paths must consume follow-up');
+const descendBlock=core.slice(core.indexOf('function descend()'),core.indexOf('// ================= 快速下潜',core.indexOf('function descend()')));
+const quickDiveBlock=core.slice(core.indexOf('function quickDive(n)'),core.indexOf('function triggerTrap',core.indexOf('function quickDive(n)')));
+const restoreBlock=core.slice(core.indexOf('function restoreRun('),core.indexOf('// 弹窗打开期间锁定页面滚动',core.indexOf('function restoreRun(')));
+const departBlock=core.slice(core.indexOf('function departTown('),core.indexOf('function useEscape()',core.indexOf('function departTown(')));
+for(const [name,block] of [['descend',descendBlock],['quickDive',quickDiveBlock],['restoreRun',restoreBlock],['departTown',departBlock]])
+  assert(block.includes('openPendingSkillEvolution();'),name+' must recover the earliest missing depth milestone');
 assert(!core.includes('window.DE_SKILL_EVOLUTION'),'no old global wrapper API should return');
 assert(!core.includes('Press J to attack in your facing direction. Press K to use'),'legacy English K/J skill hint must be gone');
 assert(core.includes("guideOnce('combat'") && core.includes('K uses your class skill (C remains an alias).'),'English contextual combat guide must match the v1.4 K/C-alias contract');

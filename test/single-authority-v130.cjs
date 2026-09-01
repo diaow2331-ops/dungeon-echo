@@ -126,9 +126,9 @@ assert(!game.includes('REST_FLOORS.includes(depth)'), 'core still duplicates res
 assert(!game.includes('Math.round((stats.atk || 0) * 3'), 'core still duplicates inventory stat-score formula');
 assert(!game.includes('30 + Math.round(itemValueScore(it) * 1.2)'), 'core still duplicates forge pricing');
 assert(!game.includes('Math.max(4, Math.round(itemValueScore(it) * .45)'), 'core still duplicates sell pricing');
-assert(game.includes('const forgeCost = it => ECONOMY_RULES.forgeCost(itemValueScore(it), it.forge || 0);'), 'core must delegate forge pricing');
+assert(game.includes('const forgeCost = it => ECONOMY_RULES.forgeCost(')&&game.includes('TOWN_GROWTH_RULES.forgeDiscount(currentTownWorks())'), 'core must delegate forge pricing while supplying the town-project discount as policy input');
 assert(game.includes('const sellPrice = it => ECONOMY_RULES.sellPrice(itemValueScore(it), it.forge || 0);'), 'core must delegate sell pricing');
-for (const delegated of ['townTier','townSupplyPrice','townSupplyStock','quickDiveCost','tavernToastCost','wheelSpinCost','wheelResetCost']) assert(game.includes(`ECONOMY_RULES.${delegated}(`), `core must delegate active economy policy ${delegated}`);
+for (const delegated of ['townTier','townSupplyPrice','townSupplyStock','townMarketRestockCost','forgeRetemperCost','quickDiveCost','tavernToastCost','wheelSpinCost','wheelResetCost']) assert(game.includes(`ECONOMY_RULES.${delegated}(`), `core must delegate active economy policy ${delegated}`);
 for (const dormant of ['dungeonTier','dungeonHealPrice']) assert(!game.includes(`ECONOMY_RULES.${dormant}(`), `core unexpectedly adopted dormant economy helper ${dormant}`);
 assert(game.includes('TOWN_RULES.expeditionSupplyNeeds(meta)'), 'core must delegate expedition readiness thresholds');
 assert(game.includes('TOWN_RULES.unlockedCheckpoints(meta && meta.bestDepth)'), 'core must delegate checkpoint unlock policy');
@@ -142,9 +142,10 @@ assert(!game.includes('if (player.lvl % 3 === 0) pendingTalent = true;'), 'core 
 assert(game.includes('PROGRESSION_RULES.xpThreshold(player.lvl)'), 'core must delegate XP threshold');
 assert(game.includes('PROGRESSION_RULES.levelUpDelta()'), 'core must delegate level-up delta');
 assert(game.includes('PROGRESSION_RULES.talentDue(player.lvl)'), 'core must delegate talent due');
-for (const dormant of ['progressionCaps','clampGrowthSnapshot','reachedEvolutionMilestones','nextEvolutionMilestone','nextTalentLevel']) assert(!game.includes(`PROGRESSION_RULES.${dormant}(`), `core unexpectedly adopted dormant progression helper ${dormant}`);
+assert(game.includes('PROGRESSION_RULES.progressionCaps(classDef(), level, progressionLegacyFloor())'), 'core must delegate the permanent level-cap calculation while retaining mutation ownership');
+for (const dormant of ['clampGrowthSnapshot','reachedEvolutionMilestones','nextEvolutionMilestone','nextTalentLevel']) assert(!game.includes(`PROGRESSION_RULES.${dormant}(`), `core unexpectedly adopted dormant progression helper ${dormant}`);
 assert(!game.includes("const pCritMul  = () => 1.8 + (player.critPower || 0) / 100;"), 'core still duplicates critical multiplier arithmetic');
-assert(game.includes("const pCritMul  = () => COMBAT_RULES.criticalMultiplier(player.critPower || 0);"), 'core must delegate critical multiplier');
+assert(game.includes("const pCritMul  = () => COMBAT_RULES.criticalMultiplier((player.critPower || 0) + setStat('critPower'));"), 'core must delegate critical multiplier while supplying active set bonus input');
 for (const dormant of ['warriorDamageReduction','totalDefense','grievousHealMultiplier','outgoingHitDamage','incomingMeleeDamage','incomingRangedDamage','thornsDamage','killHeal']) assert(!game.includes(`COMBAT_RULES.${dormant}(`), `core unexpectedly adopted dormant combat helper ${dormant}`);
 
 for (const token of [
@@ -184,9 +185,10 @@ for (const rel of js) {
 
 for (const rel of [
   'game/core/game.js','game/core/production-bootstrap.js','game/core/runtime-bootstrap.js',
-  'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js',
+  'game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js','game/domain/inventory/set-rules-v180.js',
   'game/domain/economy/economy-rules-v130.js',
   'game/domain/town/town-rules-v130.js',
+  'game/domain/town/town-growth-rules-v180.js',
   'game/domain/expedition/expedition-rules-v170.js',
   'game/domain/progression/progression-rules-v130.js',
   'game/domain/combat/combat-rules-v130.js',

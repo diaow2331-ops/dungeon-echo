@@ -7,15 +7,17 @@ profiles/classic-100.profile.js
 game/locale/locale-data-v134.js
 game/domain/content/content-rules-v130.js
 game/domain/inventory/equipment-rules-v130.js
+game/domain/inventory/set-rules-v180.js
 game/domain/economy/economy-rules-v130.js
 game/domain/town/town-rules-v130.js
+game/domain/town/town-growth-rules-v180.js
 game/domain/expedition/expedition-rules-v170.js
 game/domain/progression/progression-rules-v130.js
 game/domain/combat/combat-rules-v130.js
 game/core/game.js
 game/locale/core-locale-data-v139.js
 game/core/runtime-bootstrap.js
-game/core/release-stamp-v170.js
+game/core/release-stamp-v180.js
 game/locale/fixed-locale-entry-v130.js
 game/ui/responsive-final-v154.js
 game/ui/help-copy-v126.js
@@ -30,6 +32,7 @@ game/input/desktop-controls.js
 art/loot-atlas.png
 art/equipment-weapons-v13.png
 art/equipment-wearables-v13.png
+art/named-relic-atlas-v180.webp
 art/hero-action-atlas-v2.svg
 art/title-backdrop.webp
 art/class-roster.webp
@@ -39,5 +42,8 @@ art/monster-deep-atlas-v1.svg
 art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
+art/town-growth-atlas-v180.webp
+art/town-npc-atlas-v180.webp
+art/town-npc-portraits-v180.webp
 art/town-npc-atlas-v1.svg
 art/dungeon-props-atlas-v1.svg

@@ -1,0 +1,25 @@
+{
+  "version": "v1.8.0-development",
+  "atlases": {
+    "townNpcScene": {
+      "path": "art/town-npc-atlas-v180.webp",
+      "size": [1256, 1256],
+      "grid": [4, 4],
+      "cell": [314, 314],
+      "alpha": true
+    },
+    "townNpcPortraits": {
+      "path": "art/town-npc-portraits-v180.webp",
+      "size": [1256, 1256],
+      "grid": [4, 4],
+      "cell": [314, 314],
+      "alpha": false
+    }
+  },
+  "cells": [
+    ["quartermaster", "smith", "smith-action", "records-clerk"],
+    ["provisioner", "provisioner-crate", "travelling-merchant", "town-watch"],
+    ["apothecary-apprentice", "alchemist", "oracle", "oracle-ritual"],
+    ["portal-warden", "portal-technician", "innkeeper", "expedition-scout"]
+  ]
+}

@@ -24,12 +24,12 @@
     Object.freeze({
       id:'relic', unlockTier:2,
       zh:'遗物搜掠契约', en:'Relic Sweep',
-      zhDesc:'宝箱与异常回响更常见，但每层多 1 个陷阱。', enDesc:'More chests and echo events, but +1 trap per floor.',
+      zhDesc:'宝箱、异常回响与具名遗物更常见，但每层多 1 个陷阱。', enDesc:'More chests, echo events and named relics, but +1 trap per floor.',
     }),
     Object.freeze({
-      id:'oath', unlockTier:4,
+      id:'oath', unlockTier:2,
       zh:'老兵深潜誓约', en:'Veteran Oath',
-      zhDesc:'普通敌人攻击 +12%，经验 +18%。', enDesc:'Normal enemies deal +12% ATK and grant +18% XP.',
+      zhDesc:'普通敌人攻击 +12%，经验 +18%；适合冲击永久等级上限。', enDesc:'Normal enemies deal +12% ATK and grant +18% XP; best for pushing toward the permanent level cap.',
     }),
   ]);
 
@@ -54,6 +54,10 @@
 
   function trapBonus(contractId) {
     return normalizeContractId(contractId) === 'relic' ? 1 : 0;
+  }
+
+  function namedRelicChanceBonus(contractId) {
+    return normalizeContractId(contractId) === 'relic' ? 0.16 : 0;
   }
 
   function eventChance(contractId) {
@@ -121,6 +125,7 @@
     eliteChance,
     chestChance,
     trapBonus,
+    namedRelicChanceBonus,
     eventChance,
     monsterAtkMultiplier,
     monsterXpMultiplier,
