@@ -10,8 +10,8 @@ HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 ROOT_POLICY="$BUNDLE_ROOT/ops/play-release-root-policy.sh"
 test -r "$ROOT_POLICY" || { echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: release-root policy missing" >&2; exit 1; }
 source "$ROOT_POLICY"
-EXPECTED_VERSION=1.8.0
-EXPECTED_GENERATION=182
+EXPECTED_VERSION=1.8.1
+EXPECTED_GENERATION=183
 
 fail(){ echo "DUNGEON_ECHO_SITE_DEPLOY_ERROR: $*" >&2; exit 1; }
 test "${EUID:-$(id -u)}" -eq 0 || fail 'root required'
@@ -52,7 +52,7 @@ test "$(tr -d '\r\n[:space:]' < "$GAME_SOURCE/VERSION")" = "$version" || fail 'g
 
 for entry in "$GAME_SOURCE/index.html" "$GAME_SOURCE/en/index.html"; do
   grep -Fq "?v=$EXPECTED_GENERATION" "$entry" || fail "generation $EXPECTED_GENERATION missing: $entry"
-  ! grep -Eq '\?v=(153|157|166|167|168|169|178|179|180|181)' "$entry" || fail "historical cache generation remains: $entry"
+  ! grep -Eq '\?v=(153|157|166|167|168|169|178|179|180|181|182)' "$entry" || fail "historical cache generation remains: $entry"
   ! grep -Eq 'game/systems/|combat-controls|core-screen-owner|town-canvas-locale|town-workspace|forge-feedback|combat-hint-polish|expedition-pressure|audio-director|mobile-ux|expedition-record' "$entry" || fail "second authority reference remains: $entry"
 done
 
