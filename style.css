@@ -1504,3 +1504,44 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
   border: 0;
   border-radius: 0;
 }
+
+
+/* v1.8.1 town detail density */
+@media (min-width: 761px) {
+  #town-screen .town-service > .kicker {
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  #town-screen .town-service > .kicker span { font-size: 11px; }
+  .relic-piece {
+    min-height: 122px;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 11px;
+    padding: 11px;
+  }
+  .relic-piece-art { width: 84px; height: 84px; }
+  .relic-piece-head b { font-size: 13px; }
+  .relic-piece p { font-size: 12px; }
+  .relic-set-card { padding: 16px; }
+  .relic-set-story { font-size: 13px; }
+  .relic-set-bonuses span { padding: 10px 11px; font-size: 11px; }
+  .town-depart-copy {
+    margin: 10px 0 14px;
+    padding: 20px 24px;
+  }
+  .town-depart-page .checkpoint-panel { padding: 18px; }
+  .checkpoint-head b { font-size: 13px; }
+  .checkpoint-head small { font-size: 12px; }
+  .checkpoint-grid button {
+    min-width: 86px;
+    min-height: 38px;
+    padding: 7px 11px;
+    font-size: 13px;
+  }
+  .town-contract-grid button {
+    min-height: 78px;
+    padding: 11px 12px;
+  }
+  .town-contract-grid button b { font-size: 13px; }
+  .town-contract-grid button small { font-size: 12px; }
+}
