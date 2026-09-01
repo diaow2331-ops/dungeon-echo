@@ -1545,3 +1545,31 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
   .town-contract-grid button b { font-size: 13px; }
   .town-contract-grid button small { font-size: 12px; }
 }
+
+
+/* v1.8.1 town mobile shell correction */
+@media (max-width: 760px) {
+  #town-screen { padding: 6px; }
+  #town-screen .town-shell {
+    width: calc(100vw - 12px);
+    height: calc(100dvh - 12px);
+    padding: 10px;
+    gap: 6px;
+  }
+  #town-screen .town-primary-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  #town-screen .town-primary-actions #btn-depart {
+    grid-column: 1 / -1;
+    min-height: 38px;
+  }
+  #town-screen .town-primary-actions > button {
+    min-width: 0;
+    min-height: 34px;
+    height: auto;
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+}
