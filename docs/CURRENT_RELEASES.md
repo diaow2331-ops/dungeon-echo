@@ -4,7 +4,7 @@ This file is the repository-level pointer to the releases currently presented by
 
 | Surface | Current version | Canonical version file | Canonical builder |
 | --- | --- | --- | --- |
-| Dungeon Echo | v1.8.0 | `VERSION` | `ops/release/build-site-bundle.sh` |
+| Dungeon Echo | v1.8.1 | `VERSION` | `ops/release/build-site-bundle.sh` |
 | Clock Out Alive / 摸鱼到下班 | v1.26.5 | `moyu/VERSION` | `ops/release/build-moyu-bundle.sh` |
 | Board Trio / 方寸棋局 | v0.7.0 | `board-games/VERSION` | `ops/release/build-board-games-bundle.sh` |
 | 91hwl public site | v1.11.8 | `ops/home-mount/SITE_VERSION` | `ops/release/build-home-mount-bundle.sh` |
