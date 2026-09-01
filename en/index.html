@@ -19,6 +19,8 @@
 <link rel="preload" href="art/final-boss-v11.png" as="image">
 <link rel="preload" href="art/town-backdrop-v11.webp" as="image">
 <link rel="preload" href="art/town-growth-atlas-v180.webp" as="image">
+<link rel="preload" href="art/town-npc-atlas-v180.webp" as="image">
+<link rel="preload" href="art/town-npc-portraits-v180.webp" as="image">
 <link rel="stylesheet" href="style.css?v=181">
 </head>
 <body>
@@ -180,6 +182,11 @@
           <div id="town-contracts" class="checkpoint-panel town-contract-panel" aria-live="polite"></div>
         </section>
       </div>
+      <aside id="town-dialogue" class="town-dialogue" hidden aria-live="polite" aria-atomic="true">
+        <div id="town-dialogue-portrait" class="town-dialogue-portrait" aria-hidden="true"></div>
+        <div class="town-dialogue-copy"><header><div><strong id="town-dialogue-speaker"></strong><span id="town-dialogue-role"></span></div><span class="town-dialogue-mark" aria-hidden="true">◆</span></header><p id="town-dialogue-line"></p><div id="town-dialogue-context" class="town-dialogue-context"></div></div>
+        <button type="button" class="town-dialogue-close" data-town-dialogue-close aria-label="Close dialogue">×</button>
+      </aside>
     </div>
   </div>
 

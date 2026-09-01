@@ -1,5 +1,8 @@
 # Governance Log — 2026-09-01
 
+## v1.8 town character and dialogue admission
+The living-town audit found that contextual NPC writing existed but was presented only as adventure-log text, while the plaza still depended on the historical SVG character sheet. A shared-order pair of 4 × 4 WebP atlases now supplies transparent scene figures and matching authored dialogue portraits for all service NPCs, residents and action variants. Canonical interaction opens a responsive portrait card while preserving the same `npcLine` / `residentLine` result in the log; live chips read existing town/event/archive/depth state without creating new gameplay or persistence authority. The old SVG remains a load fallback, exact coordinates are pinned by `v180-town-character-art.map.json`, and public v1.7.0 remains unchanged. See `docs/DUNGEON_V180_TOWN_CHARACTER_ART_AUDIT.md`.
+
 ## v1.8 town and relic atlas admission
 The art audit found that v1.8 mechanics had outpaced their visual identity: named relics still reused generic equipment cells and town construction stages were mostly textual/procedural. A normalized alpha-WebP batch now supplies 54 fixed relic cells (six sets × four class weapons plus five wearables) and 16 town-project cells (four projects × stages 0–3). Canonical core maps existing set/project IDs to those cells for bag, equipment, ground loot, Relic Hall and construction/service cards; no gameplay or persistence authority moved. Exact coordinates are pinned by `art/source-atlases/runtime-maps/v180-town-relic-art.map.json`, admission is covered by `test/v180-art-atlases.cjs`, and public v1.7.0 remains unchanged. See `docs/DUNGEON_V180_ART_ATLAS_AUDIT.md`.
 

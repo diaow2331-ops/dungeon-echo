@@ -46,6 +46,7 @@ const tests = [
   'named-relic-sets-v180.cjs',
   'named-relic-capstones-runtime-v180.cjs',
   'v180-art-atlases.cjs',
+  'town-npc-dialogue-art-v180.cjs',
   'town-growth-v180.cjs',
   'town-services-v180.cjs',
   'town-services-runtime-v180.cjs',

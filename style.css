@@ -303,6 +303,7 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 @media (max-width: 800px) { .help-cols { flex-direction: column; } }
 #town-screen { padding: 12px; overflow: hidden; }
 #town-screen .town-shell {
+  position: relative;
   width: min(1260px, calc(100vw - 24px));
   height: min(940px, calc(100dvh - 24px));
   min-height: 0;
@@ -363,6 +364,57 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
   box-shadow: 0 5px 16px rgba(215,166,64,.2);
 }
 .town-pages { min-height: 0; overflow: hidden; }
+.town-dialogue {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  bottom: 24px;
+  width: min(780px, calc(100% - 64px));
+  min-height: 132px;
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) 34px;
+  gap: 16px;
+  align-items: stretch;
+  padding: 10px 10px 10px 12px;
+  color: #eadfce;
+  background: linear-gradient(115deg, rgba(13,10,12,.98), rgba(30,20,18,.97) 55%, rgba(14,18,27,.98));
+  border: 1px solid rgba(224,177,91,.7);
+  box-shadow: 0 18px 52px rgba(0,0,0,.72), inset 0 0 0 1px rgba(255,238,190,.06), 0 0 24px rgba(196,135,49,.12);
+  opacity: 0;
+  transform: translate(-50%, 14px) scale(.985);
+  transition: opacity .18s ease, transform .22s ease;
+}
+.town-dialogue[hidden] { display: none; }
+.town-dialogue.shown { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.town-dialogue::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  border: 1px solid rgba(221,181,105,.14);
+}
+.town-dialogue-portrait {
+  --npc-x: 0%;
+  --npc-y: 0%;
+  min-height: 110px;
+  background-image: linear-gradient(180deg, transparent 55%, rgba(10,7,8,.4)), url('art/town-npc-portraits-v180.webp');
+  background-size: 100% 100%, 400% 400%;
+  background-position: center, var(--npc-x) var(--npc-y);
+  border: 1px solid rgba(239,202,124,.48);
+  box-shadow: inset 0 -22px 28px rgba(4,3,5,.35), 0 0 18px rgba(0,0,0,.38);
+}
+.town-dialogue-copy { min-width: 0; padding: 5px 2px 3px; text-align: left; }
+.town-dialogue-copy header { display: flex; justify-content: space-between; gap: 14px; align-items: start; border-bottom: 1px solid rgba(218,171,88,.24); padding-bottom: 5px; }
+.town-dialogue-copy header > div { display: grid; gap: 1px; }
+.town-dialogue-copy strong { color: #f7d98f; font-size: 17px; letter-spacing: 1.5px; }
+.town-dialogue-copy header span:not(.town-dialogue-mark) { color: #9f8f7b; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+.town-dialogue-mark { color: #c89139; font-size: 10px; filter: drop-shadow(0 0 5px rgba(236,187,92,.65)); }
+.town-dialogue-copy p { position: relative; margin: 9px 0 8px; padding-left: 16px; color: #e9dfd2; font-size: 14px; line-height: 1.55; }
+.town-dialogue-copy p::before { content: '“'; position: absolute; left: 0; top: -7px; color: rgba(226,178,89,.72); font: 25px/1 Georgia, serif; }
+.town-dialogue-context { display: flex; flex-wrap: wrap; gap: 5px; }
+.town-dialogue-context span { padding: 2px 7px; color: #b9a78d; background: rgba(119,85,40,.16); border: 1px solid rgba(183,139,71,.28); font-size: 10px; letter-spacing: .3px; }
+.town-dialogue-close { align-self: start; min-width: 30px; min-height: 30px; padding: 0; color: #aa9982; background: rgba(255,255,255,.02); border-color: rgba(180,145,91,.3); font-size: 20px; line-height: 1; }
+.town-dialogue-close:hover { color: #ffdfa0; border-color: rgba(229,185,104,.72); }
 .town-page {
   height: 100%;
   min-height: 0;
@@ -539,6 +591,22 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
   .town-plaza-stage { place-items: start center; align-content: start; }
   #town-scene { max-height: none; }
   .town-page { padding-inline: 2px; }
+  .town-dialogue {
+    bottom: 10px;
+    width: calc(100% - 20px);
+    min-height: 106px;
+    grid-template-columns: 82px minmax(0, 1fr) 28px;
+    gap: 9px;
+    padding: 8px;
+  }
+  .town-dialogue-portrait { min-height: 88px; }
+  .town-dialogue-copy { padding-top: 1px; }
+  .town-dialogue-copy strong { font-size: 14px; }
+  .town-dialogue-copy p { margin: 5px 0 6px; font-size: 12px; line-height: 1.4; }
+  .town-dialogue-close { min-width: 27px; min-height: 27px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .town-dialogue { transition: none; }
 }
 .town-service-optional > summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; gap:10px; align-items:baseline; color:#bfa8d8; }
 .town-service-optional > summary::-webkit-details-marker { display:none; }

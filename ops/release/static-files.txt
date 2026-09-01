@@ -43,5 +43,7 @@ art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
 art/town-growth-atlas-v180.webp
+art/town-npc-atlas-v180.webp
+art/town-npc-portraits-v180.webp
 art/town-npc-atlas-v1.svg
 art/dungeon-props-atlas-v1.svg

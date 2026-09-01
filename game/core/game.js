@@ -668,6 +668,10 @@ const finalBossV11 = new Image();
 finalBossV11.src = 'art/final-boss-v11.png';
 const townBackdropV11 = new Image();
 townBackdropV11.src = 'art/town-backdrop-v11.webp';
+const townNpcAtlasV180 = new Image();
+townNpcAtlasV180.src = 'art/town-npc-atlas-v180.webp';
+const townNpcPortraitsV180 = new Image();
+townNpcPortraitsV180.src = 'art/town-npc-portraits-v180.webp';
 const townNpcAtlasV1 = new Image();
 townNpcAtlasV1.src = 'art/town-npc-atlas-v1.svg';
 const TOWN_NPC_ART = Object.freeze({
@@ -5804,6 +5808,21 @@ const TOWN_HOTSPOTS = Object.freeze([
   { id:'portal', cell:TOWN_NPC_ART.portalWarden, activeCell:TOWN_NPC_ART.portalTechnician, x:.92, y:.82, face:-1, action:'portal', zh:'传送守卫', en:'Portal Warden' },
 ]);
 const TOWN_WORK_FOR_HOTSPOT = Object.freeze({ smith:'smithy', innkeeper:'tavern', merchant:'market', records:'relics' });
+const TOWN_NPC_ROLE = Object.freeze({
+  quartermaster:{ zh:'仓库与军需', en:'Stash & Supply' },
+  smith:{ zh:'锻造与整备', en:'Forge & Gear' },
+  innkeeper:{ zh:'余烬酒馆', en:'Ember Tavern' },
+  merchant:{ zh:'商路与补给', en:'Trade & Supplies' },
+  oracle:{ zh:'命运占卜', en:'Fortune Oracle' },
+  records:{ zh:'遗物馆藏', en:'Relic Archive' },
+  portal:{ zh:'传送门守备', en:'Portal Watch' },
+  provisioner:{ zh:'常驻补给商', en:'Resident Provisioner' },
+  apothecary:{ zh:'常驻药剂学徒', en:'Resident Apothecary' },
+  watch:{ zh:'常驻城镇守卫', en:'Resident Town Watch' },
+  scout:{ zh:'常驻远征斥候', en:'Resident Expedition Scout' },
+  technician:{ zh:'常驻传送技师', en:'Resident Portal Technician' },
+  alchemist:{ zh:'常驻炼金师', en:'Resident Alchemist' },
+});
 const TOWN_RESIDENT_VISUALS = Object.freeze({
   provisioner:{ cell:TOWN_NPC_ART.provisioner, x:.52, y:.91, face:1, scale:.72 },
   apothecary:{ cell:TOWN_NPC_ART.apothecaryApprentice, x:.65, y:.91, face:-1, scale:.72 },
@@ -5859,6 +5878,7 @@ const TOWN_DEFAULT_SERVICE_FOR_PAGE = Object.freeze({
 function townPageForService(service) { return TOWN_PAGE_FOR_SERVICE[service] || 'plaza'; }
 function selectTownPage(page, focusTab = false) {
   if (!Object.prototype.hasOwnProperty.call(TOWN_DEFAULT_SERVICE_FOR_PAGE, page)) return false;
+  hideTownDialogue();
   if (townPageForService(townActiveService) !== page) townActiveService = TOWN_DEFAULT_SERVICE_FOR_PAGE[page];
   renderTownFocus(focusTab);
   return true;
@@ -5892,11 +5912,58 @@ function townNpcLine(row) {
     ? TOWN_GROWTH_RULES.residentLine(row.id, context)
     : TOWN_GROWTH_RULES.npcLine(row.id, context);
 }
+function townDialogueTags(row) {
+  const tags = [];
+  if (townRowHasNews(row)) tags.push(ui('镇务新消息', 'New town matter'));
+  const workId = TOWN_WORK_FOR_HOTSPOT[row.id];
+  if (workId) tags.push(ui(`建设等级 ${townWorkLevel(workId)}`, `Project Lv ${townWorkLevel(workId)}`));
+  if (row.id === 'records') tags.push(ui(`馆藏 ${relicLedgerCount()} 件`, `${relicLedgerCount()} catalogued`));
+  else if (['scout','portal','technician'].includes(row.id)) tags.push(ui(`最深 ${Math.max(0, meta.bestDepth || 0)} 层`, `Deepest Floor ${Math.max(0, meta.bestDepth || 0)}`));
+  else tags.push(ui(`城镇阶段 ${townTierForArt()}`, `Town Tier ${townTierForArt()}`));
+  return tags.slice(0, 2);
+}
+function hideTownDialogue() {
+  const dialogue = $('town-dialogue');
+  if (!dialogue) return false;
+  dialogue.classList.remove('shown');
+  dialogue.hidden = true;
+  return true;
+}
+function showTownDialogue(row, line) {
+  const dialogue = $('town-dialogue');
+  if (!dialogue || !row || !line) return false;
+  const portrait = $('town-dialogue-portrait');
+  const cell = Math.max(0, Math.floor(Number(row.cell) || 0));
+  if (portrait) {
+    portrait.style.setProperty('--npc-x', `${(cell % 4) * 100 / 3}%`);
+    portrait.style.setProperty('--npc-y', `${Math.floor(cell / 4) * 100 / 3}%`);
+  }
+  const role = TOWN_NPC_ROLE[row.id] || { zh:'回响小镇居民', en:'Echo Town Resident' };
+  if ($('town-dialogue-speaker')) $('town-dialogue-speaker').textContent = ui(row.zh, row.en);
+  if ($('town-dialogue-role')) $('town-dialogue-role').textContent = ui(role.zh, role.en);
+  if ($('town-dialogue-line')) $('town-dialogue-line').textContent = ui(line.zh, line.en);
+  const context = $('town-dialogue-context');
+  if (context) {
+    context.replaceChildren(...townDialogueTags(row).map(label => {
+      const chip = document.createElement('span');
+      chip.textContent = label;
+      return chip;
+    }));
+  }
+  dialogue.dataset.npc = row.id;
+  dialogue.hidden = false;
+  void dialogue.offsetWidth;
+  dialogue.classList.add('shown');
+  return true;
+}
 function activateTownHotspot(row, focusTab = true) {
   if (!row || state !== 'town') return false;
   townPendingHotspot = '';
   const line = townNpcLine(row);
-  if (focusTab && line) msg(ui(`${row.zh}：${line.zh}`, `${row.en}: ${line.en}`), 'good');
+  if (focusTab && line) {
+    showTownDialogue(row, line);
+    msg(ui(`${row.zh}：${line.zh}`, `${row.en}: ${line.en}`), 'good');
+  }
   if (row.action === 'portal') {
     townActiveService = 'portal';
     renderTownFocus(focusTab);
@@ -6176,6 +6243,7 @@ function showTown() {
   hideUi('title-screen'); hideUi('class-screen'); hideUi('pause-screen');
   hideUi('shop-screen'); hideUi('talent-screen'); hideUi('shrine-screen'); hideUi('echo-screen');
   showUi('town-screen');
+  hideTownDialogue();
   applyTownViewport();
   townLastFrame = 0; townPromptKey = '';
   renderTown();
@@ -6408,14 +6476,16 @@ function drawTownNpcFigure(ctx, index, x, baseY, now, facing = 1, scale = 1) {
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,.38)';
   ctx.beginPath(); ctx.ellipse(x, y + 1, 12 * scale, 3.2, 0, 0, Math.PI * 2); ctx.fill();
-  if (imageReady(townNpcAtlasV1)) {
+  const atlas = imageReady(townNpcAtlasV180) ? townNpcAtlasV180 : townNpcAtlasV1;
+  if (imageReady(atlas)) {
     const cols = 4, rows = 4;
-    const sw = townNpcAtlasV1.naturalWidth / cols, sh = townNpcAtlasV1.naturalHeight / rows;
+    const sw = atlas.naturalWidth / cols, sh = atlas.naturalHeight / rows;
     const sx = (index % cols) * sw, sy = Math.floor(index / cols) * sh;
     ctx.imageSmoothingEnabled = true;
     ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
     ctx.translate(x, y - 23 * scale); ctx.scale(facing, 1);
-    ctx.drawImage(townNpcAtlasV1, sx, sy, sw, sh, -18 * scale, -27 * scale, 36 * scale, 50 * scale);
+    const authoredScale = atlas === townNpcAtlasV180 ? 1.12 : 1;
+    ctx.drawImage(atlas, sx, sy, sw, sh, -20 * scale * authoredScale, -31 * scale * authoredScale, 40 * scale * authoredScale, 56 * scale * authoredScale);
   } else {
     ctx.fillStyle = 'rgba(24,18,20,.9)';
     ctx.beginPath(); ctx.arc(x, y - 16, 4.2 * scale, 0, Math.PI * 2); ctx.fill();
@@ -7503,6 +7573,7 @@ function initGreedyRun(chosen) {
 }
 function departTown(targetDepth = selectedTownCheckpoint) {
   if (!greedyMode || !meta) return;
+  hideTownDialogue();
   const unlocked = unlockedTownCheckpoints();
   const requested = Math.max(1, Math.floor(Number(targetDepth) || 1));
   const startDepth = unlocked.includes(requested) ? requested : 1;
@@ -7865,6 +7936,8 @@ if ($('btn-greedy')) $('btn-greedy').addEventListener('click', () => {
   refreshTitle();
 });
 if ($('town-screen')) $('town-screen').addEventListener('click', e => {
+  const dialogueClose = e.target.closest('[data-town-dialogue-close]');
+  if (dialogueClose) { hideTownDialogue(); return; }
   const pageTab = e.target.closest('[data-town-page]');
   if (pageTab) { ensureAudio(); selectTownPage(pageTab.dataset.townPage, false); return; }
   const service = e.target.closest('.town-service[data-service]');
@@ -7956,7 +8029,7 @@ if ($('town-scene')) $('town-scene').addEventListener('pointerdown', e => {
 });
 if ($('btn-depart')) $('btn-depart').addEventListener('click', () => { ensureAudio(); departTown(); });
 if ($('btn-town-exit')) $('btn-town-exit').addEventListener('click', () => {
-  ensureAudio(); saveMeta(); hideUi('town-screen'); state = 'title'; showTitle();
+  ensureAudio(); hideTownDialogue(); saveMeta(); hideUi('town-screen'); state = 'title'; showTitle();
 });
 if ($('btn-continue')) $('btn-continue').addEventListener('click', () => {
   ensureAudio();
