@@ -649,6 +649,8 @@ const equipmentWeaponsV13 = new Image();
 equipmentWeaponsV13.src = 'art/equipment-weapons-v13.png';
 const equipmentWearablesV13 = new Image();
 equipmentWearablesV13.src = 'art/equipment-wearables-v13.png';
+const namedRelicAtlasV180 = new Image();
+namedRelicAtlasV180.src = 'art/named-relic-atlas-v180.webp';
 const heroAtlasV11 = new Image();
 heroAtlasV11.src = 'art/hero-atlas-v11.png';
 const heroActionAtlasV2 = new Image();
@@ -696,6 +698,33 @@ const lootMarkup = id => {
   return `<span class="loot-icon" style="--ix:${p.x};--iy:${p.y}" aria-hidden="true"></span>`;
 };
 
+const NAMED_RELIC_WEAPON_COL = Object.freeze({ warrior:0, ranger:1, mage:2, assassin:3 });
+const NAMED_RELIC_SLOT_COL = Object.freeze({ armor:4, helmet:5, boots:6, ring:7, amulet:8 });
+function namedRelicArtCell(setId, slot, itemClass='warrior') {
+  if (!SET_RULES || !Array.isArray(SET_RULES.SETS)) return null;
+  const row = SET_RULES.SETS.findIndex(set => set.id === setId);
+  if (row < 0) return null;
+  const col = slot === 'weapon'
+    ? (NAMED_RELIC_WEAPON_COL[itemClass] ?? NAMED_RELIC_WEAPON_COL.warrior)
+    : NAMED_RELIC_SLOT_COL[slot];
+  return Number.isInteger(col) ? { x:col, y:row } : null;
+}
+function namedRelicMarkup(setId, slot, itemClass='warrior', extraClass='') {
+  const p = namedRelicArtCell(setId, slot, itemClass);
+  if (!p) return '';
+  return `<span class="named-relic-icon${extraClass ? ' ' + extraClass : ''}" style="--rx:${p.x};--ry:${p.y}" aria-hidden="true"></span>`;
+}
+function itemLootMarkup(item) {
+  if (item && item.namedSet) {
+    const itemClass = item.slot === 'weapon' && item.base && item.base.cls
+      ? item.base.cls
+      : (meta && meta.classId) || 'warrior';
+    const art = namedRelicMarkup(item.setId, item.setPiece || item.slot, itemClass);
+    if (art) return art;
+  }
+  return lootMarkup(item && item.icon);
+}
+
 const EQUIPMENT_SOURCE_BY_ICON = Object.freeze({
   'iron-sword':['weapon',0,0],'broad-sword':['weapon',1,0],'battle-axe':['weapon',3,1],'rune-blade':['weapon',3,0],
   'dagger':['weapon',2,3],'hunting-bow':['weapon',5,1],'arcane-staff':['weapon',4,2],
@@ -734,6 +763,19 @@ function equipmentArtSource(item) {
   return EQUIPMENT_SOURCE_BY_ICON[item.icon] || null;
 }
 function drawGroundEquipment(item, px, py, size=29) {
+  if (item && item.namedSet && imageReady(namedRelicAtlasV180)) {
+    const itemClass = item.slot === 'weapon' && item.base && item.base.cls
+      ? item.base.cls
+      : (meta && meta.classId) || 'warrior';
+    const cell = namedRelicArtCell(item.setId, item.setPiece || item.slot, itemClass);
+    if (cell) {
+      const cols=9, rows=6, sw=namedRelicAtlasV180.naturalWidth/cols, sh=namedRelicAtlasV180.naturalHeight/rows;
+      ctx.save(); ctx.imageSmoothingEnabled=true;
+      ctx.shadowColor='rgba(178,116,36,.72)'; ctx.shadowBlur=8; ctx.shadowOffsetY=3;
+      ctx.drawImage(namedRelicAtlasV180,cell.x*sw,cell.y*sh,sw,sh,px-size/2,py-size/2,size,size);
+      ctx.restore(); return true;
+    }
+  }
   const src=equipmentArtSource(item); if(!src) return false;
   const [sheetId,sx,sy]=src;
   const image=sheetId==='weapon' ? equipmentWeaponsV13 : equipmentWearablesV13;
@@ -4002,7 +4044,7 @@ function renderBag() {
   let html = '';
   for (let i = 0; i < BAG_CAP; i++) {
     const it = player.inv[i];
-    const icon = it ? lootMarkup(it.icon) : '';
+    const icon = it ? itemLootMarkup(it) : '';
     html += it
       ? `<div class="bagcell r${it.rarity}${i === selectedBagIndex ? ' selected' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(visibleItemName(it))}">${icon}<span class="dropx" data-drop="${i}" aria-label="${ui('丢弃','Drop')}">✕</span></div>`
       : `<div class="bagcell empty"></div>`;
@@ -4016,7 +4058,7 @@ function renderEquip() {
     const el = $('eq-' + slot); if (!el) continue;
     const it = player.equip[slot];
     const iconEl = el.querySelector('.eqicon');
-    iconEl.innerHTML = it ? lootMarkup(it.icon) : '<span aria-hidden="true">◇</span>';
+    iconEl.innerHTML = it ? itemLootMarkup(it) : '<span aria-hidden="true">◇</span>';
     const nameEl = el.querySelector('.eqname');
     if (it) {
       nameEl.textContent = visibleItemName(it);
@@ -6956,6 +6998,13 @@ function townChronicleHtml() {
 function townProjectContext() {
   return { tier:townTierForArt(), gold:meta ? (meta.gold || 0) : 0, relics:relicLedgerCount() };
 }
+const TOWN_GROWTH_ART_ROW = Object.freeze({ smithy:0, market:1, tavern:2, relics:3 });
+function townGrowthArtMarkup(projectId, level, extraClass='') {
+  const row = TOWN_GROWTH_ART_ROW[projectId];
+  if (!Number.isInteger(row)) return '';
+  const stage = clamp(Math.floor(Number(level)||0),0,3);
+  return `<i class="town-project-art${extraClass ? ' ' + extraClass : ''}" style="--tx:${stage};--ty:${row}" aria-hidden="true"></i>`;
+}
 function townServiceStageHtml(projectId, lockedZh, lockedEn) {
   const row = TOWN_GROWTH_RULES.project(projectId);
   if (!row) return '';
@@ -6963,7 +7012,7 @@ function townServiceStageHtml(projectId, lockedZh, lockedEn) {
   const effect = TOWN_GROWTH_RULES.currentEffect(currentTownWorks(), projectId);
   const title = level > 0 ? ui(effect.zh,effect.en) : ui(lockedZh,lockedEn);
   const detail = level > 0 ? ui(effect.effectZh,effect.effectEn) : ui('尚未扩建 · 基础服务仍可使用','Not yet expanded · basic service remains available');
-  return `<div class="town-service-stage${level ? ' built' : ' locked'}"><b>${esc(ui(row.zh,row.en))} · Lv ${level}/3</b><span>${esc(title)}</span><small>${esc(detail)}</small></div>`;
+  return `<div class="town-service-stage${level ? ' built' : ' locked'}">${townGrowthArtMarkup(projectId,level,'service-art')}<div class="town-service-stage-copy"><b>${esc(ui(row.zh,row.en))} · Lv ${level}/3</b><span>${esc(title)}</span><small>${esc(detail)}</small></div></div>`;
 }
 function upgradeTownWork(id) {
   if (state !== 'town' || !meta) return false;
@@ -7019,7 +7068,7 @@ function renderTownWorks() {
       }
       const effect = current ? ui(current.effectZh,current.effectEn) : ui('尚未建设','Not yet built');
       const nextName = next ? ui(next.zh,next.en) : ui('最终形态','Final form');
-      return `<article class="town-work-card${level >= row.levels.length ? ' complete' : ''}"><div class="town-work-title"><b>${esc(ui(row.zh,row.en))}</b><em>Lv ${level}/${row.levels.length}</em></div>` +
+      return `<article class="town-work-card${level >= row.levels.length ? ' complete' : ''}">${townGrowthArtMarkup(row.id,level,'work-card-art')}<div class="town-work-title"><b>${esc(ui(row.zh,row.en))}</b><em>Lv ${level}/${row.levels.length}</em></div>` +
         `<p>${esc(effect)}</p><small>${ui('下一步','Next')}: ${esc(nextName)}</small>` +
         `<button type="button" data-townwork="${row.id}"${check.ok ? '' : ' disabled'}>${esc(label)}</button></article>`;
     }).join('')}</div>`;
@@ -7156,7 +7205,8 @@ function renderTownRelics() {
         const active = !!(meta.equip && meta.equip[slot] && meta.equip[slot].setId === set.id);
         const pieceName = found ? ui(piece.zh,piece.en) : ui(`未归档的${visibleSlotName(slot)}`, `Uncatalogued ${visibleSlotName(slot)}`);
         const lore = found ? ui(piece.zhLore,piece.enLore) : ui('故事仍留在地牢里。','Its story is still somewhere below.');
-        return `<article class="relic-piece${found ? ' found' : ''}${active ? ' equipped' : ''}"><div class="relic-piece-head"><span>${esc(visibleSlotName(slot))}</span><b>${esc(pieceName)}</b>${active ? `<em>${ui('穿戴中','Equipped')}</em>` : ''}</div><p>${esc(lore)}</p></article>`;
+        const art = namedRelicMarkup(set.id,slot,meta.classId,`relic-piece-art${found ? '' : ' uncharted'}`);
+        return `<article class="relic-piece${found ? ' found' : ''}${active ? ' equipped' : ''}">${art}<div class="relic-piece-copy"><div class="relic-piece-head"><span>${esc(visibleSlotName(slot))}</span><b>${esc(pieceName)}</b>${active ? `<em>${ui('穿戴中','Equipped')}</em>` : ''}</div><p>${esc(lore)}</p></div></article>`;
       }).join('');
       const bonuses = set.bonuses.map(b =>
         `<span class="${worn >= b.pieces ? 'active' : ''}${b.capstone ? ' capstone' : ''}"><b>${b.capstone ? '✦ ' : ''}${b.pieces}/6</b>${esc(ui(b.zh,b.en))}</span>`

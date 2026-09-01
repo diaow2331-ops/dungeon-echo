@@ -41,3 +41,12 @@ The normalized PNGs are staged outside production until binary admission and vis
 `source sheet -> extraction/normalization -> deterministic grid -> mapping table -> binary admission -> code integration -> visual QA -> release manifest`
 
 Do not merge a runtime atlas only because the source sheet looks good. Every promoted atlas must keep a stable coordinate map and an explicit fallback path.
+
+## Admitted v1.8 town/relic batch
+
+Two normalized alpha-WebP atlases are admitted directly under `art/`:
+
+- `named-relic-atlas-v180.webp`: 9×6, 171×171 cells; six set rows, four class weapon columns and five wearable columns.
+- `town-growth-atlas-v180.webp`: 4×4, 314×314 cells; four project rows and construction stages 0–3.
+
+Their semantic order and exact coordinates are pinned by `runtime-maps/v180-town-relic-art.map.json`. The map stays in the source library; only the two runtime assets are release-allowlisted.

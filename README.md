@@ -52,6 +52,8 @@ The active immutable artifact is intentionally smaller while ownership is repair
 - `art/final-boss-v11.png`
 - `art/town-backdrop-v11.webp`
 - `art/loot-atlas.png`
+- `art/named-relic-atlas-v180.webp`
+- `art/town-growth-atlas-v180.webp`
 
 The richer v1.2 overlay assets remain quarantined and can be promoted later only when the core renderer directly owns them.
 

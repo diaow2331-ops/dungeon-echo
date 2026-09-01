@@ -122,7 +122,19 @@ header h1 .sub { font: 11px/1.2 Consolas, monospace; color: var(--dim); letter-s
 .town-row small { color: var(--dim); margin-left: 8px; font-size: 11px; }
 .town-row button { padding: 3px 12px; font-size: 12px; white-space: nowrap; }
 .town-row .row-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; }
-.town-service-stage { display:grid; grid-template-columns:auto 1fr; gap:3px 10px; align-items:baseline; margin:0 0 10px; padding:9px 10px; border:1px solid rgba(139,104,53,.42); background:rgba(12,9,8,.62); }
+.town-project-art {
+  --tx:0; --ty:0;
+  display:block; aspect-ratio:1;
+  background-image:url("art/town-growth-atlas-v180.webp");
+  background-size:400% 400%;
+  background-position:calc(var(--tx) * 33.333333%) calc(var(--ty) * 33.333333%);
+  background-repeat:no-repeat;
+  filter:drop-shadow(0 5px 7px rgba(0,0,0,.66));
+  pointer-events:none;
+}
+.town-service-stage { display:grid; grid-template-columns:92px minmax(0,1fr); gap:8px 12px; align-items:center; margin:0 0 10px; padding:9px 10px; border:1px solid rgba(139,104,53,.42); background:rgba(12,9,8,.62); overflow:hidden; }
+.town-service-stage .service-art { width:92px; }
+.town-service-stage-copy { min-width:0; display:grid; grid-template-columns:auto 1fr; gap:3px 10px; align-items:baseline; }
 .town-service-stage b { color:#e5c47f; font-size:11px; white-space:nowrap; }
 .town-service-stage span { color:#d0b58d; font-size:11px; }
 .town-service-stage small { grid-column:1 / -1; color:#9f8c74; font-size:10px; line-height:1.45; }
@@ -212,6 +224,7 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
   min-width:0; padding:9px 9px 8px; border:1px solid rgba(104,79,50,.56);
   background:rgba(12,9,8,.72); display:grid; gap:5px; align-content:start;
 }
+.town-work-card .work-card-art { width:min(116px,100%); margin:-4px auto -2px; }
 .town-work-card.complete { border-color:rgba(100,148,104,.55); background:rgba(12,22,15,.55); }
 .town-work-title { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
 .town-work-title b { color:#dec39a; font-size:11px; }
@@ -448,10 +461,14 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 .relic-set-story { margin:10px 0 12px; color:#cbb99d; font-size:12px; line-height:1.65; font-style:italic; }
 .relic-piece-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .relic-piece {
-  min-height:92px; padding:10px; border:1px solid rgba(91,73,56,.5); background:rgba(15,12,13,.74);
+  min-height:106px; padding:9px; border:1px solid rgba(91,73,56,.5); background:rgba(15,12,13,.74);
+  display:grid; grid-template-columns:68px minmax(0,1fr); gap:8px; align-items:center;
 }
 .relic-piece.found { border-color:rgba(196,143,58,.58); background:linear-gradient(150deg, rgba(44,29,16,.76), rgba(17,12,12,.82)); }
 .relic-piece.equipped { box-shadow:inset 0 0 0 1px rgba(241,196,92,.55),0 0 18px rgba(192,129,40,.12); }
+.relic-piece-art { width:68px; height:68px; }
+.relic-piece-art.uncharted { filter:grayscale(1) brightness(.24) contrast(1.25) drop-shadow(0 2px 3px rgba(0,0,0,.8)); }
+.relic-piece-copy { min-width:0; }
 .relic-piece-head { display:grid; grid-template-columns:auto 1fr auto; gap:7px; align-items:baseline; }
 .relic-piece-head > span { color:#8f7d68; font-size:10px; text-transform:uppercase; }
 .relic-piece-head b { color:#dcc29a; font-size:12px; }
@@ -495,7 +512,9 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
   .tavern-choice-grid { grid-template-columns: 1fr; }
   .market-service-row { align-items:stretch; flex-direction:column; }
   .market-service-row button { width:100%; }
-  .town-service-stage { grid-template-columns:1fr; }
+  .town-service-stage { grid-template-columns:76px minmax(0,1fr); }
+  .town-service-stage .service-art { width:76px; }
+  .town-service-stage-copy { grid-template-columns:1fr; }
   .town-service-stage small { grid-column:1; }
   .town-contract-grid button { min-height: 58px; }
 }
@@ -704,6 +723,21 @@ canvas#game {
   pointer-events: none;
 }
 .eqicon .loot-icon { width: 32px; height: 32px; }
+
+.named-relic-icon {
+  --rx: 0;
+  --ry: 0;
+  display: inline-block;
+  width: 78%;
+  height: 78%;
+  background-image: url("art/named-relic-atlas-v180.webp");
+  background-size: 900% 600%;
+  background-position: calc(var(--rx) * 12.5%) calc(var(--ry) * 20%);
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,.76)) drop-shadow(0 0 5px rgba(196,132,46,.2));
+  pointer-events: none;
+}
+.eqicon .named-relic-icon { width: 36px; height: 36px; }
 
 #bagdetail {
   display: block;

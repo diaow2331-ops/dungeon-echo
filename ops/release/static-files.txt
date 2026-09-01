@@ -32,6 +32,7 @@ game/input/desktop-controls.js
 art/loot-atlas.png
 art/equipment-weapons-v13.png
 art/equipment-wearables-v13.png
+art/named-relic-atlas-v180.webp
 art/hero-action-atlas-v2.svg
 art/title-backdrop.webp
 art/class-roster.webp
@@ -41,5 +42,6 @@ art/monster-deep-atlas-v1.svg
 art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
+art/town-growth-atlas-v180.webp
 art/town-npc-atlas-v1.svg
 art/dungeon-props-atlas-v1.svg
