@@ -1,4 +1,4 @@
-# Dungeon Echo — Living Town return-loop audit (v1.9 candidate)
+# Dungeon Echo — Living Town return-loop audit (v1.9.0 release)
 
 Date: 2026-09-02  
 Baseline: `main@b6eaf48` / public v1.8.1
@@ -47,4 +47,4 @@ Focused checks must prove:
 - ambient rumors are deterministic and bilingual;
 - the existing town/relic/contract contracts remain green.
 
-Release promotion is intentionally separate. This candidate should pass the full local authority, cross-game and current-release suites before any version/cache bump or production activation.
+The candidate passed the full local authority, cross-game and current-release suites and is promoted with v1.9.0 / cache generation 190.
