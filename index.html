@@ -16,7 +16,7 @@
 <link rel="preload" href="art/monster-atlas-v11.png" as="image">
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
-<link rel="preload" href="art/town-backdrop-v11.webp" as="image">
+<link rel="preload" href="art/town-backdrop-v190.webp" as="image" fetchpriority="high">
 <link rel="preload" href="art/town-growth-atlas-v180.webp" as="image">
 <link rel="preload" href="art/town-npc-atlas-v180.webp" as="image">
 <link rel="preload" href="art/town-npc-portraits-v180.webp" as="image">
@@ -159,20 +159,20 @@
         <section class="town-page" role="tabpanel" data-town-page-panel="gear" hidden>
           <div class="town-cols town-gear-cols">
             <div class="town-service" data-service="bag"><p class="kicker">背包 <span>随身·有风险</span></p><div id="town-bag"></div></div>
-            <div class="town-service" data-service="stash"><p class="kicker">仓库与铁匠 <span>绝对安全 · 装备强化</span></p><div id="town-stash"></div></div>
+            <div class="town-service" data-service="stash"><p class="kicker">仓库与铁匠 <span>绝对安全 · 装备强化</span></p><div class="town-environment-plate town-blacksmith-art" aria-hidden="true"></div><div id="town-stash"></div></div>
           </div>
         </section>
         <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="market" hidden>
-          <div class="town-service" data-service="market"><p class="kicker">市集 <span>限量补给</span></p><div id="town-shop"></div></div>
+          <div class="town-service" data-service="market"><p class="kicker">市集 <span>限量补给</span></p><div class="town-environment-plate town-market-art" aria-hidden="true"></div><div id="town-shop"></div></div>
         </section>
         <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="tavern" hidden>
-          <div class="town-service" data-service="tavern"><p class="kicker">余烬酒馆 <span>归来者的一杯 · 受控永久成长</span></p><div id="town-tavern"></div></div>
+          <div class="town-service" data-service="tavern"><p class="kicker">余烬酒馆 <span>归来者的一杯 · 受控永久成长</span></p><div class="town-environment-plate town-tavern-art" aria-hidden="true"></div><div id="town-tavern"></div></div>
         </section>
         <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="wheel" hidden>
           <div class="town-service town-service-optional" data-service="wheel"><p class="kicker">命运角落 <span>可选娱乐 · 不影响远征主线</span></p><div id="town-wheel"></div></div>
         </section>
         <section class="town-page town-relic-page" role="tabpanel" data-town-page-panel="relics" hidden>
-          <div class="town-relic-head"><p class="kicker">旧城遗物馆 <span>安全带回的具名遗物会永久登记</span></p><h3>一件装备，应该先有名字，再有属性。</h3><p>六件固定遗物组成一套。收集记录与装备激活是两回事：带回城即可留下故事，真正穿戴 2 / 4 / 6 件才会唤醒套装效果。</p></div>
+          <div class="town-relic-head"><div class="town-environment-plate town-relic-art" aria-hidden="true"></div><p class="kicker">旧城遗物馆 <span>安全带回的具名遗物会永久登记</span></p><h3>一件装备，应该先有名字，再有属性。</h3><p>六件固定遗物组成一套。收集记录与装备激活是两回事：带回城即可留下故事，真正穿戴 2 / 4 / 6 件才会唤醒套装效果。</p></div>
           <div id="town-relics" class="town-relics" aria-live="polite"></div>
         </section>
         <section class="town-page town-depart-page" role="tabpanel" data-town-page-panel="depart" hidden>

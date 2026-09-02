@@ -17,7 +17,7 @@
 <link rel="preload" href="art/monster-atlas-v11.png" as="image">
 <link rel="preload" href="art/guardian-atlas-v11.png" as="image">
 <link rel="preload" href="art/final-boss-v11.png" as="image">
-<link rel="preload" href="art/town-backdrop-v11.webp" as="image">
+<link rel="preload" href="art/town-backdrop-v190.webp" as="image" fetchpriority="high">
 <link rel="preload" href="art/town-growth-atlas-v180.webp" as="image">
 <link rel="preload" href="art/town-npc-atlas-v180.webp" as="image">
 <link rel="preload" href="art/town-npc-portraits-v180.webp" as="image">
@@ -160,20 +160,20 @@
         <section class="town-page" role="tabpanel" data-town-page-panel="gear" hidden>
           <div class="town-cols town-gear-cols">
             <div class="town-service" data-service="bag"><p class="kicker">Backpack <span>carried · at risk</span></p><div id="town-bag"></div></div>
-            <div class="town-service" data-service="stash"><p class="kicker">Stash &amp; Smith <span>fully safe · gear refinement</span></p><div id="town-stash"></div></div>
+            <div class="town-service" data-service="stash"><p class="kicker">Stash &amp; Smith <span>fully safe · gear refinement</span></p><div class="town-environment-plate town-blacksmith-art" aria-hidden="true"></div><div id="town-stash"></div></div>
           </div>
         </section>
         <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="market" hidden>
-          <div class="town-service" data-service="market"><p class="kicker">Market <span>limited supplies</span></p><div id="town-shop"></div></div>
+          <div class="town-service" data-service="market"><p class="kicker">Market <span>limited supplies</span></p><div class="town-environment-plate town-market-art" aria-hidden="true"></div><div id="town-shop"></div></div>
         </section>
         <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="tavern" hidden>
-          <div class="town-service" data-service="tavern"><p class="kicker">Ember Tavern <span>one for the returned · bounded permanent growth</span></p><div id="town-tavern"></div></div>
+          <div class="town-service" data-service="tavern"><p class="kicker">Ember Tavern <span>one for the returned · bounded permanent growth</span></p><div class="town-environment-plate town-tavern-art" aria-hidden="true"></div><div id="town-tavern"></div></div>
         </section>
         <section class="town-page town-single-page" role="tabpanel" data-town-page-panel="wheel" hidden>
           <div class="town-service town-service-optional" data-service="wheel"><p class="kicker">Fortune Corner <span>optional · does not gate the expedition</span></p><div id="town-wheel"></div></div>
         </section>
         <section class="town-page town-relic-page" role="tabpanel" data-town-page-panel="relics" hidden>
-          <div class="town-relic-head"><p class="kicker">Old Town Relic Hall <span>named relics safely returned are permanently catalogued</span></p><h3>An item should have a name before it has stats.</h3><p>Each fixed set contains six relics. Collection and activation are separate: returning a relic preserves its story, while equipping 2 / 4 / 6 pieces awakens set bonuses.</p></div>
+          <div class="town-relic-head"><div class="town-environment-plate town-relic-art" aria-hidden="true"></div><p class="kicker">Old Town Relic Hall <span>named relics safely returned are permanently catalogued</span></p><h3>An item should have a name before it has stats.</h3><p>Each fixed set contains six relics. Collection and activation are separate: returning a relic preserves its story, while equipping 2 / 4 / 6 pieces awakens set bonuses.</p></div>
           <div id="town-relics" class="town-relics" aria-live="polite"></div>
         </section>
         <section class="town-page town-depart-page" role="tabpanel" data-town-page-panel="depart" hidden>

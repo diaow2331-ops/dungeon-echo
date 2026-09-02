@@ -667,6 +667,8 @@ const guardianAtlasV11 = new Image();
 guardianAtlasV11.src = 'art/guardian-atlas-v11.png';
 const finalBossV11 = new Image();
 finalBossV11.src = 'art/final-boss-v11.png';
+const townBackdropV190 = new Image();
+townBackdropV190.src = 'art/town-backdrop-v190.webp';
 const townBackdropV11 = new Image();
 townBackdropV11.src = 'art/town-backdrop-v11.webp';
 const townNpcAtlasV180 = new Image();
@@ -6524,7 +6526,10 @@ function townRowHasNews(row) {
   const eventId = meta.townEvent.id;
   return (eventId === 'relic_exhibition' && row.id === 'records') ||
     (eventId === 'caravan_surplus' && (row.id === 'merchant' || row.id === 'provisioner')) ||
-    (eventId === 'scout_cache' && row.id === 'scout');
+    (eventId === 'scout_cache' && row.id === 'scout') ||
+    (eventId === 'apothecary_batch' && (row.id === 'apothecary' || row.id === 'merchant')) ||
+    (eventId === 'smithy_commission' && row.id === 'smith') ||
+    (eventId === 'long_table_pool' && row.id === 'innkeeper');
 }
 function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
   const workId = TOWN_WORK_FOR_HOTSPOT[row.id];
@@ -6738,13 +6743,16 @@ function drawTownScene(now) {
   if (!ctx) return;
   const W = cv.width || 900, H = cv.height || 210;
   const G = H * .78;
-  if (imageReady(townBackdropV11)) {
-    const iw = townBackdropV11.naturalWidth, ih = townBackdropV11.naturalHeight;
+  const townBackdrop = imageReady(townBackdropV190) ? townBackdropV190 : townBackdropV11;
+  if (imageReady(townBackdrop)) {
+    const iw = townBackdrop.naturalWidth, ih = townBackdrop.naturalHeight;
     const sh = Math.min(ih, iw * H / W);
-    const sy = Math.max(0, Math.min(ih - sh, ih * .31));
+    const sy = townBackdrop === townBackdropV190
+      ? Math.max(0, Math.min(ih - sh, (ih - sh) * .38))
+      : Math.max(0, Math.min(ih - sh, ih * .31));
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(townBackdropV11, 0, sy, iw, sh, 0, 0, W, H);
+    ctx.drawImage(townBackdrop, 0, sy, iw, sh, 0, 0, W, H);
     const shade = ctx.createLinearGradient(0, 0, 0, H);
     shade.addColorStop(0, 'rgba(5,8,20,.08)'); shade.addColorStop(.7, 'rgba(5,4,8,.03)'); shade.addColorStop(1, 'rgba(5,3,4,.36)');
     ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);

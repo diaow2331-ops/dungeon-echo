@@ -29,6 +29,8 @@ for f in \
   "$GAME_SOURCE/art/hero-atlas-v11.png" "$GAME_SOURCE/art/monster-atlas-v11.png" \
   "$GAME_SOURCE/art/guardian-atlas-v11.png" "$GAME_SOURCE/art/final-boss-v11.png" \
   "$GAME_SOURCE/art/named-relic-atlas-v180.webp" "$GAME_SOURCE/art/town-growth-atlas-v180.webp" \
+  "$GAME_SOURCE/art/town-backdrop-v190.webp" "$GAME_SOURCE/art/town-blacksmith-v190.webp" \
+  "$GAME_SOURCE/art/town-market-v190.webp" "$GAME_SOURCE/art/town-tavern-v190.webp" "$GAME_SOURCE/art/town-relic-hall-v190.webp" \
   "$GAME_SOURCE/art/town-npc-atlas-v180.webp" "$GAME_SOURCE/art/town-npc-portraits-v180.webp" \
   "$BUNDLE_ROOT/VERSION" "$BUNDLE_ROOT/REVISION" "$BUNDLE_ROOT/SHA256SUMS"; do
   test -r "$f" || fail "missing $f"

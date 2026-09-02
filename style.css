@@ -1573,3 +1573,89 @@ footer#help { margin-top: 12px; text-align: center; font-size: 12px; color: var(
     font-size: 11px;
   }
 }
+
+/* ===== v1.9 candidate: authored town environment art ===== */
+.town-environment-plate {
+  position: relative;
+  width: 100%;
+  height: clamp(150px, 23dvh, 250px);
+  margin: 0 0 16px;
+  overflow: hidden;
+  border: 1px solid rgba(209,162,78,.48);
+  background-color: #120d0a;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 0 0 1px rgba(255,237,192,.035), 0 14px 34px rgba(0,0,0,.24);
+}
+.town-environment-plate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(5,5,8,.02) 20%, rgba(9,6,5,.08) 54%, rgba(9,6,5,.62) 100%);
+  box-shadow: inset 0 0 38px rgba(0,0,0,.28);
+}
+.town-blacksmith-art { background-image: url('art/town-blacksmith-v190.webp'); background-position: center 54%; }
+.town-market-art { background-image: url('art/town-market-v190.webp'); background-position: center 56%; }
+.town-tavern-art { background-image: url('art/town-tavern-v190.webp'); background-position: center 54%; }
+.town-relic-art { background-image: url('art/town-relic-hall-v190.webp'); background-position: center 46%; }
+.town-relic-head { overflow: hidden; }
+.town-relic-head > .town-environment-plate {
+  height: clamp(180px, 27dvh, 285px);
+  margin: -18px -20px 17px;
+  width: calc(100% + 40px);
+  border-width: 0 0 1px;
+  border-color: rgba(209,162,78,.5);
+}
+#town-screen .town-service[data-service="stash"],
+#town-screen .town-service[data-service="market"],
+#town-screen .town-service[data-service="tavern"] {
+  background: linear-gradient(160deg, rgba(31,21,15,.96), rgba(12,9,9,.98));
+  border-color: rgba(172,127,66,.58);
+}
+#town-screen .town-service[data-service="stash"] > .kicker,
+#town-screen .town-service[data-service="market"] > .kicker,
+#town-screen .town-service[data-service="tavern"] > .kicker {
+  position: relative;
+  z-index: 1;
+  color: #f0cf8f;
+}
+#town-screen .town-service[data-service="stash"] .town-environment-plate { height: clamp(130px, 19dvh, 210px); }
+#town-screen .town-service[data-service="market"] .town-environment-plate,
+#town-screen .town-service[data-service="tavern"] .town-environment-plate { height: clamp(180px, 27dvh, 290px); }
+#town-screen .town-service-stage {
+  border-color: rgba(174,129,64,.5);
+  background: linear-gradient(135deg, rgba(24,16,12,.88), rgba(10,8,8,.9));
+  box-shadow: inset 0 1px rgba(255,236,188,.035);
+}
+#town-screen .town-event-card {
+  border-color: rgba(210,151,71,.72);
+  box-shadow: inset 0 1px rgba(255,225,174,.07), 0 10px 28px rgba(0,0,0,.18);
+}
+#town-screen .town-dialogue {
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+@media (min-width: 761px) {
+  #town-scene {
+    border-color: rgba(203,154,72,.62);
+    box-shadow: inset 0 0 44px rgba(0,0,0,.32), 0 18px 42px rgba(0,0,0,.34), 0 0 24px rgba(168,111,43,.07);
+  }
+  .town-single-page > .town-service { overflow: hidden; }
+  [data-town-page-panel="market"] > .town-service,
+  [data-town-page-panel="tavern"] > .town-service { width: min(1180px, 100%); }
+}
+@media (max-width: 760px) {
+  .town-environment-plate { height: 132px; margin-bottom: 10px; }
+  #town-screen .town-service[data-service="stash"] .town-environment-plate { height: 116px; }
+  #town-screen .town-service[data-service="market"] .town-environment-plate,
+  #town-screen .town-service[data-service="tavern"] .town-environment-plate { height: 142px; }
+  .town-relic-head > .town-environment-plate {
+    height: 150px;
+    margin: -18px -20px 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .town-environment-plate { scroll-behavior: auto; }
+}
