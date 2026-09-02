@@ -6,7 +6,7 @@ const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const core=read('game/core/game.js'),css=read('style.css');
 const authority=JSON.parse(read('docs/authority-map-v130.json'));
 
-assert.deepEqual(growth.EVENTS.map(x=>x.id),['relic_exhibition','caravan_surplus','scout_cache']);
+assert.deepEqual(growth.EVENTS.map(x=>x.id),['relic_exhibition','caravan_surplus','scout_cache','apothecary_batch','smithy_commission','long_table_pool']);
 assert.equal(growth.eventForReturn({tier:1,newRelics:0,runs:1,lastReturnDepth:3,relics:0}),null,'tier-1 return without a relic should not invent a service event');
 let event=growth.eventForReturn({tier:1,newRelics:1,runs:1,lastReturnDepth:3,relics:1});
 assert(event&&event.id==='relic_exhibition'&&event.cost===0&&event.effect.gold>0,'new relic safe return should stage the free exhibition event');
@@ -17,6 +17,13 @@ assert(event&&event.cost>0&&event.effect.marketRestock===1,'caravan event must b
 assert.equal(growth.eventOffer('scout_cache',{tier:4}),null,'Scout Reserve Crate must not appear before the expedition scout can reside in town');
 event=growth.eventOffer('scout_cache',{tier:5});
 assert(event&&event.effect.escapes===1&&event.effect.keys===1,'scout event must supply explicit survival resources');
+assert.equal(growth.eventOffer('apothecary_batch',{tier:5,works:{market:0}}),null,'apothecary batch must require the repaired trade road');
+event=growth.eventOffer('apothecary_batch',{tier:5,works:{market:1}});
+assert(event&&event.cost>0&&event.effect.potions===2,'apothecary batch must convert built-town state into a bounded potion offer');
+event=growth.eventOffer('smithy_commission',{tier:5,works:{smithy:1}});
+assert(event&&event.cost===0&&event.effect.gold>0,'rebuilt smithy must be able to earn bounded town-side commission Gold');
+event=growth.eventOffer('long_table_pool',{tier:5,works:{tavern:1}});
+assert(event&&event.cost>0&&event.effect.potions===1&&event.effect.escapes===1,'expanded tavern must surface a bounded expedition supply pool');
 assert(!/Math\.random|\brng\s*\(/.test(read('game/domain/town/town-growth-rules-v180.js')),'town-growth policy must stay deterministic and RNG-free');
 
 const smithBroken=growth.npcLine('smith',{tier:2,works:{smithy:0}});
@@ -25,10 +32,20 @@ assert(smithBroken.zh!==smithBuilt.zh&&smithBroken.en!==smithBuilt.en,'NPC copy 
 const curatorEmpty=growth.npcLine('records',{tier:2,relics:0,works:{relics:0}});
 const curatorFull=growth.npcLine('records',{tier:8,relics:12,works:{relics:2}});
 assert(curatorEmpty.zh!==curatorFull.zh,'Relic Curator copy must react to archive progress');
+const rumorContext={tier:6,runs:11,bestDepth:58,lastReturnDepth:54,relics:9,works:{smithy:2,market:2,relics:1,tavern:2},eventId:'',focusActive:true};
+const rumorA=growth.townRumor(rumorContext),rumorB=growth.townRumor(rumorContext);
+assert.deepEqual(rumorA,rumorB,'street rumor selection must be deterministic for the same durable town state');
+assert(rumorA&&rumorA.zh&&rumorA.en,'street rumor must always return bilingual authored copy');
+const pendingRumor=growth.townRumor({...rumorContext,eventId:'smithy_commission'});
+assert(pendingRumor.zh.includes('公告板')&&pendingRumor.en.includes('notice board'),'pending town business must be able to enter ambient town copy');
 
 assert(core.includes('townEvent: null'),'meta schema must explicitly own one pending town event');
 assert(core.includes('townChronicle: []'),'meta schema must explicitly own a bounded town chronicle');
 assert(core.includes('function stageTownReturnEvent(newRelics = 0)'),'core must stage safe-return events');
+assert(core.includes('works:meta.townWorks || {}'),'safe-return event selection must receive canonical project state without owning it');
+assert(core.includes('potions:Math.min(9, num(effect.potions, 0))'),'pending project-driven town events must preserve bounded potion effects across reload');
+assert(core.includes('if (effect.potions) meta.potions ='),'core must remain the sole potion mutation owner for town events');
+assert(core.includes('TOWN_GROWTH_RULES.townRumor({'),'Street Rumor presentation must consume the pure town-growth authority');
 assert(core.includes('function resolveTownEvent()'),'core must own event resource mutation');
 assert(core.includes('data-townevent="resolve"'),'town UI must expose the pending event action');
 assert(core.includes('const stagedTownEvent = stageTownReturnEvent(returnedRelics.length);'),'safe return must be the event generation boundary');

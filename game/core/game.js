@@ -213,7 +213,8 @@ function sanitizeMeta(raw) {
       id:String(raw.townEvent.id), cost:Math.min(9999, num(raw.townEvent.cost, 0)),
       effect:{
         gold:Math.min(9999, num(effect.gold, 0)), marketRestock:effect.marketRestock ? 1 : 0,
-        escapes:Math.min(9, num(effect.escapes, 0)), keys:Math.min(9, num(effect.keys, 0)),
+        potions:Math.min(9, num(effect.potions, 0)), escapes:Math.min(9, num(effect.escapes, 0)),
+        keys:Math.min(9, num(effect.keys, 0)),
       },
     };
   }
@@ -7152,6 +7153,7 @@ function stageTownReturnEvent(newRelics = 0) {
     newRelics:Math.max(0, Number(newRelics) || 0),
     runs:meta.runs || 0,
     lastReturnDepth:Math.max(meta.lastReturnDepth || 0, Number(depth) || 0),
+    works:meta.townWorks || {},
   });
   if (!offer) return null;
   meta.townEvent = {
@@ -7174,10 +7176,14 @@ function currentTownEventOffer() {
 function townEventEffectText(offer) {
   if (!offer) return '';
   const effect = offer.effect || {};
-  if (effect.gold) return ui('镇民捐赠与门票可收入 ' + effect.gold + ' G。', 'Donations and admission will add ' + effect.gold + ' Gold to the vault.');
-  if (effect.marketRestock) return ui('立即补满本轮市集补给库存。', 'Immediately restock the current town market.');
-  if (effect.escapes || effect.keys) return ui('获得回城卷轴 +' + (effect.escapes || 0) + '、钥匙 +' + (effect.keys || 0) + '。', 'Gain Return Scroll +' + (effect.escapes || 0) + ' and Key +' + (effect.keys || 0) + '.');
-  return ui('这件事会改变今天的城镇。', 'This will change the town today.');
+  const zh = [], en = [];
+  if (effect.gold) { zh.push('金库 +' + effect.gold + ' G'); en.push('Vault +' + effect.gold + ' Gold'); }
+  if (effect.marketRestock) { zh.push('补满本轮市集库存'); en.push('restock the current market'); }
+  if (effect.potions) { zh.push('治疗药水 +' + effect.potions); en.push('Healing Potion +' + effect.potions); }
+  if (effect.escapes) { zh.push('回城卷轴 +' + effect.escapes); en.push('Return Scroll +' + effect.escapes); }
+  if (effect.keys) { zh.push('钥匙 +' + effect.keys); en.push('Key +' + effect.keys); }
+  if (!zh.length) return ui('这件事会改变今天的城镇。', 'This will change the town today.');
+  return ui(zh.join(' · ') + '。', en.join(' · ') + '.');
 }
 function townEventHtml() {
   const offer = currentTownEventOffer();
@@ -7207,6 +7213,7 @@ function resolveTownEvent() {
     meta.market = freshTownMarket(townTierForArt());
     meta.market.restockUsed = serviceRestockUsed;
   }
+  if (effect.potions) meta.potions = (meta.potions || 0) + Math.max(0, Number(effect.potions) || 0);
   if (effect.escapes) meta.escapes = (meta.escapes || 0) + Math.max(0, Number(effect.escapes) || 0);
   if (effect.keys) meta.keys = (meta.keys || 0) + Math.max(0, Number(effect.keys) || 0);
   recordTownChronicle({ kind:'event', id:offer.id });
@@ -7317,9 +7324,17 @@ function renderTown() {
     const completedSets = completedRelicSetCount(meta.relicLedger || {});
     const checkpointCount = unlockedTownCheckpoints().length;
     const residentCount = TOWN_HOTSPOTS.length + activeTownResidents().length;
-    const returnNote = (meta.lastReturnDepth || 0) > 0
-      ? ui(`最近一次有人从第 ${meta.lastReturnDepth} 层活着回来，酒馆里还在谈这件事。`, `Someone returned alive from Floor ${meta.lastReturnDepth}; the tavern is still talking about it.`)
-      : ui('镇上的人还没有等到你的第一次平安归来。','The town is still waiting for your first safe return.');
+    const rumor = TOWN_GROWTH_RULES.townRumor({
+      tier,
+      runs:meta.runs || 0,
+      bestDepth:meta.bestDepth || 0,
+      lastReturnDepth:meta.lastReturnDepth || 0,
+      relics:relicFound,
+      works:currentTownWorks(),
+      eventId:meta.townEvent ? meta.townEvent.id : '',
+      focusActive:!!meta.relicFocusSet,
+    });
+    const returnNote = rumor ? ui(rumor.zh,rumor.en) : ui('镇上的人各自忙着自己的事。','Everyone in town is busy with their own work.');
     growth.innerHTML =
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +

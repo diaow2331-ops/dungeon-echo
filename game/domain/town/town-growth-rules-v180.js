@@ -69,6 +69,27 @@
       enStory:'Expedition scouts drag a reserve crate back from an abandoned post. Nothing inside is pretty, but all of it helps people come home alive.',
       actionZh:'买下备用箱', actionEn:'Buy the Reserve Crate',
     }),
+    Object.freeze({
+      id:'apothecary_batch', minTier:3, project:'market', minProject:1,
+      zh:'药剂学徒的整锅新药', en:'Apothecary Batch',
+      zhStory:'修好的商路终于把一批没摔碎的药瓶送进镇里。药剂学徒熬了一整锅，比零买便宜，但得现在决定要不要留下。',
+      enStory:'The repaired road finally delivers a crate of unbroken glass. The apprentice brews a full batch, cheaper than buying bottles one by one if the town takes it now.',
+      actionZh:'收下这批药', actionEn:'Take the Batch',
+    }),
+    Object.freeze({
+      id:'smithy_commission', minTier:2, project:'smithy', minProject:1,
+      zh:'铁匠铺的商队急单', en:'Smithy Caravan Commission',
+      zhStory:'过路商队临时坏了两副车轴。重燃的铁匠铺接下急单，工钱不多，却让镇上的炉火第一次替“远征之外”的生活挣钱。',
+      enStory:'A passing caravan breaks two axles. The rekindled smithy takes the rush job; the pay is modest, but the furnace earns coin for something other than delving.',
+      actionZh:'交付急单', actionEn:'Deliver the Commission',
+    }),
+    Object.freeze({
+      id:'long_table_pool', minTier:3, project:'tavern', minProject:1,
+      zh:'长桌凑出的远征份子', en:'Long-Table Supply Pool',
+      zhStory:'酒馆里几名旧远征者把零钱和没用完的补给凑成一份。他们不白送，只按成本转给下一个肯往深处走的人。',
+      enStory:'Several retired delvers pool spare coin and unused supplies at the tavern. It is not charity; they will pass it on at cost to whoever heads down next.',
+      actionZh:'接下这份补给', actionEn:'Take the Supply Pool',
+    }),
   ]);
 
   const RESIDENTS = Object.freeze([
@@ -132,10 +153,11 @@
   const tavernToastCap = raw => 8 + level(raw,'tavern');
   const tavernChoiceCount = raw => [1,2,3,4][level(raw,'tavern')];
 
-  function eventOffer(id,{tier=1,relics=0,newRelics=0}={}) {
+  function eventOffer(id,{tier=1,relics=0,newRelics=0,works={}}={}) {
     const row=eventById(id); if(!row) return null;
     const t=Math.max(1,Math.floor(Number(tier)||1));
     if(t<row.minTier) return null;
+    if(row.project && level(works,row.project)<(row.minProject||1)) return null;
     if(row.id==='relic_exhibition') {
       if((Number(newRelics)||0)<=0) return null;
       const gold=Math.min(120,25+Math.max(1,Number(relics)||0)*4+Math.max(1,Number(newRelics)||0)*8);
@@ -147,6 +169,15 @@
     if(row.id==='scout_cache') {
       return Object.freeze({...row,cost:90+t*15,effect:Object.freeze({escapes:1,keys:1})});
     }
+    if(row.id==='apothecary_batch') {
+      return Object.freeze({...row,cost:45+t*8,effect:Object.freeze({potions:2})});
+    }
+    if(row.id==='smithy_commission') {
+      return Object.freeze({...row,cost:0,effect:Object.freeze({gold:35+t*9})});
+    }
+    if(row.id==='long_table_pool') {
+      return Object.freeze({...row,cost:50+t*10,effect:Object.freeze({potions:1,escapes:1})});
+    }
     return null;
   }
 
@@ -157,6 +188,49 @@
     if(!pool.length) return null;
     const seed=(Math.floor(Number(context.runs)||0)*7 + Math.floor(Number(context.lastReturnDepth)||0) +
       Math.floor(Number(context.relics)||0)*3 + Math.floor(Number(context.tier)||1)) >>> 0;
+    return pool[seed%pool.length];
+  }
+
+  function townRumor({tier=1,runs=0,bestDepth=0,lastReturnDepth=0,relics=0,works={},eventId='',focusActive=false}={}) {
+    const t=Math.max(1,Math.floor(Number(tier)||1));
+    const depth=Math.max(0,Math.floor(Number(bestDepth)||0));
+    const last=Math.max(0,Math.floor(Number(lastReturnDepth)||0));
+    const archive=Math.max(0,Math.floor(Number(relics)||0));
+    const pool=[];
+    const pending=eventById(eventId);
+    if(pending) return Object.freeze({
+      zh:`公告板上的“${pending.zh}”被人围着看。镇里现在会等你做决定，而不是等你路过。`,
+      en:`People are gathered around “${pending.en}” on the notice board. The town now waits for your decisions instead of merely watching you pass through.`,
+    });
+    if(level(works,'smithy')>0) pool.push(Object.freeze({
+      zh:'铁匠铺的烟从早到晚都没断过。最近来修农具和车轴的人，已经比来修剑的人多了。',
+      en:'Smoke rises from the smithy all day now. Lately more people bring farm tools and wagon axles than swords.',
+    }));
+    if(level(works,'market')>0) pool.push(Object.freeze({
+      zh:level(works,'market')>=3?'夜市开起来以后，东门天不亮就有人讨价还价。':'东门的车辙越来越深，说明商队终于不再只是路过。',
+      en:level(works,'market')>=3?'Since the night market opened, bargaining starts at the east gate before dawn.':'The wagon ruts at the east gate are getting deeper. Caravans finally stop here instead of merely passing through.',
+    }));
+    if(level(works,'tavern')>0) pool.push(Object.freeze({
+      zh:level(works,'tavern')>=3?'远征者长桌每晚都有人给空位留一杯酒。没人问那张椅子的人还能不能回来。':'余烬酒馆开始记得谁从哪一层回来，也记得谁没有回来。',
+      en:level(works,'tavern')>=3?'Every night someone leaves a drink at an empty seat on the delvers long table. Nobody asks whether its owner will return.':'The Ember Tavern has begun remembering who returned from which floor—and who did not.',
+    }));
+    if(level(works,'relics')>0 || archive>0) pool.push(Object.freeze({
+      zh:focusActive?'遗物馆把一整块墙留给同一套失散遗物。书记说，缺的不是“更强的属性”，而是最后几段故事。':'遗物馆的孩子已经会认出几件具名遗物的轮廓，开始争论哪一件最像英雄留下的东西。',
+      en:focusActive?'The Relic Hall has reserved an entire wall for one scattered set. The curator says what is missing is not “better stats,” but the last pieces of its story.':'Children at the Relic Hall can recognize several named relics by silhouette now and argue over which one looks most like something a hero would leave behind.',
+    }));
+    if(depth>=80) pool.push(Object.freeze({
+      zh:'镇卫说最近深夜敲门的人少了，但每一次敲门，全镇都会先安静一下。',
+      en:'The watch says fewer people knock at the gate after midnight now, but every knock makes the whole town go quiet first.',
+    }));
+    else if(last>0) pool.push(Object.freeze({
+      zh:`酒馆里还在谈有人从第 ${last} 层活着回来的事。说法已经添油加醋了三遍。`,
+      en:`The tavern is still talking about someone returning alive from Floor ${last}. The story has already been embellished three times.`,
+    }));
+    if(!pool.length) pool.push(Object.freeze({
+      zh:t<=1?'镇子还小得像个补给点。大家都在等第一次真正值得记住的平安归来。':'人开始留下来，而不是补完给养就走。这里正在慢慢变成一个镇。',
+      en:t<=1?'The settlement is still little more than a supply stop. Everyone is waiting for the first safe return worth remembering.':'People are starting to stay instead of leaving after resupplying. This place is slowly becoming a town.',
+    }));
+    const seed=(Math.floor(Number(runs)||0)*13 + depth*3 + archive*5 + t) >>> 0;
     return pool[seed%pool.length];
   }
 
@@ -179,6 +253,7 @@
         if(level(works,'market')>=2) return Object.freeze({zh:'护商队走起来以后，路上少丢一车货，镇里就多一排货架。',en:'With caravan guards on the road, every wagon that survives becomes another stocked shelf in town.'});
         return Object.freeze({zh:'我以前只在这里停半天。现在至少值得把货卸下来慢慢卖。',en:'I used to stop here for half a day. Now it is worth unloading the wagon and staying awhile.'});
       case 'apothecary':
+        if(eventId==='apothecary_batch') return Object.freeze({zh:'这一锅刚好熬完。你们要是不要，我就拆成小瓶按市价慢慢卖。',en:'This batch is ready now. If the town does not take it, I will bottle it and sell it slowly at market price.'});
         return Object.freeze({zh:level(works,'market')>=3?'夜市最麻烦的不是客人，是他们总想半夜买现熬的药。':'商路一修，药材终于不用靠背篓一趟趟扛进来了。',en:level(works,'market')>=3?'The hardest part of a night market is people wanting fresh medicine at midnight.':'Since the road was repaired, herbs no longer have to arrive one basket at a time.'});
       case 'watch':
         return Object.freeze({zh:depth>=60?'最近回来的人越来越少，登记在门口的名字却越来越长。我们开始两班倒守夜了。':'镇子人一多，门就不能再像以前一样随便敞着。',en:depth>=60?'Fewer delvers return now, but the list of names at the gate keeps growing. We started double night watches.':'As the town grows, the gate cannot stay open as carelessly as it once did.'});
@@ -202,6 +277,7 @@
     switch(String(id||'')) {
       case 'smith': {
         const lvl=level(works,'smithy');
+        if(eventId==='smithy_commission') return Object.freeze({zh:'那两副车轴已经打好了。钱不算多，但这说明炉子终于不只靠你一个人养着。',en:'Those two axles are finished. The pay is not much, but it means this furnace no longer survives on your expeditions alone.'});
         if(lvl>=3) return Object.freeze({zh:'主炉终于重新烧红了。现在拿来的好东西，我敢让它进火。',en:'The main furnace is red again. Bring me something worth putting into the fire.'});
         if(lvl>=1) return Object.freeze({zh:'风箱不漏气以后，锤子落下去都像准了半寸。',en:'Since the bellows stopped leaking, every hammer blow lands half an inch truer.'});
         return Object.freeze({zh:'这破风箱一天漏三次气。等镇上有闲钱，先把它救活。',en:'These bellows leak three times a day. When the town can spare the coin, save them first.'});
@@ -215,6 +291,7 @@
       }
       case 'innkeeper': {
         const lvl=level(works,'tavern');
+        if(eventId==='long_table_pool') return Object.freeze({zh:'长桌上那份不是施舍。活着回来以后，把没用完的东西再给下一个人，就算还账。',en:'That bundle on the long table is not charity. Come back alive, pass what you did not use to the next delver, and call the debt paid.'});
         if(lvl>=2) return Object.freeze({zh:'酒窖有了，回来的人终于不用喝当天兑出来的东西。',en:'With a cellar, returning delvers no longer drink whatever was watered down that morning.'});
         if(last>0) return Object.freeze({zh:'第 '+last+' 层回来的？坐。今天有人会想听。',en:'Back from Floor '+last+'? Sit. People will want to hear it tonight.'});
         return Object.freeze({zh:'第一次回来以前，我不劝你点最贵的酒。',en:'Before your first safe return, I would not order the expensive bottle.'});
@@ -267,6 +344,7 @@
     tavernChoiceCount,
     eventOffer,
     eventForReturn,
+    townRumor,
     residentLine,
     npcLine,
   });
