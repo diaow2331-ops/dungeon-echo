@@ -68,5 +68,5 @@ For every restoration or new feature:
 
 Source equals artifact. The builder copies allowlisted source files and does not rewrite the dependency graph.
 
-Current semantic version: `1.8.1`.
-Current public cache generation: `183`.
+Current semantic version: `1.9.0`.
+Current public cache generation: `190`.

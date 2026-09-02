@@ -19,7 +19,7 @@ for(const [name,html] of [['zh',zh],['en',en]]){
     ok(html.indexOf(`${rel}?v=${generation}`)<html.indexOf(`game/core/game.js?v=${generation}`),`${name} ${rel} boots before core`);
   ok(scripts[scripts.length-1]===`game/core/runtime-bootstrap.js?v=${generation}`,`${name} runtime bootstrap is final synchronous script`);
 }
-ok(authority.version===version&&version==='1.8.1'&&authority.cacheGeneration===183,'authority map locks v1.8.1 cache generation 183');
+ok(authority.version===version&&version==='1.9.0'&&authority.cacheGeneration===190,'authority map locks v1.9.0 cache generation 190');
 ok(runtime.includes(`const assetVersion = '${generation}'`),'runtime followers use current cache key');
 ok(deployReadme.includes(`v${version} publishes cache generation ${generation}`),'deployment README declares current generation');
 ok(runtime.includes(`fresh('${stamp}')`),'runtime cache-busts current release stamp');

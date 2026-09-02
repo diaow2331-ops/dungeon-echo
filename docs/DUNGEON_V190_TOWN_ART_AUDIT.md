@@ -1,4 +1,4 @@
-# Dungeon Echo — Echo Town authored-art audit (v1.9 candidate)
+# Dungeon Echo — Echo Town authored-art audit (v1.9.0 release)
 
 Date: 2026-09-02  
 Baseline: public v1.8.1 + living-town return-loop work on `main`.
