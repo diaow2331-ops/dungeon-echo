@@ -42,6 +42,11 @@ art/monster-deep-atlas-v1.svg
 art/guardian-atlas-v11.png
 art/final-boss-v11.png
 art/town-backdrop-v11.webp
+art/town-backdrop-v190.webp
+art/town-blacksmith-v190.webp
+art/town-market-v190.webp
+art/town-tavern-v190.webp
+art/town-relic-hall-v190.webp
 art/town-growth-atlas-v180.webp
 art/town-npc-atlas-v180.webp
 art/town-npc-portraits-v180.webp
