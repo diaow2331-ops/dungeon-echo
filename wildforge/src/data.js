@@ -3,7 +3,7 @@ export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
   LEAF:15, CLAY:16, RUIN:17, GLOW_MOSS:18, PLANK:19, WORKBENCH:20,
-  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25
+  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26
 });
 
 export const BIOMES = Object.freeze([
@@ -38,7 +38,8 @@ export const TILE_DEFS = Object.freeze({
   22:{id:'campfire', zh:'熔火堆', en:'Ember Pit', solid:false, hardness:.42, drop:'campfire', place:'campfire', station:'campfire', glow:true, color:'#cf6f42'},
   23:{id:'relic_chest', zh:'遗物箱', en:'Relic Cache', solid:true, hardness:99, tier:9, color:'#8b7047'},
   24:{id:'ruin_spike', zh:'遗迹尖刺', en:'Ruin Spikes', solid:false, hardness:.3, color:'#7d7480'},
-  25:{id:'ruin_urn', zh:'遗迹陶罐', en:'Ruin Urn', solid:false, hardness:.28, color:'#8f745d'}
+  25:{id:'ruin_urn', zh:'遗迹陶罐', en:'Ruin Urn', solid:false, hardness:.28, color:'#8f745d'},
+  26:{id:'rope', zh:'攀索', en:'Climbing Cord', solid:false, hardness:.12, drop:'rope', place:'rope', color:'#a8875a'}
 });
 
 const blockItems = {};
@@ -51,7 +52,7 @@ export const ITEMS = Object.freeze({
   ...blockItems,
   fiber:{id:'fiber',zh:'藤纤维',en:'Vine Fiber',stack:99,kind:'material'},
   moss_spore:{id:'moss_spore',zh:'荧苔孢子',en:'Glow Spore',stack:99,kind:'material'},
-  rope:{id:'rope',zh:'攀索',en:'Climbing Cord',stack:99,kind:'material'},
+  rope:{id:'rope',zh:'攀索',en:'Climbing Cord',stack:99,kind:'material',tile:TILE.ROPE},
   copper_bar:{id:'copper_bar',zh:'赤铜锭',en:'Red Copper Bar',stack:99,kind:'material'},
   iron_bar:{id:'iron_bar',zh:'冷铁锭',en:'Cold Iron Bar',stack:99,kind:'material'},
   ancient_core:{id:'ancient_core',zh:'古代机芯',en:'Ancient Core',stack:99,kind:'material'},
