@@ -30,11 +30,11 @@ const game = {
   input:{left:false,right:false,down:false,jump:false,mine:false,place:false}, pointer:{x:0,y:0,active:false,worldX:0,worldY:0,kind:'mouse'},
   mine:{key:'',progress:0}, attackCd:0, placeCd:0, quickPlaceId:null, interactCd:0, hurtCd:0, uiOpen:false,
   camera:{x:0,y:0,tile:26}, dpr:1, cssW:innerWidth, cssH:innerHeight,
-  fx:{particles:[],shake:0}, smartCursor:false, autoTool:false, mobileAim:{x:1,y:0,active:false}, restFx:0, relicScanCd:0, relicHint:null, toastTimer:0, saveDirty:false, objectiveStage:0, discoveries:[], guardianDefeated:{}, openedChestCount:0, rng:Math.random
+  fx:{particles:[],shake:0}, smartCursor:false, autoTool:false, moveAxis:{x:0,y:0,touch:false}, mobileAim:{x:1,y:0,active:false}, restFx:0, relicScanCd:0, relicHint:null, toastTimer:0, saveDirty:false, objectiveStage:0, discoveries:[], guardianDefeated:{}, openedChestCount:0, campRespawn:null, campBindTimer:0, rng:Math.random
 };
 
 function freshPlayer(spawn) {
-  return {x:spawn.x,y:spawn.y,vx:0,vy:0,w:.72,h:1.72,hp:100,maxHp:100,grounded:false,onPlatform:false,dropThrough:0,fallStartY:spawn.y,facing:1,jumpLatch:false,jumpBuffer:0,coyote:0,attackFlash:0,steps:0};
+  return {x:spawn.x,y:spawn.y,vx:0,vy:0,w:.72,h:1.72,hp:100,maxHp:100,grounded:false,onPlatform:false,dropThrough:0,fallStartY:spawn.y,facing:1,jumpLatch:false,jumpBuffer:0,jumpHold:0,coyote:0,landingKick:0,attackFlash:0,steps:0};
 }
 function freshInventory() { return {wood:0,soil:0,stone:0,fiber:0}; }
 function count(id) { return Number(game.inventory[id]||0); }
@@ -64,7 +64,7 @@ function saveExists() { try { return !!localStorage.getItem(SAVE_KEY); } catch {
 
 function serialize() {
   const p=game.player;
-  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount};
+  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn};
 }
 function saveGame(show=true) {
   if (!game.running || !game.world) return;
@@ -79,12 +79,12 @@ function applySave(raw) {
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
   game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
   game.hotbar=Array.isArray(raw.hotbar)&&raw.hotbar.length===HOTBAR_SIZE?raw.hotbar:[...HOTBAR_DEFAULT];
-  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0);
+  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.campBindTimer=0;
   game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=false; startWorldUi();
 }
 function startNewWorld(seed) {
   game.seed=String(seed||seedNow()).slice(0,32); game.world=new World(game.seed); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
-  game.inventory=freshInventory(); game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
+  game.inventory=freshInventory(); game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
   toast(tr('新世界已生成：先收集青芯木','New world generated: gather Greenheart Wood first'));
 }
 function startWorldUi() {
@@ -154,6 +154,20 @@ function playerTouchesTile(tileId){
   for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)if(game.world.get(x,y)===tileId)return true;
   return false;
 }
+function approach(value,target,amount){return value<target?Math.min(target,value+amount):Math.max(target,value-amount);}
+function tryStepUp(p,nx){
+  if(!p.grounded||game.input.down||p.vy<-.15)return false;
+  if(!aabbSolid(nx,p.y,p.w,p.h))return false;
+  for(const rise of [.25,.5,.75,1]){
+    const y=p.y-rise;
+    if(aabbSolid(nx,y,p.w,p.h))continue;
+    const foot=y+p.h/2+.07,left=nx-p.w*.28,right=nx+p.w*.28;
+    let support=false;
+    for(let tx=Math.floor(left);tx<=Math.floor(right);tx++)if(game.world.solid(tx,Math.floor(foot))||game.world.get(tx,Math.floor(foot))===TILE.PLATFORM){support=true;break;}
+    if(support){p.x=nx;p.y=y;p.grounded=true;p.onPlatform=false;p.vy=0;p.landingKick=Math.max(p.landingKick,.08);return true;}
+  }
+  return false;
+}
 function platformLandingY(x,currentY,nextY,w,h,ignore=false) {
   if(ignore||nextY<=currentY)return null;
   const left=x-w/2+.08,right=x+w/2-.08,from=currentY+h/2,to=nextY+h/2;
@@ -170,39 +184,49 @@ function applyFallDamage(p,landingY) {
   hurtPlayer(damage,'fall');game.fx.shake=Math.max(game.fx.shake,Math.min(7,2+damage*.08));spawnDebris(p.x,p.y+p.h*.45,'#b69472',Math.min(12,4+Math.floor(damage/5)),.65);haptic(Math.min(30,8+damage));toast(tr(`坠落受伤 · -${damage}`,`Fall damage · -${damage}`));
 }
 function updatePlayer(dt) {
-  const p=game.player; if(!p)return;
+  const p=game.player;if(!p)return;
   const wasGrounded=p.grounded,wasPlatform=!!p.onPlatform;
-  p.dropThrough=Math.max(0,Number(p.dropThrough||0)-dt);
+  p.dropThrough=Math.max(0,Number(p.dropThrough||0)-dt);p.landingKick=Math.max(0,(p.landingKick||0)-dt);
   if(game.input.down&&wasGrounded&&wasPlatform){p.dropThrough=.24;p.grounded=false;p.onPlatform=false;p.y+=.09;p.fallStartY=p.y;}
-  const dir=(game.input.right?1:0)-(game.input.left?1:0);
-  const accel=p.grounded?32:20, max=5.5;
-  if(dir){p.vx+=dir*accel*dt;p.facing=dir;} else p.vx*=Math.pow(.0007,dt);
+
+  const keyboard=(game.input.right?1:0)-(game.input.left?1:0),analog=game.moveAxis.touch?game.moveAxis.x:keyboard;
+  const dir=Math.abs(analog)<.08?0:Math.max(-1,Math.min(1,analog)),max=5.75,targetVx=dir*max;
+  const accel=p.grounded?39:22,decel=p.grounded?47:9;
+  if(dir){p.vx=approach(p.vx,targetVx,accel*dt);p.facing=dir>0?1:-1;}else p.vx=approach(p.vx,0,decel*dt);
   if(game.pointer.active&&(game.input.mine||game.input.place)){const q=pointerWorld();if(Math.abs(q.x-p.x)>.18)p.facing=Math.sign(q.x-p.x)||p.facing;}
-  p.vx=Math.max(-max,Math.min(max,p.vx));
+
   const onRope=playerTouchesTile(TILE.ROPE);
-  p.coyote=p.grounded?.11:Math.max(0,p.coyote-dt);
+  p.coyote=p.grounded?.12:Math.max(0,p.coyote-dt);
   if(onRope){
-    p.jumpBuffer=0;p.jumpLatch=game.input.jump;p.grounded=false;p.onPlatform=false;p.fallStartY=p.y;
-    const targetVy=game.input.jump?-4.8:game.input.down?4.1:1.15,blend=Math.min(1,dt*(game.input.jump||game.input.down?16:8));
-    p.vy+=(targetVy-p.vy)*blend;p.vy=Math.max(-5.2,Math.min(4.3,p.vy));
+    p.jumpBuffer=0;p.jumpHold=0;p.jumpLatch=game.input.jump;p.grounded=false;p.onPlatform=false;p.fallStartY=p.y;
+    const axisY=game.moveAxis.touch?game.moveAxis.y:(game.input.down?1:game.input.jump?-1:0),targetVy=axisY<-.22?-5.1:axisY>.22?4.4:1.05,blend=Math.min(1,dt*(Math.abs(axisY)>.22?17:9));
+    p.vy+=(targetVy-p.vy)*blend;p.vy=Math.max(-5.35,Math.min(4.55,p.vy));
   }else{
-    if(game.input.jump&&!p.jumpLatch){p.jumpBuffer=.12;p.jumpLatch=true;}
+    if(game.input.jump&&!p.jumpLatch){p.jumpBuffer=.13;p.jumpLatch=true;}
     if(!game.input.jump)p.jumpLatch=false;
     p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
-    if(p.jumpBuffer>0&&p.coyote>0){p.vy=-10.7;p.grounded=false;p.onPlatform=false;p.coyote=0;p.jumpBuffer=0;}
-    p.vy=Math.min(14,p.vy+27*dt);
+    if(p.jumpBuffer>0&&p.coyote>0){p.vy=-10.15;p.grounded=false;p.onPlatform=false;p.coyote=0;p.jumpBuffer=0;p.jumpHold=.17;}
+    let gravity=29;
+    if(p.vy<0&&p.jumpHold>0){
+      if(game.input.jump){gravity=17.5;p.jumpHold=Math.max(0,p.jumpHold-dt);}else{p.vy*=.57;p.jumpHold=0;gravity=31;}
+    }
+    p.vy=Math.min(14,p.vy+gravity*dt);
   }
-  const nx=p.x+p.vx*dt;if(!aabbSolid(nx,p.y,p.w,p.h))p.x=nx;else p.vx=0;
+
+  const nx=p.x+p.vx*dt;
+  if(!aabbSolid(nx,p.y,p.w,p.h))p.x=nx;else if(!tryStepUp(p,nx))p.vx=0;
   const ny=p.y+p.vy*dt,impactVy=p.vy,platformY=platformLandingY(p.x,p.y,ny,p.w,p.h,p.dropThrough>0||onRope);
   p.onPlatform=false;
   if(platformY!==null){
-    p.y=platformY;p.grounded=true;p.onPlatform=true;p.vy=0;if(!wasGrounded&&impactVy>0)applyFallDamage(p,p.y);p.fallStartY=p.y;
+    p.y=platformY;p.grounded=true;p.onPlatform=true;p.vy=0;
+    if(!wasGrounded&&impactVy>0){applyFallDamage(p,p.y);if(impactVy>5.2){p.landingKick=.12;spawnDebris(p.x,p.y+p.h*.45,'#b69472',3,.32);game.fx.shake=Math.max(game.fx.shake,1.15);}}
+    p.fallStartY=p.y;
   }else if(!aabbSolid(p.x,ny,p.w,p.h)){
     p.y=ny;p.grounded=false;if(p.vy<0||wasGrounded)p.fallStartY=p.y;
   }else{
-    if(p.vy>0){p.grounded=true;if(!wasGrounded)applyFallDamage(p,p.y);p.fallStartY=p.y;}p.vy=0;
+    if(p.vy>0){p.grounded=true;if(!wasGrounded){applyFallDamage(p,p.y);if(impactVy>5.2){p.landingKick=.12;spawnDebris(p.x,p.y+p.h*.45,'#b69472',3,.32);game.fx.shake=Math.max(game.fx.shake,1.15);}}p.fallStartY=p.y;}p.vy=0;
   }
-  if(p.y>WORLD_H+5){hurtPlayer(999,'void');}
+  if(p.y>WORLD_H+5)hurtPlayer(999,'void');
   p.x=Math.max(.8,Math.min(WORLD_W-.8,p.x));p.attackFlash=Math.max(0,p.attackFlash-dt);
 }
 function updateHazards(){
@@ -229,19 +253,26 @@ function assistedEnemyTarget(base){
   }
   return best;
 }
+function mobileAimPenalty(x,y){
+  if(game.pointer.kind!=='touch'||!game.mobileAim.active)return 0;
+  const dx=x+.5-game.player.x,dy=y+.5-game.player.y,d=Math.hypot(dx,dy)||1,dot=(dx*game.mobileAim.x+dy*game.mobileAim.y)/d;
+  let penalty=(1-Math.max(-1,Math.min(1,dot)))*4.5;
+  if(Math.abs(game.mobileAim.y)<.3&&Math.abs(dy)>.9)penalty+=.75;
+  return penalty;
+}
 function reachTarget(mode='aim') {
-  const base=baseTarget(),assist=game.pointer.kind==='touch'||game.smartCursor;
+  const base=baseTarget(),assist=game.pointer.kind==='touch'||game.smartCursor,mobileDirected=game.pointer.kind==='touch'&&game.mobileAim.active;
   let best={x:base.x,y:base.y,score:0};
   if(assist){
     if(mode!=='place'){const enemy=assistedEnemyTarget(base);if(enemy)return {x:enemy.x,y:enemy.y,ok:true,assisted:true};}
     const radius=game.smartCursor&&game.pointer.kind!=='touch'?2:1,baseTile=game.world.get(base.x,base.y),baseAir=baseTile===TILE.AIR;
-    best=mode!=='place'&&!baseAir&&targetInReach(base.x,base.y)?{x:base.x,y:base.y,score:-.4}:null;
+    best=mode!=='place'&&!baseAir&&targetInReach(base.x,base.y)?{x:base.x,y:base.y,score:mobileDirected?mobileAimPenalty(base.x,base.y):-.4}:null;
     for(let oy=-radius;oy<=radius;oy++)for(let ox=-radius;ox<=radius;ox++){
       const x=base.x+ox,y=base.y+oy;if(!targetInReach(x,y))continue;
       const tile=game.world.get(x,y),air=tile===TILE.AIR;
       if(mode==='place'){if(!air||!canPlaceAt(x,y))continue;const adjacent=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>game.world.get(x+dx,y+dy)!==TILE.AIR);if(!adjacent)continue;}
       else if(air)continue;
-      const score=Math.hypot(x+.5-base.qx,y+.5-base.qy)+(Math.abs(ox)+Math.abs(oy))*.06;
+      const score=Math.hypot(x+.5-base.qx,y+.5-base.qy)+(Math.abs(ox)+Math.abs(oy))*.06+mobileAimPenalty(x,y);
       if(!best||score<best.score)best={x,y,score};
     }
     if(!best)best={x:base.x,y:base.y,score:0};
@@ -313,16 +344,23 @@ function spawnDebris(wx,wy,color,n=5,force=1){
   }
   if(game.fx.particles.length>120)game.fx.particles.splice(0,game.fx.particles.length-120);
 }
+function stableMineTarget(next){
+  if(!game.mine.key)return next;const [x,y]=game.mine.key.split(',').map(Number);
+  if(!Number.isFinite(x)||!Number.isFinite(y)||game.world.get(x,y)===TILE.AIR||!targetInReach(x,y))return next;
+  if(game.pointer.kind==='touch'&&game.mobileAim.active){const dx=x+.5-game.player.x,dy=y+.5-game.player.y,d=Math.hypot(dx,dy)||1,dot=(dx*game.mobileAim.x+dy*game.mobileAim.y)/d;if(dot>.86)return {x,y,ok:true,assisted:true};}
+  if(game.smartCursor&&game.pointer.kind!=='touch'){const q=pointerWorld();if(Math.hypot(x+.5-q.x,y+.5-q.y)<1.35)return {x,y,ok:true,assisted:true};}
+  return next;
+}
 function mine(dt) {
-  const t=reachTarget(); if(!t.ok)return resetMine(); const enemy=nearestEnemyAtTarget(t); if(enemy)return attack(enemy);
+  const t=stableMineTarget(reachTarget()); if(!t.ok)return resetMine(); const enemy=nearestEnemyAtTarget(t); if(enemy)return attack(enemy);
   const tile=game.world.get(t.x,t.y),def=TILE_DEFS[tile]; if(!def||tile===TILE.AIR)return resetMine();
   if(tile===TILE.RELIC_CHEST)return tryOpenRelicChest(t);
   const pick=currentPick(), required=Number(def.tier||0); if((pick.tier||0)<required){resetMine();toast(tr(`需要更高等级的镐：${def.zh}`,`A stronger pick is required: ${def.en}`));game.input.mine=false;return;}
   const key=t.x+','+t.y;if(game.mine.key!==key){game.mine.key=key;game.mine.progress=0;}
   const before=game.mine.progress;
   game.mine.progress+=dt*(pick.power||.7)/Math.max(.12,def.hardness||.5);
-  if(Math.floor(before*4)!==Math.floor(game.mine.progress*4)){spawnDebris(t.x+.5,t.y+.5,def.color,2,.45);haptic(5);}
-  if(game.mine.progress>=1){game.world.set(t.x,t.y,TILE.AIR);if(tile===TILE.RUIN_URN)breakRuinUrn(t);else if(def.drop)spawnDrop(def.drop,1,t.x+.5,t.y+.5);spawnDebris(t.x+.5,t.y+.5,def.color,tile===TILE.RUIN_URN?11:8,tile===TILE.RUIN_URN?1.3:1.1);game.fx.shake=Math.max(game.fx.shake,tile===TILE.RUIN_URN?3.6:2.8);haptic(tile===TILE.RUIN_URN?18:14);game.mine.progress=0;game.saveDirty=true;renderHotbar();}
+  if(Math.floor(before*4)!==Math.floor(game.mine.progress*4)){spawnDebris(t.x+.5,t.y+.5,def.color,2,.38);haptic(3);}
+  if(game.mine.progress>=1){game.world.set(t.x,t.y,TILE.AIR);if(tile===TILE.RUIN_URN)breakRuinUrn(t);else if(def.drop)spawnDrop(def.drop,1,t.x+.5,t.y+.5);spawnDebris(t.x+.5,t.y+.5,def.color,tile===TILE.RUIN_URN?11:7,tile===TILE.RUIN_URN?1.25:.85);game.fx.shake=Math.max(game.fx.shake,tile===TILE.RUIN_URN?2.5:.55);haptic(tile===TILE.RUIN_URN?15:9);game.mine.progress=0;game.saveDirty=true;renderHotbar();}
 }
 function breakRuinUrn(t){
   const depth=Math.max(0,t.y-game.world.surface[Math.max(0,Math.min(WORLD_W-1,t.x))]),zone=currentDepthZone(depth),x=t.x+.5,y=t.y+.45,roll=game.rng();
@@ -335,13 +373,20 @@ function breakRuinUrn(t){
 }
 function resetMine(){game.mine.key='';game.mine.progress=0;}
 function canPlaceAt(x,y){if(game.world.get(x,y)!==TILE.AIR)return false;if(Math.abs(x+.5-game.player.x)<.7&&Math.abs(y+.5-game.player.y)<1.4)return false;return true;}
+function hasPlacementSupport(x,y,tile){return tile===TILE.TORCH||[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>game.world.get(x+dx,y+dy)!==TILE.AIR);}
+function bridgeAssistTarget(item,fallback){
+  if(item?.tile!==TILE.PLATFORM||game.mobileAim.active)return fallback;
+  const assist=game.pointer.kind==='touch'||game.smartCursor;if(!assist)return fallback;
+  const axis=game.moveAxis.touch?game.moveAxis.x:((game.input.right?1:0)-(game.input.left?1:0));if(Math.abs(axis)<.22)return fallback;
+  const dir=Math.sign(axis),p=game.player,x=Math.floor(p.x+dir*.9),y=Math.floor(p.y+p.h/2+.14);
+  if(targetInReach(x,y)&&canPlaceAt(x,y)&&hasPlacementSupport(x,y,item.tile))return {x,y,ok:true,assisted:true,bridge:true};
+  return fallback;
+}
+function placementTarget(item){return bridgeAssistTarget(item,reachTarget('place'));}
 function place(idOverride=null) {
-  if(game.placeCd>0)return; const t=reachTarget('place'); if(!t.ok)return; const id=idOverride||(game.autoTool&&count('torch')>0?'torch':selectedId()),item=ITEMS[id]; if(!item?.tile||count(id)<1)return;
-  const def=TILE_DEFS[item.tile]; if(!def?.place)return;
-  if(!canPlaceAt(t.x,t.y))return;
-  const adjacent=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>game.world.get(t.x+dx,t.y+dy)!==TILE.AIR);
-  if(!adjacent&&item.tile!==TILE.TORCH)return;
-  game.world.set(t.x,t.y,item.tile);consume(id,1);game.placeCd=.16;spawnDebris(t.x+.5,t.y+.5,def.color,4,.4);game.fx.shake=Math.max(game.fx.shake,1.2);haptic(8);renderHotbar();game.saveDirty=true;
+  if(game.placeCd>0)return;const id=idOverride||(game.autoTool&&count('torch')>0?'torch':selectedId()),item=ITEMS[id];if(!item?.tile||count(id)<1)return;
+  const t=placementTarget(item);if(!t.ok)return;const def=TILE_DEFS[item.tile];if(!def?.place||!canPlaceAt(t.x,t.y)||!hasPlacementSupport(t.x,t.y,item.tile))return;
+  game.world.set(t.x,t.y,item.tile);consume(id,1);game.placeCd=(item.tile===TILE.PLATFORM||item.tile===TILE.ROPE)?0.085:0.115;spawnDebris(t.x+.5,t.y+.5,def.color,3,.28);game.fx.shake=Math.max(game.fx.shake,.18);haptic(4);renderHotbar();game.saveDirty=true;
 }
 
 function updateActions(dt){game.attackCd=Math.max(0,game.attackCd-dt);game.placeCd=Math.max(0,game.placeCd-dt);game.interactCd=Math.max(0,game.interactCd-dt);game.hurtCd=Math.max(0,game.hurtCd-dt);if(game.uiOpen)return;if(game.input.mine)mine(dt);else resetMine();if(game.input.place)place(game.quickPlaceId);}
@@ -399,17 +444,21 @@ function die(source) {
   const lost=[];for(const [id,n] of Object.entries(game.inventory)){if(ITEMS[id]?.kind==='material'&&n>2){const d=Math.max(1,Math.floor(n*.25));game.inventory[id]-=d;lost.push(`${itemName(id,lang)} ×${d}`);}}
   $('#deathText').textContent=lost.length?tr('你在撤回营地时遗失了：','You lost while retreating to camp: ')+lost.slice(0,4).join(' · '):tr('你保住了随身物资。','You kept your carried supplies.');$('#deathScreen').classList.remove('hidden');
 }
-function respawn(){const p=game.player,p0=game.world.spawn;p.x=p0.x;p.y=p0.y;p.vx=p.vy=0;p.hp=p.maxHp;game.enemies=[];game.drops=[];game.running=true;$('#deathScreen').classList.add('hidden');game.saveDirty=true;saveGame(false);game.last=performance.now();requestAnimationFrame(loop);}
+function respawn(){const p=game.player,camp=game.campRespawn,p0=camp&&!aabbSolid(camp.x,camp.y,p.w,p.h)?camp:game.world.spawn;p.x=p0.x;p.y=p0.y;p.vx=p.vy=0;p.hp=p.maxHp;p.fallStartY=p.y;p.onPlatform=false;p.dropThrough=0;game.enemies=[];game.drops=[];game.running=true;$('#deathScreen').classList.add('hidden');game.saveDirty=true;saveGame(false);game.last=performance.now();requestAnimationFrame(loop);}
 
-function nearStation(station) {
-  const target=station==='workbench'?TILE.WORKBENCH:TILE.CAMPFIRE,p=game.player;
-  for(let y=Math.floor(p.y)-4;y<=Math.floor(p.y)+4;y++)for(let x=Math.floor(p.x)-4;x<=Math.floor(p.x)+4;x++)if(game.world.get(x,y)===target)return true;
-  return false;
+function nearbyStationTile(station) {
+  const target=station==='workbench'?TILE.WORKBENCH:TILE.CAMPFIRE,p=game.player;if(!p)return null;
+  let best=null,bd=Infinity;
+  for(let y=Math.floor(p.y)-4;y<=Math.floor(p.y)+4;y++)for(let x=Math.floor(p.x)-4;x<=Math.floor(p.x)+4;x++)if(game.world.get(x,y)===target){const d=Math.hypot(x+.5-p.x,y+.5-p.y);if(d<bd){bd=d;best={x,y};}}
+  return best;
 }
+function nearStation(station){return !!nearbyStationTile(station);}
 function stationAvailable(station){return !station||nearStation(station);}
+function safeCampPoint(fire){for(const dx of [0,-1,1,-2,2]){const x=fire.x+.5+dx,y=fire.y+.14;if(!aabbSolid(x,y,.72,1.72))return {x,y};}return null;}
 function updateCampfireRest(dt){
-  const p=game.player;if(!p||p.hp>=p.maxHp||game.hurtCd>0||!nearStation('campfire'))return;
-  p.hp=Math.min(p.maxHp,p.hp+2.4*dt);game.restFx-=dt;if(game.restFx<=0){game.restFx=.5;spawnDebris(p.x,p.y+.5,'#e69a55',1,.22);}
+  const p=game.player;if(!p)return;const fire=nearbyStationTile('campfire'),bench=nearbyStationTile('workbench');
+  if(fire&&p.hp<p.maxHp&&game.hurtCd<=0){p.hp=Math.min(p.maxHp,p.hp+2.4*dt);game.restFx-=dt;if(game.restFx<=0){game.restFx=.5;spawnDebris(p.x,p.y+.5,'#e69a55',1,.22);}}
+  if(fire&&bench&&game.hurtCd<=0){game.campBindTimer+=dt;if(game.campBindTimer>=1.6){const point=safeCampPoint(fire),key=point?`${point.x.toFixed(1)},${point.y.toFixed(1)}`:'',old=game.campRespawn?`${game.campRespawn.x.toFixed(1)},${game.campRespawn.y.toFixed(1)}`:'';if(point&&key!==old){game.campRespawn=point;game.saveDirty=true;saveGame(false);spawnDebris(fire.x+.5,fire.y+.4,'#e4ad53',10,.6);toast(tr('前哨营地已绑定 · 死亡后从这里返回','Outpost bound · You will return here after death'));}game.campBindTimer=0;}}else game.campBindTimer=0;
 }
 
 function canCraft(r){return stationAvailable(r.station)&&Object.entries(r.need).every(([id,n])=>count(id)>=n);}
@@ -542,7 +591,13 @@ function drawLighting(){
   for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const id=game.world.get(x,y);if(id===TILE.TORCH)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*5.2,1);else if(id===TILE.CAMPFIRE)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*6.4,1);else if(id===TILE.CRYSTAL||id===TILE.GLOW_MOSS||id===TILE.RELIC_CHEST)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*(id===TILE.CRYSTAL?2.8:id===TILE.RELIC_CHEST?2.25:1.7),id===TILE.RELIC_CHEST?.36:.55);}
   lightCtx.globalCompositeOperation='source-over';ctx.drawImage(lightCanvas,0,0,game.cssW,game.cssH);
 }
-function drawTarget(){const t=reachTarget();if(!t.ok)return;const {x,y,s}=tileRect(t.x,t.y);ctx.strokeStyle=t.assisted?'rgba(114,215,184,.95)':'rgba(242,216,158,.86)';ctx.lineWidth=t.assisted?2:1.4;ctx.strokeRect(x+.8,y+.8,s-1.6,s-1.6);if(game.mine.key===t.x+','+t.y&&game.mine.progress>0){const p=Math.min(1,game.mine.progress);ctx.strokeStyle=`rgba(255,238,203,${.25+p*.7})`;ctx.lineWidth=Math.max(1,1+p*1.6);ctx.beginPath();ctx.moveTo(x+s*.18,y+s*.2);ctx.lineTo(x+s*(.38+p*.08),y+s*.48);ctx.lineTo(x+s*.24,y+s*.82);ctx.moveTo(x+s*.78,y+s*.16);ctx.lineTo(x+s*(.58-p*.08),y+s*.45);ctx.lineTo(x+s*.76,y+s*.78);if(p>.48){ctx.moveTo(x+s*.46,y+s*.08);ctx.lineTo(x+s*.5,y+s*.33);ctx.lineTo(x+s*.37,y+s*.63);ctx.lineTo(x+s*.52,y+s*.92);}ctx.stroke();}}
+function drawTarget(){
+  const heldId=game.quickPlaceId||selectedId(),held=ITEMS[heldId],placing=!!held?.tile&&!game.input.mine,t=placing?placementTarget(held):stableMineTarget(reachTarget());if(!t.ok)return;
+  const {x,y,s}=tileRect(t.x,t.y),tile=game.world.get(t.x,t.y);ctx.strokeStyle=t.assisted?'rgba(114,215,184,.95)':'rgba(242,216,158,.86)';ctx.lineWidth=t.assisted?2:1.4;ctx.strokeRect(x+.8,y+.8,s-1.6,s-1.6);
+  if(placing&&tile===TILE.AIR&&canPlaceAt(t.x,t.y)){const def=TILE_DEFS[held.tile];ctx.save();ctx.globalAlpha=.24;ctx.fillStyle=def?.color||'#d8c18b';ctx.fillRect(x+2,y+2,s-4,s-4);ctx.globalAlpha=.7;ctx.strokeStyle=hasPlacementSupport(t.x,t.y,held.tile)?'rgba(125,220,176,.8)':'rgba(220,108,96,.8)';ctx.strokeRect(x+2.5,y+2.5,s-5,s-5);ctx.restore();}
+  if(game.mine.key===t.x+','+t.y&&game.mine.progress>0){const p=Math.min(1,game.mine.progress);ctx.strokeStyle=`rgba(255,238,203,${.25+p*.7})`;ctx.lineWidth=Math.max(1,1+p*1.6);ctx.beginPath();ctx.moveTo(x+s*.18,y+s*.2);ctx.lineTo(x+s*(.38+p*.08),y+s*.48);ctx.lineTo(x+s*.24,y+s*.82);ctx.moveTo(x+s*.78,y+s*.16);ctx.lineTo(x+s*(.58-p*.08),y+s*.45);ctx.lineTo(x+s*.76,y+s*.78);if(p>.48){ctx.moveTo(x+s*.46,y+s*.08);ctx.lineTo(x+s*.5,y+s*.33);ctx.lineTo(x+s*.37,y+s*.63);ctx.lineTo(x+s*.52,y+s*.92);}ctx.stroke();}
+}
+
 function drawFx(){
   const s=game.camera.tile;
   for(const p of game.fx.particles){const x=(p.x-game.camera.x)*s,y=(p.y-game.camera.y)*s,a=Math.max(0,p.life/p.max);ctx.globalAlpha=a;ctx.fillStyle=p.color;const q=Math.max(2,p.size*s);ctx.fillRect(x-q/2,y-q/2,q,q);}
@@ -550,7 +605,7 @@ function drawFx(){
 }
 function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
 function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
-function updateCamera(dt){const p=game.player,s=game.camera.tile,targetX=p.x-game.cssW/s*.5,targetY=p.y-game.cssH/s*.55;const k=1-Math.pow(.001,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
+function updateCamera(dt){const p=game.player,s=game.camera.tile,lookX=Math.max(-1.35,Math.min(1.35,p.vx*.22)),lookY=p.vy>5?Math.min(.7,(p.vy-5)*.07):0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.pow(.0014,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
 
 function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
 
@@ -578,7 +633,7 @@ function setupStick(el,onMove,onEnd){
   const end=e=>{if(activeId!==e.pointerId)return;activeId=null;el.classList.remove('active');knob.style.transform='translate(0,0)';onEnd(e);e.preventDefault();};
   el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
 }
-setupStick($('#moveStick'),(x,y,mag)=>{const dead=.22;setInput('left',x<-dead);setInput('right',x>dead);setInput('down',y>.48);setInput('jump',y<-.48);},()=>{setInput('left',false);setInput('right',false);setInput('down',false);setInput('jump',false);});
+setupStick($('#moveStick'),(x,y,mag)=>{const dead=.16,ax=Math.abs(x)<dead?0:Math.sign(x)*(Math.abs(x)-dead)/(1-dead),ay=Math.abs(y)<dead?0:Math.sign(y)*(Math.abs(y)-dead)/(1-dead);game.moveAxis.x=ax;game.moveAxis.y=ay;game.moveAxis.touch=true;setInput('left',ax<-.12);setInput('right',ax>.12);setInput('down',ay>.42);setInput('jump',ay<-.42);},()=>{game.moveAxis.x=game.moveAxis.y=0;game.moveAxis.touch=false;setInput('left',false);setInput('right',false);setInput('down',false);setInput('jump',false);});
 setupStick($('#aimStick'),(x,y,mag)=>{if(mag>.16){game.mobileAim.active=true;setAimVector(x,y);setInput('mine',true);}else{game.mobileAim.active=false;setInput('mine',false);}},()=>{game.mobileAim.active=false;setInput('mine',false);});
 const jumpOn=e=>{e.preventDefault();setInput('jump',true);};const jumpOff=e=>{e.preventDefault();setInput('jump',false);};$('#mobileJump').addEventListener('pointerdown',jumpOn);$('#mobileJump').addEventListener('pointerup',jumpOff);$('#mobileJump').addEventListener('pointercancel',jumpOff);
 const placeOn=e=>{e.preventDefault();game.quickPlaceId=null;setInput('place',true);};const placeOff=e=>{e.preventDefault();setInput('place',false);game.quickPlaceId=null;};$('#mobilePlace').addEventListener('pointerdown',placeOn);$('#mobilePlace').addEventListener('pointerup',placeOff);$('#mobilePlace').addEventListener('pointercancel',placeOff);

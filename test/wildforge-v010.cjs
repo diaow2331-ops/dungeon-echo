@@ -9,7 +9,7 @@ for(const marker of ['id="game"','id="hotbar"','id="mobileControls"','id="portra
 assert(css.includes('@media (orientation:portrait)')&&css.includes('@media (max-height:520px) and (orientation:landscape)'),'landscape-first responsive contract missing');
 assert(game.includes("screen.orientation.lock('landscape')"),'fullscreen landscape lock missing');
 assert(game.includes("if(e.pointerType!=='touch')"),'touch canvas tap must aim without auto-mining');
-assert(game.includes('score:-.4'),'touch targeting must preserve an explicitly tapped solid before neighbor assist');
+assert(game.includes('mobileDirected?mobileAimPenalty(base.x,base.y):-.4'),'touch tap keeps exact-solid priority while joystick aim becomes directional');
 
 for(const behavior of ['function mine(dt)','function place(','function craft(r)','function updateEnemies(dt)','function saveGame(show=true)','function respawn()','function spawnDrop(','function updateDrops(dt)','function drawLighting()','function updateProgression(dt)']) assert(game.includes(behavior),'runtime behavior missing: '+behavior);
 assert(game.includes('jumpBuffer')&&game.includes('coyote'),'movement forgiveness missing');
@@ -33,6 +33,7 @@ assert(world.includes('this.ruins.push({x,y,w:rw,h:rh,biome:b,chestX,chestY})'),
 assert(world.includes('TILE.RUIN_URN')&&game.includes('function breakRuinUrn(t)'),'breakable ruin urn exploration prop missing');
 assert(data.includes('ROPE:26')&&data.includes("rope:{id:'rope'")&&game.includes('playerTouchesTile(TILE.ROPE)'),'climbable rope tool missing');
 assert(data.includes('PLATFORM:27')&&data.includes("id:'platform'")&&game.includes('platformLandingY')&&game.includes('applyFallDamage'),'one-way platform and fall-risk loop missing');
+assert(game.includes('campRespawn')&&game.includes('safeCampPoint')&&game.includes('前哨营地已绑定'),'camp return loop missing');
 assert(html.includes('id="moveStick"')&&html.includes('id="aimStick"')&&html.includes('id="mobilePlace"')&&html.includes('id="mobileTorch"'),'dual-stick landscape touch controls missing');
 assert(game.includes("canvas.addEventListener('wheel'")&&game.includes('game.smartCursor=!game.smartCursor')&&game.includes('game.autoTool=true'),'desktop native-sandbox input helpers missing');
 assert(game.includes("setupStick($('#moveStick')")&&game.includes("setupStick($('#aimStick')")&&game.includes('syncMobileAim()'),'analog touch runtime missing');
