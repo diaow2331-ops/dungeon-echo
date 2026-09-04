@@ -30,3 +30,9 @@ Run `bash ops/repo/check-game-boundaries.sh` before merging any change that touc
 The three game source roots are independent even though they are mounted under one public host. ops/release/play-release-root-policy.sh is the repository-level authority for composition of the shared play.91hwl.cn root. Individual deployers must copy only approved root entries from the previous immutable release and replace only their own route.
 
 Never use a whole-root carry-forward as a convenience. That pattern can make unrelated archives, authentication utilities or old rollback directories persist indefinitely and turns deployment history into an accidental source of truth.
+
+## Incubating fourth game: Wildforge
+
+`wildforge/` is an intentionally **unpublished incubation root** beginning with the v0.1.0 landscape-first playable baseline. It is isolated from Dungeon Echo, Clock Out Alive and Board Trio, but it is not yet listed in `games.json`, admitted to the shared play-root policy or included in aggregate public deployment.
+
+Promotion rule: only after representative desktop + landscape-touch play validates the core Explore → Mine → Collect → Craft → Build → Fight → Upgrade → Explore deeper loop should Wildforge receive a catalog record, immutable production deployer/healthcheck, shared-root admission and public-site presentation in one release change.
