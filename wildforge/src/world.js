@@ -182,6 +182,8 @@ export class World {
         this.set(chestX,chestY,TILE.RELIC_CHEST);
         const traps=1+(rng()<.45?1:0);
         for(let t=0;t<traps;t++){const trapX=x+2+Math.floor(rng()*Math.max(1,rw-4)),trapY=y+rh-2;if(this.get(trapX,trapY)===TILE.AIR)this.set(trapX,trapY,TILE.RUIN_SPIKE);}
+        const urns=1+Math.floor(rng()*3);
+        for(let u=0;u<urns;u++){const urnX=x+1+Math.floor(rng()*Math.max(1,rw-2)),urnY=y+rh-2;if(this.get(urnX,urnY)===TILE.AIR&&Math.abs(urnX-chestX)>1)this.set(urnX,urnY,TILE.RUIN_URN);}
         this.ruins.push({x,y,w:rw,h:rh,biome:b,chestX,chestY});
       }
     }

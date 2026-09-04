@@ -27,6 +27,7 @@ assert(game.includes('function updateRelicHint(dt)')&&game.includes('RELIC SIGNA
 
 for(const marker of ['TILE.RELIC_CHEST','function tryOpenRelicChest(t)','function spawnChestGuardian(t,key)','function openRelicChest(t,key)','ancient_core','sentinel_blade','delver_pick','specialCd:1.1','e.windup=.62','e.charge=.34']) assert((game+data+world).includes(marker),'relic exploration contract missing: '+marker);
 assert(world.includes('this.ruins.push({x,y,w:rw,h:rh,biome:b,chestX,chestY})'),'ruin chest metadata missing');
+assert(world.includes('TILE.RUIN_URN')&&game.includes('function breakRuinUrn(t)'),'breakable ruin urn exploration prop missing');
 for(const protectedName of ['Creeper','Zombie','Slime King','Eye of Cthulhu','Netherite','Enderman']) assert(!html.includes(protectedName)&&!data.includes(protectedName),'copied game identity found: '+protectedName);
 const combined=html+css+game+world+data;for(const foreign of ['../moyu/','../board-games/','../game/core/','/moyu/','/board-games/'])assert(!combined.includes(foreign),'Wildforge crosses game boundary: '+foreign);
 const catalog=JSON.parse(read('games.json'));assert(!catalog.games.some(g=>g.id==='wildforge'),'incubating Wildforge must not enter public catalog before promotion');
