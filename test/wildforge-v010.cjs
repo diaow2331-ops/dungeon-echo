@@ -13,6 +13,11 @@ assert(game.includes('mobileDirected?mobileAimPenalty(base.x,base.y):-.4'),'touc
 
 for(const behavior of ['function mine(dt)','function place(','function craft(r)','function updateEnemies(dt)','function saveGame(show=true)','function respawn()','function spawnDrop(','function updateDrops(dt)','function drawLighting()','function updateProgression(dt)']) assert(game.includes(behavior),'runtime behavior missing: '+behavior);
 assert(game.includes('jumpBuffer')&&game.includes('coyote'),'movement forgiveness missing');
+assert(game.includes('moveAxis:{x:0,y:0,touch:false}')&&game.includes('targetVx=dir*max'),'analog movement speed missing');
+assert(game.includes('jumpHold=.17')&&game.includes('p.vy*=.57'),'variable jump height missing');
+assert(game.includes('function tryStepUp')&&game.includes('landingKick'),'step assist / landing feel missing');
+assert(game.includes('function stableMineTarget')&&game.includes('function bridgeAssistTarget'),'continuous mine/build assist missing');
+assert(game.includes('function sfx(kind,intensity=1)')&&game.includes('ensureAudio()'),'procedural interaction sound feedback missing');
 assert(game.includes("game.pointer.kind==='touch'")&&game.includes("reachTarget(mode='aim')"),'touch target assist missing');
 assert(game.includes('DEPTH_ZONES')&&game.includes("id:'star'"),'depth progression missing');
 for(const worldRule of ['carveCaves(rng)','scatterOre(rng','placeTrees(rng)','placeGlowMoss(rng)','placeRuins(rng)']) assert(world.includes(worldRule),'world rule missing: '+worldRule);
