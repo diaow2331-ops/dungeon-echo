@@ -178,7 +178,11 @@ export class World {
         }
         const door=1+Math.floor(rng()*(rw-2)); this.set(x+door,y+rh-1,TILE.AIR); this.set(x+door,y+rh-2,TILE.AIR);
         if (rng()<.7) this.set(x+Math.floor(rw/2),y+rh-2,TILE.TORCH);
-        this.ruins.push({x,y,w:rw,h:rh,biome:b});
+        const chestX=x+Math.max(1,Math.min(rw-2,Math.floor(rw*.68))),chestY=y+rh-2;
+        this.set(chestX,chestY,TILE.RELIC_CHEST);
+        const traps=1+(rng()<.45?1:0);
+        for(let t=0;t<traps;t++){const trapX=x+2+Math.floor(rng()*Math.max(1,rw-4)),trapY=y+rh-2;if(this.get(trapX,trapY)===TILE.AIR)this.set(trapX,trapY,TILE.RUIN_SPIKE);}
+        this.ruins.push({x,y,w:rw,h:rh,biome:b,chestX,chestY});
       }
     }
   }

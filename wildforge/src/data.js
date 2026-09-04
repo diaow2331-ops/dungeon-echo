@@ -3,7 +3,7 @@ export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
   LEAF:15, CLAY:16, RUIN:17, GLOW_MOSS:18, PLANK:19, WORKBENCH:20,
-  TORCH:21, CAMPFIRE:22
+  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24
 });
 
 export const BIOMES = Object.freeze([
@@ -35,7 +35,9 @@ export const TILE_DEFS = Object.freeze({
   19:{id:'plank', zh:'木板', en:'Plank', solid:true, hardness:.45, drop:'plank', place:'plank', color:'#a2784e'},
   20:{id:'workbench', zh:'工匠台', en:'Craft Table', solid:true, hardness:.68, drop:'workbench', place:'workbench', station:'workbench', color:'#9c6d45'},
   21:{id:'torch', zh:'火把', en:'Torch', solid:false, hardness:.12, drop:'torch', place:'torch', glow:true, color:'#e4ad53'},
-  22:{id:'campfire', zh:'熔火堆', en:'Ember Pit', solid:false, hardness:.42, drop:'campfire', place:'campfire', station:'campfire', glow:true, color:'#cf6f42'}
+  22:{id:'campfire', zh:'熔火堆', en:'Ember Pit', solid:false, hardness:.42, drop:'campfire', place:'campfire', station:'campfire', glow:true, color:'#cf6f42'},
+  23:{id:'relic_chest', zh:'遗物箱', en:'Relic Cache', solid:true, hardness:99, tier:9, color:'#8b7047'},
+  24:{id:'ruin_spike', zh:'遗迹尖刺', en:'Ruin Spikes', solid:false, hardness:.3, color:'#7d7480'}
 });
 
 const blockItems = {};
@@ -51,6 +53,7 @@ export const ITEMS = Object.freeze({
   rope:{id:'rope',zh:'攀索',en:'Climbing Cord',stack:99,kind:'material'},
   copper_bar:{id:'copper_bar',zh:'赤铜锭',en:'Red Copper Bar',stack:99,kind:'material'},
   iron_bar:{id:'iron_bar',zh:'冷铁锭',en:'Cold Iron Bar',stack:99,kind:'material'},
+  ancient_core:{id:'ancient_core',zh:'古代机芯',en:'Ancient Core',stack:99,kind:'material'},
   wood_pick:{id:'wood_pick',zh:'青芯镐',en:'Greenheart Pick',stack:1,kind:'pick',tier:1,power:1.35},
   stone_pick:{id:'stone_pick',zh:'灰岩镐',en:'Greyrock Pick',stack:1,kind:'pick',tier:2,power:1.75},
   copper_pick:{id:'copper_pick',zh:'赤铜镐',en:'Red Copper Pick',stack:1,kind:'pick',tier:3,power:2.3},
@@ -59,7 +62,9 @@ export const ITEMS = Object.freeze({
   stone_blade:{id:'stone_blade',zh:'岩牙刃',en:'Stonefang Blade',stack:1,kind:'weapon',damage:7},
   copper_blade:{id:'copper_blade',zh:'赤铜弯刃',en:'Red Copper Cutter',stack:1,kind:'weapon',damage:10},
   iron_blade:{id:'iron_blade',zh:'冷铁长刃',en:'Cold Iron Longblade',stack:1,kind:'weapon',damage:14},
-  crystal_blade:{id:'crystal_blade',zh:'星晶裂刃',en:'Starshard Edge',stack:1,kind:'weapon',damage:19}
+  crystal_blade:{id:'crystal_blade',zh:'星晶裂刃',en:'Starshard Edge',stack:1,kind:'weapon',damage:19},
+  delver_pick:{id:'delver_pick',zh:'遗迹掘星镐',en:'Relic Delver Pick',stack:1,kind:'pick',tier:3,power:2.7,rare:true},
+  sentinel_blade:{id:'sentinel_blade',zh:'守望残刃',en:'Sentinel Shardblade',stack:1,kind:'weapon',damage:13,rare:true}
 });
 
 export const RECIPES = Object.freeze([
@@ -78,7 +83,9 @@ export const RECIPES = Object.freeze([
   {id:'copper_blade',out:{id:'copper_blade',n:1},need:{copper_bar:4,wood:1},station:'workbench'},
   {id:'iron_pick',out:{id:'iron_pick',n:1},need:{iron_bar:5,wood:2},station:'workbench'},
   {id:'iron_blade',out:{id:'iron_blade',n:1},need:{iron_bar:4,wood:1},station:'workbench'},
-  {id:'crystal_blade',out:{id:'crystal_blade',n:1},need:{crystal:5,iron_bar:1},station:'workbench'}
+  {id:'crystal_blade',out:{id:'crystal_blade',n:1},need:{crystal:5,iron_bar:1},station:'workbench'},
+  {id:'delver_pick',out:{id:'delver_pick',n:1},need:{ancient_core:1,copper_bar:3,wood:2},station:'workbench'},
+  {id:'sentinel_blade',out:{id:'sentinel_blade',n:1},need:{ancient_core:1,iron_bar:2},station:'workbench'}
 ]);
 
 export const ENEMY_TYPES = Object.freeze({
