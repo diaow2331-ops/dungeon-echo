@@ -37,6 +37,7 @@ assert(html.includes('id="moveStick"')&&html.includes('id="aimStick"')&&html.inc
 assert(game.includes("canvas.addEventListener('wheel'")&&game.includes('game.smartCursor=!game.smartCursor')&&game.includes('game.autoTool=true'),'desktop native-sandbox input helpers missing');
 assert(game.includes("setupStick($('#moveStick')")&&game.includes("setupStick($('#aimStick')")&&game.includes('syncMobileAim()'),'analog touch runtime missing');
 assert(game.includes("game.quickPlaceId='torch'")&&game.includes("game.autoTool&&count('torch')>0?'torch'"),'quick torch input missing');
+assert(game.includes('miningSwing=game.input.mine')&&game.includes('pointerWorld():{x:game.player.x+game.player.facing*2'),'aim-following tool swing missing');
 for(const protectedName of ['Creeper','Zombie','Slime King','Eye of Cthulhu','Netherite','Enderman']) assert(!html.includes(protectedName)&&!data.includes(protectedName),'copied game identity found: '+protectedName);
 const combined=html+css+game+world+data;for(const foreign of ['../moyu/','../board-games/','../game/core/','/moyu/','/board-games/'])assert(!combined.includes(foreign),'Wildforge crosses game boundary: '+foreign);
 const catalog=JSON.parse(read('games.json'));assert(!catalog.games.some(g=>g.id==='wildforge'),'incubating Wildforge must not enter public catalog before promotion');

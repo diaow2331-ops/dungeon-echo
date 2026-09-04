@@ -177,6 +177,7 @@ function updatePlayer(dt) {
   const dir=(game.input.right?1:0)-(game.input.left?1:0);
   const accel=p.grounded?32:20, max=5.5;
   if(dir){p.vx+=dir*accel*dt;p.facing=dir;} else p.vx*=Math.pow(.0007,dt);
+  if(game.pointer.active&&(game.input.mine||game.input.place)){const q=pointerWorld();if(Math.abs(q.x-p.x)>.18)p.facing=Math.sign(q.x-p.x)||p.facing;}
   p.vx=Math.max(-max,Math.min(max,p.vx));
   const onRope=playerTouchesTile(TILE.ROPE);
   p.coyote=p.grounded?.11:Math.max(0,p.coyote-dt);
@@ -493,8 +494,12 @@ function drawDrops(){
   for(const d of game.drops){const x=(d.x-game.camera.x)*s,y=(d.y-game.camera.y)*s+Math.sin(d.bob)*2;if(x<-30||x>game.cssW+30||y<-30||y>game.cssH+30)continue;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,s*.18,s*.25,s*.09,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=ITEMS[d.id]?.tile?TILE_DEFS[ITEMS[d.id].tile]?.color||'#d8c18b':'#d8c18b';ctx.fillRect(-s*.18,-s*.18,s*.36,s*.36);ctx.strokeStyle='rgba(245,232,192,.7)';ctx.strokeRect(-s*.18,-s*.18,s*.36,s*.36);if(d.n>1){ctx.fillStyle='#fff3d1';ctx.font=`700 ${Math.max(8,s*.28)}px system-ui`;ctx.fillText(String(d.n),s*.12,s*.28);}ctx.restore();}
 }
 function drawHeldItem(s,w,h){
-  const id=selectedId(),item=selectedItem();if(!item||count(id)<=0)return;
-  ctx.save();ctx.translate(w*.34,h*.08);const swing=game.player.attackFlash>0?-.68:game.input.mine?.28:0;ctx.rotate(swing);
+  let id=selectedId(),item=selectedItem();
+  if(game.input.mine){const t=reachTarget(),enemy=t.ok?nearestEnemyAtTarget(t):null;item=enemy?currentWeapon():currentPick();id=item?.id||id;}
+  if(!item||(!game.input.mine&&count(id)<=0))return;
+  const q=game.pointer.active?pointerWorld():{x:game.player.x+game.player.facing*2,y:game.player.y},dx=(q.x-game.player.x)*game.player.facing,dy=q.y-game.player.y,aim=Math.atan2(dy,Math.max(.45,Math.abs(dx)))*.72;
+  const miningSwing=game.input.mine?(-.16+Math.sin(performance.now()*.024)*.48):0,swing=game.player.attackFlash>0?-.72:miningSwing;
+  ctx.save();ctx.translate(w*.34,h*.08);ctx.rotate(aim+swing);
   if(item.kind==='pick'){
     ctx.strokeStyle='#7c5a3d';ctx.lineWidth=Math.max(2,s*.08);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(w*.82,h*.34);ctx.stroke();
     ctx.strokeStyle=id==='delver_pick'?'#e0b85f':id==='iron_pick'?'#c3c9cb':id==='copper_pick'?'#d17b56':id==='stone_pick'?'#8f999f':'#b08459';ctx.lineWidth=Math.max(3,s*.11);ctx.beginPath();ctx.moveTo(w*.58,h*.16);ctx.lineTo(w*.92,h*.05);ctx.stroke();
