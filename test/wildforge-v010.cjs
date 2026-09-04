@@ -11,7 +11,7 @@ assert(game.includes("screen.orientation.lock('landscape')"),'fullscreen landsca
 assert(game.includes("if(e.pointerType!=='touch')"),'touch canvas tap must aim without auto-mining');
 assert(game.includes('score:-.4'),'touch targeting must preserve an explicitly tapped solid before neighbor assist');
 
-for(const behavior of ['function mine(dt)','function place()','function craft(r)','function updateEnemies(dt)','function saveGame(show=true)','function respawn()','function spawnDrop(','function updateDrops(dt)','function drawLighting()','function updateProgression(dt)']) assert(game.includes(behavior),'runtime behavior missing: '+behavior);
+for(const behavior of ['function mine(dt)','function place(','function craft(r)','function updateEnemies(dt)','function saveGame(show=true)','function respawn()','function spawnDrop(','function updateDrops(dt)','function drawLighting()','function updateProgression(dt)']) assert(game.includes(behavior),'runtime behavior missing: '+behavior);
 assert(game.includes('jumpBuffer')&&game.includes('coyote'),'movement forgiveness missing');
 assert(game.includes("game.pointer.kind==='touch'")&&game.includes("reachTarget(mode='aim')"),'touch target assist missing');
 assert(game.includes('DEPTH_ZONES')&&game.includes("id:'star'"),'depth progression missing');
@@ -20,7 +20,7 @@ const tileEntries=(data.match(/solid:(?:true|false)/g)||[]).length;
 const recipeEntries=(data.match(/\{id:'[^']+',out:\{id:/g)||[]).length;
 const enemyEntries=(data.match(/hp:\d+,damage:\d+,speed:/g)||[]).length;
 assert(tileEntries>=24,'expected at least 24 tile/material definitions');
-assert(recipeEntries>=18,'expected at least 18 craft recipes');
+assert(recipeEntries>=19,'expected at least 19 craft recipes');
 assert(enemyEntries>=5,'expected five enemy families');
 assert(data.includes('RELIC_CHEST:23')&&world.includes('TILE.RELIC_CHEST'),'relic cache world content missing');
 assert(data.includes("ancient_core:{id:'ancient_core'")&&data.includes("sentinel_blade:{id:'sentinel_blade'")&&data.includes("delver_pick:{id:'delver_pick'"),'relic loot identity missing');
@@ -32,6 +32,11 @@ for(const marker of ['TILE.RELIC_CHEST','function tryOpenRelicChest(t)','functio
 assert(world.includes('this.ruins.push({x,y,w:rw,h:rh,biome:b,chestX,chestY})'),'ruin chest metadata missing');
 assert(world.includes('TILE.RUIN_URN')&&game.includes('function breakRuinUrn(t)'),'breakable ruin urn exploration prop missing');
 assert(data.includes('ROPE:26')&&data.includes("rope:{id:'rope'")&&game.includes('playerTouchesTile(TILE.ROPE)'),'climbable rope tool missing');
+assert(data.includes('PLATFORM:27')&&data.includes("id:'platform'")&&game.includes('platformLandingY')&&game.includes('applyFallDamage'),'one-way platform and fall-risk loop missing');
+assert(html.includes('id="moveStick"')&&html.includes('id="aimStick"')&&html.includes('id="mobilePlace"')&&html.includes('id="mobileTorch"'),'dual-stick landscape touch controls missing');
+assert(game.includes("canvas.addEventListener('wheel'")&&game.includes('game.smartCursor=!game.smartCursor')&&game.includes('game.autoTool=true'),'desktop native-sandbox input helpers missing');
+assert(game.includes("setupStick($('#moveStick')")&&game.includes("setupStick($('#aimStick')")&&game.includes('syncMobileAim()'),'analog touch runtime missing');
+assert(game.includes("game.quickPlaceId='torch'")&&game.includes("game.autoTool&&count('torch')>0?'torch'"),'quick torch input missing');
 for(const protectedName of ['Creeper','Zombie','Slime King','Eye of Cthulhu','Netherite','Enderman']) assert(!html.includes(protectedName)&&!data.includes(protectedName),'copied game identity found: '+protectedName);
 const combined=html+css+game+world+data;for(const foreign of ['../moyu/','../board-games/','../game/core/','/moyu/','/board-games/'])assert(!combined.includes(foreign),'Wildforge crosses game boundary: '+foreign);
 const catalog=JSON.parse(read('games.json'));assert(!catalog.games.some(g=>g.id==='wildforge'),'incubating Wildforge must not enter public catalog before promotion');

@@ -59,10 +59,10 @@
         <button id="newWorldBtn" class="danger"><span class="zh">新建世界</span><span class="en">New world</span></button>
       </div>
       <div id="controlsCopy" class="controls-copy hidden">
-        <p class="zh">电脑：A/D 或 ←/→ 移动，Space/W 跳跃，左键采矿/攻击，右键放置，1–8 快捷栏，E 背包，F 横屏全屏。</p>
-        <p class="en">Desktop: A/D or arrows move, Space/W jump, left click mines/attacks, right click places, 1–8 hotbar, E pack, F landscape fullscreen.</p>
-        <p class="zh">手机横屏：左侧移动与跳跃；先点世界选择目标，再按右侧“采/战”或“放置”。背包键打开制造。</p>
-        <p class="en">Landscape touch: move/jump on the left. Tap the world to aim, then use Mine/Fight or Place on the right. Pack opens crafting.</p>
+        <p class="zh">电脑：A/D 或 ←/→ 移动，Space/W 跳跃，S/↓ 下攀，左键连续采矿/攻击，右键连续放置，滚轮或 1–8 切快捷栏，Ctrl 切换智能光标，Shift 临时智能选工具，E 背包。</p>
+        <p class="en">Desktop: A/D or arrows move, Space/W jumps, S/Down descends ropes, hold left to mine/attack, hold right to place, wheel or 1–8 cycles hotbar, Ctrl toggles Smart Cursor, Shift temporarily auto-selects the best tool, E opens pack.</p>
+        <p class="zh">手机横屏：左摇杆移动，向上推可跳跃/攀绳；右摇杆直接瞄准并连续采掘或攻击，放置键使用当前瞄准方向；火把键无需切栏即可快速照明。背包键打开制造。</p>
+        <p class="en">Landscape touch: left stick moves; push up to jump or climb. Right stick aims and continuously mines/attacks. Place uses the current aim; Torch gives quick lighting without changing slots. Pack opens crafting.</p>
       </div>
     </section>
 
@@ -82,8 +82,14 @@
     <section id="deathScreen" class="modal hidden"><div class="modal-card"><h2 class="zh">回声散尽</h2><h2 class="en">Echo Faded</h2><p id="deathText"></p><button id="respawnBtn" class="primary"><span class="zh">在营地重生</span><span class="en">Respawn</span></button></div></section>
 
     <div id="mobileControls" aria-label="横屏触控">
-      <div class="move-cluster"><button data-hold="left" aria-label="向左">◀</button><button data-hold="right" aria-label="向右">▶</button><button data-hold="jump" class="jump" aria-label="跳跃">↑</button></div>
-      <div class="action-cluster"><button data-hold="mine" class="mine"><span class="zh">采 / 战</span><span class="en">Mine</span></button><button data-hold="place" class="place"><span class="zh">放置</span><span class="en">Place</span></button><button id="mobilePack"><span class="zh">行囊</span><span class="en">Pack</span></button></div>
+      <div class="mobile-stick-wrap move-stick-wrap">
+        <div id="moveStick" class="mobile-stick" aria-label="移动摇杆"><span class="stick-ring"></span><span class="stick-knob"></span><small class="zh">移动</small><small class="en">MOVE</small></div>
+        <button id="mobileJump" class="mobile-jump" type="button"><span class="zh">跳</span><span class="en">JUMP</span></button>
+      </div>
+      <div class="mobile-stick-wrap aim-stick-wrap">
+        <div id="aimStick" class="mobile-stick aim-stick" aria-label="瞄准与采集摇杆"><span class="stick-ring"></span><span class="stick-knob"></span><small class="zh">瞄准 · 采/战</small><small class="en">AIM · USE</small></div>
+        <div class="mobile-side-actions"><button id="mobilePlace" class="place" type="button"><span class="zh">放置</span><span class="en">PLACE</span></button><button id="mobileTorch" class="torch" type="button"><span class="zh">火把</span><span class="en">TORCH</span></button><button id="mobilePack"><span class="zh">行囊</span><span class="en">PACK</span></button></div>
+      </div>
     </div>
 
     <div id="portraitGuard">

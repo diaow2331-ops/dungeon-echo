@@ -3,7 +3,7 @@ export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
   LEAF:15, CLAY:16, RUIN:17, GLOW_MOSS:18, PLANK:19, WORKBENCH:20,
-  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26
+  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26, PLATFORM:27
 });
 
 export const BIOMES = Object.freeze([
@@ -39,7 +39,8 @@ export const TILE_DEFS = Object.freeze({
   23:{id:'relic_chest', zh:'遗物箱', en:'Relic Cache', solid:true, hardness:99, tier:9, color:'#8b7047'},
   24:{id:'ruin_spike', zh:'遗迹尖刺', en:'Ruin Spikes', solid:false, hardness:.3, color:'#7d7480'},
   25:{id:'ruin_urn', zh:'遗迹陶罐', en:'Ruin Urn', solid:false, hardness:.28, color:'#8f745d'},
-  26:{id:'rope', zh:'攀索', en:'Climbing Cord', solid:false, hardness:.12, drop:'rope', place:'rope', color:'#a8875a'}
+  26:{id:'rope', zh:'攀索', en:'Climbing Cord', solid:false, hardness:.12, drop:'rope', place:'rope', color:'#a8875a'},
+  27:{id:'platform', zh:'青芯踏板', en:'Greenheart Platform', solid:false, hardness:.28, drop:'platform', place:'platform', platform:true, color:'#92704b'}
 });
 
 const blockItems = {};
@@ -72,6 +73,7 @@ export const ITEMS = Object.freeze({
 export const RECIPES = Object.freeze([
   {id:'plank',out:{id:'plank',n:4},need:{wood:1}},
   {id:'rope',out:{id:'rope',n:2},need:{fiber:3}},
+  {id:'platform',out:{id:'platform',n:3},need:{plank:1}},
   {id:'torch',out:{id:'torch',n:4},need:{wood:1,coal:1}},
   {id:'workbench',out:{id:'workbench',n:1},need:{plank:8}},
   {id:'campfire',out:{id:'campfire',n:1},need:{stone:6,wood:2}},
