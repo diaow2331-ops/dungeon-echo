@@ -8,6 +8,9 @@ assert(html.includes('<meta name="version" content="0.1.0"'));
 for(const marker of ['id="game"','id="hotbar"','id="mobileControls"','id="portraitGuard"','id="inventoryPanel"','id="fullscreenBtn"']) assert(html.includes(marker),'missing '+marker);
 assert(css.includes('@media (orientation:portrait)')&&css.includes('@media (max-height:520px) and (orientation:landscape)'),'landscape-first responsive contract missing');
 assert(game.includes("screen.orientation.lock('landscape')"),'fullscreen landscape lock missing');
+assert(game.includes("if(e.pointerType!=='touch')"),'touch canvas tap must aim without auto-mining');
+assert(game.includes('score:-.4'),'touch targeting must preserve an explicitly tapped solid before neighbor assist');
+
 for(const behavior of ['function mine(dt)','function place()','function craft(r)','function updateEnemies(dt)','function saveGame(show=true)','function respawn()','function spawnDrop(','function updateDrops(dt)','function drawLighting()','function updateProgression(dt)']) assert(game.includes(behavior),'runtime behavior missing: '+behavior);
 assert(game.includes('jumpBuffer')&&game.includes('coyote'),'movement forgiveness missing');
 assert(game.includes("game.pointer.kind==='touch'")&&game.includes("reachTarget(mode='aim')"),'touch target assist missing');
