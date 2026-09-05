@@ -4,7 +4,8 @@ import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './wor
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v010';
+const SAVE_KEY = 'wildforge.save.v030';
+const LEGACY_SAVE_KEY = 'wildforge.save.v010';
 const LANG_KEY = 'wildforge.lang';
 const HOTBAR_SIZE = 8;
 const HOTBAR_DEFAULT = ['wood','soil','stone','torch','plank','workbench','campfire','rope'];
@@ -38,6 +39,7 @@ const game = {
   input:{left:false,right:false,down:false,jump:false,mine:false,place:false}, pointer:{x:0,y:0,active:false,worldX:0,worldY:0,kind:'mouse'},
   mine:{key:'',progress:0}, attackCd:0, placeCd:0, quickPlaceId:null, interactCd:0, hurtCd:0, uiOpen:false,
   camera:{x:0,y:0,tile:26}, dpr:1, cssW:innerWidth, cssH:innerHeight,
+  forgePlaced:false, forgeActive:false, forgeProgress:0, bossActive:false, bossDefeated:false, completed:false,
   fx:{particles:[],shake:0}, smartCursor:false, autoTool:false, moveAxis:{x:0,y:0,touch:false}, mobileAim:{x:1,y:0,active:false}, restFx:0, relicScanCd:0, relicHint:null, toastTimer:0, saveDirty:false, objectiveStage:0, discoveries:[], guardianDefeated:{}, openedChestCount:0, campRespawn:null, campBindTimer:0, rng:Math.random
 };
 
@@ -72,7 +74,7 @@ function saveExists() { try { return !!localStorage.getItem(SAVE_KEY); } catch {
 
 function serialize() {
   const p=game.player;
-  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn};
+  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn,forgePlaced:game.forgePlaced,forgeActive:game.forgeActive,bossActive:game.bossActive,bossDefeated:game.bossDefeated,completed:game.completed};
 }
 function saveGame(show=true) {
   if (!game.running || !game.world) return;
@@ -80,19 +82,19 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { const raw=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); return raw&&raw.v===VERSION&&raw.seed&&raw.tiles?raw:null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
   game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
   game.hotbar=Array.isArray(raw.hotbar)&&raw.hotbar.length===HOTBAR_SIZE?raw.hotbar:[...HOTBAR_DEFAULT];
-  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.campBindTimer=0;
-  game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=false; startWorldUi();
+  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
+  game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
   game.seed=String(seed||seedNow()).slice(0,32); game.world=new World(game.seed); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
-  game.inventory=freshInventory(); game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
+  game.inventory=freshInventory(); game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
   toast(tr('新世界已生成：先收集青芯木','New world generated: gather Greenheart Wood first'));
 }
 function startWorldUi() {
@@ -121,9 +123,13 @@ function updateObjective() {
   if(count('iron_ore')>=2||count('iron_bar')>=1||count('iron_pick')>0)stage=6;
   if(count('iron_pick')>0)stage=7;
   if(count('crystal')>0)stage=8;
+  if(count('star_forge')>0||game.forgePlaced)stage=9;
+  if(game.forgeActive)stage=10;
+  if(game.bossDefeated)stage=11;
+  if(game.completed)stage=12;
   if(stage!==game.objectiveStage){game.objectiveStage=stage;game.saveDirty=true;}
-  const copyZh=['砍取青芯木 → 收集至少 4 块','制造木板 → 做出第一张工匠台','制作一把青芯镐 → 开始追踪赤铜','下到浅层洞带 → 采到赤铜矿','熔炼赤铜 → 为下一把镐准备材料','打造赤铜镐 → 前往冷铁深层','采集冷铁 → 升级深层装备','打造冷铁镐 → 寻找星晶裂隙','带回第一块星晶 → 深层循环已打通'];
-  const copyEn=['Gather at least 4 Greenheart Wood','Make planks → craft your first Craft Table','Craft a Greenheart Pick → start hunting copper','Reach the shallow caves → mine red copper','Smelt red copper → prepare the next pick','Forge a Copper Pick → descend for cold iron','Gather cold iron → upgrade deep gear','Forge a Cold-Iron Pick → seek the Starshard Rift','Return with your first Star Crystal → deep loop online'];
+  const copyZh=['砍取青芯木 → 收集至少 4 块','制造木板 → 做出第一张工匠台','制作一把青芯镐 → 开始追踪赤铜','下到浅层洞带 → 采到赤铜矿','熔炼赤铜 → 为下一把镐准备材料','打造赤铜镐 → 前往冷铁深层','采集冷铁 → 升级深层装备','打造冷铁镐 → 寻找星晶裂隙','带回第一块星晶 → 深层循环已打通','打造星核炉 → 带它深入星晶裂隙','在裂隙点燃星核炉 → 做好迎战准备','击败裂隙巨兽 → 为荒境锻造新的回声','荒境熔炉已点亮 → 可以继续探索这个世界'];
+  const copyEn=['Gather at least 4 Greenheart Wood','Make planks → craft your first Craft Table','Craft a Greenheart Pick → start hunting copper','Reach the shallow caves → mine red copper','Smelt red copper → prepare the next pick','Forge a Copper Pick → descend for cold iron','Gather cold iron → upgrade deep gear','Forge a Cold-Iron Pick → seek the Starshard Rift','Return with your first Star Crystal → deep loop online','Build a Starcore Forge → carry it into the Starshard Rift','Ignite the Starcore Forge in the rift → brace for impact','Defeat the Rift Behemoth → forge a new echo for the frontier','Wildforge is lit → the world remains yours to explore'];
   $('#objectiveText').textContent=(lang==='zh'?copyZh:copyEn)[Math.min(stage,8)];
 }
 function relicArrow(dx,dy){if(Math.abs(dx)>Math.abs(dy)*1.45)return dx>0?'→':'←';if(Math.abs(dy)>Math.abs(dx)*1.45)return dy>0?'↓':'↑';return dy>0?(dx>0?'↘':'↙'):(dx>0?'↗':'↖');}
@@ -327,6 +333,32 @@ function openRelicChest(t,key){
   spawnDebris(x,y,'#e0b968',22,1.8);game.fx.shake=Math.max(game.fx.shake,6);haptic(28);game.saveDirty=true;
   toast(tr(`遗物箱开启 · ${zone.zh}`,`Relic cache opened · ${zone.en}`));
 }
+function findStarForge(){
+  if(!game.world)return null;
+  for(let y=0;y<WORLD_H;y++)for(let x=0;x<WORLD_W;x++)if(game.world.get(x,y)===TILE.STAR_FORGE)return {x,y};
+  return null;
+}
+function resumeRiftEncounter(){
+  if(game.forgeActive&&game.bossActive&&!game.bossDefeated){const forge=findStarForge();if(forge)spawnRiftBeast(forge);else{game.forgeActive=false;game.bossActive=false;game.saveDirty=true;}}
+}
+function spawnRiftBeast(t){
+  if(game.enemies.some(e=>!e.dead&&e.boss))return;
+  const base=ENEMY_TYPES.rift_beast,side=game.player.x<t.x?-1:1;
+  let x=t.x+.5+side*5.4,y=t.y-1.1;
+  for(const ox of [side*5.4,side*3.8,-side*3.8,side*6.8]){const tx=t.x+.5+ox;if(!enemyCollides(tx,y,1.05,1.15)){x=tx;break;}}
+  const def={...base,hp:Math.round(base.hp*(1+Math.min(.28,currentDepth()/260))),damage:Math.round(base.damage*(1+Math.min(.25,currentDepth()/320)))};
+  game.enemies.push({type:'rift_beast',def,x,y,vx:0,vy:0,hp:def.hp,maxHp:def.hp,dead:false,hit:0,attack:0,flying:false,dir:-side,elite:true,boss:true,specialCd:1.35,windup:0,charge:0,bossRoar:0});
+  game.bossActive=true;game.fx.shake=Math.max(game.fx.shake,8);spawnDebris(x,y,'#d36b75',24,1.8);haptic(40);toast(tr('裂隙巨兽自裂口中现身！','The Rift Behemoth emerges from the fracture!'));
+}
+function igniteForge(t,dt){
+  if(game.forgeActive||game.bossDefeated)return;
+  const depth=Math.max(0,t.y-game.world.surface[Math.max(0,Math.min(WORLD_W-1,t.x))]);
+  if(depth<76){game.forgeProgress=0;toast(tr('星核炉需要进入星晶裂隙深层才能点燃','The Starcore Forge must reach the Starshard Rift to ignite'));return;}
+  const before=game.forgeProgress;game.forgeProgress=Math.min(1,game.forgeProgress+dt/2.6);
+  if(Math.floor(game.forgeProgress*5)!==Math.floor(before*5)){spawnDebris(t.x+.5,t.y+.15,'#a18ff0',3,.35);game.fx.shake=Math.max(game.fx.shake,.35);}
+  if(game.forgeProgress>=1){game.forgeActive=true;game.forgeProgress=0;game.input.mine=false;game.saveDirty=true;saveGame(false);spawnRiftBeast(t);game.fx.shake=Math.max(game.fx.shake,10);}
+}
+
 function tryOpenRelicChest(t){
   if(game.interactCd>0)return;game.interactCd=.45;game.input.mine=false;resetMine();const key=chestKey(t.x,t.y);
   if(!game.guardianDefeated[key]){spawnChestGuardian(t,key);return;}
@@ -334,6 +366,7 @@ function tryOpenRelicChest(t){
 }
 function killEnemy(e) {
   e.dead=true; const type=e.type;
+  if(e.boss){game.bossActive=false;game.bossDefeated=true;game.completed=true;game.saveDirty=true;game.input.left=game.input.right=game.input.jump=game.input.mine=game.input.place=false;saveGame(false);game.fx.shake=Math.max(game.fx.shake,12);spawnDebris(e.x,e.y,'#efc77d',34,2.3);haptic(55);setTimeout(()=>{if($('#victoryScreen')){$('#victoryText').textContent=tr('你点亮了星核炉，也击穿了裂隙巨兽。荒境不会因此停止生长。','You lit the Starcore Forge and broke the Rift Behemoth. The frontier will keep growing.');$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}},120);}
   if(e.elite&&e.chestKey){game.guardianDefeated[e.chestKey]=true;spawnDebris(e.x,e.y,'#e7bf70',18,1.55);game.fx.shake=Math.max(game.fx.shake,5);toast(tr('守箱者倒下，遗物箱已解锁','Warden defeated. The relic cache is unlocked'));game.saveDirty=true;}
   if(type==='moss_crawler'){spawnDrop('fiber',1+Math.floor(game.rng()*2),e.x,e.y);if(game.rng()<.22)spawnDrop('moss_spore',1,e.x,e.y);}
   else if(type==='ash_scuttler'){spawnDrop('coal',1,e.x,e.y);if(game.rng()<.3)spawnDrop('copper_ore',1,e.x,e.y);}
@@ -361,6 +394,7 @@ function mine(dt) {
   const t=stableMineTarget(reachTarget()); if(!t.ok)return resetMine(); const enemy=nearestEnemyAtTarget(t); if(enemy)return attack(enemy);
   const tile=game.world.get(t.x,t.y),def=TILE_DEFS[tile]; if(!def||tile===TILE.AIR)return resetMine();
   if(tile===TILE.RELIC_CHEST)return tryOpenRelicChest(t);
+  if(tile===TILE.STAR_FORGE)return igniteForge(t,dt);
   const pick=currentPick(), required=Number(def.tier||0); if((pick.tier||0)<required){resetMine();toast(tr(`需要更高等级的镐：${def.zh}`,`A stronger pick is required: ${def.en}`));game.input.mine=false;return;}
   const key=t.x+','+t.y;if(game.mine.key!==key){game.mine.key=key;game.mine.progress=0;}
   const before=game.mine.progress;
@@ -392,7 +426,7 @@ function placementTarget(item){return bridgeAssistTarget(item,reachTarget('place
 function place(idOverride=null) {
   if(game.placeCd>0)return;const id=idOverride||(game.autoTool&&count('torch')>0?'torch':selectedId()),item=ITEMS[id];if(!item?.tile||count(id)<1)return;
   const t=placementTarget(item);if(!t.ok)return;const def=TILE_DEFS[item.tile];if(!def?.place||!canPlaceAt(t.x,t.y)||!hasPlacementSupport(t.x,t.y,item.tile))return;
-  game.world.set(t.x,t.y,item.tile);consume(id,1);sfx('place',.65);game.placeCd=(item.tile===TILE.PLATFORM||item.tile===TILE.ROPE)?0.085:0.115;spawnDebris(t.x+.5,t.y+.5,def.color,3,.28);game.fx.shake=Math.max(game.fx.shake,.18);haptic(4);renderHotbar();game.saveDirty=true;
+  game.world.set(t.x,t.y,item.tile);consume(id,1);if(item.tile===TILE.STAR_FORGE){game.forgePlaced=true;game.saveDirty=true;toast(tr('星核炉已安放：带它深入星晶裂隙','Starcore Forge placed: carry its power into the rift'));}sfx('place',.65);game.placeCd=(item.tile===TILE.PLATFORM||item.tile===TILE.ROPE)?0.085:0.115;spawnDebris(t.x+.5,t.y+.5,def.color,3,.28);game.fx.shake=Math.max(game.fx.shake,.18);haptic(4);renderHotbar();game.saveDirty=true;
 }
 
 function updateActions(dt){game.attackCd=Math.max(0,game.attackCd-dt);game.placeCd=Math.max(0,game.placeCd-dt);game.interactCd=Math.max(0,game.interactCd-dt);game.hurtCd=Math.max(0,game.hurtCd-dt);if(game.uiOpen)return;if(game.input.mine)mine(dt);else resetMine();if(game.input.place)place(game.quickPlaceId);}
@@ -414,7 +448,7 @@ function spawnEnemy() {
   if(game.enemies.filter(e=>!e.dead).length>=11)return;
   const p=game.player, side=game.rng()<.5?-1:1, x=Math.max(3,Math.min(WORLD_W-4,p.x+side*(9+game.rng()*12)));
   const sx=Math.floor(x), surface=game.world.surface[sx], underground=p.y>surface+9;
-  let candidates=Object.entries(ENEMY_TYPES).filter(([,d])=>underground?d.underground:(!d.underground&&d.biome===game.world.biome(x).id));
+  let candidates=Object.entries(ENEMY_TYPES).filter(([,d])=>!d.boss&&(underground?d.underground:(!d.underground&&d.biome===game.world.biome(x).id)));
   if(underground&&p.y<68)candidates=candidates.filter(([,d])=>d.flying||game.rng()>.35);
   if(!candidates.length)return; const [type,baseDef]=candidates[Math.floor(game.rng()*candidates.length)];const zone=currentDepthZone();const scale=zone.id==='star'?1.55:zone.id==='iron'?1.32:zone.id==='copper'?1.17:1;const def={...baseDef,hp:Math.round(baseDef.hp*scale),damage:Math.max(1,Math.round(baseDef.damage*(.85+scale*.15)))};
   let y=surface-1;
@@ -451,7 +485,7 @@ function die(source) {
   game.saveDirty=true;saveGame(false);
   $('#deathText').textContent=lost.length?tr('你在撤回营地时遗失了：','You lost while retreating to camp: ')+lost.slice(0,4).join(' · '):tr('你保住了随身物资。','You kept your carried supplies.');$('#deathScreen').classList.remove('hidden');
 }
-function respawn(){const p=game.player,camp=game.campRespawn,p0=camp&&!aabbSolid(camp.x,camp.y,p.w,p.h)?camp:game.world.spawn;p.x=p0.x;p.y=p0.y;p.vx=p.vy=0;p.hp=p.maxHp;p.fallStartY=p.y;p.onPlatform=false;p.dropThrough=0;game.enemies=[];game.drops=[];game.running=true;$('#deathScreen').classList.add('hidden');game.saveDirty=true;saveGame(false);game.last=performance.now();requestAnimationFrame(loop);}
+function respawn(){const p=game.player,camp=game.campRespawn,p0=camp&&!aabbSolid(camp.x,camp.y,p.w,p.h)?camp:game.world.spawn;p.x=p0.x;p.y=p0.y;p.vx=p.vy=0;p.hp=p.maxHp;p.fallStartY=p.y;p.onPlatform=false;p.dropThrough=0;game.enemies=[];game.drops=[];game.running=true;$('#deathScreen').classList.add('hidden');if(game.forgeActive&&game.bossActive&&!game.bossDefeated)resumeRiftEncounter();game.saveDirty=true;saveGame(false);game.last=performance.now();requestAnimationFrame(loop);}
 
 function nearbyStationTile(station) {
   const target=station==='workbench'?TILE.WORKBENCH:TILE.CAMPFIRE,p=game.player;if(!p)return null;
@@ -567,6 +601,7 @@ function drawTile(tx,ty,id) {
   }
   if(id===TILE.WOOD){ctx.fillStyle='rgba(48,27,17,.34)';ctx.fillRect(x+s*.46,y,s*.10,s);ctx.fillStyle='rgba(236,185,109,.14)';ctx.fillRect(x+s*.20,y+s*.16,s*.5,Math.max(2,s*.06));}
   if(id===TILE.WORKBENCH){ctx.fillStyle='#63412c';ctx.fillRect(x+2,y+s*.27,s-4,s*.18);ctx.fillRect(x+s*.17,y+s*.44,s*.12,s*.56);ctx.fillRect(x+s*.71,y+s*.44,s*.12,s*.56);ctx.fillStyle='#d29b60';ctx.fillRect(x+s*.27,y+s*.06,s*.46,s*.10);}
+  if(id===TILE.STAR_FORGE){const pulse=.55+.45*Math.sin(performance.now()*.006+tx);ctx.fillStyle='#29283e';ctx.fillRect(x+s*.09,y+s*.22,s*.82,s*.70);ctx.fillStyle='#65558e';ctx.fillRect(x+s*.18,y+s*.12,s*.64,s*.18);ctx.fillStyle=`rgba(190,158,255,${.35+pulse*.35})`;ctx.fillRect(x+s*.38,y+s*.28,s*.24,s*.48);ctx.fillStyle='#d9c5ff';ctx.fillRect(x+s*.44,y+s*.34,s*.12,s*.30);ctx.strokeStyle=`rgba(236,217,255,${.35+pulse*.3})`;ctx.lineWidth=Math.max(1,s*.045);ctx.strokeRect(x+s*.10,y+s*.23,s*.80,s*.66);}
   if(id===TILE.RUIN){ctx.strokeStyle='rgba(227,209,222,.24)';ctx.lineWidth=Math.max(1,s*.04);ctx.strokeRect(x+1,y+1,s-2,s-2);ctx.fillStyle='rgba(220,205,218,.08)';ctx.fillRect(x+s*.14,y+s*.15,s*.72,s*.06);}
   if(id===TILE.RELIC_CHEST){const pulse=.55+.45*Math.sin(performance.now()*.004+tx);ctx.fillStyle='#49371f';ctx.fillRect(x+s*.08,y+s*.3,s*.84,s*.62);ctx.fillStyle='#9d7b43';ctx.fillRect(x+s*.05,y+s*.24,s*.9,s*.18);ctx.fillStyle='#e1bd6c';ctx.fillRect(x+s*.44,y+s*.28,s*.13,s*.48);ctx.fillStyle=`rgba(255,220,130,${.18+pulse*.34})`;ctx.fillRect(x+s*.28,y+s*.08,s*.44,s*.15);ctx.strokeStyle='#2e2418';ctx.lineWidth=Math.max(1,s*.05);ctx.strokeRect(x+s*.08,y+s*.3,s*.84,s*.62);}
 }
@@ -649,6 +684,9 @@ function drawEnemyBody(e,s){
     ctx.beginPath();ctx.ellipse(0,0,s*.34,s*.23,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#71352e';ctx.lineWidth=Math.max(2,s*.06);for(const side of [-1,1])for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(side*s*.18,i*s*.1);ctx.lineTo(side*s*(.43+Math.abs(i)*.05),s*(.18+i*.16));ctx.stroke();}ctx.fillStyle='#f0a05e';ctx.fillRect(e.dir>0?s*.12:-s*.2,-s*.08,s*.07,s*.07);
   }else if(t==='shardback'){
     ctx.beginPath();ctx.ellipse(0,s*.05,s*.43,s*.29,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b7d9e8';for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*s*.14,-s*.16);ctx.lineTo(i*s*.11,-s*(.48-Math.abs(i)*.05));ctx.lineTo((i+.65)*s*.14,-s*.14);ctx.closePath();ctx.fill();}ctx.fillStyle='#1d3543';ctx.fillRect(e.dir>0?s*.14:-s*.22,-s*.02,s*.07,s*.07);
+  }else if(t==='rift_beast'){
+    ctx.fillStyle='#6e3946';ctx.beginPath();ctx.ellipse(0,s*.02,s*.62,s*.43,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=c;ctx.fillRect(-s*.48,-s*.25,s*.96,s*.50);ctx.fillStyle='#4b2838';for(const side of [-1,1])for(let i=0;i<2;i++){const lx=side*(.28+i*.18)*s;ctx.fillRect(lx-s*.06,s*.25,s*.11,s*.30);}
+    ctx.fillStyle='#f6d48b';for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(side*s*.22,-s*.26);ctx.lineTo(side*s*.48,-s*.68);ctx.lineTo(side*s*.34,-s*.13);ctx.closePath();ctx.fill();}ctx.fillStyle='#fff0d0';ctx.fillRect(e.dir>0?s*.30:-s*.38,-s*.10,s*.08,s*.08);
   }else if(t==='hollow_wisp'){
     ctx.globalAlpha=.22;ctx.beginPath();ctx.arc(0,0,s*.62,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(0,0,s*.31,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d5fff2';ctx.beginPath();ctx.arc(-s*.07,-s*.06,s*.08,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=c;ctx.lineWidth=Math.max(2,s*.05);ctx.beginPath();ctx.moveTo(-s*.12,s*.25);ctx.quadraticCurveTo(0,s*.52,s*.15,s*.28);ctx.stroke();
   }else{
@@ -656,7 +694,7 @@ function drawEnemyBody(e,s){
   }
 }
 function drawEnemies(){
-  const s=game.camera.tile;for(const e of game.enemies){if(e.dead)continue;const x=(e.x-game.camera.x)*s,y=(e.y-game.camera.y)*s;if(x<-60||x>game.cssW+60||y<-60||y>game.cssH+60)continue;ctx.save();ctx.translate(x,y);if(e.dir<0)ctx.scale(-1,1);if(e.elite){const pulse=.72+.28*Math.sin(performance.now()*.007);ctx.strokeStyle=e.windup>0?`rgba(255,116,76,${pulse})`:`rgba(234,190,96,${pulse})`;ctx.lineWidth=Math.max(2,s*.08);ctx.beginPath();ctx.arc(0,0,s*(e.windup>0?.72:.58),0,Math.PI*2);ctx.stroke();ctx.fillStyle=e.windup>0?`rgba(235,87,49,${.09+pulse*.08})`:`rgba(223,171,76,${.07+pulse*.05})`;ctx.beginPath();ctx.arc(0,0,s*(e.windup>0?.8:.7),0,Math.PI*2);ctx.fill();if(e.windup>0){ctx.strokeStyle=`rgba(255,199,113,${.55+pulse*.35})`;ctx.lineWidth=Math.max(1,s*.045);ctx.beginPath();ctx.moveTo(s*.45,0);ctx.lineTo(s*2.1,0);ctx.stroke();}if(e.charge>0){ctx.globalAlpha=.22;ctx.fillStyle='#f1b95a';ctx.fillRect(-s*1.8,-s*.28,s*1.8,s*.56);ctx.globalAlpha=1;}}if(e.hit>0)ctx.globalAlpha=.52;drawEnemyBody(e,s);ctx.globalAlpha=1;if(e.elite||e.hp<e.maxHp){ctx.fillStyle='rgba(0,0,0,.65)';ctx.fillRect(-s*.48,-s*.7,s*.96,4);ctx.fillStyle=e.elite?'#d5a44e':'#c76658';ctx.fillRect(-s*.48,-s*.7,s*.96*(e.hp/e.maxHp),4);}ctx.restore();}
+  const s=game.camera.tile;for(const e of game.enemies){if(e.dead)continue;const x=(e.x-game.camera.x)*s,y=(e.y-game.camera.y)*s;if(x<-100||x>game.cssW+100||y<-100||y>game.cssH+100)continue;ctx.save();ctx.translate(x,y);if(e.dir<0)ctx.scale(-1,1);if(e.boss){const pulse=.68+.32*Math.sin(performance.now()*.005);ctx.strokeStyle=`rgba(239,199,125,${.55+pulse*.35})`;ctx.lineWidth=Math.max(2,s*.09);ctx.beginPath();ctx.arc(0,0,s*(1.02+.08*Math.sin(performance.now()*.004)),0,Math.PI*2);ctx.stroke();ctx.globalAlpha=.10+pulse*.08;ctx.fillStyle='#d96d7a';ctx.beginPath();ctx.arc(0,0,s*1.12,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}if(e.elite){const pulse=.72+.28*Math.sin(performance.now()*.007);ctx.strokeStyle=e.windup>0?`rgba(255,116,76,${pulse})`:`rgba(234,190,96,${pulse})`;ctx.lineWidth=Math.max(2,s*.08);ctx.beginPath();ctx.arc(0,0,s*(e.windup>0?.72:.58),0,Math.PI*2);ctx.stroke();ctx.fillStyle=e.windup>0?`rgba(235,87,49,${.09+pulse*.08})`:`rgba(223,171,76,${.07+pulse*.05})`;ctx.beginPath();ctx.arc(0,0,s*(e.windup>0?.8:.7),0,Math.PI*2);ctx.fill();if(e.windup>0){ctx.strokeStyle=`rgba(255,199,113,${.55+pulse*.35})`;ctx.lineWidth=Math.max(1,s*.045);ctx.beginPath();ctx.moveTo(s*.45,0);ctx.lineTo(s*2.1,0);ctx.stroke();}if(e.charge>0){ctx.globalAlpha=.22;ctx.fillStyle='#f1b95a';ctx.fillRect(-s*1.8,-s*.28,s*1.8,s*.56);ctx.globalAlpha=1;}}if(e.hit>0)ctx.globalAlpha=.52;drawEnemyBody(e,s);ctx.globalAlpha=1;if(e.elite||e.hp<e.maxHp){ctx.fillStyle='rgba(0,0,0,.68)';ctx.fillRect(-s*(e.boss?.9:.48),-s*(e.boss?.86:.7),s*(e.boss?1.8:.96),Math.max(4,s*.045));ctx.fillStyle=e.boss?'#e3b968':e.elite?'#d5a44e':'#c76658';ctx.fillRect(-s*(e.boss?.9:.48),-s*(e.boss?.86:.7),s*(e.boss?1.8:.96)*(e.hp/e.maxHp),Math.max(4,s*.045));if(e.boss){ctx.fillStyle='#f5ddae';ctx.font=`700 ${Math.max(10,s*.32)}px system-ui`;ctx.textAlign='center';ctx.fillText(tr('裂隙巨兽','Rift Behemoth'),0,-s*1.02);}}ctx.restore();}
 }
 const lightCanvas=document.createElement('canvas'),lightCtx=lightCanvas.getContext('2d');
 function ensureLightBuffer(){const w=Math.max(1,Math.round(game.cssW)),h=Math.max(1,Math.round(game.cssH));if(lightCanvas.width!==w||lightCanvas.height!==h){lightCanvas.width=w;lightCanvas.height=h;}}
@@ -666,7 +704,7 @@ function drawLighting(){
   ensureLightBuffer();lightCtx.clearRect(0,0,lightCanvas.width,lightCanvas.height);lightCtx.globalCompositeOperation='source-over';lightCtx.fillStyle=`rgba(3,7,10,${dark})`;lightCtx.fillRect(0,0,lightCanvas.width,lightCanvas.height);lightCtx.globalCompositeOperation='destination-out';
   const s=game.camera.tile,p=game.player;punchLight((p.x-game.camera.x)*s,(p.y-game.camera.y)*s,s*(depth>8?2.35:3.2),.88);
   const minX=Math.max(0,Math.floor(game.camera.x)-1),maxX=Math.min(WORLD_W-1,Math.ceil(game.camera.x+game.cssW/s)+1),minY=Math.max(0,Math.floor(game.camera.y)-1),maxY=Math.min(WORLD_H-1,Math.ceil(game.camera.y+game.cssH/s)+1);
-  for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const id=game.world.get(x,y);if(id===TILE.TORCH)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*5.2,1);else if(id===TILE.CAMPFIRE)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*6.4,1);else if(id===TILE.CRYSTAL||id===TILE.GLOW_MOSS||id===TILE.RELIC_CHEST)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*(id===TILE.CRYSTAL?2.8:id===TILE.RELIC_CHEST?2.25:1.7),id===TILE.RELIC_CHEST?.36:.55);}
+  for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const id=game.world.get(x,y);if(id===TILE.TORCH)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*5.2,1);else if(id===TILE.CAMPFIRE)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*6.4,1);else if(id===TILE.CRYSTAL||id===TILE.GLOW_MOSS||id===TILE.RELIC_CHEST||id===TILE.STAR_FORGE)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*(id===TILE.CRYSTAL?2.8:id===TILE.RELIC_CHEST?2.25:id===TILE.STAR_FORGE?3.2:1.7),id===TILE.RELIC_CHEST?.36:id===TILE.STAR_FORGE?.62:.55);}
   lightCtx.globalCompositeOperation='source-over';ctx.drawImage(lightCanvas,0,0,game.cssW,game.cssH);
 }
 function drawTarget(){
@@ -682,7 +720,7 @@ function drawFx(){
   ctx.globalAlpha=1;
 }
 function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
-function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
+function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
 function updateCamera(dt){const p=game.player,s=game.camera.tile,lookX=Math.max(-1.35,Math.min(1.35,p.vx*.22)),lookY=p.vy>5?Math.min(.7,(p.vy-5)*.07):0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.pow(.0014,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
 
 function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
@@ -723,8 +761,9 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));$('#inventoryView').classList.toggle('hidden',btn.dataset.tab!=='inventory');$('#craftView').classList.toggle('hidden',btn.dataset.tab!=='craft');if(btn.dataset.tab==='craft')renderCraft();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){localStorage.removeItem(SAVE_KEY);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){localStorage.removeItem(SAVE_KEY);localStorage.removeItem(LEGACY_SAVE_KEY);location.reload();}};
 $('#respawnBtn').onclick=respawn;
+$('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
 $('#fullscreenBtn').onclick=goFullscreen;
 

@@ -29,3 +29,10 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
 @media (max-height:520px) and (orientation:landscape){#hud{min-height:56px}.brand{grid-template-columns:18px auto}.brand-mark{font-size:16px}.meters{min-width:180px}.meter{height:15px}.world-readout{font-size:9px}.hud-left{gap:8px}#objective{top:58px;max-width:48vw;padding:5px 8px}.hot-slot{width:42px!important;height:42px!important}.panel{top:56px;bottom:58px}.mobile-stick{width:100px;height:100px}.stick-knob{width:40px;height:40px;margin:-20px}.mobile-jump{width:48px;height:48px}.mobile-side-actions button{width:52px;height:39px}.start-card{padding:18px 22px}.start-card h1{font-size:38px;margin:4px 0}.tagline{margin-bottom:8px}.loop{padding:6px 0 10px}.start-card>small{margin-top:7px}}
 @media (orientation:portrait) and (max-width:900px) and (pointer:coarse){#portraitGuard{display:grid}}
 @media (max-width:720px) and (orientation:landscape){.hud-actions #langBtn{display:none}.brand-mark{display:none}.brand{grid-template-columns:auto}.brand b{font-size:11px}.world-readout{max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.panel{right:6px;width:58vw}.inv-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+
+/* v0.3 progression / encounter polish */
+#victoryScreen .modal-card{max-width:560px;border:1px solid rgba(224,190,112,.35);box-shadow:0 22px 70px rgba(0,0,0,.5),0 0 60px rgba(149,114,204,.16)}
+#victoryScreen .eyebrow{letter-spacing:.18em;opacity:.72;font-size:.72rem}
+.victory-card h2{margin:.2rem 0 .55rem;font-size:clamp(1.6rem,4vw,2.35rem)}
+.victory-card p:not(.eyebrow){line-height:1.65;color:rgba(239,233,219,.78)}
