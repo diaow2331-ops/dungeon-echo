@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#10171b">
+  <meta name="version" content="0.1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23141e21%27/%3E%3Cpath d=%27M16 5 27 16 16 27 5 16Z%27 fill=%27%23d6a557%27/%3E%3C/svg%3E">
+  <meta name="description" content="荒境熔炉 Wildforge：原创横屏 2D 沙盒生存建造游戏。探索、采矿、制造、建造、战斗并深入地下世界。">
+  <title>荒境熔炉 · Wildforge</title>
+  <link rel="stylesheet" href="style.css?v=010">
+</head>
+<body>
+  <main id="gameShell" aria-label="荒境熔炉游戏区域">
+    <canvas id="game" aria-label="2D 沙盒世界"></canvas>
+
+    <header id="hud">
+      <div class="hud-left">
+        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.1.0</small></div>
+        <div class="meters">
+          <div class="meter hp"><span id="hpFill"></span><b id="hpText">100 / 100</b></div>
+          <div class="world-readout"><span id="biomeText">青藤原</span><i>·</i><span id="depthText">地表</span><i>·</i><span id="timeText">白昼</span></div>
+        </div>
+      </div>
+      <div class="hud-actions">
+        <button id="langBtn" type="button">中 / EN</button>
+        <button id="saveBtn" type="button"><span class="zh">保存</span><span class="en">Save</span></button>
+        <button id="fullscreenBtn" type="button"><span class="zh">横屏全屏</span><span class="en">Landscape</span></button>
+        <button id="menuBtn" type="button">☰</button>
+      </div>
+    </header>
+
+    <section id="objective" aria-live="polite">
+      <b class="zh">黎明目标</b><b class="en">First Light</b>
+      <span id="objectiveText">砍取青芯木 → 制作工匠台 → 锻造第一把镐</span>
+    </section>
+
+    <div id="crosshair" aria-hidden="true"></div>
+    <div id="targetTip" aria-live="polite"></div>
+    <div id="toast" aria-live="polite"></div>
+
+    <nav id="hotbar" aria-label="快捷栏"></nav>
+
+    <section id="inventoryPanel" class="panel hidden" aria-label="背包与制造">
+      <div class="panel-head">
+        <div><b class="zh">行囊与制造</b><b class="en">Pack & Craft</b><small id="stationText">徒手制造</small></div>
+        <button class="panel-close" data-close="inventoryPanel" type="button">×</button>
+      </div>
+      <div class="panel-tabs"><button class="active" data-tab="inventory"><span class="zh">物资</span><span class="en">Pack</span></button><button data-tab="craft"><span class="zh">制造</span><span class="en">Craft</span></button></div>
+      <div id="inventoryView" class="panel-view"></div>
+      <div id="craftView" class="panel-view hidden"></div>
+    </section>
+
+    <section id="menuPanel" class="panel compact hidden" aria-label="游戏菜单">
+      <div class="panel-head"><div><b class="zh">世界菜单</b><b class="en">World Menu</b><small id="seedText"></small></div><button class="panel-close" data-close="menuPanel" type="button">×</button></div>
+      <div class="menu-grid">
+        <button id="menuSaveBtn"><span class="zh">立即保存</span><span class="en">Save now</span></button>
+        <button id="controlsBtn"><span class="zh">操作说明</span><span class="en">Controls</span></button>
+        <button id="newWorldBtn" class="danger"><span class="zh">新建世界</span><span class="en">New world</span></button>
+      </div>
+      <div id="controlsCopy" class="controls-copy hidden">
+        <p class="zh">电脑：A/D 或 ←/→ 移动，Space/W 跳跃，S/↓ 下攀，左键连续采矿/攻击，右键连续放置，滚轮或 1–8 切快捷栏，Ctrl 切换智能光标，Shift 临时智能选工具，E 背包。</p>
+        <p class="en">Desktop: A/D or arrows move, Space/W jumps, S/Down descends ropes, hold left to mine/attack, hold right to place, wheel or 1–8 cycles hotbar, Ctrl toggles Smart Cursor, Shift temporarily auto-selects the best tool, E opens pack.</p>
+        <p class="zh">手机横屏：左摇杆移动，向上推可跳跃/攀绳；右摇杆直接瞄准并连续采掘或攻击，放置键使用当前瞄准方向；火把键无需切栏即可快速照明。背包键打开制造。</p>
+        <p class="en">Landscape touch: left stick moves; push up to jump or climb. Right stick aims and continuously mines/attacks. Place uses the current aim; Torch gives quick lighting without changing slots. Pack opens crafting.</p>
+      </div>
+    </section>
+
+    <section id="startScreen">
+      <div class="start-card">
+        <p class="eyebrow">ORIGINAL 2D SANDBOX · LANDSCAPE FIRST</p>
+        <h1><span class="zh">荒境熔炉</span><span class="en">WILDFORGE</span></h1>
+        <p class="tagline zh">一片会被你挖开、搭起、照亮，又在夜里反扑的横向世界。</p>
+        <p class="tagline en">A side-scrolling world you can dig through, rebuild, illuminate—and survive after dark.</p>
+        <div class="loop">探索 <i>→</i> 采掘 <i>→</i> 收集 <i>→</i> 制造 <i>→</i> 建造 <i>→</i> 战斗 <i>→</i> 深入</div>
+        <label class="seed-field"><span class="zh">世界种子</span><span class="en">World seed</span><input id="seedInput" maxlength="32" autocomplete="off"></label>
+        <div class="start-actions"><button id="continueBtn" class="primary hidden"><span class="zh">继续世界</span><span class="en">Continue</span></button><button id="startBtn"><span class="zh">生成新世界</span><span class="en">Create world</span></button></div>
+        <small class="zh">当前为 v0.1.0 可玩开发基线 · 本地离线存档</small><small class="en">v0.1.0 playable development baseline · local offline save</small>
+      </div>
+    </section>
+
+    <section id="deathScreen" class="modal hidden"><div class="modal-card"><h2 class="zh">回声散尽</h2><h2 class="en">Echo Faded</h2><p id="deathText"></p><button id="respawnBtn" class="primary"><span class="zh">在营地重生</span><span class="en">Respawn</span></button></div></section>
+
+    <div id="mobileControls" aria-label="横屏触控">
+      <div class="mobile-stick-wrap move-stick-wrap">
+        <div id="moveStick" class="mobile-stick" aria-label="移动摇杆"><span class="stick-ring"></span><span class="stick-knob"></span><small class="zh">移动</small><small class="en">MOVE</small></div>
+        <button id="mobileJump" class="mobile-jump" type="button"><span class="zh">跳</span><span class="en">JUMP</span></button>
+      </div>
+      <div class="mobile-stick-wrap aim-stick-wrap">
+        <div id="aimStick" class="mobile-stick aim-stick" aria-label="瞄准与采集摇杆"><span class="stick-ring"></span><span class="stick-knob"></span><small class="zh">瞄准 · 采/战</small><small class="en">AIM · USE</small></div>
+        <div class="mobile-side-actions"><button id="mobilePlace" class="place" type="button"><span class="zh">放置</span><span class="en">PLACE</span></button><button id="mobileTorch" class="torch" type="button"><span class="zh">火把</span><span class="en">TORCH</span></button><button id="mobilePack"><span class="zh">行囊</span><span class="en">PACK</span></button></div>
+      </div>
+    </div>
+
+    <div id="portraitGuard">
+      <div><b>↻</b><h2 class="zh">请将手机横过来</h2><h2 class="en">Rotate to landscape</h2><p class="zh">《荒境熔炉》的手机界面与触控从一开始就按横屏设计。</p><p class="en">Wildforge is designed landscape-first on touch devices.</p></div>
+    </div>
+  </main>
+  <script type="module" src="src/game.js?v=010"></script>
+</body>
+</html>
