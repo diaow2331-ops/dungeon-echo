@@ -1,9 +1,9 @@
-export const VERSION = '0.8.0';
+export const VERSION = '0.9.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
   LEAF:15, CLAY:16, RUIN:17, GLOW_MOSS:18, PLANK:19, WORKBENCH:20,
-  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26, PLATFORM:27, STAR_FORGE:28
+  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26, PLATFORM:27, STAR_FORGE:28, BEACON:29
 });
 
 export const BIOMES = Object.freeze([
@@ -41,7 +41,8 @@ export const TILE_DEFS = Object.freeze({
   25:{id:'ruin_urn', zh:'遗迹陶罐', en:'Ruin Urn', solid:false, hardness:.28, color:'#8f745d'},
   26:{id:'rope', zh:'攀索', en:'Climbing Cord', solid:false, hardness:.12, drop:'rope', place:'rope', color:'#a8875a'},
   27:{id:'platform', zh:'青芯踏板', en:'Greenheart Platform', solid:false, hardness:.28, drop:'platform', place:'platform', platform:true, color:'#92704b'},
-  28:{id:'star_forge', zh:'星核炉', en:'Starcore Forge', solid:true, hardness:3.1, tier:3, color:'#4f496f'}
+  28:{id:'star_forge', zh:'星核炉', en:'Starcore Forge', solid:true, hardness:3.1, tier:3, color:'#4f496f'},
+  29:{id:'beacon', zh:'边境路标', en:'Frontier Beacon', solid:true, hardness:.62, drop:'beacon', place:'beacon', color:'#b58a52'}
 });
 
 const blockItems = {};
@@ -59,6 +60,7 @@ export const ITEMS = Object.freeze({
   iron_bar:{id:'iron_bar',zh:'冷铁锭',en:'Cold Iron Bar',stack:99,kind:'material'},
   ancient_core:{id:'ancient_core',zh:'古代机芯',en:'Ancient Core',stack:99,kind:'material'},
   star_forge:{id:'star_forge',zh:'星核炉',en:'Starcore Forge',stack:1,kind:'material',tile:TILE.STAR_FORGE},
+  beacon:{id:'beacon',zh:'边境路标',en:'Frontier Beacon',stack:20,kind:'material',tile:TILE.BEACON},
   wood_pick:{id:'wood_pick',zh:'青芯镐',en:'Greenheart Pick',stack:1,kind:'pick',tier:1,power:1.35},
   stone_pick:{id:'stone_pick',zh:'灰岩镐',en:'Greyrock Pick',stack:1,kind:'pick',tier:2,power:1.75},
   copper_pick:{id:'copper_pick',zh:'赤铜镐',en:'Red Copper Pick',stack:1,kind:'pick',tier:3,power:2.3},
@@ -98,7 +100,8 @@ export const RECIPES = Object.freeze([
   {id:'arrow',out:{id:'arrow',n:10},need:{wood:1,stone:1}},
   {id:'wood_bow',out:{id:'wood_bow',n:1},need:{plank:8,rope:2},station:'workbench'},
   {id:'crystal_bow',out:{id:'crystal_bow',n:1},need:{crystal:6,iron_bar:2,rope:1},station:'workbench'},
-  {id:'star_forge',out:{id:'star_forge',n:1},need:{ancient_core:1,iron_bar:6,crystal:2},station:'workbench'}
+  {id:'star_forge',out:{id:'star_forge',n:1},need:{ancient_core:1,iron_bar:6,crystal:2},station:'workbench'},
+  {id:'beacon',out:{id:'beacon',n:1},need:{iron_bar:1,torch:2,rope:1},station:'workbench'}
 ]);
 
 export const ENEMY_TYPES = Object.freeze({

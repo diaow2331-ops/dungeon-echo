@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#10171b">
-  <meta name="version" content="0.8.0">
+  <meta name="version" content="0.9.0">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23141e21%27/%3E%3Cpath d=%27M16 5 27 16 16 27 5 16Z%27 fill=%27%23d6a557%27/%3E%3C/svg%3E">
   <meta name="description" content="荒境熔炉 Wildforge：原创横屏 2D 沙盒生存建造游戏。探索、采矿、制造、建造、战斗并深入地下世界。">
   <title>荒境熔炉 · Wildforge</title>
-  <link rel="stylesheet" href="style.css?v=080">
+  <link rel="stylesheet" href="style.css?v=090">
 </head>
 <body>
   <main id="gameShell" aria-label="荒境熔炉游戏区域">
@@ -16,10 +16,10 @@
 
     <header id="hud">
       <div class="hud-left">
-        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.8.0</small></div>
+        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.9.0</small></div>
         <div class="meters">
           <div class="meter hp"><span id="hpFill"></span><b id="hpText">100 / 100</b></div>
-          <div class="world-readout"><span id="biomeText">青藤原</span><i>·</i><span id="depthText">地表</span><i>·</i><span id="timeText">白昼</span><i>·</i><span id="dangerText">安全</span></div>
+          <div class="world-readout"><span id="biomeText">青藤原</span><i>·</i><span id="depthText">地表</span><i>·</i><span id="timeText">白昼</span><i>·</i><span id="dangerText">安全</span><i>·</i><span id="beaconText">无路标</span></div>
         </div>
       </div>
       <div class="hud-actions">
@@ -61,7 +61,7 @@
       <div id="controlsCopy" class="controls-copy hidden">
         <p class="zh">电脑：A/D 或 ←/→ 移动，Space/W 跳跃，Q 闪避，S/↓ 下攀，左键连续采矿/攻击；装备弓时会消耗骨木箭进行远程射击，右键连续放置，滚轮或 1–8 切快捷栏，Ctrl 切换智能光标，Shift 临时智能选工具，E 背包。</p>
         <p class="en">Desktop: A/D or arrows move, Space/W jumps, Q dodges, S/Down descends ropes, hold left to mine/attack; bows spend Woodbone Arrows for ranged shots, hold right to place, wheel or 1–8 cycles hotbar, Ctrl toggles Smart Cursor, Shift temporarily auto-selects the best tool, E opens pack.</p>
-        <p class="zh">手机横屏：左摇杆移动，向上推可跳跃/攀绳；右摇杆直接瞄准并连续采掘或攻击，放置键使用当前瞄准方向；火把键无需切栏即可快速照明。背包键打开制造。深入星晶裂隙后，对准星核炉长按采/战键即可点燃。</p>
+        <p class="zh">手机横屏：左摇杆移动，向上推可跳跃/攀绳；右摇杆直接瞄准并连续采掘或攻击，放置键使用当前瞄准方向；再次对准已建路标并使用放置键可拆除回收；火把键无需切栏即可快速照明。背包键打开制造。深入星晶裂隙后，对准星核炉长按采/战键即可点燃。</p>
         <p class="en">Landscape touch: left stick moves; push up to jump or climb. Right stick aims and continuously mines/attacks. Place uses the current aim; Torch gives quick lighting without changing slots. Pack opens crafting. In the Starshard Rift, hold Mine/Use on the Starcore Forge to ignite it.</p><p class="zh">夜幕期间会进入守夜高压，熔火堆附近会形成守护区并抑制普通荒兽；靠近工匠台与熔火堆可绑定前哨。夜里熔火堆回复更快，天亮会提示熬夜结果。</p><p class="en">At night, threat pressure rises. An Ember Pit creates a ward that suppresses ordinary creatures nearby; keeping it near a Craft Table lets you bind an outpost. Healing is faster at night, and dawn reports the night-watch result.</p>
       </div>
     </section>
@@ -75,7 +75,7 @@
         <div class="loop">探索 <i>→</i> 采掘 <i>→</i> 收集 <i>→</i> 制造 <i>→</i> 建造 <i>→</i> 守夜 <i>→</i> 深入</div>
         <label class="seed-field"><span class="zh">世界种子</span><span class="en">World seed</span><input id="seedInput" maxlength="32" autocomplete="off"></label>
         <div class="start-actions"><button id="continueBtn" class="primary hidden"><span class="zh">继续世界</span><span class="en">Continue</span></button><button id="startBtn"><span class="zh">生成新世界</span><span class="en">Create world</span></button></div>
-        <small class="zh">当前为 v0.8.0 孵化试玩 · 营火守夜系统 · 本地离线存档</small><small class="en">v0.8.0 incubation build · campfire night-watch loop · local offline save</small>
+        <small class="zh">当前为 v0.9.0 孵化试玩 · 营火守夜系统 · 本地离线存档</small><small class="en">v0.9.0 incubation build · campfire night-watch loop · local offline save</small>
       </div>
     </section>
 
@@ -98,6 +98,6 @@
       <div><b>↻</b><h2 class="zh">请将手机横过来</h2><h2 class="en">Rotate to landscape</h2><p class="zh">《荒境熔炉》的手机界面与触控从一开始就按横屏设计。</p><p class="en">Wildforge is designed landscape-first on touch devices.</p></div>
     </div>
   </main>
-  <script type="module" src="src/game.js?v=080"></script>
+  <script type="module" src="src/game.js?v=090"></script>
 </body>
 </html>
