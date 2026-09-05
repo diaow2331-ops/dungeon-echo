@@ -4,8 +4,9 @@ import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './wor
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v070';
-const LEGACY_SAVE_KEY = 'wildforge.save.v060';
+const SAVE_KEY = 'wildforge.save.v080';
+const LEGACY_SAVE_KEY = 'wildforge.save.v070';
+const LEGACY_SAVE_KEY_060 = 'wildforge.save.v060';
 const LEGACY_SAVE_KEY_OLD = 'wildforge.save.v050';
 const LEGACY_SAVE_KEY_OLDER = 'wildforge.save.v040';
 const LEGACY_SAVE_KEY_OLDEST = 'wildforge.save.v010';
@@ -44,7 +45,7 @@ const game = {
   camera:{x:0,y:0,tile:26}, dpr:1, cssW:innerWidth, cssH:innerHeight,
   forgePlaced:false, forgeActive:false, forgeProgress:0, bossActive:false, bossDefeated:false, completed:false,
   nightState:'init', nightSurge:0, nightsSurvived:0, outpostReady:false,
-  fx:{particles:[],shake:0}, smartCursor:false, autoTool:false, moveAxis:{x:0,y:0,touch:false}, mobileAim:{x:1,y:0,active:false}, restFx:0, relicScanCd:0, relicHint:null, toastTimer:0, saveDirty:false, objectiveStage:0, discoveries:[], guardianDefeated:{}, openedChestCount:0, campRespawn:null, campBindTimer:0, rng:Math.random
+  fx:{particles:[],shake:0}, smartCursor:false, autoTool:false, moveAxis:{x:0,y:0,touch:false}, mobileAim:{x:1,y:0,active:false}, restFx:0, relicScanCd:0, relicHint:null, toastTimer:0, saveDirty:false, objectiveStage:0, discoveries:[], guardianDefeated:{}, openedChestCount:0, campRespawn:null, campBindTimer:0, worldProgress:{biomesVisited:[],relicBiomes:[],evolution:0}, rng:Math.random
 };
 
 function freshPlayer(spawn) {
@@ -85,7 +86,7 @@ function saveExists() { try { return !!localStorage.getItem(SAVE_KEY); } catch {
 
 function serialize() {
   const p=game.player;
-  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn,forgePlaced:game.forgePlaced,forgeActive:game.forgeActive,bossActive:game.bossActive,bossDefeated:game.bossDefeated,completed:game.completed,nightsSurvived:game.nightsSurvived,outpostReady:game.outpostReady};
+  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn,forgePlaced:game.forgePlaced,forgeActive:game.forgeActive,bossActive:game.bossActive,bossDefeated:game.bossDefeated,completed:game.completed,nightsSurvived:game.nightsSurvived,outpostReady:game.outpostReady,worldProgress:game.worldProgress};
 }
 function saveGame(show=true) {
   if (!game.running || !game.world) return;
@@ -93,19 +94,19 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
   game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
   game.hotbar=Array.isArray(raw.hotbar)&&raw.hotbar.length===HOTBAR_SIZE?raw.hotbar:[...HOTBAR_DEFAULT];
-  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
+  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
   game.enemies=[]; game.drops=[]; game.projectiles=[]; game.enemyProjectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
   game.seed=String(seed||seedNow()).slice(0,32); game.world=new World(game.seed); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
-  game.inventory=freshInventory(); game.projectiles=[]; game.enemyProjectiles=[]; game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.nightsSurvived=0; game.outpostReady=false; game.nightState='init'; game.nightSurge=0; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
+  game.inventory=freshInventory(); game.projectiles=[]; game.enemyProjectiles=[]; game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.worldProgress={biomesVisited:[],relicBiomes:[],evolution:0}; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.nightsSurvived=0; game.outpostReady=false; game.nightState='init'; game.nightSurge=0; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
   toast(tr('新世界已生成：先收集青芯木','New world generated: gather Greenheart Wood first'));
 }
 function startWorldUi() {
@@ -162,9 +163,35 @@ function updateRelicHint(dt){
   game.relicHint=best;
   if(best){$('#objectiveText').textContent=tr(`◆ 遗迹共鸣 ${relicArrow(best.dx,best.dy)} · ${Math.ceil(best.d)}m`,`◆ RELIC SIGNAL ${relicArrow(best.dx,best.dy)} · ${Math.ceil(best.d)}m`);}else updateObjective();
 }
+function freshWorldProgress(){return {biomesVisited:[],relicBiomes:[],evolution:0};}
+function updateWorldEvolution(){
+  const p=game.worldProgress||freshWorldProgress();
+  const next=Math.max(p.evolution, game.bossDefeated?4: p.relicBiomes.length>=3?3: p.biomesVisited.length>=3?2: p.biomesVisited.length>=1?1:0);
+  if(next!==p.evolution){p.evolution=next;game.worldProgress=p;game.saveDirty=true;const msg=next>=4?tr('荒境回声已改变，星核余烬将持续留存','The frontier has changed; Starcore embers will persist'):next>=3?tr('三处遗迹共鸣已连接，荒境进入回响时代','Three relic echoes now resonate; the frontier enters an age of echoes'):next>=2?tr('三地均已留下你的探索印记','All three lands now bear your exploration marks'):tr('你的第一处探索印记已留在荒境','Your first exploration mark now remains in the frontier');toast(msg);}
+}
+function markBiomeVisited(id){
+  if(!id)return;const p=game.worldProgress||freshWorldProgress();
+  if(!p.biomesVisited.includes(id)){p.biomesVisited.push(id);p.biomesVisited.sort();game.worldProgress=p;game.saveDirty=true;const index=['verdant','ember','frost'].indexOf(id);const x=Math.max(2,Math.min(WORLD_W-3,Math.floor((index+.5)*WORLD_W/3)));for(const ox of [0,-1,1]){const tx=x+ox,ty=game.world.surface[Math.max(0,Math.min(WORLD_W-1,tx))]-1;if(game.world.get(tx,ty)===TILE.AIR){game.world.set(tx,ty,TILE.TORCH);break;}}}
+  updateWorldEvolution();
+}
+function markRelicBiome(id){
+  if(!id)return;const p=game.worldProgress||freshWorldProgress();
+  if(!p.relicBiomes.includes(id)){p.relicBiomes.push(id);p.relicBiomes.sort();game.worldProgress=p;game.saveDirty=true;}
+  updateWorldEvolution();
+}
+function evolveRelicSite(t){
+  const candidates=[[1,0],[-1,0],[2,0],[-2,0],[0,-1],[0,1]];let placed=0;
+  for(const [dx,dy] of candidates){const x=t.x+dx,y=t.y+dy;if(x<1||x>=WORLD_W-1||y<1||y>=WORLD_H-1)continue;if(game.world.get(x,y)===TILE.AIR){game.world.set(x,y,placed===0?TILE.GLOW_MOSS:TILE.TORCH);placed++;if(placed>=3)break;}}
+}
+function evolveOutpost(fire){
+  if(!fire)return;const y=game.world.surface[Math.max(0,Math.min(WORLD_W-1,fire.x))]-2,x=fire.x;if(game.world.get(x,y)===TILE.AIR)game.world.set(x,y,TILE.TORCH);
+}
+
 function updateProgression(dt) {
   updateWorldRhythm(dt);
   const zone=currentDepthZone();
+  const biomeId=game.world.biome(game.player.x).id;
+  if(!(game.worldProgress?.biomesVisited||[]).includes(biomeId))markBiomeVisited(biomeId);
   if(zone.id!=='surface'&&!game.discoveries.includes(zone.id)){
     game.discoveries.push(zone.id);game.saveDirty=true;
     toast(tr(`发现区域 · ${zone.zh}`,`Region discovered · ${zone.en}`));
@@ -358,7 +385,7 @@ function spawnChestGuardian(t,key){
 }
 function openRelicChest(t,key){
   const depth=Math.max(0,t.y-game.world.surface[Math.max(0,Math.min(WORLD_W-1,t.x))]),zone=currentDepthZone(depth),x=t.x+.5,y=t.y+.15;
-  game.world.set(t.x,t.y,TILE.AIR);game.openedChestCount++;
+  game.world.set(t.x,t.y,TILE.AIR);game.openedChestCount++;markRelicBiome(game.world.biome(t.x).id);evolveRelicSite(t);
   spawnDrop('ancient_core',1,x,y);spawnDrop('coal',2+Math.floor(game.rng()*3),x,y);
   if(zone.id==='star'){spawnDrop('crystal',2+Math.floor(game.rng()*3),x,y);spawnDrop('iron_bar',2,x,y);}
   else if(zone.id==='iron'){spawnDrop('iron_ore',3+Math.floor(game.rng()*3),x,y);if(game.rng()<.55)spawnDrop('crystal',1,x,y);}
@@ -402,7 +429,7 @@ function tryOpenRelicChest(t){
 }
 function killEnemy(e) {
   e.dead=true; const type=e.type;
-  if(e.boss){game.bossActive=false;game.bossDefeated=true;game.completed=true;game.saveDirty=true;game.input.left=game.input.right=game.input.jump=game.input.mine=game.input.place=false;saveGame(false);game.fx.shake=Math.max(game.fx.shake,12);spawnDebris(e.x,e.y,'#efc77d',34,2.3);haptic(55);setTimeout(()=>{if($('#victoryScreen')){$('#victoryText').textContent=tr('你点亮了星核炉，也击穿了裂隙巨兽。荒境不会因此停止生长。','You lit the Starcore Forge and broke the Rift Behemoth. The frontier will keep growing.');$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}},120);}
+  if(e.boss){game.bossActive=false;game.bossDefeated=true;game.completed=true;updateWorldEvolution();game.saveDirty=true;game.input.left=game.input.right=game.input.jump=game.input.mine=game.input.place=false;saveGame(false);game.fx.shake=Math.max(game.fx.shake,12);spawnDebris(e.x,e.y,'#efc77d',34,2.3);haptic(55);setTimeout(()=>{if($('#victoryScreen')){$('#victoryText').textContent=tr('你点亮了星核炉，也击穿了裂隙巨兽。荒境不会因此停止生长。','You lit the Starcore Forge and broke the Rift Behemoth. The frontier will keep growing.');$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}},120);}
   if(e.elite&&e.chestKey){game.guardianDefeated[e.chestKey]=true;spawnDebris(e.x,e.y,'#e7bf70',18,1.55);game.fx.shake=Math.max(game.fx.shake,5);toast(tr('守箱者倒下，遗物箱已解锁','Warden defeated. The relic cache is unlocked'));game.saveDirty=true;}
   if(type==='moss_crawler'){spawnDrop('fiber',1+Math.floor(game.rng()*2),e.x,e.y);if(game.rng()<.22)spawnDrop('moss_spore',1,e.x,e.y);}
   else if(type==='ash_scuttler'){spawnDrop('coal',1,e.x,e.y);if(game.rng()<.3)spawnDrop('copper_ore',1,e.x,e.y);}
@@ -562,7 +589,7 @@ function safeCampPoint(fire){for(const dx of [0,-1,1,-2,2]){const x=fire.x+.5+dx
 function updateCampfireRest(dt){
   const p=game.player;if(!p)return;const fire=nearbyStationTile('campfire'),bench=nearbyStationTile('workbench');
   if(fire&&p.hp<p.maxHp&&game.hurtCd<=0){p.hp=Math.min(p.maxHp,p.hp+(game.nightState==='night'?3.1:2.4)*dt);game.restFx-=dt;if(game.restFx<=0){game.restFx=.5;spawnDebris(p.x,p.y+.5,'#e69a55',1,.22);}}
-  if(fire&&bench&&game.hurtCd<=0){game.campBindTimer+=dt;game.outpostReady=!!game.campRespawn;if(game.campBindTimer>=1.6){const point=safeCampPoint(fire),key=point?`${point.x.toFixed(1)},${point.y.toFixed(1)}`:'',old=game.campRespawn?`${game.campRespawn.x.toFixed(1)},${game.campRespawn.y.toFixed(1)}`:'';if(point&&key!==old){game.campRespawn=point;game.outpostReady=true;game.saveDirty=true;saveGame(false);spawnDebris(fire.x+.5,fire.y+.4,'#e4ad53',10,.6);toast(tr('前哨营地已绑定 · 守护区与日出回收已启用','Outpost bound · ward and dawn salvage enabled'));}game.campBindTimer=0;}}else {game.campBindTimer=0;game.outpostReady=false;}
+  if(fire&&bench&&game.hurtCd<=0){game.campBindTimer+=dt;game.outpostReady=!!game.campRespawn;if(game.campBindTimer>=1.6){const point=safeCampPoint(fire),key=point?`${point.x.toFixed(1)},${point.y.toFixed(1)}`:'',old=game.campRespawn?`${game.campRespawn.x.toFixed(1)},${game.campRespawn.y.toFixed(1)}`:'';if(point&&key!==old){game.campRespawn=point;game.outpostReady=true;game.saveDirty=true;saveGame(false);evolveOutpost(fire);spawnDebris(fire.x+.5,fire.y+.4,'#e4ad53',10,.6);toast(tr('前哨营地已绑定 · 守护区与日出回收已启用','Outpost bound · ward and dawn salvage enabled'));}game.campBindTimer=0;}}else {game.campBindTimer=0;game.outpostReady=false;}
 }
 
 function canCraft(r){return stationAvailable(r.station)&&Object.entries(r.need).every(([id,n])=>count(id)>=n);}
@@ -832,7 +859,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));$('#inventoryView').classList.toggle('hidden',btn.dataset.tab!=='inventory');$('#craftView').classList.toggle('hidden',btn.dataset.tab!=='craft');if(btn.dataset.tab==='craft')renderCraft();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
