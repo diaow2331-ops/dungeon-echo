@@ -539,7 +539,7 @@ function updateFx(dt){
 function hurtPlayer(amount,source='enemy') {
   if(game.player?.dashTimer>0&&amount<999)return;
   const ward=campfireDistance(game.player?.x||0,game.player?.y||0)<4.1;
-  if(ward&&amount<999&&source!=='fall')amount=Math.max(1,Math.round(amount*.72));
+  if(ward&&amount<999&&source!=='fall'&&!['ruin_sentinel','rift_beast'].includes(source))amount=Math.max(1,Math.round(amount*.72));
   if(game.hurtCd>0&&amount<999&&source!=='fall')return;const p=game.player;p.hp=Math.max(0,p.hp-amount);game.hurtCd=.65;if(source!=='fall')p.vx-=p.facing*2.2;if(p.hp<=0)die(source);
 }
 function die(source) {

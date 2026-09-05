@@ -74,6 +74,6 @@ console.log(`wildforge_v070=PASS tiles=${tileEntries} recipes=${recipeEntries} e
 assert(game.includes("const SAVE_KEY = 'wildforge.save.v070'"),'v0.7 save key missing');
 assert(game.includes('outpostReady'),'outpost readiness state missing');
 assert(game.includes('outpost salvage')&&game.includes('日出 · 守夜'),'dawn outpost salvage feedback missing');
-assert(game.includes("Math.round(amount*.72)"),'outpost ward damage mitigation missing');
+assert(game.includes("Math.round(amount*.72)")&&game.includes("!['ruin_sentinel','rift_beast'].includes(source)"),'outpost ward damage mitigation must exclude elite/boss damage');
 assert(game.includes("campfireDistance(p.x,p.y)<4.1"),'campfire ward must intercept enemy projectiles');
 assert(game.includes('LEGACY_SAVE_KEY_OLDEST'),'v0.7 legacy save chain missing');
