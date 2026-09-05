@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.8.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.9.0 build is an incubation build, not a public production release.
 
-## v0.8.0 playable incubation build
+## v0.9.0 playable incubation build
 
 Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrade → Explore deeper.
 
@@ -14,6 +14,7 @@ Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrad
 - 180-second day/night cycle;
 - Outpost ward, dawn salvage and camp-based damage mitigation;
 - Persistent world memory: visited biomes receive permanent trail lights, opened relic sites gain permanent traces, and bound outposts leave a persistent marker;
+- Persistent Frontier Beacon network for long-range return points and route memory;
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
@@ -31,7 +32,8 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
 
-## v0.8.0
+## v0.9.0
+- 新增边境路标网络：路标可制作、放置、校准，写入世界存档并作为远方归点；
 - 新增持久世界记忆：探索大地貌会留下长期灯标，开启遗迹会改变遗迹原址，绑定前哨会留下永久痕迹；
 - 世界进化采用单向纪元状态并写入本地存档：首次探索、三地贯通、三地遗迹共鸣、终局击破分别推动世界进入更深阶段；
 - v0.8 使用独立存档键，同时继续迁移读取 v0.7.0 及更早版本存档。
