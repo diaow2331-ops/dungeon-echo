@@ -17,7 +17,7 @@ const tests = [
   'current-site-governance.cjs',
   'games-catalog.cjs',
   'games-boundaries.cjs',
-  'wildforge-v050.cjs',
+  'wildforge-v060.cjs',
   'board-games-rules.cjs',
   'board-games-ai-v050.cjs',
   'board-games-mechanics-v040.cjs',

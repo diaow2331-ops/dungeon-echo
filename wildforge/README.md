@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.5.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.6.0 build is an incubation build, not a public production release.
 
-## v0.5.0 playable incubation build
+## v0.6.0 playable incubation build
 
 Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrade → Explore deeper.
 
@@ -26,3 +26,10 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 ## Source authority
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
+
+
+## v0.6.0
+- 新增日夜节律与守夜高压：夜幕提高荒兽刷新压力，并提高空洞微光出现权重。
+- 熔火堆现在形成附近普通荒兽的守护区，同时夜间提供更快回复。
+- 日出累计守夜次数并提供明确反馈。
+- 继续保持横屏优先、离线存档与孵化隔离，不进入 `games.json`。
