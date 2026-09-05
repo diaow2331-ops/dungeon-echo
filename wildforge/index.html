@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#10171b">
-  <meta name="version" content="0.7.0">
+  <meta name="version" content="0.8.0">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23141e21%27/%3E%3Cpath d=%27M16 5 27 16 16 27 5 16Z%27 fill=%27%23d6a557%27/%3E%3C/svg%3E">
   <meta name="description" content="荒境熔炉 Wildforge：原创横屏 2D 沙盒生存建造游戏。探索、采矿、制造、建造、战斗并深入地下世界。">
   <title>荒境熔炉 · Wildforge</title>
-  <link rel="stylesheet" href="style.css?v=060">
+  <link rel="stylesheet" href="style.css?v=080">
 </head>
 <body>
   <main id="gameShell" aria-label="荒境熔炉游戏区域">
@@ -16,7 +16,7 @@
 
     <header id="hud">
       <div class="hud-left">
-        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.7.0</small></div>
+        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.8.0</small></div>
         <div class="meters">
           <div class="meter hp"><span id="hpFill"></span><b id="hpText">100 / 100</b></div>
           <div class="world-readout"><span id="biomeText">青藤原</span><i>·</i><span id="depthText">地表</span><i>·</i><span id="timeText">白昼</span><i>·</i><span id="dangerText">安全</span></div>
@@ -70,12 +70,12 @@
       <div class="start-card">
         <p class="eyebrow">ORIGINAL 2D SANDBOX · LANDSCAPE FIRST</p>
         <h1><span class="zh">荒境熔炉</span><span class="en">WILDFORGE</span></h1>
-        <p class="tagline zh">一片会被你挖开、搭起、照亮，又在夜里会反扑、营火能护住你的横向世界。</p>
-        <p class="tagline en">A side-scrolling world you can dig through, rebuild, illuminate—and survive the night with a working camp.</p>
+        <p class="tagline zh">一片会记住你的探索、建设、遗迹与终局改变的横向世界；你留下的灯火不会随着关机消失。</p>
+        <p class="tagline en">A side-scrolling world that remembers your exploration, construction, relics, and major turning points.</p>
         <div class="loop">探索 <i>→</i> 采掘 <i>→</i> 收集 <i>→</i> 制造 <i>→</i> 建造 <i>→</i> 守夜 <i>→</i> 深入</div>
         <label class="seed-field"><span class="zh">世界种子</span><span class="en">World seed</span><input id="seedInput" maxlength="32" autocomplete="off"></label>
         <div class="start-actions"><button id="continueBtn" class="primary hidden"><span class="zh">继续世界</span><span class="en">Continue</span></button><button id="startBtn"><span class="zh">生成新世界</span><span class="en">Create world</span></button></div>
-        <small class="zh">当前为 v0.7.0 孵化试玩 · 营火守夜系统 · 本地离线存档</small><small class="en">v0.7.0 incubation build · campfire night-watch loop · local offline save</small>
+        <small class="zh">当前为 v0.8.0 孵化试玩 · 营火守夜系统 · 本地离线存档</small><small class="en">v0.8.0 incubation build · campfire night-watch loop · local offline save</small>
       </div>
     </section>
 
@@ -98,6 +98,6 @@
       <div><b>↻</b><h2 class="zh">请将手机横过来</h2><h2 class="en">Rotate to landscape</h2><p class="zh">《荒境熔炉》的手机界面与触控从一开始就按横屏设计。</p><p class="en">Wildforge is designed landscape-first on touch devices.</p></div>
     </div>
   </main>
-  <script type="module" src="src/game.js?v=060"></script>
+  <script type="module" src="src/game.js?v=080"></script>
 </body>
 </html>
