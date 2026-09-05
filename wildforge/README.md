@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.3.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.4.0 build is an incubation build, not a public production release.
 
-## v0.3.0 playable incubation build
+## v0.4.0 playable incubation build
 
 Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrade → Explore deeper.
 
@@ -12,6 +12,7 @@ Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrad
 - 20+ materials/placeables, four pick tiers, five weapon tiers and 16 recipes;
 - five original enemy families, contact combat and resource drops;
 - 180-second day/night cycle;
+- Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
 - backward-compatible loading of the previous v0.1.0 local save format;
 - local browser save with explicit and automatic saves;

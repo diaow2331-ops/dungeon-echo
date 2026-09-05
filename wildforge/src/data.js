@@ -1,4 +1,4 @@
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -69,7 +69,10 @@ export const ITEMS = Object.freeze({
   iron_blade:{id:'iron_blade',zh:'冷铁长刃',en:'Cold Iron Longblade',stack:1,kind:'weapon',damage:14},
   crystal_blade:{id:'crystal_blade',zh:'星晶裂刃',en:'Starshard Edge',stack:1,kind:'weapon',damage:19},
   delver_pick:{id:'delver_pick',zh:'遗迹掘星镐',en:'Relic Delver Pick',stack:1,kind:'pick',tier:3,power:2.7,rare:true},
-  sentinel_blade:{id:'sentinel_blade',zh:'守望残刃',en:'Sentinel Shardblade',stack:1,kind:'weapon',damage:13,rare:true}
+  sentinel_blade:{id:'sentinel_blade',zh:'守望残刃',en:'Sentinel Shardblade',stack:1,kind:'weapon',damage:13,rare:true},
+  arrow:{id:'arrow',zh:'骨木箭',en:'Woodbone Arrow',stack:999,kind:'ammo'},
+  wood_bow:{id:'wood_bow',zh:'青芯短弓',en:'Greenheart Bow',stack:1,kind:'weapon',damage:8,ranged:true,range:12,speed:15,ammo:'arrow'},
+  crystal_bow:{id:'crystal_bow',zh:'星晶长弓',en:'Starshard Bow',stack:1,kind:'weapon',damage:16,ranged:true,range:14,speed:18,ammo:'arrow',rare:true}
 });
 
 export const RECIPES = Object.freeze([
@@ -92,6 +95,9 @@ export const RECIPES = Object.freeze([
   {id:'crystal_blade',out:{id:'crystal_blade',n:1},need:{crystal:5,iron_bar:1},station:'workbench'},
   {id:'delver_pick',out:{id:'delver_pick',n:1},need:{ancient_core:1,copper_bar:3,wood:2},station:'workbench'},
   {id:'sentinel_blade',out:{id:'sentinel_blade',n:1},need:{ancient_core:1,iron_bar:2},station:'workbench'},
+  {id:'arrow',out:{id:'arrow',n:10},need:{wood:1,stone:1}},
+  {id:'wood_bow',out:{id:'wood_bow',n:1},need:{plank:8,rope:2},station:'workbench'},
+  {id:'crystal_bow',out:{id:'crystal_bow',n:1},need:{crystal:6,iron_bar:2,rope:1},station:'workbench'},
   {id:'star_forge',out:{id:'star_forge',n:1},need:{ancient_core:1,iron_bar:6,crystal:2},station:'workbench'}
 ]);
 
