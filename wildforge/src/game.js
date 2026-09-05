@@ -4,8 +4,9 @@ import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './wor
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v030';
-const LEGACY_SAVE_KEY = 'wildforge.save.v010';
+const SAVE_KEY = 'wildforge.save.v040';
+const LEGACY_SAVE_KEY = 'wildforge.save.v030';
+const LEGACY_SAVE_KEY_OLD = 'wildforge.save.v010';
 const LANG_KEY = 'wildforge.lang';
 const HOTBAR_SIZE = 8;
 const HOTBAR_DEFAULT = ['wood','soil','stone','torch','plank','workbench','campfire','rope'];
@@ -18,7 +19,7 @@ const DEPTH_ZONES = Object.freeze([
 ]);
 const GLYPH = {
   wood:'▥',soil:'▰',stone:'◆',coal:'●',copper_ore:'◈',iron_ore:'◇',crystal:'✦',sand:'▱',sandstone:'▤',ash:'◼',basalt:'⬟',ice:'⬢',snow:'▧',fiber:'≋',rope:'⌇',moss_spore:'✧',plank:'▥',ruin_brick:'▣',torch:'♨',workbench:'▦',campfire:'♨',platform:'═',
-  wood_pick:'⌕',stone_pick:'⌕',copper_pick:'⌕',iron_pick:'⌕',delver_pick:'⌕',wood_blade:'†',stone_blade:'†',copper_blade:'†',iron_blade:'†',crystal_blade:'✦',sentinel_blade:'‡',copper_bar:'▬',iron_bar:'▬',ancient_core:'◉'
+  wood_pick:'⌕',stone_pick:'⌕',copper_pick:'⌕',iron_pick:'⌕',delver_pick:'⌕',wood_blade:'†',stone_blade:'†',copper_blade:'†',iron_blade:'†',crystal_blade:'✦',sentinel_blade:'‡',arrow:'➹',wood_bow:'◜',crystal_bow:'◓',copper_bar:'▬',iron_bar:'▬',ancient_core:'◉'
 };
 
 let lang = localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'zh';
@@ -35,7 +36,7 @@ function sfx(kind,intensity=1){
 
 const game = {
   running:false, world:null, seed:'', time:0.18, last:0, autosave:0, spawnTimer:0,
-  player:null, inventory:{}, hotbar:[...HOTBAR_DEFAULT], selected:0, enemies:[], drops:[],
+  player:null, inventory:{}, hotbar:[...HOTBAR_DEFAULT], selected:0, enemies:[], drops:[], projectiles:[],
   input:{left:false,right:false,down:false,jump:false,mine:false,place:false}, pointer:{x:0,y:0,active:false,worldX:0,worldY:0,kind:'mouse'},
   mine:{key:'',progress:0}, attackCd:0, placeCd:0, quickPlaceId:null, interactCd:0, hurtCd:0, uiOpen:false,
   camera:{x:0,y:0,tile:26}, dpr:1, cssW:innerWidth, cssH:innerHeight,
@@ -66,7 +67,7 @@ function currentPick() {
 function currentWeapon() {
   const sel=selectedItem();
   if(sel?.kind==='weapon'&&count(selectedId())>0)return sel;
-  if(game.pointer.kind==='touch'||game.autoTool)return bestOwned(['sentinel_blade','crystal_blade','iron_blade','copper_blade','stone_blade','wood_blade'])||{damage:2.5};
+  if(game.pointer.kind==='touch'||game.autoTool)return bestOwned(['sentinel_blade','crystal_blade','crystal_bow','iron_blade','copper_blade','wood_bow','stone_blade','wood_blade'])||{damage:2.5};
   return {damage:2.5};
 }
 function seedNow() { return 'WF-'+Math.random().toString(36).slice(2,7).toUpperCase()+'-'+Date.now().toString(36).slice(-4).toUpperCase(); }
@@ -82,7 +83,7 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_OLD]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
@@ -90,11 +91,11 @@ function applySave(raw) {
   game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
   game.hotbar=Array.isArray(raw.hotbar)&&raw.hotbar.length===HOTBAR_SIZE?raw.hotbar:[...HOTBAR_DEFAULT];
   game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
-  game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
+  game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
   game.seed=String(seed||seedNow()).slice(0,32); game.world=new World(game.seed); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
-  game.inventory=freshInventory(); game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
+  game.inventory=freshInventory(); game.projectiles=[]; game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
   toast(tr('新世界已生成：先收集青芯木','New world generated: gather Greenheart Wood first'));
 }
 function startWorldUi() {
@@ -251,15 +252,16 @@ function pointerWorld() {
   const tile=game.camera.tile;
   return {x:game.camera.x+game.pointer.x/tile,y:game.camera.y+game.pointer.y/tile};
 }
-function targetInReach(x,y){return Math.hypot(x+.5-game.player.x,y+.5-game.player.y)<=5.25;}
+function targetInReach(x,y,reach=5.25){return Math.hypot(x+.5-game.player.x,y+.5-game.player.y)<=reach;}
 function baseTarget(){
   if(game.pointer.active){const q=pointerWorld();return {x:Math.floor(q.x),y:Math.floor(q.y),qx:q.x,qy:q.y};}
   const x=Math.floor(game.player.x+game.player.facing*2),y=Math.floor(game.player.y);return {x,y,qx:x+.5,qy:y+.5};
 }
 function assistedEnemyTarget(base){
+  const range=Math.max(5.25,currentWeapon()?.range||5.25);
   let best=null,bestScore=1.8;
   for(const e of game.enemies){
-    if(e.dead||Math.hypot(e.x-game.player.x,e.y-game.player.y)>5.25)continue;
+    if(e.dead||Math.hypot(e.x-game.player.x,e.y-game.player.y)>range)continue;
     const score=Math.hypot(e.x-base.qx,e.y-base.qy);
     if(score<bestScore){bestScore=score;best={x:Math.floor(e.x),y:Math.floor(e.y)};}
   }
@@ -273,14 +275,14 @@ function mobileAimPenalty(x,y){
   return penalty;
 }
 function reachTarget(mode='aim') {
-  const base=baseTarget(),assist=game.pointer.kind==='touch'||game.smartCursor,mobileDirected=game.pointer.kind==='touch'&&game.mobileAim.active;
+  const base=baseTarget(),combatReach=Math.max(5.25,currentWeapon()?.range||5.25),assist=game.pointer.kind==='touch'||game.smartCursor,mobileDirected=game.pointer.kind==='touch'&&game.mobileAim.active;
   let best={x:base.x,y:base.y,score:0};
   if(assist){
     if(mode!=='place'){const enemy=assistedEnemyTarget(base);if(enemy)return {x:enemy.x,y:enemy.y,ok:true,assisted:true};}
     const radius=game.smartCursor&&game.pointer.kind!=='touch'?2:1,baseTile=game.world.get(base.x,base.y),baseAir=baseTile===TILE.AIR;
-    best=mode!=='place'&&!baseAir&&targetInReach(base.x,base.y)?{x:base.x,y:base.y,score:mobileDirected?mobileAimPenalty(base.x,base.y):-.4}:null;
+    best=mode!=='place'&&!baseAir&&targetInReach(base.x,base.y,combatReach)?{x:base.x,y:base.y,score:mobileDirected?mobileAimPenalty(base.x,base.y):-.4}:null;
     for(let oy=-radius;oy<=radius;oy++)for(let ox=-radius;ox<=radius;ox++){
-      const x=base.x+ox,y=base.y+oy;if(!targetInReach(x,y))continue;
+      const x=base.x+ox,y=base.y+oy;if(!targetInReach(x,y,mode==='place'?5.25:combatReach))continue;
       const tile=game.world.get(x,y),air=tile===TILE.AIR;
       if(mode==='place'){if(!air||!canPlaceAt(x,y))continue;const adjacent=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>game.world.get(x+dx,y+dy)!==TILE.AIR);if(!adjacent)continue;}
       else if(air)continue;
@@ -294,12 +296,14 @@ function reachTarget(mode='aim') {
 
 function nearestEnemyAtTarget(t) {
   let best=null,bd=1.15;
-  for(const e of game.enemies){if(e.dead)continue;const d=Math.hypot(e.x-(t.x+.5),e.y-(t.y+.5));if(d<bd&&Math.hypot(e.x-game.player.x,e.y-game.player.y)<=5.25){best=e;bd=d;}}
+  for(const e of game.enemies){if(e.dead)continue;const d=Math.hypot(e.x-(t.x+.5),e.y-(t.y+.5));if(d<bd&&Math.hypot(e.x-game.player.x,e.y-game.player.y)<=Math.max(5.25,currentWeapon()?.range||5.25)){best=e;bd=d;}}
   return best;
 }
 function attack(e) {
   if(game.attackCd>0||!e)return;
-  const weapon=currentWeapon(), damage=weapon.damage||2.5; e.hp-=damage; e.hit=.16; game.attackCd=.32; game.player.attackFlash=.18;sfx('hit',.9);spawnDebris(e.x,e.y,e.def.color,5,.9);game.fx.shake=Math.max(game.fx.shake,2.2);haptic(10);
+  const weapon=currentWeapon(),damage=weapon.damage||2.5;
+  if(weapon.ranged){const ammo=weapon.ammo||'arrow';if(count(ammo)<1){toast(tr('没有弹药：先制造骨木箭','No ammo: craft Woodbone Arrows first'));game.attackCd=.2;return;}consume(ammo,1);const q=game.pointer.active?pointerWorld():{x:game.player.x+game.player.facing*2,y:game.player.y};let dx=q.x-game.player.x,dy=q.y-(game.player.y-.22);const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;game.projectiles.push({x:game.player.x+dx*.7,y:game.player.y-.22,vx:dx*weapon.speed,vy:dy*weapon.speed,damage,life:Math.max(0.65,(weapon.range||12)/(weapon.speed||15)*1.25),kind:weapon.id});game.attackCd=.42;game.player.attackFlash=.14;sfx('hit',.55);game.fx.shake=Math.max(game.fx.shake,.8);haptic(6);toast(`${tr('发射','Shot')} ${itemName(weapon.id,lang)}`);return;}
+  e.hp-=damage; e.hit=.16; game.attackCd=.32; game.player.attackFlash=.18;sfx('hit',.9);spawnDebris(e.x,e.y,e.def.color,5,.9);game.fx.shake=Math.max(game.fx.shake,2.2);haptic(10);
   toast(`${tr('命中','Hit')} ${lang==='zh'?e.def.zh:e.def.en} · -${Math.round(damage)}`);
   if(e.hp<=0)killEnemy(e);
 }
@@ -442,6 +446,10 @@ function updateDrops(dt){
     if(dist<.72&&d.age>.1){addItem(d.id,d.n);d.dead=true;sfx('pickup',ITEMS[d.id]?.rare?1.25:.55);spawnDebris(d.x,d.y,ITEMS[d.id]?.rare?'#e9c16b':'#f0d9a2',ITEMS[d.id]?.rare?8:3,ITEMS[d.id]?.rare?.75:.35);haptic(ITEMS[d.id]?.rare?18:4);if(ITEMS[d.id]?.rare)toast(tr(`发现稀有装备 · ${itemName(d.id,'zh')}`,`Rare gear found · ${itemName(d.id,'en')}`));else if(d.id==='ancient_core')toast(tr('获得古代机芯','Ancient Core acquired'));renderHotbar();}
   }
   game.drops=game.drops.filter(d=>!d.dead&&d.age<45);
+}
+function updateProjectiles(dt){
+  for(const p of game.projectiles){p.life-=dt;p.vy+=7.5*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.life<=0||game.world.solid(Math.floor(p.x),Math.floor(p.y))){p.dead=true;continue;}for(const e of game.enemies){if(e.dead||Math.hypot(e.x-p.x,e.y-p.y)>.58)continue;e.hp-=p.damage;e.hit=.13;spawnDebris(e.x,e.y,e.def.color,4,.65);game.fx.shake=Math.max(game.fx.shake,1.4);p.dead=true;if(e.hp<=0)killEnemy(e);break;}}
+  game.projectiles=game.projectiles.filter(p=>!p.dead&&p.life>0);
 }
 function enemyCollides(x,y,w=.72,h=.72){const minX=Math.floor(x-w/2),maxX=Math.floor(x+w/2),minY=Math.floor(y-h/2),maxY=Math.floor(y+h/2);for(let yy=minY;yy<=maxY;yy++)for(let xx=minX;xx<=maxX;xx++)if(game.world.solid(xx,yy))return true;return false;}
 function spawnEnemy() {
@@ -628,6 +636,8 @@ function drawWorld() {
   const s=game.camera.tile,minX=Math.max(0,Math.floor(game.camera.x)-1),maxX=Math.min(WORLD_W-1,Math.ceil(game.camera.x+game.cssW/s)+1),minY=Math.max(0,Math.floor(game.camera.y)-1),maxY=Math.min(WORLD_H-1,Math.ceil(game.camera.y+game.cssH/s)+1);
   for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)drawTile(x,y,game.world.get(x,y));
 }
+function drawProjectiles(){
+  const s=game.camera.tile;for(const p of game.projectiles){const x=(p.x-game.camera.x)*s,y=(p.y-game.camera.y)*s;if(x<-20||x>game.cssW+20||y<-20||y>game.cssH+20)continue;const ang=Math.atan2(p.vy,p.vx);ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.strokeStyle=p.kind==='crystal_bow'?'#c6bcff':'#dfc59e';ctx.lineWidth=Math.max(1,s*.045);ctx.beginPath();ctx.moveTo(-s*.34,0);ctx.lineTo(s*.28,0);ctx.stroke();ctx.fillStyle=p.kind==='crystal_bow'?'#d7ceff':'#8f6b48';ctx.beginPath();ctx.moveTo(s*.35,0);ctx.lineTo(s*.1,-s*.11);ctx.lineTo(s*.1,s*.11);ctx.closePath();ctx.fill();ctx.restore();}}
 function drawDrops(){
   const s=game.camera.tile;
   for(const d of game.drops){
@@ -654,6 +664,8 @@ function drawHeldItem(s,w,h){
   if(item.kind==='pick'){
     ctx.strokeStyle='#7c5a3d';ctx.lineWidth=Math.max(2,s*.08);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(w*.82,h*.34);ctx.stroke();
     ctx.strokeStyle=id==='delver_pick'?'#e0b85f':id==='iron_pick'?'#c3c9cb':id==='copper_pick'?'#d17b56':id==='stone_pick'?'#8f999f':'#b08459';ctx.lineWidth=Math.max(3,s*.11);ctx.beginPath();ctx.moveTo(w*.58,h*.16);ctx.lineTo(w*.92,h*.05);ctx.stroke();
+  }else if(item.kind==='weapon'&&item.ranged){
+    ctx.strokeStyle=id==='crystal_bow'?'#b9afff':'#b08459';ctx.lineWidth=Math.max(2,s*.075);ctx.beginPath();ctx.arc(w*.28,0,h*.42,-1.15,1.15);ctx.stroke();ctx.strokeStyle='#d9c8ae';ctx.lineWidth=Math.max(1,s*.025);ctx.beginPath();ctx.moveTo(w*.28,-h*.38);ctx.lineTo(w*.28,h*.38);ctx.stroke();
   }else if(item.kind==='weapon'){
     ctx.strokeStyle=id==='sentinel_blade'?'#e0b85f':id==='crystal_blade'?'#b7adff':id==='iron_blade'?'#c5cccf':id==='copper_blade'?'#d7815b':id==='stone_blade'?'#9aa1a3':'#b58a5f';ctx.lineWidth=Math.max(3,s*.1);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(w*.88,-h*.25);ctx.stroke();ctx.strokeStyle='#6e4d33';ctx.lineWidth=Math.max(2,s*.07);ctx.beginPath();ctx.moveTo(w*.08,-h*.02);ctx.lineTo(w*.31,h*.13);ctx.stroke();
   }else if(item.tile){ctx.fillStyle=TILE_DEFS[item.tile]?.color||'#b8a27c';ctx.fillRect(w*.32,-h*.18,w*.34,w*.34);ctx.strokeStyle='rgba(255,255,255,.35)';ctx.strokeRect(w*.32,-h*.18,w*.34,w*.34);}
@@ -719,11 +731,11 @@ function drawFx(){
   for(const p of game.fx.particles){const x=(p.x-game.camera.x)*s,y=(p.y-game.camera.y)*s,a=Math.max(0,p.life/p.max);ctx.globalAlpha=a;ctx.fillStyle=p.color;const q=Math.max(2,p.size*s);ctx.fillRect(x-q/2,y-q/2,q,q);}
   ctx.globalAlpha=1;
 }
-function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
+function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawProjectiles();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
 function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
 function updateCamera(dt){const p=game.player,s=game.camera.tile,lookX=Math.max(-1.35,Math.min(1.35,p.vx*.22)),lookY=p.vy>5?Math.min(.7,(p.vy-5)*.07):0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.pow(.0014,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
 
-function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
+function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateProjectiles(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
 
 function setInput(action,on){if(action in game.input)game.input[action]=on;}
 function aimFromEvent(e){game.pointer.kind=e.pointerType==='touch'?'touch':'mouse';const r=canvas.getBoundingClientRect();game.pointer.x=e.clientX-r.left;game.pointer.y=e.clientY-r.top;game.pointer.active=true;const q=pointerWorld();game.pointer.worldX=q.x;game.pointer.worldY=q.y;$('#crosshair').style.left=e.clientX+'px';$('#crosshair').style.top=e.clientY+'px';$('#crosshair').style.display='block';}
