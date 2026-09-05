@@ -1,9 +1,9 @@
-export const VERSION = '0.1.0';
+export const VERSION = '0.3.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
   LEAF:15, CLAY:16, RUIN:17, GLOW_MOSS:18, PLANK:19, WORKBENCH:20,
-  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26, PLATFORM:27
+  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26, PLATFORM:27, STAR_FORGE:28
 });
 
 export const BIOMES = Object.freeze([
@@ -40,7 +40,8 @@ export const TILE_DEFS = Object.freeze({
   24:{id:'ruin_spike', zh:'遗迹尖刺', en:'Ruin Spikes', solid:false, hardness:.3, color:'#7d7480'},
   25:{id:'ruin_urn', zh:'遗迹陶罐', en:'Ruin Urn', solid:false, hardness:.28, color:'#8f745d'},
   26:{id:'rope', zh:'攀索', en:'Climbing Cord', solid:false, hardness:.12, drop:'rope', place:'rope', color:'#a8875a'},
-  27:{id:'platform', zh:'青芯踏板', en:'Greenheart Platform', solid:false, hardness:.28, drop:'platform', place:'platform', platform:true, color:'#92704b'}
+  27:{id:'platform', zh:'青芯踏板', en:'Greenheart Platform', solid:false, hardness:.28, drop:'platform', place:'platform', platform:true, color:'#92704b'},
+  28:{id:'star_forge', zh:'星核炉', en:'Starcore Forge', solid:true, hardness:3.1, tier:3, color:'#4f496f'}
 });
 
 const blockItems = {};
@@ -57,6 +58,7 @@ export const ITEMS = Object.freeze({
   copper_bar:{id:'copper_bar',zh:'赤铜锭',en:'Red Copper Bar',stack:99,kind:'material'},
   iron_bar:{id:'iron_bar',zh:'冷铁锭',en:'Cold Iron Bar',stack:99,kind:'material'},
   ancient_core:{id:'ancient_core',zh:'古代机芯',en:'Ancient Core',stack:99,kind:'material'},
+  star_forge:{id:'star_forge',zh:'星核炉',en:'Starcore Forge',stack:1,kind:'material',tile:TILE.STAR_FORGE},
   wood_pick:{id:'wood_pick',zh:'青芯镐',en:'Greenheart Pick',stack:1,kind:'pick',tier:1,power:1.35},
   stone_pick:{id:'stone_pick',zh:'灰岩镐',en:'Greyrock Pick',stack:1,kind:'pick',tier:2,power:1.75},
   copper_pick:{id:'copper_pick',zh:'赤铜镐',en:'Red Copper Pick',stack:1,kind:'pick',tier:3,power:2.3},
@@ -89,7 +91,8 @@ export const RECIPES = Object.freeze([
   {id:'iron_blade',out:{id:'iron_blade',n:1},need:{iron_bar:4,wood:1},station:'workbench'},
   {id:'crystal_blade',out:{id:'crystal_blade',n:1},need:{crystal:5,iron_bar:1},station:'workbench'},
   {id:'delver_pick',out:{id:'delver_pick',n:1},need:{ancient_core:1,copper_bar:3,wood:2},station:'workbench'},
-  {id:'sentinel_blade',out:{id:'sentinel_blade',n:1},need:{ancient_core:1,iron_bar:2},station:'workbench'}
+  {id:'sentinel_blade',out:{id:'sentinel_blade',n:1},need:{ancient_core:1,iron_bar:2},station:'workbench'},
+  {id:'star_forge',out:{id:'star_forge',n:1},need:{ancient_core:1,iron_bar:6,crystal:2},station:'workbench'}
 ]);
 
 export const ENEMY_TYPES = Object.freeze({
@@ -97,7 +100,8 @@ export const ENEMY_TYPES = Object.freeze({
   ash_scuttler:{zh:'灰烬疾足',en:'Ash Scuttler',hp:23,damage:5,speed:2.15,color:'#b35f4b',biome:'ember'},
   shardback:{zh:'霜晶脊兽',en:'Shardback',hp:29,damage:6,speed:1.35,color:'#79a8c5',biome:'frost'},
   hollow_wisp:{zh:'空洞微光',en:'Hollow Wisp',hp:16,damage:5,speed:1.7,color:'#66c7ae',underground:true,flying:true},
-  ruin_sentinel:{zh:'遗迹守望者',en:'Ruin Sentinel',hp:42,damage:8,speed:1.15,color:'#8b729b',underground:true}
+  ruin_sentinel:{zh:'遗迹守望者',en:'Ruin Sentinel',hp:42,damage:8,speed:1.15,color:'#8b729b',underground:true},
+  rift_beast:{zh:'裂隙巨兽',en:'Rift Behemoth',hp:168,damage:14,speed:.8,color:'#c06b72',underground:true,boss:true}
 });
 
 export const itemName = (id, lang='zh') => (ITEMS[id] && ITEMS[id][lang]) || id;
