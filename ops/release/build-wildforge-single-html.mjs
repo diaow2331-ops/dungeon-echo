@@ -18,6 +18,8 @@ const scriptTag=`<script data-wildforge-inline="${version}">\n${js.replace(/<\/s
 html=html.replace(/\s*<link rel="stylesheet" href="style\.css\?v=[^"]+">/,`\n  ${styleTag}`);
 html=html.replace(/\s*<script type="module" src="src\/game\.js\?v=[^"]+"><\/script>/,`\n  ${scriptTag}`);
 if(/src\/game\.js|style\.css\?v=|^\s*import\s/m.test(html))throw new Error('single-file export still contains external runtime references');
+const marker='<!-- GENERATED: use ops/release/build-wildforge-single-html.mjs; source authority remains modular. -->\n';
+if(!html.startsWith(marker))html=marker+html;
 fs.mkdirSync(path.dirname(target),{recursive:true});
 fs.writeFileSync(target,html);
 console.log(`wildforge_single_html=${target}`);

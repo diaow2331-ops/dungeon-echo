@@ -31,7 +31,7 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter inlines CSS and the data/world/game module graph, and its output is smoke-tested as a standalone file.
+The exporter inlines CSS and the data/world/game module graph, and its output is smoke-tested as a standalone file. The repository also keeps `wildforge/playtest.html` as the current generated review snapshot; it is never the source authority.
 
 ## Originality boundary
 
