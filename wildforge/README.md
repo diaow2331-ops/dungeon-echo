@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.18.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.19.0 build is an incubation build, not a public production release.
 
-## v0.18.0 playable incubation build
+## v0.19.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -19,7 +19,7 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.17.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.18.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
@@ -32,7 +32,7 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter remains a release utility, but v0.18 development is intentionally modular while the Drive art atlas is being integrated into the live surface, inventory and settlement presentation. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
+The exporter remains a release utility, but v0.19 development is intentionally modular while transport contracts and the Drive art presentation are being iterated together. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
 
 ## Originality boundary
 
@@ -40,7 +40,16 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.18 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns only deterministic settlement demand calculations and naming. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.19 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+
+
+## v0.19.0
+- 边境货站每天生成一份确定性的运输委托：指定本地标准货物、数量、异地聚落、距离、两日交付期限与整单奖励。
+- 委托不产生第二套货物或货币：玩家仍需在既有工匠台/仓库备货，受货运容量、载重、劫匪、护卫和商路影响，并把真实货物逐件交给目标聚落。
+- 接单后 HUD 直接显示目标聚落距离与交付进度；货站、目标聚落和匹配货物行都显示同一份委托状态，减少记坐标和反复翻面板。
+- 委托跨日持久化并在截止日后失效；完成奖励继续结算到既有铸印账户，并累计完成委托次数。
+- `transport-contracts.js` 只负责确定性报价/期限计算，不持有第二份游戏状态；单 HTML 导出器同步打包该模块。
+- v0.18 Drive 图集继续作为唯一运行时美术 atlas，本轮不回退美术整合；v0.18 存档通过显式迁移键继续加载。
 
 
 ## v0.18.0
