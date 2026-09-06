@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.9.1 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.9.2 build is an incubation build, not a public production release.
 
-## v0.9.1 playable incubation build
+## v0.9.2 playable incubation build
 
 Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrade → Explore deeper.
 
@@ -31,6 +31,12 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.9.2
+- 路网现在以低干扰信号线直接呈现在世界中，跨地貌链路使用更醒目的青绿色信号，不遮蔽采掘与战斗主体；
+- 路网按已有路标坐标派生连通分量与地貌多样性，不新增地图或第二套持久状态；
+- 跨地貌连通时，每层日出补给额外携带 1 份另一地貌的基础交换物资，仍受 3 层补给上限约束；
+- HUD 与路标提示增加路网地貌数和货运信息；新增 v0.9.1 → v0.9.2 存档迁移。
 
 ## v0.9.1
 - 相邻边境路标现在会派生为补给路线：沿线移动速度 +8%，夜间新荒兽生成节奏降低 18%，不改动精英/首领伤害与既有战斗规则；

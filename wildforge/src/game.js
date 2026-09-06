@@ -4,8 +4,9 @@ import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './wor
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v091';
-const LEGACY_SAVE_KEY = 'wildforge.save.v090';
+const SAVE_KEY = 'wildforge.save.v092';
+const LEGACY_SAVE_KEY = 'wildforge.save.v091';
+const LEGACY_SAVE_KEY_090 = 'wildforge.save.v090';
 const LEGACY_SAVE_KEY_080 = 'wildforge.save.v080';
 const LEGACY_SAVE_KEY_070 = 'wildforge.save.v070';
 const LEGACY_SAVE_KEY_060 = 'wildforge.save.v060';
@@ -101,7 +102,7 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
@@ -203,10 +204,18 @@ function pointSegmentDistance(x,y,a,b){
   return Math.hypot(x-px,y-py);
 }
 function linkedBeaconKeys(){const keys=new Set();for(const link of beaconLinks()){keys.add(beaconKey(link.a.x,link.a.y));keys.add(beaconKey(link.b.x,link.b.y));}return keys;}
+function beaconComponents(){
+  const list=[...(game.infrastructure?.beacons||[])],links=beaconLinks(),byKey=new Map(list.map(b=>[beaconKey(b.x,b.y),b])),adj=new Map(list.map(b=>[beaconKey(b.x,b.y),[]]));
+  for(const {a,b} of links){const ak=beaconKey(a.x,a.y),bk=beaconKey(b.x,b.y);adj.get(ak)?.push(bk);adj.get(bk)?.push(ak);}
+  const seen=new Set(),out=[];for(const b of list){const root=beaconKey(b.x,b.y);if(seen.has(root))continue;const q=[root],component=[];seen.add(root);while(q.length){const k=q.shift(),node=byKey.get(k);if(node)component.push(node);for(const n of adj.get(k)||[])if(!seen.has(n)){seen.add(n);q.push(n);}}out.push(component);}return out;
+}
+function beaconComponentFor(b){if(!b)return[];const key=beaconKey(b.x,b.y);return beaconComponents().find(c=>c.some(x=>beaconKey(x.x,x.y)===key))||[];}
+function componentBiomeIds(component){return [...new Set((component||[]).map(b=>game.world.biome(b.x).id))].sort();}
+function beaconExchangeGood(b){const component=beaconComponentFor(b),local=game.world.biome(b.x).id,other=componentBiomeIds(component).find(id=>id!==local);if(!other)return null;const map={verdant:'fiber',ember:'coal',frost:'ice'};return {biome:other,id:map[other]};}
 function routeStateAt(x,y){
   const links=beaconLinks();let best=null,distance=Infinity;
   for(const link of links){const d=pointSegmentDistance(x,y,link.a,link.b);if(d<distance){distance=d;best=link;}}
-  return {active:!!best&&distance<=ROUTE_RADIUS,distance,links,linkedCount:linkedBeaconKeys().size,link:best};
+  const component=best?beaconComponentFor(best.a):[],biomes=componentBiomeIds(component);return {active:!!best&&distance<=ROUTE_RADIUS,distance,links,linkedCount:linkedBeaconKeys().size,link:best,component,biomes,biomeCount:biomes.length};
 }
 function totalBeaconSupply(){return (game.infrastructure?.beacons||[]).reduce((n,b)=>n+Math.max(0,Number(b.supply)||0),0);}
 function registerBeacon(x,y){
@@ -221,7 +230,7 @@ function replenishBeaconSupplies(){
   for(const b of game.infrastructure?.beacons||[]){if(!linked.has(beaconKey(b.x,b.y)))continue;const before=Math.max(0,Number(b.supply)||0);b.supply=Math.min(MAX_BEACON_SUPPLY,before+1);if(b.supply>before)supplied++;}
   if(supplied)game.saveDirty=true;return supplied;
 }
-function beaconSupplyBundle(b){const biome=game.world.biome(b.x).id;return biome==='verdant'?[['fiber',2],['wood',1]]:biome==='ember'?[['coal',2],['torch',1]]:[['rope',2],['ice',1]];}
+function beaconSupplyBundle(b){const biome=game.world.biome(b.x).id,bundle=biome==='verdant'?[['fiber',2],['wood',1]]:biome==='ember'?[['coal',2],['torch',1]]:[['rope',2],['ice',1]],exchange=beaconExchangeGood(b);if(exchange)bundle.push([exchange.id,1]);return bundle;}
 function claimBeaconSupply(b){
   const charges=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0));if(!charges)return 0;
   const bundle=beaconSupplyBundle(b);let claimable=charges;
@@ -697,7 +706,7 @@ function updateHud(){
   const depth=Math.max(0,Math.floor(p.y-surface)),zone=currentDepthZone(depth);$('#depthText').textContent=depth<3?tr(zone.zh,zone.en):tr(`${zone.zh} · ${depth}m`,`${zone.en} · ${depth}m`);
   const phase=game.nightState==='night'?tr('夜袭','Night Watch'):game.nightState==='dusk'?tr('暮色','Dusk'):tr('白昼','Daylight');$('#timeText').textContent=timeLabel()+' · '+phase;
   const beacon=nearestBeacon(),route=routeStateAt(p.x,p.y),supply=totalBeaconSupply();
-  const routeText=route.active?tr(`补给路 +8% · ${supply}`,`SUPPLY ROUTE +8% · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon');
+  const routeText=route.active?tr(`补给路 +8% · ${route.biomeCount}地 · ${supply}`,`SUPPLY ROUTE +8% · ${route.biomeCount} biomes · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon');
   const beaconEl=$('#beaconText');if(beaconEl){beaconEl.textContent=routeText;beaconEl.classList.toggle('route-active',route.active);beaconEl.classList.toggle('has-supply',supply>0);}
   const danger=$('#dangerText');if(danger){danger.textContent=game.nightState==='night'?(game.nightSurge>0?tr('夜袭高压','NIGHT SURGE'):tr('夜袭','NIGHT WATCH')):game.nightState==='dusk'?tr('守夜准备','PREPARE'):tr('安全','SAFE');danger.classList.toggle('active',game.nightState==='night');danger.classList.toggle('warning',game.nightState==='dusk');danger.title=[fireNotice(),routeText].filter(Boolean).join(' · ');}
 }
@@ -898,13 +907,19 @@ function drawTarget(){
   if(game.mine.key===t.x+','+t.y&&game.mine.progress>0){const p=Math.min(1,game.mine.progress);ctx.strokeStyle=`rgba(255,238,203,${.25+p*.7})`;ctx.lineWidth=Math.max(1,1+p*1.6);ctx.beginPath();ctx.moveTo(x+s*.18,y+s*.2);ctx.lineTo(x+s*(.38+p*.08),y+s*.48);ctx.lineTo(x+s*.24,y+s*.82);ctx.moveTo(x+s*.78,y+s*.16);ctx.lineTo(x+s*(.58-p*.08),y+s*.45);ctx.lineTo(x+s*.76,y+s*.78);if(p>.48){ctx.moveTo(x+s*.46,y+s*.08);ctx.lineTo(x+s*.5,y+s*.33);ctx.lineTo(x+s*.37,y+s*.63);ctx.lineTo(x+s*.52,y+s*.92);}ctx.stroke();}
 }
 
+function drawSupplyRoutes(){
+  const links=beaconLinks();if(!links.length)return;const s=game.camera.tile,now=performance.now(),p=game.player;ctx.save();ctx.lineCap='round';ctx.setLineDash([Math.max(5,s*.34),Math.max(4,s*.22)]);ctx.lineDashOffset=-(now*.025%(s*.56));
+  for(const link of links){const ax=(link.a.x-game.camera.x)*s,ay=(link.a.y-game.camera.y)*s,bx=(link.b.x-game.camera.x)*s,by=(link.b.y-game.camera.y)*s;if(Math.max(ax,bx)<-40||Math.min(ax,bx)>game.cssW+40||Math.max(ay,by)<-40||Math.min(ay,by)>game.cssH+40)continue;const biomes=componentBiomeIds(beaconComponentFor(link.a)),diverse=biomes.length>1,active=pointSegmentDistance(p.x,p.y,link.a,link.b)<=ROUTE_RADIUS;ctx.globalAlpha=active?.62:diverse?.34:.22;ctx.strokeStyle=diverse?'#82d7bc':'#d3b66d';ctx.lineWidth=Math.max(1.4,s*(active?.075:.045));ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();}
+  ctx.restore();
+}
+
 function drawFx(){
   const s=game.camera.tile;
   for(const p of game.fx.particles){const x=(p.x-game.camera.x)*s,y=(p.y-game.camera.y)*s,a=Math.max(0,p.life/p.max);ctx.globalAlpha=a;ctx.fillStyle=p.color;const q=Math.max(2,p.size*s);ctx.fillRect(x-q/2,y-q/2,q,q);}
   ctx.globalAlpha=1;
 }
-function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawProjectiles();drawEnemyProjectiles();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
-function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.BEACON){const b=beaconAt(t.x,t.y),linked=linkedBeaconKeys().has(beaconKey(b?.x||t.x,b?.y||t.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0));$('#targetTip').textContent=tr(`边境路标 · ${linked?'路网':'孤立'} · 补给 ${supply}/${MAX_BEACON_SUPPLY} · 采/战键校准并领取`,`Frontier Beacon · ${linked?'Linked':'Isolated'} · Supply ${supply}/${MAX_BEACON_SUPPLY} · Mine/Use to attune & claim`);}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
+function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawSupplyRoutes();drawProjectiles();drawEnemyProjectiles();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
+function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.BEACON){const b=beaconAt(t.x,t.y),linked=linkedBeaconKeys().has(beaconKey(b?.x||t.x,b?.y||t.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0)),component=beaconComponentFor(b),biomeCount=componentBiomeIds(component).length,exchange=b?beaconExchangeGood(b):null,cargo=exchange?itemName(exchange.id,lang):tr('本地','Local');$('#targetTip').textContent=tr(`边境路标 · ${linked?biomeCount+'地路网':'孤立'} · 补给 ${supply}/${MAX_BEACON_SUPPLY} · 货运 ${cargo}`,`Frontier Beacon · ${linked?biomeCount+'-biome link':'Isolated'} · Supply ${supply}/${MAX_BEACON_SUPPLY} · Cargo ${cargo}`);}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
 function updateCamera(dt){const p=game.player,s=game.camera.tile,lookX=Math.max(-1.35,Math.min(1.35,p.vx*.22)),lookY=p.vy>5?Math.min(.7,(p.vy-5)*.07):0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.pow(.0014,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
 
 function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateProjectiles(dt);updateEnemyProjectiles(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
@@ -946,7 +961,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));$('#inventoryView').classList.toggle('hidden',btn.dataset.tab!=='inventory');$('#craftView').classList.toggle('hidden',btn.dataset.tab!=='craft');if(btn.dataset.tab==='craft')renderCraft();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
