@@ -1,6 +1,6 @@
 import {VERSION, TILE, TILE_DEFS, ITEMS, RECIPES, ENEMY_TYPES, itemName, tileName} from './data.js';
 import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './world.js';
-import {renderInventorySlots,renderHotbarSlots,normalizeHotbar} from './inventory-ui.js';
+import {renderInventorySlots,renderHotbarSlots,normalizeHotbar,normalizeInventoryLayout,INVENTORY_SLOT_COUNT} from './inventory-ui.js';
 import {encounterCap,nextEncounterDelay,suppressEarlySurfaceEncounter,applyEnemyKnockback} from './combat-tuning.js';
 import {SETTLEMENT_TRADE_RADIUS,SETTLEMENT_SAFE_RADIUS,SETTLEMENT_GENERAL_DEMAND_CAP,settlementName,settlementDailyDemand,settlementDemandKey,settlementDemandRemaining,settlementSellPrice} from './settlement-economy.js';
 import {TRANSPORT_CONTRACT_DAYS,makeTransportOffer,contractDaysLeft} from './transport-contracts.js';
@@ -24,7 +24,8 @@ const ART=Object.freeze({
 
 function artReady(){return CORE_ART.complete&&CORE_ART.naturalWidth>0;}
 function drawArt(key,x,y,w,h){const r=ART[key];if(!r||!artReady())return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(CORE_ART,r[0],r[1],r[2],r[3],Math.round(x),Math.round(y),Math.round(w),Math.round(h));return true;}
-const SAVE_KEY = 'wildforge.save.v0190';
+const SAVE_KEY = 'wildforge.save.v0200';
+const LEGACY_SAVE_KEY_0190 = 'wildforge.save.v0190';
 const LEGACY_SAVE_KEY_0180 = 'wildforge.save.v0180';
 const LEGACY_SAVE_KEY_0170 = 'wildforge.save.v0170';
 const LEGACY_SAVE_KEY_0160 = 'wildforge.save.v0160';
@@ -96,7 +97,7 @@ const TRADE_PRODUCTION=Object.freeze({
   emberfuel_crate:{home:'ember',need:{coal:2,sandstone:2}},
   frostglass_case:{home:'frost',need:{ice:3,snow:2}}
 });
-const HOTBAR_DEFAULT = ['wood','soil','stone','torch','plank','workbench','campfire','rope','',''];
+const HOTBAR_DEFAULT = Array.from({length:HOTBAR_SIZE},()=> '');
 const DEPTH_ZONES = Object.freeze([
   {min:0,id:'surface',zh:'地表边境',en:'Frontier Surface'},
   {min:8,id:'shallow',zh:'浅层洞带',en:'Shallow Caves'},
@@ -123,7 +124,7 @@ function sfx(kind,intensity=1){
 
 const game = {
   running:false, world:null, seed:'', time:0.18, last:0, autosave:0, spawnTimer:0, physicsAccumulator:0, wheelAccum:0,
-  player:null, inventory:{}, hotbar:[...HOTBAR_DEFAULT], selected:0, enemies:[], drops:[], projectiles:[], enemyProjectiles:[],
+  player:null, inventory:{}, inventoryLayout:Array.from({length:INVENTORY_SLOT_COUNT},()=>''), hotbar:[...HOTBAR_DEFAULT], selected:0, enemies:[], drops:[], projectiles:[], enemyProjectiles:[],
   input:{left:false,right:false,down:false,jump:false,mine:false,place:false,dash:false}, pointer:{x:0,y:0,active:false,worldX:0,worldY:0,kind:'mouse'},
   mine:{key:'',progress:0}, attackCd:0, placeCd:0, quickPlaceId:null, interactCd:0, hurtCd:0, uiOpen:false,
   camera:{x:0,y:0,tile:26}, dpr:1, cssW:innerWidth, cssH:innerHeight,
@@ -135,7 +136,7 @@ const game = {
 function freshPlayer(spawn) {
   return {x:spawn.x,y:spawn.y,vx:0,vy:0,w:.72,h:1.72,hp:100,maxHp:100,grounded:false,onPlatform:false,dropThrough:0,fallStartY:spawn.y,facing:1,jumpLatch:false,jumpBuffer:0,jumpHold:0,coyote:0,landingKick:0,attackFlash:0,steps:0,dashTimer:0,dashCooldown:0,dashX:0,dashY:0};
 }
-function freshInventory() { return {wood:0,soil:0,stone:0,fiber:0}; }
+function freshInventory() { return {}; }
 function freshTrade(){return {credits:12,day:0,bought:{},sold:{},produced:{},volume:0,turnover:0,contractsCompleted:0,contract:null};}
 function sanitizeTransportContract(raw){
   if(!raw||typeof raw!=='object'||!TRADE_GOODS[raw.goodId]||!raw.destinationId)return null;
@@ -160,12 +161,32 @@ function bundleValue(b){return Object.entries(b?.contents||{}).reduce((sum,[id,n
 function cargoDeclaredValue(){return Object.entries(TRADE_GOODS).reduce((sum,[id,g])=>sum+count(id)*g.base,0);}
 function activeGuard(){return game.guard&&game.guard.hp>0&&game.guard.remaining>0?game.guard:null;}
 function count(id) { return Number(game.inventory[id]||0); }
-function addItem(id,n=1) {
-  if (!ITEMS[id] || n<=0) return false;
-  const max=ITEMS[id].stack||99;
-  game.inventory[id]=Math.min(max, count(id)+n); game.saveDirty=true; updateObjective(); return true;
+function sanitizeInventory(raw){
+  const out={};if(!raw||typeof raw!=='object')return out;
+  for(const [id,value] of Object.entries(raw)){const def=ITEMS[id],n=Math.max(0,Math.floor(Number(value)||0));if(def&&n>0)out[id]=Math.min(def.stack||99,n);}
+  return out;
 }
-function consume(id,n=1) { if(count(id)<n)return false; game.inventory[id]-=n; if(game.inventory[id]<=0)delete game.inventory[id]; game.saveDirty=true; return true; }
+function ensureInventorySlot(id){
+  if(!id||count(id)>0&&game.inventoryLayout.includes(id))return true;
+  if(game.inventoryLayout.includes(id))return true;const slot=game.inventoryLayout.indexOf('');if(slot<0)return false;game.inventoryLayout[slot]=id;return true;
+}
+function autoAssignHotbar(id){
+  const def=ITEMS[id];if(!def||def.kind==='cargo'||game.hotbar.includes(id))return;const slot=game.hotbar.indexOf('');if(slot>=0)game.hotbar[slot]=id;
+}
+function canStoreItem(id,n=1){
+  const def=ITEMS[id],amount=Math.max(0,Math.floor(Number(n)||0));if(!def||amount<=0)return false;const before=count(id);if(before+amount>(def.stack||99))return false;return before>0||game.inventoryLayout.includes(id)||game.inventoryLayout.includes('');
+}
+function addItem(id,n=1) {
+  if(!canStoreItem(id,n))return false;const before=count(id),amount=Math.floor(Number(n)||0);if(before<=0&&!ensureInventorySlot(id))return false;
+  game.inventory[id]=before+amount;if(before<=0)autoAssignHotbar(id);game.saveDirty=true;updateObjective();return true;
+}
+function consume(id,n=1) {
+  if(count(id)<n)return false;game.inventory[id]-=n;if(game.inventory[id]<=0){delete game.inventory[id];game.inventoryLayout=game.inventoryLayout.map(x=>x===id?'':x);game.hotbar=game.hotbar.map(x=>x===id?'':x);}game.saveDirty=true;return true;
+}
+function moveInventoryItem(id,target){
+  if(!ITEMS[id]||count(id)<=0)return false;target=Math.max(0,Math.min(INVENTORY_SLOT_COUNT-1,Number(target)||0));const from=game.inventoryLayout.indexOf(id);if(from<0||from===target)return false;const swap=game.inventoryLayout[target]||'';game.inventoryLayout[target]=id;game.inventoryLayout[from]=swap;game.saveDirty=true;renderInventory();return true;
+}
+function ownedHotbar(raw){return normalizeHotbar(raw,HOTBAR_DEFAULT).map(id=>id&&count(id)>0?id:'');}
 function selectedId() { return game.hotbar[game.selected]; }
 function selectedItem() { return ITEMS[selectedId()] || null; }
 function bestOwned(ids){for(const id of ids)if(count(id)>0)return ITEMS[id];return null;}
@@ -193,7 +214,7 @@ function saveExists() { try { return !!localStorage.getItem(SAVE_KEY); } catch {
 
 function serialize() {
   const p=game.player;
-  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn,forgePlaced:game.forgePlaced,forgeActive:game.forgeActive,bossActive:game.bossActive,bossDefeated:game.bossDefeated,completed:game.completed,nightsSurvived:game.nightsSurvived,outpostReady:game.outpostReady,infrastructure:game.infrastructure,worldProgress:game.worldProgress,trade:game.trade,cargoBundles:game.cargoBundles,guard:activeGuard()};
+  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,facing:p.facing},inventory:game.inventory,inventoryLayout:game.inventoryLayout,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn,forgePlaced:game.forgePlaced,forgeActive:game.forgeActive,bossActive:game.bossActive,bossDefeated:game.bossDefeated,completed:game.completed,nightsSurvived:game.nightsSurvived,outpostReady:game.outpostReady,infrastructure:game.infrastructure,worldProgress:game.worldProgress,trade:game.trade,cargoBundles:game.cargoBundles,guard:activeGuard()};
 }
 function saveGame(show=true) {
   if (!game.running || !game.world) return;
@@ -201,19 +222,21 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.19.0'||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
-  game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
-  game.hotbar=normalizeHotbar(raw.hotbar,HOTBAR_DEFAULT);
+  game.inventory=sanitizeInventory(raw.inventory);
+  game.inventoryLayout=normalizeInventoryLayout(raw.inventoryLayout,game.inventory,ITEMS);
+  game.hotbar=ownedHotbar(raw.hotbar);
+  if(raw.v!==VERSION&&game.world.relaxLegacySurfaceTrees)game.world.relaxLegacySurfaceTrees();
   game.selected=Math.max(0,Math.min(HOTBAR_SIZE-1,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.trade=sanitizeTrade(raw.trade); game.cargoBundles=sanitizeCargoBundles(raw.cargoBundles); game.guard=sanitizeGuard(raw.guard); game.raiderCooldown=0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0)),warehouse:sanitizeWarehouse(b.warehouse)})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
   game.enemies=[]; game.drops=[]; game.projectiles=[]; game.enemyProjectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
   game.seed=String(seed||seedNow()).slice(0,32); game.world=new World(game.seed); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
-  game.inventory=freshInventory(); game.projectiles=[]; game.enemyProjectiles=[]; game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.worldProgress={biomesVisited:[],relicBiomes:[],evolution:0}; game.trade=freshTrade(); game.cargoBundles=[]; game.guard=null; game.raiderCooldown=0; game.infrastructure={beacons:[]}; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.nightsSurvived=0; game.outpostReady=false; game.nightState='init'; game.nightSurge=0; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
+  game.inventory=freshInventory(); game.inventoryLayout=Array.from({length:INVENTORY_SLOT_COUNT},()=>''); game.projectiles=[]; game.enemyProjectiles=[]; game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.worldProgress={biomesVisited:[],relicBiomes:[],evolution:0}; game.trade=freshTrade(); game.cargoBundles=[]; game.guard=null; game.raiderCooldown=0; game.infrastructure={beacons:[]}; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.nightsSurvived=0; game.outpostReady=false; game.nightState='init'; game.nightSurge=0; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
   toast(tr('新世界已生成：先收集青芯木','New world generated: gather Greenheart Wood first'));
 }
 function startWorldUi() {
@@ -821,7 +844,7 @@ function updateDrops(dt){
     d.vy=Math.min(important?6:8,d.vy+13*dt);
     const nx=d.x+d.vx*dt;if(!enemyCollides(nx,d.y,.28,.28))d.x=nx;else d.vx*=-.2;
     const ny=d.y+d.vy*dt;if(!enemyCollides(d.x,ny,.28,.28))d.y=ny;else{d.vy*=-.22;d.vx*=.8;}
-    if(dist<.72&&d.age>.1){addItem(d.id,d.n);d.dead=true;sfx('pickup',ITEMS[d.id]?.rare?1.25:.55);spawnDebris(d.x,d.y,ITEMS[d.id]?.rare?'#e9c16b':'#f0d9a2',ITEMS[d.id]?.rare?8:3,ITEMS[d.id]?.rare?.75:.35);haptic(ITEMS[d.id]?.rare?18:4);if(ITEMS[d.id]?.rare)toast(tr(`发现稀有装备 · ${itemName(d.id,'zh')}`,`Rare gear found · ${itemName(d.id,'en')}`));else if(d.id==='ancient_core')toast(tr('获得古代机芯','Ancient Core acquired'));renderHotbar();}
+    if(dist<.72&&d.age>.1){if(!addItem(d.id,d.n)){if(game.uiOpen)toast(tr('物品栏已满','Inventory full'));continue;}d.dead=true;sfx('pickup',ITEMS[d.id]?.rare?1.25:.55);spawnDebris(d.x,d.y,ITEMS[d.id]?.rare?'#e9c16b':'#f0d9a2',ITEMS[d.id]?.rare?8:3,ITEMS[d.id]?.rare?.75:.35);haptic(ITEMS[d.id]?.rare?18:4);if(ITEMS[d.id]?.rare)toast(tr(`发现稀有装备 · ${itemName(d.id,'zh')}`,`Rare gear found · ${itemName(d.id,'en')}`));else if(d.id==='ancient_core')toast(tr('获得古代机芯','Ancient Core acquired'));renderHotbar();renderInventory();}
   }
   game.drops=game.drops.filter(d=>!d.dead&&d.age<45);
 }
@@ -918,10 +941,11 @@ function updateCampfireRest(dt){
 function canCraft(r){return stationAvailable(r.station)&&Object.entries(r.need).every(([id,n])=>count(id)>=n);}
 function craft(r) {
   if(!canCraft(r)){toast(r.station&&!stationAvailable(r.station)?tr('需要靠近对应制造设施','Move closer to the required crafting station'):tr('材料不足','Not enough materials'));return;}
+  if(!canStoreItem(r.out.id,r.out.n)){toast(tr('物品栏没有足够空间','Not enough inventory space'));return;}
   for(const [id,n] of Object.entries(r.need))consume(id,n);addItem(r.out.id,r.out.n);if(['pick','weapon'].includes(ITEMS[r.out.id]?.kind))game.hotbar[game.selected]=r.out.id;renderInventory();renderCraft();renderHotbar();toast(r.out.id==='beacon'?tr('边境路标完成 · 建站后可采购本地货，再运往异地出售','Frontier Beacon ready · establish a post, load local cargo, then sell it abroad'):`${tr('制造','Crafted')} · ${itemName(r.out.id,lang)} ×${r.out.n}`);
 }
 function renderInventory() {
-  renderInventorySlots({view:$('#inventoryView'),inventory:game.inventory,items:ITEMS,itemName,lang,glyph:GLYPH,selectedId,onEquip:equipToHotbar});
+  renderInventorySlots({view:$('#inventoryView'),inventory:game.inventory,layout:game.inventoryLayout,items:ITEMS,itemName,lang,glyph:GLYPH,selectedId,onEquip:equipToHotbar,onMove:moveInventoryItem});
 }
 function equipToHotbar(id){return equipToHotbarSlot(game.selected,id);}
 function equipToHotbarSlot(slot,id){const index=Math.max(0,Math.min(HOTBAR_SIZE-1,Number(slot)||0));if(!ITEMS[id]||count(id)<=0)return false;game.hotbar[index]=id;game.selected=index;renderHotbar();renderInventory();game.saveDirty=true;return true;}
@@ -1012,7 +1036,7 @@ function drawBackdrop() {
 function mixColor(a,b,t){const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16),ar=pa>>16,ag=pa>>8&255,ab=pa&255,br=pb>>16,bg=pb>>8&255,bb=pb&255;return `rgb(${Math.round(ar+(br-ar)*t)},${Math.round(ag+(bg-ag)*t)},${Math.round(ab+(bb-ab)*t)})`;}
 function drawTile(tx,ty,id) {
   const def=TILE_DEFS[id];if(!def||id===TILE.AIR)return;const {x,y,s}=tileRect(tx,ty);if(x+s<0||y+s<0||x>game.cssW||y>game.cssH)return;
-  if(id===TILE.LEAF||id===TILE.GLOW_MOSS||id===TILE.TORCH||id===TILE.CAMPFIRE||id===TILE.RUIN_SPIKE||id===TILE.RUIN_URN||id===TILE.ROPE||id===TILE.PLATFORM){drawNonSolidTile(x,y,s,id,def);return;}
+  if(id===TILE.TREE_TRUNK||id===TILE.LEAF||id===TILE.GLOW_MOSS||id===TILE.TORCH||id===TILE.CAMPFIRE||id===TILE.RUIN_SPIKE||id===TILE.RUIN_URN||id===TILE.ROPE||id===TILE.PLATFORM){drawNonSolidTile(x,y,s,id,def);return;}
   const h=((tx*73856093)^(ty*19349663)^(id*83492791))>>>0;
   const top=game.world.get(tx,ty-1),left=game.world.get(tx-1,ty),right=game.world.get(tx+1,ty),below=game.world.get(tx,ty+1);
   const artTile={
@@ -1058,6 +1082,7 @@ function drawTile(tx,ty,id) {
   if(id===TILE.RELIC_CHEST){const pulse=.55+.45*Math.sin(performance.now()*.004+tx);ctx.fillStyle='#49371f';ctx.fillRect(x+s*.08,y+s*.3,s*.84,s*.62);ctx.fillStyle='#9d7b43';ctx.fillRect(x+s*.05,y+s*.24,s*.9,s*.18);ctx.fillStyle='#e1bd6c';ctx.fillRect(x+s*.44,y+s*.28,s*.13,s*.48);ctx.fillStyle=`rgba(255,220,130,${.18+pulse*.34})`;ctx.fillRect(x+s*.28,y+s*.08,s*.44,s*.15);ctx.strokeStyle='#2e2418';ctx.lineWidth=Math.max(1,s*.05);ctx.strokeRect(x+s*.08,y+s*.3,s*.84,s*.62);}
 }
 function drawNonSolidTile(x,y,s,id,def){
+  if(id===TILE.TREE_TRUNK){ctx.fillStyle=def.color;ctx.fillRect(x+s*.28,y-s*.03,s*.44,s*1.08);ctx.fillStyle='rgba(236,185,109,.15)';ctx.fillRect(x+s*.33,y+s*.12,s*.10,s*.72);ctx.fillStyle='rgba(48,27,17,.28)';ctx.fillRect(x+s*.60,y,s*.07,s);return;}
   if(id===TILE.LEAF&&drawArt('tile_leaf',x,y,s,s))return;
   if(id===TILE.LEAF){
     const seed=((x*17+y*31)|0)>>>0;ctx.fillStyle=def.color;ctx.globalAlpha=.94;
@@ -1187,15 +1212,34 @@ function drawTarget(){
 
 function drawSettlements(){
   if(!game.world?.settlements?.length)return;const s=game.camera.tile,p=game.player;
-  for(const site of game.world.settlements){const x=(site.x-game.camera.x)*s,y=(site.y-game.camera.y)*s;if(x<-s*10||x>game.cssW+s*10||y<-s*8||y>game.cssH+s*4)continue;const near=Math.hypot(site.x-p.x,site.y-p.y)<18,demand=near?settlementDailyDemand(site,game.trade?.day||0):null;
-    ctx.save();ctx.translate(Math.round(x),Math.round(y));const palette=site.biome==='verdant'?['#31594b','#9fbd82','#d4b36b']:site.biome==='ember'?['#663a32','#c07a4f','#e2b767']:['#39566d','#8fb8c7','#dbe7dd'];
-    ctx.fillStyle='rgba(5,10,12,.42)';ctx.fillRect(-s*4.6,-s*.15,s*9.2,s*.18);for(const q of [-2.8,2.65]){ctx.fillStyle=palette[0];ctx.fillRect(q*s,-s*1.52,s*1.35,s*1.36);ctx.fillStyle=palette[1];ctx.beginPath();ctx.moveTo((q-.18)*s,-s*1.52);ctx.lineTo((q+.68)*s,-s*2.12);ctx.lineTo((q+1.52)*s,-s*1.52);ctx.fill();ctx.fillStyle='#e1c27a';ctx.fillRect((q+.52)*s,-s*.92,s*.28,s*.76);}
-    ctx.fillStyle=palette[2];ctx.fillRect(-s*.9,-s*1.56,s*1.8,s*.18);ctx.fillStyle=palette[0];ctx.fillRect(-s*.72,-s*1.38,s*1.44,s*1.05);ctx.strokeStyle=palette[2];ctx.lineWidth=Math.max(1,s*.06);ctx.strokeRect(-s*.72,-s*1.38,s*1.44,s*1.05);ctx.fillStyle=palette[2];ctx.fillRect(-s*.08,-s*2.34,s*.16,s*.78);ctx.fillRect(-s*.08,-s*2.34,s*.82,s*.2);
-    drawArt('prop_crates',-s*1.52,-s*.62,s*.95,s*.57);drawArt('prop_workbench',-s*.52,-s*.72,s*1.08,s*.65);drawArt('prop_barrels',s*.92,-s*.57,s*.56,s*.56);ctx.font=`${Math.max(9,Math.round(s*.38))}px system-ui`;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle='#f2dfb5';ctx.shadowColor='rgba(0,0,0,.85)';ctx.shadowBlur=4;ctx.fillText(`⌂ ${settlementName(site,lang)}`,0,-s*2.48);
-    if(demand){ctx.font=`700 ${Math.max(8,Math.round(s*.29))}px system-ui`;ctx.fillStyle='#e7bd70';ctx.fillText(`${tr('急需','WANTS')} ${itemName(demand.goodId,lang)}`,0,-s*2.9);}ctx.restore();
+  for(const site of game.world.settlements){
+    const x=(site.x-game.camera.x)*s,y=(site.y-game.camera.y)*s;if(x<-s*13||x>game.cssW+s*13||y<-s*9||y>game.cssH+s*5)continue;
+    const distance=Math.hypot(site.x-p.x,site.y-p.y),near=distance<22,demand=near?settlementDailyDemand(site,game.trade?.day||0):null;
+    const palette=site.biome==='verdant'?['#31594b','#7fa66d','#d4b36b','#b9784e']:site.biome==='ember'?['#663a32','#a96044','#e2b767','#8d4f38']:['#39566d','#79a9bb','#dbe7dd','#577d94'];
+    ctx.save();ctx.translate(Math.round(x),Math.round(y));
+    ctx.fillStyle='rgba(4,8,10,.55)';ctx.fillRect(-s*8.8,-s*.12,s*17.6,s*.28);
+    ctx.fillStyle='rgba(232,203,136,.18)';ctx.fillRect(-s*8.3,-s*.20,s*16.6,s*.10);
+    const houses=[[-7.1,2.45,3.3],[-4.0,2.2,2.85],[3.65,2.35,3.05],[6.65,2.5,3.45]];
+    for(const [q,w,h] of houses){
+      ctx.fillStyle=palette[0];ctx.fillRect((q-w*.5)*s,-h*s,w*s,h*s);
+      ctx.fillStyle=palette[1];ctx.beginPath();ctx.moveTo((q-w*.62)*s,-h*s);ctx.lineTo(q*s,-(h+.9)*s);ctx.lineTo((q+w*.62)*s,-h*s);ctx.fill();
+      ctx.fillStyle='#e0bd74';ctx.fillRect((q-.18)*s,-s*.9,s*.36,s*.9);
+      ctx.fillStyle='rgba(238,217,165,.52)';ctx.fillRect((q-w*.25)*s,-(h-.72)*s,s*.34,s*.34);
+    }
+    ctx.fillStyle=palette[3];ctx.fillRect(-s*2.25,-s*2.25,s*4.5,s*.22);
+    ctx.fillStyle=palette[2];for(let i=0;i<5;i++)ctx.fillRect((-2.18+i*.9)*s,-s*2.23,s*.48,s*.55);
+    ctx.fillStyle=palette[0];ctx.fillRect(-s*2.05,-s*1.72,s*4.1,s*1.4);
+    ctx.strokeStyle=palette[2];ctx.lineWidth=Math.max(1,s*.065);ctx.strokeRect(-s*2.05,-s*1.72,s*4.1,s*1.4);
+    ctx.fillStyle=palette[2];ctx.fillRect(-s*2.12,-s*2.44,s*.16,s*2.2);ctx.fillRect(s*1.96,-s*2.44,s*.16,s*2.2);
+    ctx.fillRect(-s*.1,-s*4.05,s*.2,s*1.72);ctx.fillRect(-s*.1,-s*4.05,s*1.35,s*.22);
+    drawArt('prop_crates',-s*2.0,-s*.95,s*1.55,s*.88);drawArt('prop_workbench',-s*.75,-s*1.04,s*1.65,s*.93);drawArt('prop_barrels',s*1.15,-s*.86,s*.92,s*.92);
+    for(const q of [-8.15,8.15]){ctx.fillStyle='#6a4a32';ctx.fillRect((q-.07)*s,-s*1.8,s*.14,s*1.75);ctx.fillStyle='#f0c873';ctx.fillRect((q-.19)*s,-s*1.95,s*.38,s*.28);ctx.fillStyle='rgba(240,200,115,.10)';ctx.beginPath();ctx.arc(q*s,-s*1.8,s*.65,0,Math.PI*2);ctx.fill();}
+    ctx.font=`800 ${Math.max(12,Math.round(s*.48))}px system-ui`;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle='#f3e3bd';ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=5;ctx.fillText(`⌂ ${settlementName(site,lang)}`,0,-s*4.32);
+    if(demand){ctx.font=`700 ${Math.max(10,Math.round(s*.34))}px system-ui`;ctx.fillStyle='#e9bd69';ctx.fillText(`${tr('急需','WANTS')} ${itemName(demand.goodId,lang)}`,0,-s*4.78);}
+    if(distance<9.5){ctx.font=`700 ${Math.max(9,Math.round(s*.29))}px system-ui`;ctx.fillStyle='#d9eee6';ctx.fillText(tr('E · 进入聚落贸易','E · SETTLEMENT TRADE'),0,-s*.38);}
+    ctx.restore();
   }
 }
-
 function drawSupplyRoutes(){
   const links=beaconLinks();if(!links.length)return;const s=game.camera.tile,now=performance.now(),p=game.player;ctx.save();ctx.lineCap='round';ctx.setLineDash([Math.max(5,s*.34),Math.max(4,s*.22)]);ctx.lineDashOffset=-(now*.025%(s*.56));
   for(const link of links){const ax=(link.a.x-game.camera.x)*s,ay=(link.a.y-game.camera.y)*s,bx=(link.b.x-game.camera.x)*s,by=(link.b.y-game.camera.y)*s;if(Math.max(ax,bx)<-40||Math.min(ax,bx)>game.cssW+40||Math.max(ay,by)<-40||Math.min(ay,by)>game.cssH+40)continue;const biomes=componentBiomeIds(beaconComponentFor(link.a)),diverse=biomes.length>1,active=pointSegmentDistance(p.x,p.y,link.a,link.b)<=ROUTE_RADIUS;ctx.globalAlpha=active?.62:diverse?.34:.22;ctx.strokeStyle=diverse?'#82d7bc':'#d3b66d';ctx.lineWidth=Math.max(1.4,s*(active?.075:.045));ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();ctx.setLineDash([]);for(const t of [.25,.5,.75]){const nx=ax+(bx-ax)*t,ny=ay+(by-ay)*t,r=Math.max(2.5,s*.1);ctx.fillStyle=diverse?'#82d7bc':'#d3b66d';ctx.fillRect(Math.round(nx-r/2),Math.round(ny-r*1.9),Math.round(r),Math.round(r*2.1));ctx.fillStyle='#f2dfb5';ctx.fillRect(Math.round(nx-r*.8),Math.round(ny-r*2.05),Math.round(r*1.6),Math.max(1,Math.round(r*.35)));}ctx.setLineDash([Math.max(5,s*.34),Math.max(4,s*.22)]);}
@@ -1264,7 +1308,7 @@ function selectPanelTab(tab){$$('[data-tab]').forEach(x=>x.classList.toggle('act
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>selectPanelTab(btn.dataset.tab));
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}

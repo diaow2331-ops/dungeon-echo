@@ -172,12 +172,25 @@ export class World {
       const b=this.biome(x); if (b.id!=='verdant'||rng()>.22) continue;
       const y=this.surface[x]; if (this.get(x,y)!==TILE.GRASS) continue;
       const h=4+Math.floor(rng()*4);
-      for (let i=1;i<=h;i++) this.set(x,y-i,TILE.WOOD);
+      for (let i=1;i<=h;i++) this.set(x,y-i,TILE.TREE_TRUNK);
       const top=y-h;
       for (let oy=-2;oy<=2;oy++) for (let ox=-2;ox<=2;ox++) {
         if (Math.abs(ox)+Math.abs(oy)<=3 && this.get(x+ox,top+oy)===TILE.AIR) this.set(x+ox,top+oy,TILE.LEAF);
       }
     }
+  }
+  relaxLegacySurfaceTrees() {
+    let changed=0;
+    for(let x=2;x<this.w-2;x++){
+      const sy=this.surface[x];
+      for(let y=Math.max(0,sy-10);y<sy;y++){
+        if(this.get(x,y)!==TILE.WOOD)continue;
+        let leafy=false;
+        for(let oy=-3;oy<=2&&!leafy;oy++)for(let ox=-3;ox<=3;ox++){if(this.get(x+ox,y+oy)===TILE.LEAF){leafy=true;break;}}
+        if(leafy){this.set(x,y,TILE.TREE_TRUNK);changed++;}
+      }
+    }
+    return changed;
   }
   placeGlowMoss(rng) {
     const mossCount=Math.round(520*(this.w/LEGACY_WORLD_W));

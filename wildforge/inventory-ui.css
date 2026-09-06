@@ -1,4 +1,4 @@
-/* Wildforge v0.16 inventory: slot-first, game-native UI. */
+/* Wildforge v0.20 inventory: fixed 40-slot pack + 10-slot hotbar. */
 #hotbar{
   display:flex;flex-direction:column;align-items:center;gap:5px;padding:0;border:0;
   background:transparent;backdrop-filter:none;overflow:visible;
@@ -6,7 +6,7 @@
 .hotbar-rail{display:flex;gap:4px;padding:5px 6px;border:1px solid rgba(214,229,221,.14);border-radius:10px;background:rgba(6,13,16,.72);box-shadow:0 8px 24px rgba(0,0,0,.28)}
 .item-slot{position:relative;width:48px;height:48px;padding:0;display:grid;place-items:center;border-radius:6px;border:1px solid rgba(162,190,202,.38);background:linear-gradient(145deg,rgba(43,66,77,.94),rgba(22,38,47,.96));box-shadow:inset 0 0 0 2px rgba(255,255,255,.025),inset 0 -8px 12px rgba(0,0,0,.16),0 2px 5px rgba(0,0,0,.24);overflow:visible}
 .item-slot::after{content:"";position:absolute;inset:3px;border:1px solid rgba(220,238,241,.055);border-radius:4px;pointer-events:none}
-.item-slot.empty{opacity:.46;background:linear-gradient(145deg,rgba(34,52,61,.66),rgba(18,31,38,.72))}
+.item-slot.empty{opacity:.68;background:linear-gradient(145deg,rgba(34,52,61,.66),rgba(18,31,38,.72))}
 .item-slot.active{z-index:4;border-color:#f1c76d;transform:translateY(-3px);box-shadow:inset 0 0 0 2px rgba(255,225,151,.12),0 0 0 1px rgba(62,35,12,.68),0 0 16px rgba(239,190,88,.32)}
 .item-slot.drop-target{border-color:#8ee4c5;box-shadow:0 0 0 2px rgba(88,210,170,.22),0 0 18px rgba(88,210,170,.22)}
 .item-slot.rare{border-color:rgba(224,180,88,.72);background:linear-gradient(145deg,rgba(79,63,45,.95),rgba(37,35,39,.96))}
@@ -22,7 +22,7 @@
 .inventory-held{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center;padding:8px 10px;border:1px solid rgba(219,232,227,.12);border-radius:7px;background:rgba(8,16,19,.54)}
 .inventory-held>span{grid-row:1/3;color:#7f9692;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.inventory-held b{font-size:12px}.inventory-held small{grid-column:2;color:#a6b7b3;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .terraria-grid{display:grid;grid-template-columns:repeat(10,minmax(34px,1fr));gap:4px;padding:5px;border-radius:9px;background:rgba(5,11,14,.5);border:1px solid rgba(219,233,228,.08)}
-.terraria-grid .item-slot{width:100%;aspect-ratio:1;height:auto;min-width:0}.terraria-grid .slot-tooltip{left:auto;right:-2px;bottom:auto;top:calc(100% + 5px);transform:none}
+.terraria-grid .item-slot{width:100%;aspect-ratio:1;height:auto;min-width:0;cursor:grab}.terraria-grid .item-slot:active{cursor:grabbing}.terraria-grid .inventory-slot.empty{border-style:dashed;border-color:rgba(162,190,202,.24)}.terraria-grid .slot-tooltip{left:auto;right:-2px;bottom:auto;top:calc(100% + 5px);transform:none}
 .terraria-grid .kind-weapon,.terraria-grid .kind-pick{background:linear-gradient(145deg,rgba(55,69,81,.98),rgba(26,37,48,.96))}.terraria-grid .kind-cargo{background:linear-gradient(145deg,rgba(75,63,42,.97),rgba(39,34,27,.96))}.terraria-grid .kind-upgrade{background:linear-gradient(145deg,rgba(64,54,78,.96),rgba(33,29,43,.96))}
 .inventory-hint{padding:2px 3px 0;color:#748985;font-size:9px;line-height:1.45}
 @media (max-width:900px){.item-slot{width:43px;height:43px}.slot-icon{font-size:20px}#inventoryPanel{width:min(620px,66vw)}.terraria-grid{gap:3px}.terraria-grid .item-slot{min-width:32px}}

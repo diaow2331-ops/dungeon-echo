@@ -15,6 +15,6 @@ assert.doesNotThrow(()=>new Function(scripts[0]),'inline runtime script does not
 const version=fs.readFileSync(path.join(root,'wildforge/VERSION'),'utf8').trim();
 assert(html.includes(`WILDFORGE · v${version}`),'playtest version marker missing');
 assert(html.includes('data:image/webp;base64'),'pixel atlas was not inlined into single-file build');
-assert(html.includes('INVENTORY_SLOT_COUNT=40')&&html.includes('applyEnemyKnockback')&&html.includes('settlementDailyDemand')&&html.includes('buildSettlements')&&html.includes('bramble_boar')&&html.includes('ATLAS_SIZE=Object.freeze({w:512,h:256})')&&html.includes('makeTransportOffer')&&html.includes('TRANSPORT_CONTRACT_DAYS'),'v0.19 modular art/contract runtime was not bundled');
+assert(html.includes('INVENTORY_SLOT_COUNT=40')&&html.includes('applyEnemyKnockback')&&html.includes('settlementDailyDemand')&&html.includes('buildSettlements')&&html.includes('bramble_boar')&&html.includes('ATLAS_SIZE=Object.freeze({w:512,h:256})')&&html.includes('makeTransportOffer')&&html.includes('TRANSPORT_CONTRACT_DAYS')&&html.includes('normalizeInventoryLayout')&&html.includes('TREE_TRUNK'),'v0.20 modular art/contract runtime was not bundled');
 assert(!html.includes("const CORE_ART_SRC='./assets/core-art.webp'"),'standalone build still points at external pixel atlas');
 console.log('wildforge_single_html=PASS compile-scope-dollar-preservation');
