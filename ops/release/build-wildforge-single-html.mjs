@@ -23,6 +23,7 @@ const worldCode=stripExports(stripImports(read('src/world.js')));
 const inventoryCode=stripExports(stripImports(read('src/inventory-ui.js')));
 const combatCode=stripExports(stripImports(read('src/combat-tuning.js')));
 const settlementCode=stripExports(stripImports(read('src/settlement-economy.js')));
+const contractCode=stripExports(stripImports(read('src/transport-contracts.js')));
 const coreArtSource="const CORE_ART_SRC='./assets/core-art.webp';";
 const gameCode=stripExports(stripImports(read('src/game.js'))).replace(coreArtSource,()=>`const CORE_ART_SRC='${atlasUrl}';`);
 
@@ -33,7 +34,8 @@ const js=[
   `const __WF_INVENTORY=(()=>{\n${inventoryCode}\nreturn {INVENTORY_SLOT_COUNT,renderInventorySlots,renderHotbarSlots,normalizeHotbar};\n})();`,
   `const __WF_COMBAT=(()=>{\n${combatCode}\nreturn {ENCOUNTER_TUNING,encounterCap,nextEncounterDelay,suppressEarlySurfaceEncounter,knockbackResistance,applyEnemyKnockback};\n})();`,
   `const __WF_SETTLEMENT=(()=>{\n${settlementCode}\nreturn {SETTLEMENT_TRADE_RADIUS,SETTLEMENT_SAFE_RADIUS,SETTLEMENT_GENERAL_DEMAND_CAP,settlementName,settlementDailyDemand,settlementDemandKey,settlementDemandRemaining,settlementSellPrice};\n})();`,
-  `(()=>{\nconst {VERSION,TILE,TILE_DEFS,ITEMS,RECIPES,ENEMY_TYPES,itemName,tileName}=__WF_DATA;\nconst {World,WORLD_W,WORLD_H,encodeTiles,biomeIndexAt,makeRng}=__WF_WORLD;\nconst {renderInventorySlots,renderHotbarSlots,normalizeHotbar}=__WF_INVENTORY;\nconst {encounterCap,nextEncounterDelay,suppressEarlySurfaceEncounter,applyEnemyKnockback}=__WF_COMBAT;\nconst {SETTLEMENT_TRADE_RADIUS,SETTLEMENT_SAFE_RADIUS,SETTLEMENT_GENERAL_DEMAND_CAP,settlementName,settlementDailyDemand,settlementDemandKey,settlementDemandRemaining,settlementSellPrice}=__WF_SETTLEMENT;\n${gameCode}\n})();`
+  `const __WF_CONTRACTS=(()=>{\n${contractCode}\nreturn {TRANSPORT_CONTRACT_DAYS,makeTransportOffer,contractDaysLeft};\n})();`,
+  `(()=>{\nconst {VERSION,TILE,TILE_DEFS,ITEMS,RECIPES,ENEMY_TYPES,itemName,tileName}=__WF_DATA;\nconst {World,WORLD_W,WORLD_H,encodeTiles,biomeIndexAt,makeRng}=__WF_WORLD;\nconst {renderInventorySlots,renderHotbarSlots,normalizeHotbar}=__WF_INVENTORY;\nconst {encounterCap,nextEncounterDelay,suppressEarlySurfaceEncounter,applyEnemyKnockback}=__WF_COMBAT;\nconst {SETTLEMENT_TRADE_RADIUS,SETTLEMENT_SAFE_RADIUS,SETTLEMENT_GENERAL_DEMAND_CAP,settlementName,settlementDailyDemand,settlementDemandKey,settlementDemandRemaining,settlementSellPrice}=__WF_SETTLEMENT;\nconst {TRANSPORT_CONTRACT_DAYS,makeTransportOffer,contractDaysLeft}=__WF_CONTRACTS;\n${gameCode}\n})();`
 ].join('\n\n');
 
 const styleTag=`<style data-wildforge-inline="${version}">\n${css}\n</style>`;
