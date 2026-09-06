@@ -11,12 +11,22 @@ const target=process.argv[2]||path.join('/tmp',`Wildforge-v${version}-single.htm
 const read=rel=>fs.readFileSync(path.join(wf,rel),'utf8');
 let html=read('index.html');
 const css=read('style.css');
-const stripModule=(code)=>code.replace(/^\s*import\s+[^;]+;\s*$/gm,'').replace(/^export\s+/gm,'');
-const js=[stripModule(read('src/data.js')),stripModule(read('src/world.js')),stripModule(read('src/game.js'))].join('\n\n');
+const stripImports=(code)=>code.replace(/^\s*import\s+[^;]+;\s*$/gm,'');
+const stripExports=(code)=>code.replace(/^export\s+/gm,'');
+const dataCode=stripExports(stripImports(read('src/data.js')));
+const worldCode=stripExports(stripImports(read('src/world.js')));
+const gameCode=stripExports(stripImports(read('src/game.js')));
+const dataExports=['VERSION','TILE','BIOMES','TILE_DEFS','ITEMS','RECIPES','ENEMY_TYPES','itemName','tileName'];
+const worldExports=['World','WORLD_W','WORLD_H','encodeTiles','decodeTiles','biomeIndexAt','makeRng'];
+const js=[
+  `const __WF_DATA=(()=>{\n${dataCode}\nreturn {${dataExports.join(',')}};\n})();`,
+  `const __WF_WORLD=((__data)=>{\nconst {BIOMES,TILE,TILE_DEFS}=__data;\n${worldCode}\nreturn {${worldExports.join(',')}};\n})(__WF_DATA);`,
+  `(()=>{\nconst {VERSION,TILE,TILE_DEFS,ITEMS,RECIPES,ENEMY_TYPES,itemName,tileName}=__WF_DATA;\nconst {World,WORLD_W,WORLD_H,encodeTiles,biomeIndexAt,makeRng}=__WF_WORLD;\n${gameCode}\n})();`
+].join('\n\n');
 const styleTag=`<style data-wildforge-inline="${version}">\n${css}\n</style>`;
 const scriptTag=`<script data-wildforge-inline="${version}">\n${js.replace(/<\/script/gi,'<\\/script')}\n<\/script>`;
-html=html.replace(/\s*<link rel="stylesheet" href="style\.css\?v=[^"]+">/,`\n  ${styleTag}`);
-html=html.replace(/\s*<script type="module" src="src\/game\.js\?v=[^"]+"><\/script>/,`\n  ${scriptTag}`);
+html=html.replace(/\s*<link rel="stylesheet" href="style\.css\?v=[^"]+">/,()=>`\n  ${styleTag}`);
+html=html.replace(/\s*<script type="module" src="src\/game\.js\?v=[^"]+"><\/script>/,()=>`\n  ${scriptTag}`);
 if(/src\/game\.js|style\.css\?v=|^\s*import\s/m.test(html))throw new Error('single-file export still contains external runtime references');
 const marker='<!-- GENERATED: use ops/release/build-wildforge-single-html.mjs; source authority remains modular. -->\n';
 if(!html.startsWith(marker))html=marker+html;

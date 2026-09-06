@@ -147,6 +147,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
     </div>
   </main>
   <script data-wildforge-inline="0.13.0">
+const __WF_DATA=(()=>{
 const VERSION = '0.13.0';
 const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
@@ -271,7 +272,11 @@ const ENEMY_TYPES = Object.freeze({
 const itemName = (id, lang='zh') => (ITEMS[id] && ITEMS[id][lang]) || id;
 const tileName = (id, lang='zh') => (TILE_DEFS[id] && TILE_DEFS[id][lang]) || '—';
 
+return {VERSION,TILE,BIOMES,TILE_DEFS,ITEMS,RECIPES,ENEMY_TYPES,itemName,tileName};
+})();
 
+const __WF_WORLD=((__data)=>{
+const {BIOMES,TILE,TILE_DEFS}=__data;
 
 const WORLD_W = 480;
 const WORLD_H = 144;
@@ -468,11 +473,16 @@ class World {
   }
 }
 
+return {World,WORLD_W,WORLD_H,encodeTiles,decodeTiles,biomeIndexAt,makeRng};
+})(__WF_DATA);
 
+(()=>{
+const {VERSION,TILE,TILE_DEFS,ITEMS,RECIPES,ENEMY_TYPES,itemName,tileName}=__WF_DATA;
+const {World,WORLD_W,WORLD_H,encodeTiles,biomeIndexAt,makeRng}=__WF_WORLD;
 
 
 const $ = s => document.querySelector(s);
-const $ = s => [...document.querySelectorAll(s)];
+const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
 const SAVE_KEY = 'wildforge.save.v0130';
 const LEGACY_SAVE_KEY_0120 = 'wildforge.save.v0120';
@@ -1555,8 +1565,8 @@ $('#mobilePack').onclick=()=>togglePanel('inventoryPanel');
 
 function closePanels(){for(const id of ['inventoryPanel','menuPanel'])$('#'+id).classList.add('hidden');game.uiOpen=false;}
 function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains('hidden');closePanels();if(willOpen){panel.classList.remove('hidden');game.uiOpen=true;if(id==='inventoryPanel'){renderInventory();renderCraft();renderTrade();}}}
-$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
-$('[data-tab]').forEach(btn=>btn.onclick=()=>{$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
+$$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
+$$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
 $('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
@@ -1572,6 +1582,7 @@ $('#continueBtn').onclick=()=>{const raw=readSave();if(raw)applySave(raw);else s
 $('#startBtn').onclick=()=>startNewWorld($('#seedInput').value.trim()||seedNow());
 updateObjective();renderHotbar();resize();
 
+})();
 </script>
 </body>
 </html>
