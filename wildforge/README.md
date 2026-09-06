@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.14.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.15.0 build is an incubation build, not a public production release.
 
-## v0.14.0 playable incubation build
+## v0.15.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -18,7 +18,7 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.9.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.14.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
@@ -41,6 +41,14 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.15.0
+- 操控核心改为 120 Hz 固定物理步进，降低不同刷新率与掉帧情况下的加速、跳跃和碰撞手感漂移；
+- 重调地面加速、刹车、反向转身与空中控制，保留载重/商路修正但让基础移动响应更接近原生横版沙盒；
+- 重做可变跳跃：继续保留跳跃缓冲与土狼时间，轻点形成短跳、按住获得完整跳高，松键不再用瞬间速度乘法硬截断；
+- 左键改为“当前物品主动作”：武器攻击、镐采掘、方块对空位放置；右键保留强制放置；弓现在可直接向空处射击；
+- 近战增加小范围朝向容错，不再要求鼠标精确锁中敌人格；相机提高跟随响应并按像素对齐；
+- 增加失焦/切后台输入清理与高分辨率滚轮门限，修复粘键和滚轮一次跳多格；新增 v0.14.0 → v0.15.0 存档迁移。
 
 ## v0.14.0
 - 接入第一版原创像素运行时图集：青藤原基础地块、主角动作、苔壳爬兽、灰披劫徒、护卫、边境路标、遗物箱、工匠台与落地货包开始替换程序色块占位；
