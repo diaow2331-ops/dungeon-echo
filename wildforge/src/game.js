@@ -20,7 +20,8 @@ const ART=Object.freeze({
 
 function artReady(){return CORE_ART.complete&&CORE_ART.naturalWidth>0;}
 function drawArt(key,x,y,w,h){const r=ART[key];if(!r||!artReady())return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(CORE_ART,r[0],r[1],r[2],r[3],Math.round(x),Math.round(y),Math.round(w),Math.round(h));return true;}
-const SAVE_KEY = 'wildforge.save.v0140';
+const SAVE_KEY = 'wildforge.save.v0150';
+const LEGACY_SAVE_KEY_0140 = 'wildforge.save.v0140';
 const LEGACY_SAVE_KEY_0131 = 'wildforge.save.v0131';
 const LEGACY_SAVE_KEY_0130 = 'wildforge.save.v0130';
 const LEGACY_SAVE_KEY_0120 = 'wildforge.save.v0120';
@@ -37,6 +38,24 @@ const LEGACY_SAVE_KEY_OLDER = 'wildforge.save.v040';
 const LEGACY_SAVE_KEY_OLDEST = 'wildforge.save.v010';
 const LANG_KEY = 'wildforge.lang';
 const HOTBAR_SIZE = 8;
+const PHYSICS_STEP=1/120;
+const MAX_PHYSICS_STEPS=8;
+const MAX_FRAME_DT=.066;
+const MOVE_SPEED=6.05;
+const GROUND_ACCEL=60;
+const GROUND_BRAKE=82;
+const GROUND_TURN=104;
+const AIR_ACCEL=25;
+const AIR_BRAKE=9;
+const AIR_TURN=36;
+const JUMP_SPEED=9.9;
+const JUMP_HOLD_TIME=.19;
+const JUMP_GRAVITY=18;
+const RISE_GRAVITY=31.5;
+const FALL_GRAVITY=34;
+const MAX_FALL_SPEED=15;
+const COYOTE_TIME=.12;
+const JUMP_BUFFER_TIME=.13;
 const BEACON_LINK_RANGE=96;
 const ROUTE_RADIUS=4.5;
 const ROUTE_SPEED_MULT=1.08;
@@ -95,7 +114,7 @@ function sfx(kind,intensity=1){
 }
 
 const game = {
-  running:false, world:null, seed:'', time:0.18, last:0, autosave:0, spawnTimer:0,
+  running:false, world:null, seed:'', time:0.18, last:0, autosave:0, spawnTimer:0, physicsAccumulator:0, wheelAccum:0,
   player:null, inventory:{}, hotbar:[...HOTBAR_DEFAULT], selected:0, enemies:[], drops:[], projectiles:[], enemyProjectiles:[],
   input:{left:false,right:false,down:false,jump:false,mine:false,place:false,dash:false}, pointer:{x:0,y:0,active:false,worldX:0,worldY:0,kind:'mouse'},
   mine:{key:'',progress:0}, attackCd:0, placeCd:0, quickPlaceId:null, interactCd:0, hurtCd:0, uiOpen:false,
@@ -168,7 +187,7 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
@@ -185,7 +204,7 @@ function startNewWorld(seed) {
 }
 function startWorldUi() {
   $('#startScreen').classList.add('hidden'); $('#deathScreen').classList.add('hidden'); $('#seedText').textContent=game.seed; renderHotbar(); renderInventory(); renderCraft(); resize();
-  game.camera.x=game.player.x-game.cssW/game.camera.tile/2; game.camera.y=game.player.y-game.cssH/game.camera.tile/2; requestAnimationFrame(loop);
+  game.camera.x=game.player.x-game.cssW/game.camera.tile/2; game.camera.y=game.player.y-game.cssH/game.camera.tile/2; game.physicsAccumulator=0;game.last=performance.now(); requestAnimationFrame(loop);
 }
 
 function toast(text) { const el=$('#toast'); el.textContent=text; el.classList.add('show'); clearTimeout(game.toastTimer); game.toastTimer=setTimeout(()=>el.classList.remove('show'),1900); }
@@ -471,27 +490,31 @@ function updatePlayer(dt) {
   if(game.input.down&&wasGrounded&&wasPlatform){p.dropThrough=.24;p.grounded=false;p.onPlatform=false;p.y+=.09;p.fallStartY=p.y;}
 
   const keyboard=(game.input.right?1:0)-(game.input.left?1:0),analog=game.moveAxis.touch?game.moveAxis.x:keyboard;
-  const dir=Math.abs(analog)<.08?0:Math.max(-1,Math.min(1,analog)),route=routeStateAt(p.x,p.y),freightMove=cargoMoveMultiplier(route.active),max=5.75*(route.active?ROUTE_SPEED_MULT:1)*freightMove,targetVx=dir*max;
-  const accel=p.grounded?39:22,decel=p.grounded?47:9;
-  if(dir){p.vx=approach(p.vx,targetVx,accel*dt);p.facing=dir>0?1:-1;}else p.vx=approach(p.vx,0,decel*dt);
+  const dir=Math.abs(analog)<.065?0:Math.max(-1,Math.min(1,analog)),route=routeStateAt(p.x,p.y),freightMove=cargoMoveMultiplier(route.active),max=MOVE_SPEED*(route.active?ROUTE_SPEED_MULT:1)*freightMove,targetVx=dir*max;
+  const turning=!!(dir&&Math.abs(p.vx)>.08&&Math.sign(dir)!==Math.sign(p.vx));
+  const accel=p.grounded?(turning?GROUND_TURN:GROUND_ACCEL):(turning?AIR_TURN:AIR_ACCEL),brake=p.grounded?GROUND_BRAKE:AIR_BRAKE;
+  p.vx=approach(p.vx,dir?targetVx:0,(dir?accel:brake)*dt);
+  if(p.grounded&&!dir&&Math.abs(p.vx)<.025)p.vx=0;
+  if(dir)p.facing=dir>0?1:-1;
   if(game.pointer.active&&(game.input.mine||game.input.place)){const q=pointerWorld();if(Math.abs(q.x-p.x)>.18)p.facing=Math.sign(q.x-p.x)||p.facing;}
 
   const onRope=playerTouchesTile(TILE.ROPE);
-  p.coyote=p.grounded?.12:Math.max(0,p.coyote-dt);
+  p.coyote=p.grounded?COYOTE_TIME:Math.max(0,p.coyote-dt);
   if(onRope){
     p.jumpBuffer=0;p.jumpHold=0;p.jumpLatch=game.input.jump;p.grounded=false;p.onPlatform=false;p.fallStartY=p.y;
     const axisY=game.moveAxis.touch?game.moveAxis.y:(game.input.down?1:game.input.jump?-1:0),targetVy=axisY<-.22?-5.1:axisY>.22?4.4:1.05,blend=Math.min(1,dt*(Math.abs(axisY)>.22?17:9));
     p.vy+=(targetVy-p.vy)*blend;p.vy=Math.max(-5.35,Math.min(4.55,p.vy));
   }else{
-    if(game.input.jump&&!p.jumpLatch){p.jumpBuffer=.13;p.jumpLatch=true;}
+    if(game.input.jump&&!p.jumpLatch){p.jumpBuffer=JUMP_BUFFER_TIME;p.jumpLatch=true;}
     if(!game.input.jump)p.jumpLatch=false;
     p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
-    if(p.jumpBuffer>0&&p.coyote>0){p.vy=-10.15;p.grounded=false;p.onPlatform=false;p.coyote=0;p.jumpBuffer=0;p.jumpHold=.17;sfx('jump',.8);}
-    let gravity=29;
+    if(p.jumpBuffer>0&&p.coyote>0){p.vy=-JUMP_SPEED;p.grounded=false;p.onPlatform=false;p.coyote=0;p.jumpBuffer=0;p.jumpHold=JUMP_HOLD_TIME;sfx('jump',.8);}
+    let gravity=p.vy>=0?FALL_GRAVITY:RISE_GRAVITY;
     if(p.vy<0&&p.jumpHold>0){
-      if(game.input.jump){gravity=17.5;p.jumpHold=Math.max(0,p.jumpHold-dt);}else{p.vy*=.57;p.jumpHold=0;gravity=31;}
+      if(game.input.jump){gravity=JUMP_GRAVITY;p.jumpHold=Math.max(0,p.jumpHold-dt);}
+      else{p.vy=Math.max(p.vy,-5.25);p.jumpHold=0;gravity=RISE_GRAVITY;}
     }
-    p.vy=Math.min(14,p.vy+gravity*dt);
+    p.vy=Math.min(MAX_FALL_SPEED,p.vy+gravity*dt);
   }
 
   const nx=p.x+p.vx*dt;
@@ -567,12 +590,23 @@ function nearestEnemyAtTarget(t) {
   for(const e of game.enemies){if(e.dead)continue;const d=Math.hypot(e.x-(t.x+.5),e.y-(t.y+.5));if(d<bd&&Math.hypot(e.x-game.player.x,e.y-game.player.y)<=Math.max(5.25,currentWeapon()?.range||5.25)){best=e;bd=d;}}
   return best;
 }
-function attack(e) {
-  if(game.attackCd>0||!e)return;if(cargoLoad()>0){game.attackCd=.28;toast(tr('背负货物时无法正常战斗 · 按 R 放下货包','Weapons are tied up by cargo · press R to set the load down'));return;}
+function meleeEnemyTarget(){
+  const p=game.player,weapon=currentWeapon(),range=Math.max(1.9,Math.min(3.2,weapon.range||2.35)),aim=game.pointer.active?pointerWorld():{x:p.x+p.facing*2,y:p.y};
+  const facing=Math.abs(aim.x-p.x)>.12?Math.sign(aim.x-p.x):p.facing;let best=null,bestScore=Infinity;
+  for(const e of game.enemies){
+    if(e.dead)continue;const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);if(d>range||Math.abs(dy)>1.45||dx*facing<-.35)continue;
+    const score=Math.hypot(e.x-aim.x,e.y-aim.y)+d*.18;if(score<bestScore){bestScore=score;best=e;}
+  }
+  return best;
+}
+function attack(e=null) {
+  if(game.attackCd>0)return;if(cargoLoad()>0){game.attackCd=.28;toast(tr('背负货物时无法正常战斗 · 按 R 放下货包','Weapons are tied up by cargo · press R to set the load down'));return;}
   const weapon=currentWeapon(),damage=weapon.damage||2.5;
-  if(weapon.ranged){const ammo=weapon.ammo||'arrow';if(count(ammo)<1){toast(tr('没有弹药：先制造骨木箭','No ammo: craft Woodbone Arrows first'));game.attackCd=.2;return;}consume(ammo,1);const q=game.pointer.active?pointerWorld():{x:game.player.x+game.player.facing*2,y:game.player.y};let dx=q.x-game.player.x,dy=q.y-(game.player.y-.22);const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;game.projectiles.push({x:game.player.x+dx*.7,y:game.player.y-.22,vx:dx*weapon.speed,vy:dy*weapon.speed,damage,life:Math.max(0.65,(weapon.range||12)/(weapon.speed||15)*1.25),kind:weapon.id});game.attackCd=.42;game.player.attackFlash=.14;sfx('shot',.75);game.fx.shake=Math.max(game.fx.shake,.8);haptic(6);toast(`${tr('发射','Shot')} ${itemName(weapon.id,lang)}`);return;}
-  e.hp-=damage; e.hit=.16; game.attackCd=.32; game.player.attackFlash=.18;sfx('hit',.9);spawnDebris(e.x,e.y,e.def.color,5,.9);game.fx.shake=Math.max(game.fx.shake,2.2);haptic(10);
-  toast(`${tr('命中','Hit')} ${lang==='zh'?e.def.zh:e.def.en} · -${Math.round(damage)}`);
+  if(weapon.ranged){const ammo=weapon.ammo||'arrow';if(count(ammo)<1){toast(tr('没有弹药：先制造骨木箭','No ammo: craft Woodbone Arrows first'));game.attackCd=.2;return;}consume(ammo,1);const q=game.pointer.active?pointerWorld():{x:game.player.x+game.player.facing*2,y:game.player.y};let dx=q.x-game.player.x,dy=q.y-(game.player.y-.22);const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;game.projectiles.push({x:game.player.x+dx*.7,y:game.player.y-.22,vx:dx*weapon.speed,vy:dy*weapon.speed,damage,life:Math.max(0.65,(weapon.range||12)/(weapon.speed||15)*1.25),kind:weapon.id});game.attackCd=.42;game.player.attackFlash=.14;sfx('shot',.75);game.fx.shake=Math.max(game.fx.shake,.8);haptic(6);return;}
+  game.attackCd=.30;game.player.attackFlash=.18;
+  if(!e)e=meleeEnemyTarget();
+  if(!e)return;
+  e.hp-=damage;e.hit=.16;sfx('hit',.9);spawnDebris(e.x,e.y,e.def.color,5,.9);game.fx.shake=Math.max(game.fx.shake,2.2);haptic(10);
   if(e.hp<=0)killEnemy(e);
 }
 function spawnDrop(id,n,x,y) {
@@ -708,7 +742,22 @@ function place(idOverride=null) {
   game.world.set(t.x,t.y,item.tile);consume(id,1);if(item.tile===TILE.BEACON&&!registerBeacon(t.x,t.y)) {game.world.set(t.x,t.y,TILE.AIR);addItem(id,1);return;} if(item.tile===TILE.STAR_FORGE){game.forgePlaced=true;game.saveDirty=true;toast(tr('星核炉已安放：带它深入星晶裂隙','Starcore Forge placed: carry its power into the rift'));}sfx('place',.65);game.placeCd=(item.tile===TILE.PLATFORM||item.tile===TILE.ROPE)?0.085:0.115;spawnDebris(t.x+.5,t.y+.5,def.color,3,.28);game.fx.shake=Math.max(game.fx.shake,.18);haptic(4);renderHotbar();game.saveDirty=true;
 }
 
-function updateActions(dt){game.attackCd=Math.max(0,game.attackCd-dt);game.placeCd=Math.max(0,game.placeCd-dt);game.interactCd=Math.max(0,game.interactCd-dt);game.hurtCd=Math.max(0,game.hurtCd-dt);if(game.uiOpen)return;if(game.input.mine)mine(dt);else resetMine();if(game.input.place)place(game.quickPlaceId);}
+function primaryUseMode(){
+  const id=selectedId(),item=ITEMS[id];
+  if(game.pointer.kind==='touch')return item?.kind==='weapon'&&count(id)>0?'attack':'mine';
+  if(game.autoTool)return 'mine';
+  if(item?.kind==='weapon'&&count(id)>0)return 'attack';
+  if(item?.kind==='pick'&&count(id)>0)return 'mine';
+  if(item?.tile&&count(id)>0){const t=baseTarget();if(targetInReach(t.x,t.y)&&game.world.get(t.x,t.y)===TILE.AIR)return 'place';}
+  return 'mine';
+}
+function usePrimary(dt){
+  const mode=primaryUseMode();
+  if(mode==='place'){resetMine();place();return;}
+  if(mode==='attack'){resetMine();const weapon=currentWeapon(),t=reachTarget();attack(weapon.ranged?nearestEnemyAtTarget(t):(nearestEnemyAtTarget(t)||meleeEnemyTarget()));return;}
+  mine(dt);
+}
+function updateActions(dt){game.attackCd=Math.max(0,game.attackCd-dt);game.placeCd=Math.max(0,game.placeCd-dt);game.interactCd=Math.max(0,game.interactCd-dt);game.hurtCd=Math.max(0,game.hurtCd-dt);if(game.uiOpen)return;if(game.input.mine)usePrimary(dt);else resetMine();if(game.input.place)place(game.quickPlaceId);}
 
 function updateDrops(dt){
   const p=game.player;
@@ -1065,7 +1114,7 @@ function drawLighting(){
   lightCtx.globalCompositeOperation='source-over';ctx.drawImage(lightCanvas,0,0,game.cssW,game.cssH);
 }
 function drawTarget(){
-  const heldId=game.quickPlaceId||selectedId(),held=ITEMS[heldId],placing=!!held?.tile&&!game.input.mine,t=placing?placementTarget(held):stableMineTarget(reachTarget());if(!t.ok)return;
+  const heldId=game.quickPlaceId||selectedId(),held=ITEMS[heldId],placing=!!held?.tile&&(game.input.place||primaryUseMode()==='place'),t=placing?placementTarget(held):stableMineTarget(reachTarget());if(!t.ok)return;
   const {x,y,s}=tileRect(t.x,t.y),tile=game.world.get(t.x,t.y);ctx.strokeStyle=t.assisted?'rgba(114,215,184,.95)':'rgba(242,216,158,.86)';ctx.lineWidth=t.assisted?2:1.4;ctx.strokeRect(x+.8,y+.8,s-1.6,s-1.6);
   if(placing&&tile===TILE.AIR&&canPlaceAt(t.x,t.y)){const def=TILE_DEFS[held.tile];ctx.save();ctx.globalAlpha=.24;ctx.fillStyle=def?.color||'#d8c18b';ctx.fillRect(x+2,y+2,s-4,s-4);ctx.globalAlpha=.7;ctx.strokeStyle=hasPlacementSupport(t.x,t.y,held.tile)?'rgba(125,220,176,.8)':'rgba(220,108,96,.8)';ctx.strokeRect(x+2.5,y+2.5,s-5,s-5);ctx.restore();}
   if(game.mine.key===t.x+','+t.y&&game.mine.progress>0){const p=Math.min(1,game.mine.progress);ctx.strokeStyle=`rgba(255,238,203,${.25+p*.7})`;ctx.lineWidth=Math.max(1,1+p*1.6);ctx.beginPath();ctx.moveTo(x+s*.18,y+s*.2);ctx.lineTo(x+s*(.38+p*.08),y+s*.48);ctx.lineTo(x+s*.24,y+s*.82);ctx.moveTo(x+s*.78,y+s*.16);ctx.lineTo(x+s*(.58-p*.08),y+s*.45);ctx.lineTo(x+s*.76,y+s*.78);if(p>.48){ctx.moveTo(x+s*.46,y+s*.08);ctx.lineTo(x+s*.5,y+s*.33);ctx.lineTo(x+s*.37,y+s*.63);ctx.lineTo(x+s*.52,y+s*.92);}ctx.stroke();}
@@ -1084,11 +1133,22 @@ function drawFx(){
 }
 function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawSupplyRoutes();drawProjectiles();drawEnemyProjectiles();drawEnemies();drawDrops();drawCargoBundles();drawGuard();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
 function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.BEACON){const b=beaconAt(t.x,t.y),linked=linkedBeaconKeys().has(beaconKey(b?.x||t.x,b?.y||t.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0)),component=beaconComponentFor(b),biomeCount=componentBiomeIds(component).length,exchange=b?beaconExchangeGood(b):null,cargo=exchange?itemName(exchange.id,lang):tr('本地','Local'),stored=warehouseUnits(b);$('#targetTip').textContent=tr(`边境路标 · ${linked?biomeCount+'地路网':'孤立'} · 仓库 ${stored}/${WAREHOUSE_CAP} · E→贸易`,`Frontier Beacon · ${linked?biomeCount+'-biome link':'Isolated'} · Depot ${stored}/${WAREHOUSE_CAP} · E→Trade`);}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
-function updateCamera(dt){const p=game.player,s=game.camera.tile,lookX=Math.max(-1.35,Math.min(1.35,p.vx*.22)),lookY=p.vy>5?Math.min(.7,(p.vy-5)*.07):0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.pow(.0014,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
+function updateCamera(dt){const p=game.player,s=game.camera.tile,keyboard=(game.input.right?1:0)-(game.input.left?1:0),axis=game.moveAxis.touch?game.moveAxis.x:keyboard,lookX=Math.max(-.9,Math.min(.9,axis*.58+p.vx*.055)),lookY=p.vy>5?Math.min(.45,(p.vy-5)*.045):p.vy<-6?-.12:0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.exp(-18*Math.max(0,dt));game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;const maxX=Math.max(0,WORLD_W-game.cssW/s),maxY=Math.max(0,WORLD_H-game.cssH/s);game.camera.x=Math.max(0,Math.min(maxX,Math.round(game.camera.x*s)/s));game.camera.y=Math.max(0,Math.min(maxY,Math.round(game.camera.y*s)/s));}
 
-function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateProjectiles(dt);updateEnemyProjectiles(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
+function simulationStep(dt){updatePlayer(dt);updateHazards();updateActions(dt);updateProjectiles(dt);updateEnemyProjectiles(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}
+function loop(now){
+  if(!game.running)return;const frameDt=Math.min(MAX_FRAME_DT,Math.max(0,(now-(game.last||now))/1000));game.last=now;syncMobileAim();
+  if(game.uiOpen)game.physicsAccumulator=0;
+  else{
+    game.physicsAccumulator=Math.min(MAX_FRAME_DT,game.physicsAccumulator+frameDt);let steps=0;
+    while(game.physicsAccumulator>=PHYSICS_STEP&&steps<MAX_PHYSICS_STEPS){simulationStep(PHYSICS_STEP);game.physicsAccumulator-=PHYSICS_STEP;steps++;}
+    if(steps===MAX_PHYSICS_STEPS&&game.physicsAccumulator>=PHYSICS_STEP)game.physicsAccumulator=0;
+  }
+  updateFx(frameDt);updateCamera(frameDt);render();game.autosave+=frameDt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);
+}
 
 function setInput(action,on){if(action in game.input)game.input[action]=on;}
+function clearHeldInputs(){for(const key of ['left','right','down','jump','mine','place','dash'])game.input[key]=false;game.autoTool=false;game.quickPlaceId=null;game.moveAxis.x=game.moveAxis.y=0;game.moveAxis.touch=false;game.mobileAim.active=false;game.wheelAccum=0;}
 function aimFromEvent(e){game.pointer.kind=e.pointerType==='touch'?'touch':'mouse';const r=canvas.getBoundingClientRect();game.pointer.x=e.clientX-r.left;game.pointer.y=e.clientY-r.top;game.pointer.active=true;const q=pointerWorld();game.pointer.worldX=q.x;game.pointer.worldY=q.y;$('#crosshair').style.left=e.clientX+'px';$('#crosshair').style.top=e.clientY+'px';$('#crosshair').style.display='block';}
 function setAimVector(nx,ny){
   const mag=Math.hypot(nx,ny)||1,nx2=nx/mag,ny2=ny/mag,s=game.camera.tile,reach=4.45;
@@ -1100,9 +1160,10 @@ canvas.addEventListener('pointermove',e=>aimFromEvent(e));
 canvas.addEventListener('pointerdown',e=>{ensureAudio();if(!game.running||game.uiOpen)return;aimFromEvent(e);try{canvas.setPointerCapture?.(e.pointerId);}catch{}if(e.pointerType!=='touch'){if(e.button===2)game.input.place=true;else game.input.mine=true;}e.preventDefault();});
 canvas.addEventListener('pointerup',e=>{if(e.button===2)game.input.place=false;else game.input.mine=false;e.preventDefault();});
 canvas.addEventListener('pointercancel',()=>{game.input.mine=game.input.place=false;});canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('wheel',e=>{if(!game.running||game.uiOpen)return;cycleHotbar(e.deltaY>0?1:-1);e.preventDefault();},{passive:false});
-addEventListener('keydown',e=>{ensureAudio();if(e.repeat&&['KeyE','KeyF','KeyR','Escape','ControlLeft','ControlRight'].includes(e.code))return;if(/^Digit[1-8]$/.test(e.code)){game.selected=+e.code.slice(-1)-1;renderHotbar();renderInventory();return;}if(e.code==='ControlLeft'||e.code==='ControlRight'){game.smartCursor=!game.smartCursor;toast(game.smartCursor?tr('智能光标 · 开','Smart Cursor · ON'):tr('智能光标 · 关','Smart Cursor · OFF'));e.preventDefault();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){game.autoTool=true;return;}if(e.code==='KeyE'){togglePanel('inventoryPanel');return;}if(e.code==='KeyR'){toggleCargoBundle();e.preventDefault();return;}if(e.code==='KeyQ'){setInput('dash',true);e.preventDefault();return;}if(e.code==='Escape'){closePanels();return;}if(e.code==='KeyF'){goFullscreen();return;}if(e.code==='KeyA'||e.code==='ArrowLeft')setInput('left',true);if(e.code==='KeyD'||e.code==='ArrowRight')setInput('right',true);if(e.code==='KeyS'||e.code==='ArrowDown')setInput('down',true);if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp'){setInput('jump',true);e.preventDefault();}});
+canvas.addEventListener('wheel',e=>{if(!game.running||game.uiOpen)return;game.wheelAccum+=e.deltaY;if(Math.abs(game.wheelAccum)>=48){cycleHotbar(game.wheelAccum>0?1:-1);game.wheelAccum=0;}e.preventDefault();},{passive:false});
+addEventListener('keydown',e=>{ensureAudio();if(['KeyA','KeyD','KeyS','KeyW','Space','ArrowLeft','ArrowRight','ArrowDown','ArrowUp'].includes(e.code))e.preventDefault();if(e.repeat&&['KeyE','KeyF','KeyR','Escape','ControlLeft','ControlRight'].includes(e.code))return;if(/^Digit[1-8]$/.test(e.code)){game.selected=+e.code.slice(-1)-1;renderHotbar();renderInventory();return;}if(e.code==='ControlLeft'||e.code==='ControlRight'){game.smartCursor=!game.smartCursor;toast(game.smartCursor?tr('智能光标 · 开','Smart Cursor · ON'):tr('智能光标 · 关','Smart Cursor · OFF'));e.preventDefault();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){game.autoTool=true;return;}if(e.code==='KeyE'){togglePanel('inventoryPanel');return;}if(e.code==='KeyR'){toggleCargoBundle();e.preventDefault();return;}if(e.code==='KeyQ'){setInput('dash',true);e.preventDefault();return;}if(e.code==='Escape'){closePanels();return;}if(e.code==='KeyF'){goFullscreen();return;}if(e.code==='KeyA'||e.code==='ArrowLeft')setInput('left',true);if(e.code==='KeyD'||e.code==='ArrowRight')setInput('right',true);if(e.code==='KeyS'||e.code==='ArrowDown')setInput('down',true);if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp'){setInput('jump',true);e.preventDefault();}});
 addEventListener('keyup',e=>{if(e.code==='KeyA'||e.code==='ArrowLeft')setInput('left',false);if(e.code==='KeyD'||e.code==='ArrowRight')setInput('right',false);if(e.code==='KeyQ')setInput('dash',false);if(e.code==='KeyS'||e.code==='ArrowDown')setInput('down',false);if(e.code==='ShiftLeft'||e.code==='ShiftRight')game.autoTool=false;if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp')setInput('jump',false);});
+addEventListener('blur',clearHeldInputs);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearHeldInputs();});
 
 function setupStick(el,onMove,onEnd){
   let activeId=null;const knob=el.querySelector('.stick-knob');
@@ -1126,7 +1187,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
