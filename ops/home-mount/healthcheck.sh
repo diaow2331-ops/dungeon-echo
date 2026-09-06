@@ -10,6 +10,8 @@ ABOUT_URL=https://91hwl.cn/about/
 PRIVACY_URL=https://91hwl.cn/privacy/
 CONTACT_URL=https://91hwl.cn/contact/
 ADS_URL=https://91hwl.cn/ads.txt
+ROBOTS_URL=https://91hwl.cn/robots.txt
+SITEMAP_URL=https://91hwl.cn/sitemap.xml
 STYLE_URL=https://91hwl.cn/assets/site-v1110/style.css
 SCRIPT_URL=https://91hwl.cn/assets/site-v1110/site.js
 ART_URL=https://91hwl.cn/assets/site-v1110/wang-jian-landscape-1668.jpg
@@ -113,7 +115,7 @@ check_de_detail(){
   file="$1"
   require_fixed "$file" "data-site-version=\"$version\"" 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" "softwareVersion\":\"$expected_de\"" 'Dungeon Echo detail software version' || return 1
-  require_fixed "$file" '单一规则权威' 'Dungeon Echo v1.6 release copy' || return 1
+  require_fixed "$file" "v$expected_de 为当前公开版本" 'Dungeon Echo current release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
   require_fixed "$file" 'class-roster.webp' 'Dungeon Echo roster art' || return 1
   require_fixed "$file" 'dungeon-town.webp' 'Dungeon Echo town art' || return 1
@@ -186,6 +188,14 @@ check_main_origin(){
   fetch "$work_dir/origin-contact.html" --resolve "$MAIN_RESOLVE" "$CONTACT_URL" && check_trust_page "$work_dir/origin-contact.html" '如何提交有效反馈' "$CONTACT_URL" 'Contact page' || return 1
   fetch "$work_dir/origin-style.css" --resolve "$MAIN_RESOLVE" "$STYLE_URL" && require_fixed "$work_dir/origin-style.css" '.hero-showcase' 'shared modern Chinese design CSS' || return 1
   fetch "$work_dir/origin-site.js" --resolve "$MAIN_RESOLVE" "$SCRIPT_URL" && require_fixed "$work_dir/origin-site.js" 'data-game-choice' 'shared interactive chooser runtime' || return 1
+  require_fixed "$work_dir/origin-site.js" "persistQueryPrefs" "canonical-safe preference persistence" || return 1
+  ! grep -Fq "searchParams.set('lang'" "$work_dir/origin-site.js" || return 1
+  ! grep -Fq "searchParams.set('theme'" "$work_dir/origin-site.js" || return 1
+  fetch "$work_dir/origin-robots.txt" --resolve "$MAIN_RESOLVE" "$ROBOTS_URL" && require_fixed "$work_dir/origin-robots.txt" "Sitemap: https://91hwl.cn/sitemap.xml" "robots sitemap pointer" || return 1
+  fetch "$work_dir/origin-sitemap.xml" --resolve "$MAIN_RESOLVE" "$SITEMAP_URL" && require_fixed "$work_dir/origin-sitemap.xml" "<loc>https://91hwl.cn/</loc>" "sitemap homepage" || return 1
+  require_fixed "$work_dir/origin-sitemap.xml" "<loc>https://91hwl.cn/toys/dungeon-echo/</loc>" "sitemap Dungeon Echo" || return 1
+  require_fixed "$work_dir/origin-sitemap.xml" "<loc>https://91hwl.cn/toys/moyu/</loc>" "sitemap Clock Out Alive" || return 1
+  require_fixed "$work_dir/origin-sitemap.xml" "<loc>https://91hwl.cn/toys/board-games/</loc>" "sitemap Board Trio" || return 1
   fetch "$work_dir/origin-art.jpg" --resolve "$MAIN_RESOLVE" "$ART_URL" && test -s "$work_dir/origin-art.jpg" || return 1
   fetch "$work_dir/origin-moyu-cover.jpg" --resolve "$MAIN_RESOLVE" "$MOYU_COVER_URL" && test -s "$work_dir/origin-moyu-cover.jpg" || return 1
   fetch "$work_dir/origin-dungeon-cover.webp" --resolve "$MAIN_RESOLVE" "$DE_COVER_URL" && test -s "$work_dir/origin-dungeon-cover.webp" || return 1

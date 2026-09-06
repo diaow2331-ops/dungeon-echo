@@ -14,6 +14,8 @@ CONTACT_REL=contact
 ASSET_REL=assets/site-v1110
 PROJECT_ART_REL=assets/site-v1118
 ADS_REL=ads.txt
+ROBOTS_REL=robots.txt
+SITEMAP_REL=sitemap.xml
 HEALTHCHECK="$BUNDLE_ROOT/ops/healthcheck.sh"
 
 fail(){ echo "WEB_TOYS_HOME_MOUNT_ERROR: $*" >&2; exit 1; }
@@ -45,6 +47,8 @@ for file in \
   "$PUBLIC_ROOT/$PROJECT_ART_REL/moyu-hero.webp" \
   "$PUBLIC_ROOT/$PROJECT_ART_REL/moyu-hazards.webp" \
   "$PUBLIC_ROOT/$ADS_REL" \
+  "$PUBLIC_ROOT/$ROBOTS_REL" \
+  "$PUBLIC_ROOT/$SITEMAP_REL" \
   "$BUNDLE_ROOT/VERSION" \
   "$BUNDLE_ROOT/DUNGEON_VERSION" \
   "$BUNDLE_ROOT/MOYU_VERSION" \
@@ -85,7 +89,7 @@ grep -Fq '三种棋，一张桌' "$PUBLIC_ROOT/$BOARD_REL/index.html" || fail 'B
 grep -Fq 'board-gomoku.webp' "$PUBLIC_ROOT/$BOARD_REL/index.html" || fail 'Board Trio detail art missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
 grep -Fq "softwareVersion\":\"$expected_de\"" "$PUBLIC_ROOT/$DE_REL/index.html" || fail "Dungeon Echo v$expected_de detail marker missing"
-grep -Fq '单一规则权威' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo release copy missing'
+grep -Fq "v$expected_de 为当前公开版本" "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo current release copy missing'
 grep -Fq 'dungeon-guardians.webp' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo project art missing'
 grep -Fq "softwareVersion\":\"$expected_moyu\"" "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail "Clock Out Alive v$expected_moyu detail marker missing"
 grep -Fq '画面与信息都更清楚' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
@@ -121,6 +125,8 @@ contact_existed=false
 assets_existed=false
 project_art_existed=false
 ads_existed=false
+robots_existed=false
+sitemap_existed=false
 if test -e "$SITE_ROOT/$DE_REL"; then cp -a "$SITE_ROOT/$DE_REL" "$backup_dir/dungeon-echo"; de_existed=true; fi
 if test -e "$SITE_ROOT/$MOYU_REL"; then cp -a "$SITE_ROOT/$MOYU_REL" "$backup_dir/moyu"; moyu_existed=true; fi
 if test -e "$SITE_ROOT/$BOARD_REL"; then cp -a "$SITE_ROOT/$BOARD_REL" "$backup_dir/board-games"; board_existed=true; fi
@@ -130,6 +136,8 @@ if test -e "$SITE_ROOT/$CONTACT_REL"; then cp -a "$SITE_ROOT/$CONTACT_REL" "$bac
 if test -e "$SITE_ROOT/$ASSET_REL"; then cp -a "$SITE_ROOT/$ASSET_REL" "$backup_dir/site-v1110"; assets_existed=true; fi
 if test -e "$SITE_ROOT/$PROJECT_ART_REL"; then cp -a "$SITE_ROOT/$PROJECT_ART_REL" "$backup_dir/site-v1118"; project_art_existed=true; fi
 if test -e "$SITE_ROOT/$ADS_REL"; then cp -a "$SITE_ROOT/$ADS_REL" "$backup_dir/ads.txt"; ads_existed=true; fi
+if test -e "$SITE_ROOT/$ROBOTS_REL"; then cp -a "$SITE_ROOT/$ROBOTS_REL" "$backup_dir/robots.txt"; robots_existed=true; fi
+if test -e "$SITE_ROOT/$SITEMAP_REL"; then cp -a "$SITE_ROOT/$SITEMAP_REL" "$backup_dir/sitemap.xml"; sitemap_existed=true; fi
 
 restore_dir(){
   rel="$1"; backup="$2"; existed="$3"
@@ -159,6 +167,8 @@ rollback(){
     restore_dir "$ASSET_REL" "$backup_dir/site-v1110" "$assets_existed"
     restore_dir "$PROJECT_ART_REL" "$backup_dir/site-v1118" "$project_art_existed"
     restore_file "$ADS_REL" "$backup_dir/ads.txt" "$ads_existed"
+    restore_file "$ROBOTS_REL" "$backup_dir/robots.txt" "$robots_existed"
+    restore_file "$SITEMAP_REL" "$backup_dir/sitemap.xml" "$sitemap_existed"
     nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
     echo 'web_toys_home_mount=ROLLED_BACK' >&2
   fi
@@ -198,6 +208,14 @@ ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1118.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
+robots_tmp="$SITE_ROOT/.robots.txt.web-toys-v1118.tmp"
+install -m 0644 "$PUBLIC_ROOT/$ROBOTS_REL" "$robots_tmp"
+chown --reference="$SITE_ROOT/index.html" "$robots_tmp"
+mv -Tf "$robots_tmp" "$SITE_ROOT/$ROBOTS_REL"
+sitemap_tmp="$SITE_ROOT/.sitemap.xml.web-toys-v1118.tmp"
+install -m 0644 "$PUBLIC_ROOT/$SITEMAP_REL" "$sitemap_tmp"
+chown --reference="$SITE_ROOT/index.html" "$sitemap_tmp"
+mv -Tf "$sitemap_tmp" "$SITE_ROOT/$SITEMAP_REL"
 
 test "$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')" = "$new_sha" || fail 'homepage write verification failed'
 grep -Fq 'site-v1110/style.css' "$SITE_ROOT/index.html" || fail 'homepage design write verification failed'
@@ -215,6 +233,8 @@ grep -Fq '方寸棋局 · Board Trio' "$SITE_ROOT/index.html" || fail 'homepage 
 grep -Fq "03 / v$expected_board" "$SITE_ROOT/index.html" || fail "homepage Board Trio v$expected_board write verification failed"
 ! grep -Fq '下一款开发中' "$SITE_ROOT/index.html" || fail 'stale future-game slot written'
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$SITE_ROOT/$ADS_REL" || fail 'ads.txt write verification failed'
+grep -Fxq 'Sitemap: https://91hwl.cn/sitemap.xml' "$SITE_ROOT/$ROBOTS_REL" || fail 'robots.txt write verification failed'
+grep -Fq '<loc>https://91hwl.cn/toys/board-games/</loc>' "$SITE_ROOT/$SITEMAP_REL" || fail 'sitemap.xml write verification failed'
 nginx -t
 systemctl reload nginx
 "$HEALTHCHECK"

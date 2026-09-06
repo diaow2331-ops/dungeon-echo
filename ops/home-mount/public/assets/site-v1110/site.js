@@ -1,12 +1,13 @@
 (()=>{'use strict';
 const LK='91hwl_site_lang',TK='91hwl_site_theme';
-const root=document.documentElement,qs=new URLSearchParams(location.search);
+const root=document.documentElement,qs=new URLSearchParams(location.search),queryLang=qs.get('lang'),queryTheme=qs.get('theme');
 const readCookie=n=>{const row=document.cookie.split('; ').find(v=>v.startsWith(n+'='));return row?decodeURIComponent(row.slice(n.length+1)):''};
 const writeCookie=(n,v)=>{if(location.hostname.endsWith('91hwl.cn'))document.cookie=`${n}=${encodeURIComponent(v)}; Path=/; Domain=.91hwl.cn; Max-Age=31536000; SameSite=Lax`};
-let lang=qs.get('lang')||window.__91HWL_PREFS?.lang||readCookie('91hwl_lang')||localStorage.getItem(LK)||'zh';
-let theme=qs.get('theme')||window.__91HWL_PREFS?.theme||readCookie('91hwl_theme')||localStorage.getItem(TK)||'dark';
+let lang=queryLang||window.__91HWL_PREFS?.lang||readCookie('91hwl_lang')||localStorage.getItem(LK)||'zh';
+let theme=queryTheme||window.__91HWL_PREFS?.theme||readCookie('91hwl_theme')||localStorage.getItem(TK)||'dark';
 lang=lang==='en'?'en':'zh';theme=theme==='light'?'light':'dark';
-const carry=()=>document.querySelectorAll('a[data-carry]').forEach(a=>{if(!a.dataset.baseHref)a.dataset.baseHref=a.getAttribute('href');try{const u=new URL(a.dataset.baseHref,location.href);u.searchParams.set('lang',lang);u.searchParams.set('theme',theme);a.href=u.href}catch(_){}});
+const carry=()=>document.querySelectorAll('a[data-carry]').forEach(a=>{if(!a.dataset.baseHref)a.dataset.baseHref=a.getAttribute('href');a.setAttribute('href',a.dataset.baseHref)});
+const persistQueryPrefs=()=>{if(queryLang==='zh'||queryLang==='en'){localStorage.setItem(LK,lang);writeCookie('91hwl_lang',lang)}if(queryTheme==='dark'||queryTheme==='light'){localStorage.setItem(TK,theme);writeCookie('91hwl_theme',theme)}if(qs.has('lang')||qs.has('theme')){const clean=new URL(location.href);clean.searchParams.delete('lang');clean.searchParams.delete('theme');history.replaceState(history.state,'',clean.pathname+clean.search+clean.hash)}};
 const label=()=>{const b=document.getElementById('themeToggle');if(b)b.textContent=lang==='zh'?(theme==='dark'?'浅色':'深色'):(theme==='dark'?'Light':'Dark')};
 const state=()=>{const out=document.querySelector('[data-pref-state]');if(out)out.textContent=lang==='zh'?`语言：${lang==='zh'?'中文':'English'} · 主题：${theme==='dark'?'深色':'浅色'} · 保存在此浏览器`:`Language: ${lang} · Theme: ${theme} · stored in this browser`};
 const apply=()=>{root.dataset.lang=lang;root.lang=lang==='en'?'en':'zh-CN';root.dataset.theme=theme;document.querySelectorAll('[data-lang-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.langChoice===lang)));document.querySelector('meta[name=theme-color]')?.setAttribute('content',theme==='light'?'#efe7d7':'#161814');label();carry();state()};
@@ -27,7 +28,7 @@ document.addEventListener('click',e=>{if(e.target.closest('#navToggle')){toggleN
 const progress=document.querySelector('[data-scroll-progress]'),back=document.querySelector('[data-backtop]');
 const onScroll=()=>{const max=document.documentElement.scrollHeight-innerHeight,p=max>0?scrollY/max:0;if(progress)progress.style.transform=`scaleX(${Math.min(1,Math.max(0,p))})`;if(back)back.classList.toggle('show',scrollY>520)};
 addEventListener('scroll',onScroll,{passive:true});addEventListener('keydown',e=>{if(e.key==='Escape')closeNav()});addEventListener('resize',()=>{if(innerWidth>720)closeNav()});
-apply();onScroll();
+persistQueryPrefs();apply();onScroll();
 if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){root.classList.add('motion-ready');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('is-visible');io.unobserve(e.target)}}),{threshold:.08,rootMargin:'0px 0px -5%'});document.querySelectorAll('.page-home .hero,.quick-pick,.game-card,.coming-card,.principles,.records,.page-record .record-hero,.page-record .docket>section,.page-detail .hero,.page-detail .section,.page-detail .final').forEach(el=>{el.classList.add('reveal');io.observe(el)})}
 const first=document.querySelector('[data-game-choice][aria-pressed="true"]')?.dataset.gameChoice;
 if(first&&first!=='random')choose(first);
