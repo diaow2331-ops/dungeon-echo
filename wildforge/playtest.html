@@ -5,11 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#10171b">
-  <meta name="version" content="0.13.1">
+  <meta name="version" content="0.14.0">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23141e21%27/%3E%3Cpath d=%27M16 5 27 16 16 27 5 16Z%27 fill=%27%23d6a557%27/%3E%3C/svg%3E">
   <meta name="description" content="荒境熔炉 Wildforge：原创横屏 2D 沙盒生存建造游戏。探索、采矿、制造、建造、战斗并深入地下世界。">
   <title>荒境熔炉 · Wildforge</title>
-  <style data-wildforge-inline="0.13.1">
+  <style data-wildforge-inline="0.14.0">
 :root{
   color-scheme:dark; --ink:#edf3f1; --muted:#9db0ad; --line:rgba(213,235,229,.18);
   --glass:rgba(10,18,21,.78); --glass-strong:rgba(9,16,19,.94); --accent:#d6a557;
@@ -63,7 +63,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
 
     <header id="hud">
       <div class="hud-left">
-        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.13.1</small></div>
+        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.14.0</small></div>
         <div class="meters">
           <div class="meter hp"><span id="hpFill"></span><b id="hpText">100 / 100</b></div>
           <div class="world-readout"><span id="biomeText">青藤原</span><i>·</i><span id="depthText">地表</span><i>·</i><span id="timeText">白昼</span><i>·</i><span id="dangerText">安全</span></div><div class="route-readout"><span id="beaconText">无路标</span></div>
@@ -123,7 +123,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
         <div class="loop">求生 <i>→</i> 采集 <i>→</i> 建站 <i>→</i> 生产 <i>→</i> 装货 <i>→</i> 运输 <i>→</i> 交易 <i>→</i> 扩张</div>
         <label class="seed-field"><span class="zh">世界种子</span><span class="en">World seed</span><input id="seedInput" maxlength="32" autocomplete="off"></label>
         <div class="start-actions"><button id="continueBtn" class="primary hidden"><span class="zh">继续世界</span><span class="en">Continue</span></button><button id="startBtn"><span class="zh">生成新世界</span><span class="en">Create world</span></button></div>
-        <small class="zh">当前为 v0.13.1 孵化试玩 · 武装货运 · 本地离线存档</small><small class="en">v0.13.1 incubation build · armed hauling · local offline save</small>
+        <small class="zh">当前为 v0.14.0 孵化试玩 · 像素美术基础层 · 武装货运 · 本地离线存档</small><small class="en">v0.14.0 incubation build · pixel-art foundation · armed hauling · local offline save</small>
       </div>
     </section>
 
@@ -146,9 +146,9 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
       <div><b>↻</b><h2 class="zh">请将手机横过来</h2><h2 class="en">Rotate to landscape</h2><p class="zh">《荒境熔炉》的手机界面与触控从一开始就按横屏设计。</p><p class="en">Wildforge is designed landscape-first on touch devices.</p></div>
     </div>
   </main>
-  <script data-wildforge-inline="0.13.1">
+  <script data-wildforge-inline="0.14.0">
 const __WF_DATA=(()=>{
-const VERSION = '0.13.1';
+const VERSION = '0.14.0';
 const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -484,7 +484,24 @@ const {World,WORLD_W,WORLD_H,encodeTiles,biomeIndexAt,makeRng}=__WF_WORLD;
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v0131';
+const CORE_ART_SRC='data:image/webp;base64,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';
+const CORE_ART=new Image();
+CORE_ART.decoding='async';
+CORE_ART.src=CORE_ART_SRC;
+const ART=Object.freeze({
+  tile_grass:[0,0,16,16],tile_soil:[16,0,16,16],tile_stone:[32,0,16,16],tile_plank:[48,0,16,16],tile_coal:[64,0,16,16],tile_copper:[80,0,16,16],tile_iron:[96,0,16,16],tile_leaf:[112,0,16,16],
+  player_0:[0,20,16,24],player_1:[18,20,16,24],player_2:[36,20,16,24],player_3:[54,20,16,24],player_4:[72,20,16,24],player_5:[90,20,16,24],player_6:[108,20,16,24],
+  slime_0:[0,48,16,12],slime_1:[18,48,16,12],slime_2:[36,48,16,12],slime_3:[54,48,16,12],slime_4:[72,48,16,12],
+  raider_0:[0,64,16,24],raider_1:[18,64,16,24],raider_2:[36,64,16,24],raider_3:[54,64,16,24],
+  guard_0:[0,92,16,24],guard_1:[18,92,16,24],guard_2:[36,92,16,24],guard_3:[54,92,16,24],
+  boar_0:[0,120,24,16],boar_1:[26,120,24,16],boar_2:[52,120,24,16],boar_3:[78,120,24,16],
+  prop_beacon:[144,0,24,40],prop_chest:[172,0,32,24],prop_cargo:[208,0,40,22],prop_workbench:[144,44,40,24],prop_crates:[188,44,40,24],prop_barrels:[232,44,24,24]
+});
+
+function artReady(){return CORE_ART.complete&&CORE_ART.naturalWidth>0;}
+function drawArt(key,x,y,w,h){const r=ART[key];if(!r||!artReady())return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(CORE_ART,r[0],r[1],r[2],r[3],Math.round(x),Math.round(y),Math.round(w),Math.round(h));return true;}
+const SAVE_KEY = 'wildforge.save.v0140';
+const LEGACY_SAVE_KEY_0131 = 'wildforge.save.v0131';
 const LEGACY_SAVE_KEY_0130 = 'wildforge.save.v0130';
 const LEGACY_SAVE_KEY_0120 = 'wildforge.save.v0120';
 const LEGACY_SAVE_KEY_0110 = 'wildforge.save.v0110';
@@ -631,7 +648,7 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
@@ -876,7 +893,7 @@ function updateProgression(dt) {
 function resize() {
   game.cssW=innerWidth; game.cssH=innerHeight; game.dpr=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(game.cssW*game.dpr); canvas.height=Math.round(game.cssH*game.dpr); canvas.style.width=game.cssW+'px';canvas.style.height=game.cssH+'px';
-  ctx.setTransform(game.dpr,0,0,game.dpr,0,0);
+  ctx.setTransform(game.dpr,0,0,game.dpr,0,0);ctx.imageSmoothingEnabled=false;
   const touchViewport=matchMedia('(pointer:coarse)').matches;
   game.camera.tile=touchViewport?Math.max(20,Math.min(32,Math.floor(game.cssH/18))):Math.max(22,Math.min(38,Math.floor(game.cssH/20)));
 }
@@ -1365,6 +1382,18 @@ function drawTile(tx,ty,id) {
   if(id===TILE.LEAF||id===TILE.GLOW_MOSS||id===TILE.TORCH||id===TILE.CAMPFIRE||id===TILE.RUIN_SPIKE||id===TILE.RUIN_URN||id===TILE.ROPE||id===TILE.PLATFORM){drawNonSolidTile(x,y,s,id,def);return;}
   const h=((tx*73856093)^(ty*19349663)^(id*83492791))>>>0;
   const top=game.world.get(tx,ty-1),left=game.world.get(tx-1,ty),right=game.world.get(tx+1,ty),below=game.world.get(tx,ty+1);
+  const artTile={
+    [TILE.GRASS]:'tile_grass',[TILE.SOIL]:'tile_soil',[TILE.STONE]:'tile_stone',[TILE.PLANK]:'tile_plank',[TILE.COAL]:'tile_coal',[TILE.COPPER]:'tile_copper',[TILE.IRON]:'tile_iron'
+  }[id];
+  if(artTile&&drawArt(artTile,x,y,s+1,s+1))return;
+  if(id===TILE.WORKBENCH&&drawArt('prop_workbench',x-s*.34,y+s*.12,s*1.68,s*.88))return;
+  if(id===TILE.RELIC_CHEST&&drawArt('prop_chest',x-s*.34,y+s*.20,s*1.68,s*.76))return;
+  if(id===TILE.BEACON&&artReady()){
+    drawArt('prop_beacon',x+s*.10,y-s*.88,s*.80,s*1.80);
+    const active=beaconAt(tx,ty),linked=active&&linkedBeaconKeys().has(beaconKey(active.x,active.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(active?.supply)||0)),pulse=.55+.45*Math.sin(performance.now()*.005+tx);
+    ctx.strokeStyle=linked?`rgba(114,215,184,${.45+pulse*.4})`:`rgba(238,207,132,${.28+pulse*.28})`;ctx.lineWidth=Math.max(1,s*.045);ctx.beginPath();ctx.arc(x+s*.5,y-s*.20,s*(linked?.38:.30),0,Math.PI*2);ctx.stroke();
+    for(let i=0;i<supply;i++){ctx.fillStyle='#85d9bd';ctx.fillRect(x+s*(.28+i*.20),y+s*.80,s*.12,s*.10);}return;
+  }
   ctx.fillStyle=def.color;ctx.fillRect(x,y,s+1,s+1);
   if(top===TILE.AIR||top===TILE.LEAF||top===TILE.GLOW_MOSS){ctx.fillStyle='rgba(244,224,170,.20)';ctx.fillRect(x,y,s+1,Math.max(2,s*.09));}
   if(!TILE_DEFS[top]?.solid){ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(x+1,y+1,s-2,Math.max(1,s*.04));}
@@ -1396,6 +1425,7 @@ function drawTile(tx,ty,id) {
   if(id===TILE.RELIC_CHEST){const pulse=.55+.45*Math.sin(performance.now()*.004+tx);ctx.fillStyle='#49371f';ctx.fillRect(x+s*.08,y+s*.3,s*.84,s*.62);ctx.fillStyle='#9d7b43';ctx.fillRect(x+s*.05,y+s*.24,s*.9,s*.18);ctx.fillStyle='#e1bd6c';ctx.fillRect(x+s*.44,y+s*.28,s*.13,s*.48);ctx.fillStyle=`rgba(255,220,130,${.18+pulse*.34})`;ctx.fillRect(x+s*.28,y+s*.08,s*.44,s*.15);ctx.strokeStyle='#2e2418';ctx.lineWidth=Math.max(1,s*.05);ctx.strokeRect(x+s*.08,y+s*.3,s*.84,s*.62);}
 }
 function drawNonSolidTile(x,y,s,id,def){
+  if(id===TILE.LEAF&&drawArt('tile_leaf',x,y,s,s))return;
   if(id===TILE.LEAF){
     const seed=((x*17+y*31)|0)>>>0;ctx.fillStyle=def.color;ctx.globalAlpha=.94;
     const side=s*.13,rows=seed%3===0?3:2;
@@ -1423,9 +1453,18 @@ function drawProjectiles(){
 function drawEnemyProjectiles(){
   const s=game.camera.tile;for(const p of game.enemyProjectiles){const x=(p.x-game.camera.x)*s,y=(p.y-game.camera.y)*s;if(x<-30||x>game.cssW+30||y<-30||y>game.cssH+30)continue;ctx.save();ctx.translate(x,y);const ang=Math.atan2(p.vy,p.vx),pulse=.6+.4*Math.sin(performance.now()*.012);ctx.rotate(ang);ctx.globalAlpha=.2+pulse*.15;ctx.fillStyle='#66c7ae';ctx.beginPath();ctx.arc(0,0,s*.3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#9be5cf';ctx.lineWidth=Math.max(1,s*.055);ctx.beginPath();ctx.moveTo(-s*.24,0);ctx.lineTo(s*.2,0);ctx.stroke();ctx.fillStyle='#4b8e7b';ctx.beginPath();ctx.arc(s*.2,0,s*.09,0,Math.PI*2);ctx.fill();ctx.restore();}}
 function drawCargoBundles(){
-  const s=game.camera.tile;for(const b of game.cargoBundles||[]){const x=(b.x-game.camera.x)*s,y=(b.y-game.camera.y)*s,w=s*.82,h=s*.62,ratio=Math.max(0,b.hp/b.maxHp);ctx.fillStyle='#3d2c22';ctx.fillRect(x-w/2,y-h/2,w,h);ctx.strokeStyle=ratio>.6?'#d0a15e':ratio>.3?'#d78055':'#c24f4f';ctx.lineWidth=Math.max(1,s*.055);ctx.strokeRect(x-w/2,y-h/2,w,h);ctx.fillStyle='#d7b268';ctx.fillRect(x-w*.34,y-h*.1,w*.68,h*.16);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x-w/2,y-h*.7,w,h*.12);ctx.fillStyle=ratio>.35?'#7bd5b8':'#e48166';ctx.fillRect(x-w/2,y-h*.7,w*ratio,h*.12);ctx.fillStyle='#f0d9a2';ctx.font=`${Math.max(8,s*.28)}px system-ui`;ctx.textAlign='center';ctx.fillText('▣'+bundleUnits(b),x,y+h*.82);}
+  const s=game.camera.tile;for(const b of game.cargoBundles||[]){const x=(b.x-game.camera.x)*s,y=(b.y-game.camera.y)*s,ratio=Math.max(0,b.hp/b.maxHp),w=s*1.28,h=s*.72;
+    if(!drawArt('prop_cargo',x-w/2,y-h/2,w,h)){ctx.fillStyle='#3d2c22';ctx.fillRect(x-w/2,y-h/2,w,h);ctx.strokeStyle='#d0a15e';ctx.strokeRect(x-w/2,y-h/2,w,h);}
+    ctx.fillStyle='rgba(0,0,0,.60)';ctx.fillRect(x-w*.42,y-h*.78,w*.84,h*.12);ctx.fillStyle=ratio>.35?'#7bd5b8':'#e48166';ctx.fillRect(x-w*.42,y-h*.78,w*.84*ratio,h*.12);
+    ctx.fillStyle='#f0d9a2';ctx.font=`700 ${Math.max(8,s*.26)}px system-ui`;ctx.textAlign='center';ctx.fillText('▣'+bundleUnits(b),x,y+h*.76);
+  }
 }
-function drawGuard(){const g=activeGuard();if(!g)return;const s=game.camera.tile,x=(g.x-game.camera.x)*s,y=(g.y-game.camera.y)*s;ctx.save();ctx.translate(x,y);if(g.facing<0)ctx.scale(-1,1);ctx.fillStyle='#27383d';ctx.fillRect(-s*.25,-s*.72,s*.5,s*.82);ctx.fillStyle='#a9b9ae';ctx.fillRect(-s*.19,-s*.96,s*.38,s*.28);ctx.fillStyle='#c29b5f';ctx.fillRect(s*.22,-s*.58,s*.08,s*.62);ctx.restore();ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x-s*.32,y-s*1.12,s*.64,s*.08);ctx.fillStyle='#78c59c';ctx.fillRect(x-s*.32,y-s*1.12,s*.64*(g.hp/g.maxHp),s*.08);}
+function drawGuard(){
+  const g=activeGuard();if(!g)return;const s=game.camera.tile,x=(g.x-game.camera.x)*s,y=(g.y-game.camera.y)*s,frame=Math.floor(performance.now()/180)%4;
+  ctx.save();ctx.translate(x,y);if(g.facing<0)ctx.scale(-1,1);const sw=s*1.16,sh=s*1.74;
+  if(!drawArt('guard_'+frame,-sw/2,-sh*.69,sw,sh)){ctx.fillStyle='#27383d';ctx.fillRect(-s*.25,-s*.72,s*.5,s*.82);ctx.fillStyle='#a9b9ae';ctx.fillRect(-s*.19,-s*.96,s*.38,s*.28);}
+  ctx.restore();ctx.fillStyle='rgba(0,0,0,.60)';ctx.fillRect(x-s*.34,y-s*1.13,s*.68,s*.08);ctx.fillStyle='#78c59c';ctx.fillRect(x-s*.34,y-s*1.13,s*.68*(g.hp/g.maxHp),s*.08);
+}
 function drawDrops(){
   const s=game.camera.tile;
   for(const d of game.drops){
@@ -1462,22 +1501,20 @@ function drawHeldItem(s,w,h){
 function drawPlayer(){
   const p=game.player,s=game.camera.tile,x=(p.x-game.camera.x)*s,y=(p.y-game.camera.y)*s,w=p.w*s,h=p.h*s;ctx.save();ctx.translate(x,y);
   const land=Math.min(1,(p.landingKick||0)/.12);if(land>0)ctx.scale(1+land*.065,1-land*.07);if(p.facing<0)ctx.scale(-1,1);
-  const moving=Math.min(1,Math.abs(p.vx)/3.8),walk=Math.sin(performance.now()*.020)*moving;
-  ctx.fillStyle='rgba(0,0,0,.30)';ctx.beginPath();ctx.ellipse(0,h*.49,w*.52,h*.09,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=game.hurtCd>0?'#ef9b8e':'#d9c5a7';ctx.fillRect(-w*.23,-h*.49,w*.46,h*.29);
-  ctx.fillStyle='#202a2c';ctx.beginPath();ctx.moveTo(-w*.28,-h*.54);ctx.lineTo(0,-h*.66);ctx.lineTo(w*.28,-h*.54);ctx.lineTo(w*.22,-h*.46);ctx.lineTo(-w*.22,-h*.46);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#334c4f';ctx.fillRect(-w*.33,-h*.18,w*.66,h*.58);
-  ctx.fillStyle='#9b6d47';ctx.fillRect(-w*.36,-h*.10,w*.12,h*.24);ctx.fillRect(w*.24,-h*.10,w*.12,h*.24);
-  ctx.fillStyle='#151f22';ctx.fillRect(-w*.31+walk*2,h*.39,w*.24,h*.44);ctx.fillRect(w*.07-walk*2,h*.39,w*.24,h*.44);
-  ctx.fillStyle='#b08a5e';ctx.fillRect(-w*.34+walk*2,h*.77,w*.30,h*.09);ctx.fillRect(w*.05-walk*2,h*.77,w*.30,h*.09);
-  ctx.fillStyle='#e6d7b9';ctx.fillRect(w*.10,-h*.38,w*.06,h*.045);ctx.fillStyle='#c88b56';ctx.fillRect(-w*.03,-h*.43,w*.13,h*.035);
-  if(p.grounded&&moving>.2){ctx.fillStyle='rgba(212,178,129,.24)';ctx.fillRect(-w*.38+walk*3,h*.86,w*.10,h*.03);ctx.fillRect(w*.24-walk*3,h*.86,w*.10,h*.03);}
-  drawHeldItem(s,w,h);
-  if(p.attackFlash>0){ctx.strokeStyle='rgba(247,216,144,.92)';ctx.lineWidth=Math.max(2,s*.075);ctx.beginPath();ctx.arc(w*.16,0,w*1.45,-.85,.55);ctx.stroke();}
+  const moving=Math.min(1,Math.abs(p.vx)/3.8),walkFrame=Math.floor(performance.now()/135)%3,carrying=cargoLoad()>0;
+  let frame=0;if(carrying)frame=4+(Math.floor(performance.now()/190)%2);else if(p.attackFlash>0)frame=6;else if(p.grounded&&moving>.16)frame=1+walkFrame;
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,h*.48,w*.62,h*.08,0,0,Math.PI*2);ctx.fill();
+  const sw=s*1.16,sh=s*1.74;ctx.globalAlpha=game.hurtCd>0?.60:1;
+  const usedArt=drawArt('player_'+frame,-sw/2,h*.50-sh,sw,sh);ctx.globalAlpha=1;
+  if(!usedArt){ctx.fillStyle=game.hurtCd>0?'#ef9b8e':'#d9c5a7';ctx.fillRect(-w*.23,-h*.49,w*.46,h*.29);ctx.fillStyle='#334c4f';ctx.fillRect(-w*.33,-h*.18,w*.66,h*.58);ctx.fillStyle='#151f22';ctx.fillRect(-w*.31,h*.39,w*.24,h*.44);ctx.fillRect(w*.07,h*.39,w*.24,h*.44);}
+  if(!carrying&&frame!==6)drawHeldItem(s,w,h);
+  if(p.attackFlash>0){ctx.strokeStyle='rgba(247,216,144,.82)';ctx.lineWidth=Math.max(2,s*.065);ctx.beginPath();ctx.arc(w*.16,0,w*1.45,-.85,.55);ctx.stroke();}
   ctx.restore();
 }
 function drawEnemyBody(e,s){
   const c=e.def.color,t=e.type;ctx.fillStyle=c;
+  if(t==='moss_crawler'&&artReady()){const f=Math.floor(performance.now()/170)%5;drawArt('slime_'+f,-s*.50,-s*.38,s, s*.75);return;}
+  if(t==='greyveil_raider'&&artReady()){const f=Math.floor(performance.now()/180)%4;drawArt('raider_'+f,-s*.58,-s*.86,s*1.16,s*1.74);return;}
   if(t==='moss_crawler'){
     ctx.beginPath();ctx.ellipse(0,s*.04,s*.48,s*.3,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#46683e';ctx.beginPath();ctx.arc(-s*.1,-s*.13,s*.31,Math.PI,Math.PI*2);ctx.fill();ctx.strokeStyle='#365130';ctx.lineWidth=Math.max(2,s*.06);for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*s*.12,-s*.26);ctx.lineTo(i*s*.14,-s*.4-Math.abs(i)*s*.025);ctx.stroke();}
   }else if(t==='ash_scuttler'){
@@ -1569,7 +1606,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}

@@ -15,7 +15,9 @@ const stripImports=(code)=>code.replace(/^\s*import\s+[^;]+;\s*$/gm,'');
 const stripExports=(code)=>code.replace(/^export\s+/gm,'');
 const dataCode=stripExports(stripImports(read('src/data.js')));
 const worldCode=stripExports(stripImports(read('src/world.js')));
-const gameCode=stripExports(stripImports(read('src/game.js')));
+const coreArtData=fs.readFileSync(path.join(wf,'assets/core-art.webp')).toString('base64');
+const coreArtSource="const CORE_ART_SRC='./assets/core-art.webp';";
+const gameCode=stripExports(stripImports(read('src/game.js'))).replace(coreArtSource,()=>`const CORE_ART_SRC='data:image/webp;base64,${coreArtData}';`);
 const dataExports=['VERSION','TILE','BIOMES','TILE_DEFS','ITEMS','RECIPES','ENEMY_TYPES','itemName','tileName'];
 const worldExports=['World','WORLD_W','WORLD_H','encodeTiles','decodeTiles','biomeIndexAt','makeRng'];
 const js=[

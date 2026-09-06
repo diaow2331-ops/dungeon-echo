@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.13.1 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.14.0 build is an incubation build, not a public production release.
 
-## v0.13.1 playable incubation build
+## v0.14.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -35,12 +35,18 @@ The exporter inlines CSS and the data/world/game module graph, and its output is
 
 ## Originality boundary
 
-The project may take genre-level inspiration from block sandbox and side-scrolling survival games, but it must not copy Terraria or Minecraft characters, enemies, names, recipes, UI, music, textures, biome identities or other protected assets. Current visuals are procedural and repository-native.
+The project may take genre-level inspiration from block sandbox and side-scrolling survival games, but it must not copy Terraria or Minecraft characters, enemies, names, recipes, UI, music, textures, biome identities or other protected assets. Current visuals are original repository-native pixel art plus procedural fallback rendering; no third-party game assets are used.
 
 ## Source authority
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.14.0
+- 接入第一版原创像素运行时图集：青藤原基础地块、主角动作、苔壳爬兽、灰披劫徒、护卫、边境路标、遗物箱、工匠台与落地货包开始替换程序色块占位；
+- 图集使用紧凑 WebP runtime atlas，Canvas 关闭插值以保持像素轮廓；素材缺失或尚未覆盖的对象继续回退到原程序绘制，不影响既有玩法；
+- 单 HTML 导出器会把 runtime atlas 自动转成 data URI 内嵌，继续保持真正的单文件试玩；
+- 新增 v0.13.1 → v0.14.0 存档迁移，贸易/仓储/货运/护卫状态不重置。
 
 ## v0.13.1
 - 修复单 HTML 试玩版打包器对 `$$` 的错误替换，避免生成文件在脚本初始化阶段因重复 `$` 声明而无法创建世界；
