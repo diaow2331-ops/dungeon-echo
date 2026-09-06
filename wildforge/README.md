@@ -1,10 +1,10 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.10.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.11.0 build is an incubation build, not a public production release.
 
-## v0.10.0 playable incubation build
+## v0.11.0 playable incubation build
 
-Core loop: Survive → Gather local exports → Build trade posts/routes → Buy low → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
+Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
 - deterministic 480×144 destructible world;
 - three authored biome families: Verdant Reach, Ember Wastes, Frostglass Shelf;
@@ -31,6 +31,14 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.11.0
+- 贸易货物从普通建材中分离：青藤货束、烬燃货箱、霜晶货匣成为真正的标准货物，不再用 99 个原材料模拟无限货舱；
+- 每个边境路标获得 24 单位持久仓库，仓储内容随世界存档保存；仓库非空时禁止拆除路标，避免货物静默丢失；
+- 路标附近存在工匠台时，可消耗当地原料生产本地标准货物，产物直接入库，每个据点每天有受限生产量；
+- 玩家拥有 8 单位基础货运容量；制作“货运背架”后提升到 16，采购和仓库装货都受容量限制；
+- 贸易页现在同时管理生产、仓储、装货、卸货与出售，HUD 显示实时货运占用；
+- 新增 v0.10.0 → v0.11.0 存档迁移，旧路标自动获得空仓库，不破坏既有世界与贸易资金。
 
 ## v0.10.0
 - 产品主轴正式锁定为“2D 贸易求生”：采掘、建造与战斗服务于跨地貌贸易，而非反过来；

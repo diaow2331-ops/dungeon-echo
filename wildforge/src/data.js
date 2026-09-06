@@ -1,4 +1,4 @@
-export const VERSION = '0.10.0';
+export const VERSION = '0.11.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -61,6 +61,10 @@ export const ITEMS = Object.freeze({
   ancient_core:{id:'ancient_core',zh:'古代机芯',en:'Ancient Core',stack:99,kind:'material'},
   star_forge:{id:'star_forge',zh:'星核炉',en:'Starcore Forge',stack:1,kind:'material',tile:TILE.STAR_FORGE},
   beacon:{id:'beacon',zh:'边境路标',en:'Frontier Beacon',stack:20,kind:'material',tile:TILE.BEACON},
+  greenheart_bale:{id:'greenheart_bale',zh:'青芯货束',en:'Greenheart Bale',stack:20,kind:'cargo',cargoWeight:1},
+  emberfuel_crate:{id:'emberfuel_crate',zh:'烬燃货箱',en:'Emberfuel Crate',stack:20,kind:'cargo',cargoWeight:1},
+  frostglass_case:{id:'frostglass_case',zh:'霜晶货匣',en:'Frostglass Case',stack:20,kind:'cargo',cargoWeight:1},
+  freight_frame:{id:'freight_frame',zh:'货运背架',en:'Freight Frame',stack:1,kind:'upgrade',cargoBonus:8},
   wood_pick:{id:'wood_pick',zh:'青芯镐',en:'Greenheart Pick',stack:1,kind:'pick',tier:1,power:1.35},
   stone_pick:{id:'stone_pick',zh:'灰岩镐',en:'Greyrock Pick',stack:1,kind:'pick',tier:2,power:1.75},
   copper_pick:{id:'copper_pick',zh:'赤铜镐',en:'Red Copper Pick',stack:1,kind:'pick',tier:3,power:2.3},
@@ -101,7 +105,8 @@ export const RECIPES = Object.freeze([
   {id:'wood_bow',out:{id:'wood_bow',n:1},need:{plank:8,rope:2},station:'workbench'},
   {id:'crystal_bow',out:{id:'crystal_bow',n:1},need:{crystal:6,iron_bar:2,rope:1},station:'workbench'},
   {id:'star_forge',out:{id:'star_forge',n:1},need:{ancient_core:1,iron_bar:6,crystal:2},station:'workbench'},
-  {id:'beacon',out:{id:'beacon',n:1},need:{plank:8,torch:2,rope:2},station:'workbench'}
+  {id:'beacon',out:{id:'beacon',n:1},need:{plank:8,torch:2,rope:2},station:'workbench'},
+  {id:'freight_frame',out:{id:'freight_frame',n:1},need:{plank:10,rope:4},station:'workbench'}
 ]);
 
 export const ENEMY_TYPES = Object.freeze({

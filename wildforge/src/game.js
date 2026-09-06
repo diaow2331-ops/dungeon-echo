@@ -4,7 +4,8 @@ import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './wor
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v0100';
+const SAVE_KEY = 'wildforge.save.v0110';
+const LEGACY_SAVE_KEY_0100 = 'wildforge.save.v0100';
 const LEGACY_SAVE_KEY = 'wildforge.save.v092';
 const LEGACY_SAVE_KEY_091 = 'wildforge.save.v091';
 const LEGACY_SAVE_KEY_090 = 'wildforge.save.v090';
@@ -22,12 +23,21 @@ const ROUTE_SPEED_MULT=1.08;
 const ROUTE_NIGHT_SPAWN_RELIEF=1.18;
 const MAX_BEACON_SUPPLY=3;
 const TRADE_POST_RADIUS=3.4;
-const TRADE_DAILY_BUY_CAP=12;
-const TRADE_DAILY_SELL_CAP=18;
+const TRADE_DAILY_BUY_CAP=10;
+const TRADE_DAILY_SELL_CAP=16;
+const TRADE_DAILY_PRODUCTION_CAP=8;
+const WAREHOUSE_CAP=24;
+const CARGO_BASE_CAP=8;
+const CARGO_FRAME_BONUS=8;
 const TRADE_GOODS=Object.freeze({
-  wood:{home:'verdant',base:4}, fiber:{home:'verdant',base:3},
-  coal:{home:'ember',base:6}, ash:{home:'ember',base:4}, sandstone:{home:'ember',base:5},
-  ice:{home:'frost',base:5}, snow:{home:'frost',base:3}
+  greenheart_bale:{home:'verdant',base:12},
+  emberfuel_crate:{home:'ember',base:16},
+  frostglass_case:{home:'frost',base:14}
+});
+const TRADE_PRODUCTION=Object.freeze({
+  greenheart_bale:{home:'verdant',need:{wood:3,fiber:2}},
+  emberfuel_crate:{home:'ember',need:{coal:2,sandstone:2}},
+  frostglass_case:{home:'frost',need:{ice:3,snow:2}}
 });
 const HOTBAR_DEFAULT = ['wood','soil','stone','torch','plank','workbench','campfire','rope'];
 const DEPTH_ZONES = Object.freeze([
@@ -38,7 +48,7 @@ const DEPTH_ZONES = Object.freeze([
   {min:76,id:'star',zh:'星晶裂隙',en:'Starshard Rift'}
 ]);
 const GLYPH = {
-  wood:'▥',soil:'▰',stone:'◆',coal:'●',copper_ore:'◈',iron_ore:'◇',crystal:'✦',sand:'▱',sandstone:'▤',ash:'◼',basalt:'⬟',ice:'⬢',snow:'▧',fiber:'≋',rope:'⌇',moss_spore:'✧',plank:'▥',ruin_brick:'▣',torch:'♨',workbench:'▦',campfire:'♨',platform:'═', beacon:'⌖',
+  wood:'▥',soil:'▰',stone:'◆',coal:'●',copper_ore:'◈',iron_ore:'◇',crystal:'✦',sand:'▱',sandstone:'▤',ash:'◼',basalt:'⬟',ice:'⬢',snow:'▧',fiber:'≋',rope:'⌇',moss_spore:'✧',plank:'▥',ruin_brick:'▣',torch:'♨',workbench:'▦',campfire:'♨',platform:'═', beacon:'⌖',greenheart_bale:'▥',emberfuel_crate:'▣',frostglass_case:'◇',freight_frame:'⌑',
   wood_pick:'⌕',stone_pick:'⌕',copper_pick:'⌕',iron_pick:'⌕',delver_pick:'⌕',wood_blade:'†',stone_blade:'†',copper_blade:'†',iron_blade:'†',crystal_blade:'✦',sentinel_blade:'‡',arrow:'➹',wood_bow:'◜',crystal_bow:'◓',copper_bar:'▬',iron_bar:'▬',ancient_core:'◉'
 };
 
@@ -69,11 +79,14 @@ function freshPlayer(spawn) {
   return {x:spawn.x,y:spawn.y,vx:0,vy:0,w:.72,h:1.72,hp:100,maxHp:100,grounded:false,onPlatform:false,dropThrough:0,fallStartY:spawn.y,facing:1,jumpLatch:false,jumpBuffer:0,jumpHold:0,coyote:0,landingKick:0,attackFlash:0,steps:0,dashTimer:0,dashCooldown:0,dashX:0,dashY:0};
 }
 function freshInventory() { return {wood:0,soil:0,stone:0,fiber:0}; }
-function freshTrade(){return {credits:12,day:0,bought:{},sold:{},volume:0,turnover:0};}
+function freshTrade(){return {credits:12,day:0,bought:{},sold:{},produced:{},volume:0,turnover:0};}
 function sanitizeTrade(raw){
   if(!raw||typeof raw!=='object')return freshTrade();const src=raw,base=freshTrade();
   base.credits=Math.max(0,Math.floor(Number(src.credits)||0));base.day=Math.max(0,Math.floor(Number(src.day)||0));base.volume=Math.max(0,Math.floor(Number(src.volume)||0));base.turnover=Math.max(0,Math.floor(Number(src.turnover)||0));
-  base.bought=src.bought&&typeof src.bought==='object'?Object.fromEntries(Object.entries(src.bought).map(([k,v])=>[k,Math.max(0,Math.floor(Number(v)||0))])):{};base.sold=src.sold&&typeof src.sold==='object'?Object.fromEntries(Object.entries(src.sold).map(([k,v])=>[k,Math.max(0,Math.floor(Number(v)||0))])):{};return base;
+  base.bought=src.bought&&typeof src.bought==='object'?Object.fromEntries(Object.entries(src.bought).map(([k,v])=>[k,Math.max(0,Math.floor(Number(v)||0))])):{};base.sold=src.sold&&typeof src.sold==='object'?Object.fromEntries(Object.entries(src.sold).map(([k,v])=>[k,Math.max(0,Math.floor(Number(v)||0))])):{};base.produced=src.produced&&typeof src.produced==='object'?Object.fromEntries(Object.entries(src.produced).map(([k,v])=>[k,Math.max(0,Math.floor(Number(v)||0))])):{};return base;
+}
+function sanitizeWarehouse(raw){
+  const src=raw&&typeof raw==='object'?raw:{},out={};let used=0;for(const id of Object.keys(TRADE_GOODS)){const n=Math.max(0,Math.floor(Number(src[id])||0)),take=Math.min(n,WAREHOUSE_CAP-used);if(take>0){out[id]=take;used+=take;}if(used>=WAREHOUSE_CAP)break;}return out;
 }
 function count(id) { return Number(game.inventory[id]||0); }
 function addItem(id,n=1) {
@@ -117,14 +130,14 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
   game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
   game.hotbar=Array.isArray(raw.hotbar)&&raw.hotbar.length===HOTBAR_SIZE?raw.hotbar:[...HOTBAR_DEFAULT];
-  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.trade=sanitizeTrade(raw.trade); game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0))})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
+  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.trade=sanitizeTrade(raw.trade); game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0)),warehouse:sanitizeWarehouse(b.warehouse)})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
   game.enemies=[]; game.drops=[]; game.projectiles=[]; game.enemyProjectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
@@ -227,17 +240,37 @@ function beaconComponents(){
 function beaconComponentFor(b){if(!b)return[];const key=beaconKey(b.x,b.y);return beaconComponents().find(c=>c.some(x=>beaconKey(x.x,x.y)===key))||[];}
 function componentBiomeIds(component){return [...new Set((component||[]).map(b=>game.world.biome(b.x).id))].sort();}
 function beaconExchangeGood(b){const component=beaconComponentFor(b),local=game.world.biome(b.x).id,other=componentBiomeIds(component).find(id=>id!==local);if(!other)return null;const map={verdant:'fiber',ember:'coal',frost:'ice'};return {biome:other,id:map[other]};}
-function syncTradeDay(){if(!game.trade)game.trade=freshTrade();const day=Math.max(0,Math.floor(game.nightsSurvived||0));if(game.trade.day!==day){game.trade.day=day;game.trade.bought={};game.trade.sold={};game.saveDirty=true;}}
+function syncTradeDay(){if(!game.trade)game.trade=freshTrade();const day=Math.max(0,Math.floor(game.nightsSurvived||0));if(game.trade.day!==day){game.trade.day=day;game.trade.bought={};game.trade.sold={};game.trade.produced={};game.saveDirty=true;}}
 function nearbyTradePost(){
   if(!game.world||!game.player)return null;const nearest=nearestBeacon();if(!nearest||nearest.d>TRADE_POST_RADIUS)return null;const beacon=beaconAt(Math.floor(nearest.x),Math.floor(nearest.y))||nearest,component=beaconComponentFor(beacon),biomes=componentBiomeIds(component);return {beacon,biome:game.world.biome(beacon.x),linked:linkedBeaconKeys().has(beaconKey(beacon.x,beacon.y)),biomeCount:biomes.length};
 }
+function cargoLoad(){return Object.keys(TRADE_GOODS).reduce((n,id)=>n+count(id)*Math.max(1,Number(ITEMS[id]?.cargoWeight)||1),0);}
+function cargoCapacity(){return CARGO_BASE_CAP+(count('freight_frame')>0?CARGO_FRAME_BONUS:0);}
+function cargoRoom(id,n=1){const weight=Math.max(1,Number(ITEMS[id]?.cargoWeight)||1);return cargoLoad()+weight*n<=cargoCapacity()&&count(id)+n<=(ITEMS[id]?.stack||20);}
+function warehouseUnits(b){return Object.keys(TRADE_GOODS).reduce((n,id)=>n+Math.max(0,Number(b?.warehouse?.[id])||0),0);}
+function warehouseCount(b,id){return Math.max(0,Number(b?.warehouse?.[id])||0);}
+function warehouseAdd(b,id,n=1){if(!b||!TRADE_GOODS[id]||warehouseUnits(b)+n>WAREHOUSE_CAP)return false;b.warehouse=b.warehouse&&typeof b.warehouse==='object'?b.warehouse:{};b.warehouse[id]=warehouseCount(b,id)+n;game.saveDirty=true;return true;}
+function warehouseTake(b,id,n=1){if(!b||warehouseCount(b,id)<n)return false;b.warehouse[id]-=n;if(b.warehouse[id]<=0)delete b.warehouse[id];game.saveDirty=true;return true;}
 function tradePrice(id,market,side){
   const good=TRADE_GOODS[id];if(!good||!market)return null;const local=good.home===market.biome.id,network=market.linked?1.06:1;
   if(side==='buy'){if(!local)return null;return Math.max(1,Math.ceil(good.base*(market.linked?.94:1)));}
-  return Math.max(1,Math.floor(good.base*(local?.55:1.48)*(local?1:network)));
+  return Math.max(1,Math.floor(good.base*(local?.52:1.48)*(local?1:network)));
+}
+function productionKey(market,id){return beaconKey(market.beacon.x,market.beacon.y)+':'+id;}
+function canProduceTradeGood(id,market=nearbyTradePost()){
+  const recipe=TRADE_PRODUCTION[id];if(!market||!recipe||recipe.home!==market.biome.id||!nearStation('workbench'))return false;const used=Number(game.trade.produced[productionKey(market,id)]||0);return used<TRADE_DAILY_PRODUCTION_CAP&&warehouseUnits(market.beacon)<WAREHOUSE_CAP&&Object.entries(recipe.need).every(([mat,n])=>count(mat)>=n);
+}
+function produceTradeGood(id){
+  syncTradeDay();const market=nearbyTradePost(),recipe=TRADE_PRODUCTION[id];if(!market||!recipe||recipe.home!==market.biome.id)return;if(!nearStation('workbench'))return toast(tr('生产货物需要路标附近有工匠台','Cargo production needs a Craft Table beside the trade post'));const key=productionKey(market,id),used=Number(game.trade.produced[key]||0);if(used>=TRADE_DAILY_PRODUCTION_CAP)return toast(tr('该据点今日生产额已满','This depot has reached today’s production limit'));if(warehouseUnits(market.beacon)>=WAREHOUSE_CAP)return toast(tr('据点仓库已满','Depot warehouse is full'));if(!Object.entries(recipe.need).every(([mat,n])=>count(mat)>=n))return toast(tr('生产原料不足','Not enough production materials'));for(const [mat,n] of Object.entries(recipe.need))consume(mat,n);warehouseAdd(market.beacon,id,1);game.trade.produced[key]=used+1;game.saveDirty=true;renderTrade();renderInventory();renderHotbar();toast(tr(`生产完成 · ${itemName(id,'zh')} 已入库`,`Produced · ${itemName(id,'en')} stored at depot`));
+}
+function loadWarehouseCargo(id){
+  const market=nearbyTradePost();if(!market||warehouseCount(market.beacon,id)<=0)return;if(!cargoRoom(id,1))return toast(tr(`货运已满 ${cargoLoad()}/${cargoCapacity()} · 制作货运背架可扩容`,`Cargo full ${cargoLoad()}/${cargoCapacity()} · craft a Freight Frame to expand capacity`));if(!warehouseTake(market.beacon,id,1))return;addItem(id,1);renderTrade();renderInventory();renderHotbar();
+}
+function storeWarehouseCargo(id){
+  const market=nearbyTradePost();if(!market||count(id)<=0)return;if(warehouseUnits(market.beacon)>=WAREHOUSE_CAP)return toast(tr('据点仓库已满','Depot warehouse is full'));consume(id,1);warehouseAdd(market.beacon,id,1);renderTrade();renderInventory();renderHotbar();
 }
 function buyTradeGood(id){
-  syncTradeDay();const market=nearbyTradePost(),good=TRADE_GOODS[id];if(!market||!good||good.home!==market.biome.id)return;const used=Number(game.trade.bought[id]||0),price=tradePrice(id,market,'buy'),max=ITEMS[id]?.stack||99;if(used>=TRADE_DAILY_BUY_CAP)return toast(tr('今日该货物已售罄','This local stock is sold out for today'));if(game.trade.credits<price)return toast(tr('铸印不足','Not enough Forge Marks'));if(count(id)>=max)return toast(tr('行囊中该货物已满','That cargo stack is full'));game.trade.credits-=price;game.trade.bought[id]=used+1;game.trade.volume++;game.trade.turnover+=price;addItem(id,1);game.saveDirty=true;renderTrade();renderInventory();renderHotbar();
+  syncTradeDay();const market=nearbyTradePost(),good=TRADE_GOODS[id];if(!market||!good||good.home!==market.biome.id)return;const used=Number(game.trade.bought[id]||0),price=tradePrice(id,market,'buy');if(used>=TRADE_DAILY_BUY_CAP)return toast(tr('今日该货物已售罄','This local stock is sold out for today'));if(game.trade.credits<price)return toast(tr('铸印不足','Not enough Forge Marks'));if(!cargoRoom(id,1))return toast(tr(`货运已满 ${cargoLoad()}/${cargoCapacity()} · 先卸货或扩容`,`Cargo full ${cargoLoad()}/${cargoCapacity()} · unload or expand capacity`));game.trade.credits-=price;game.trade.bought[id]=used+1;game.trade.volume++;game.trade.turnover+=price;addItem(id,1);game.saveDirty=true;renderTrade();renderInventory();renderHotbar();
 }
 function sellTradeGood(id){
   syncTradeDay();const market=nearbyTradePost(),good=TRADE_GOODS[id];if(!market||!good||count(id)<=0)return;const key=market.biome.id+':'+id,used=Number(game.trade.sold[key]||0),price=tradePrice(id,market,'sell');if(used>=TRADE_DAILY_SELL_CAP)return toast(tr('这里今日已收满这种货','This market has met today’s demand for that cargo'));consume(id,1);game.trade.credits+=price;game.trade.sold[key]=used+1;game.trade.volume++;game.trade.turnover+=price;game.saveDirty=true;renderTrade();renderInventory();renderHotbar();
@@ -252,7 +285,7 @@ function registerBeacon(x,y){
   const key=beaconKey(x,y),list=game.infrastructure?.beacons||[];
   if(list.some(b=>beaconKey(b.x,b.y)===key))return false;
   if(list.length>=8){toast(tr('边境路标已达上限（8处），先拆除旧路标','Beacon network is full (8). Remove an old beacon first'));return false;}
-  list.push({x:x+.5,y:y+.5,createdAt:Math.floor(Date.now()/1000),supply:0});game.infrastructure={beacons:list};game.saveDirty=true;return true;
+  list.push({x:x+.5,y:y+.5,createdAt:Math.floor(Date.now()/1000),supply:0,warehouse:{}});game.infrastructure={beacons:list};game.saveDirty=true;return true;
 }
 function removeBeacon(x,y){const key=beaconKey(x,y);const list=(game.infrastructure?.beacons||[]).filter(b=>beaconKey(b.x,b.y)!==key);game.infrastructure={beacons:list};game.saveDirty=true;}
 function replenishBeaconSupplies(){
@@ -601,7 +634,7 @@ function bridgeAssistTarget(item,fallback){
 function placementTarget(item){return bridgeAssistTarget(item,reachTarget('place'));}
 function place(idOverride=null) {
   if(game.placeCd>0)return;const id=idOverride||(game.autoTool&&count('torch')>0?'torch':selectedId()),item=ITEMS[id];
-  const existing=game.world&&reachTarget('aim');if(existing?.ok&&game.world.get(existing.x,existing.y)===TILE.BEACON){removeBeacon(existing.x,existing.y);game.world.set(existing.x,existing.y,TILE.AIR);spawnDrop('beacon',1,existing.x+.5,existing.y+.5);toast(tr('边境路标已拆除并回收','Frontier Beacon dismantled and recovered'));game.saveDirty=true;return;}
+  const existing=game.world&&reachTarget('aim');if(existing?.ok&&game.world.get(existing.x,existing.y)===TILE.BEACON){const b=beaconAt(existing.x,existing.y);if(b&&warehouseUnits(b)>0){toast(tr('先清空路标仓库，再拆除据点','Empty the depot warehouse before dismantling this beacon'));return;}removeBeacon(existing.x,existing.y);game.world.set(existing.x,existing.y,TILE.AIR);spawnDrop('beacon',1,existing.x+.5,existing.y+.5);toast(tr('边境路标已拆除并回收','Frontier Beacon dismantled and recovered'));game.saveDirty=true;return;}
   if(!item?.tile||count(id)<1)return;
   const t=placementTarget(item);if(!t.ok)return;const def=TILE_DEFS[item.tile];if(!def?.place||!canPlaceAt(t.x,t.y)||!hasPlacementSupport(t.x,t.y,item.tile))return;
   game.world.set(t.x,t.y,item.tile);consume(id,1);if(item.tile===TILE.BEACON&&!registerBeacon(t.x,t.y)) {game.world.set(t.x,t.y,TILE.AIR);addItem(id,1);return;} if(item.tile===TILE.STAR_FORGE){game.forgePlaced=true;game.saveDirty=true;toast(tr('星核炉已安放：带它深入星晶裂隙','Starcore Forge placed: carry its power into the rift'));}sfx('place',.65);game.placeCd=(item.tile===TILE.PLATFORM||item.tile===TILE.ROPE)?0.085:0.115;spawnDebris(t.x+.5,t.y+.5,def.color,3,.28);game.fx.shake=Math.max(game.fx.shake,.18);haptic(4);renderHotbar();game.saveDirty=true;
@@ -725,11 +758,11 @@ function renderCraft() {
   view.querySelectorAll('[data-recipe]').forEach(btn=>btn.onclick=()=>craft(RECIPES[+btn.dataset.recipe]));
 }
 function renderTrade(){
-  const view=$('#tradeView');if(!view)return;if(!game.world||!game.player){view.innerHTML='';return;}syncTradeDay();const market=nearbyTradePost();if(!market){view.innerHTML=`<div class="trade-empty"><b>${tr('附近没有贸易路标','No trade post nearby')}</b><span>${tr('靠近任意边境路标即可交易；把本地低价货物实际运到另一地貌，才能吃到需求溢价。','Trade beside any Frontier Beacon. Buy local goods low, physically carry them to another biome, then sell into demand.')}</span></div>`;return;}
-  const route=market.linked?tr(`路网 ${Math.max(1,market.biomeCount)} 地`,`Route · ${Math.max(1,market.biomeCount)} biomes`):tr('孤立路标','Isolated beacon');
-  const rows=Object.entries(TRADE_GOODS).map(([id,good])=>{const local=good.home===market.biome.id,buy=tradePrice(id,market,'buy'),sell=tradePrice(id,market,'sell'),bought=Number(game.trade.bought[id]||0),sold=Number(game.trade.sold[market.biome.id+':'+id]||0),owned=count(id);return `<div class="trade-row ${local?'export':'demand'}"><div class="trade-good"><b>${GLYPH[id]||'◆'} ${itemName(id,lang)}</b><small>${local?tr('本地产物 · 低价装货','Local export · load cheap'):tr('外来需求 · 高价收购','Imported demand · premium buyback')}</small></div><div class="trade-owned">${tr('持有','Pack')} ${owned}</div><div class="trade-actions">${local?`<button data-trade-buy="${id}" ${bought>=TRADE_DAILY_BUY_CAP?'disabled':''}>${tr('买','Buy')} ◆${buy}<small>${TRADE_DAILY_BUY_CAP-bought}</small></button>`:''}<button data-trade-sell="${id}" ${owned<=0||sold>=TRADE_DAILY_SELL_CAP?'disabled':''}>${tr('卖','Sell')} ◆${sell}<small>${TRADE_DAILY_SELL_CAP-sold}</small></button></div></div>`;}).join('');
-  view.innerHTML=`<div class="trade-head"><div><b>${lang==='zh'?market.biome.zh:market.biome.en} · ${tr('边境市场','Frontier Market')}</b><small>${route}${market.linked?tr(' · 联网成交 +6%',' · linked demand +6%'):''}</small></div><strong>◆ ${game.trade.credits}</strong></div><div class="trade-note">${tr('产地买入便宜，异地卖出更贵。每日库存与需求有限，日出刷新。','Origin goods are cheap; distant markets pay more. Daily stock and demand refresh at sunrise.')}</div><div class="trade-list">${rows}</div>`;
-  view.querySelectorAll('[data-trade-buy]').forEach(b=>b.onclick=()=>buyTradeGood(b.dataset.tradeBuy));view.querySelectorAll('[data-trade-sell]').forEach(b=>b.onclick=()=>sellTradeGood(b.dataset.tradeSell));
+  const view=$('#tradeView');if(!view)return;if(!game.world||!game.player){view.innerHTML='';return;}syncTradeDay();const market=nearbyTradePost();if(!market){view.innerHTML=`<div class="trade-empty"><b>${tr('附近没有贸易路标','No trade post nearby')}</b><span>${tr('靠近边境路标后可生产、入库、装货和交易。真正的货物必须由你带过荒野。','Stand beside a Frontier Beacon to produce, store, load and trade. Real cargo must cross the frontier with you.')}</span></div>`;return;}
+  const route=market.linked?tr(`路网 ${Math.max(1,market.biomeCount)} 地`,`Route · ${Math.max(1,market.biomeCount)} biomes`):tr('孤立路标','Isolated beacon'),load=cargoLoad(),cap=cargoCapacity(),warehouse=warehouseUnits(market.beacon),bench=nearStation('workbench');
+  const rows=Object.entries(TRADE_GOODS).map(([id,good])=>{const local=good.home===market.biome.id,buy=tradePrice(id,market,'buy'),sell=tradePrice(id,market,'sell'),bought=Number(game.trade.bought[id]||0),sold=Number(game.trade.sold[market.biome.id+':'+id]||0),owned=count(id),stored=warehouseCount(market.beacon,id),recipe=TRADE_PRODUCTION[id],produced=Number(game.trade.produced[productionKey(market,id)]||0),need=recipe?Object.entries(recipe.need).map(([mat,n])=>`${itemName(mat,lang)} ${count(mat)}/${n}`).join(' · '):'',canProduce=local&&bench&&canProduceTradeGood(id,market);return `<div class="trade-row ${local?'export':'demand'}"><div class="trade-good"><b>${GLYPH[id]||'◆'} ${itemName(id,lang)}</b><small>${local?tr('本地货物 · 可生产/采购','Local cargo · produce or buy'):tr('异地需求 · 高价收购','Imported demand · premium buyback')}</small>${local?`<small class="produce-need">${tr('生产','Make')}: ${need}</small>`:''}</div><div class="trade-owned">${tr('随身','Pack')} ${owned} · ${tr('仓','Depot')} ${stored}</div><div class="trade-actions">${local?`<button data-trade-produce="${id}" ${canProduce?'':'disabled'}>${tr('生产','Make')}<small>${TRADE_DAILY_PRODUCTION_CAP-produced}</small></button><button data-trade-buy="${id}" ${bought>=TRADE_DAILY_BUY_CAP||!cargoRoom(id,1)?'disabled':''}>${tr('采购','Buy')} ◆${buy}<small>${TRADE_DAILY_BUY_CAP-bought}</small></button>`:''}<button data-trade-load="${id}" ${stored<=0||!cargoRoom(id,1)?'disabled':''}>${tr('装货','Load')}</button><button data-trade-store="${id}" ${owned<=0||warehouse>=WAREHOUSE_CAP?'disabled':''}>${tr('入库','Store')}</button><button data-trade-sell="${id}" ${owned<=0||sold>=TRADE_DAILY_SELL_CAP?'disabled':''}>${tr('出售','Sell')} ◆${sell}<small>${TRADE_DAILY_SELL_CAP-sold}</small></button></div></div>`;}).join('');
+  view.innerHTML=`<div class="trade-head"><div><b>${lang==='zh'?market.biome.zh:market.biome.en} · ${tr('边境货站','Frontier Depot')}</b><small>${route}${market.linked?tr(' · 联网成交 +6%',' · linked demand +6%'):''}</small></div><strong>◆ ${game.trade.credits}</strong></div><div class="logistics-strip"><span>${tr('货运','Cargo')} <b>${load}/${cap}</b>${count('freight_frame')>0?` · ${tr('背架','Frame')}`:''}</span><span>${tr('仓库','Depot')} <b>${warehouse}/${WAREHOUSE_CAP}</b></span><span>${tr('工匠台','Craft Table')} <b>${bench?tr('在线','Ready'):tr('缺失','Missing')}</b></span></div><div class="trade-note">${tr('本地原料可在工匠台打包成标准货物并直接入库；装货后占用货运容量，必须亲自送往异地才能获得需求溢价。','Local materials can be packed at a Craft Table and stored here. Loaded cargo consumes carrying capacity and earns its premium only after you deliver it to another biome.')}</div><div class="trade-list">${rows}</div>`;
+  view.querySelectorAll('[data-trade-produce]').forEach(b=>b.onclick=()=>produceTradeGood(b.dataset.tradeProduce));view.querySelectorAll('[data-trade-buy]').forEach(b=>b.onclick=()=>buyTradeGood(b.dataset.tradeBuy));view.querySelectorAll('[data-trade-load]').forEach(b=>b.onclick=()=>loadWarehouseCargo(b.dataset.tradeLoad));view.querySelectorAll('[data-trade-store]').forEach(b=>b.onclick=()=>storeWarehouseCargo(b.dataset.tradeStore));view.querySelectorAll('[data-trade-sell]').forEach(b=>b.onclick=()=>sellTradeGood(b.dataset.tradeSell));
 }
 
 function renderHotbar() {
@@ -744,7 +777,7 @@ function updateHud(){
   const depth=Math.max(0,Math.floor(p.y-surface)),zone=currentDepthZone(depth);$('#depthText').textContent=depth<3?tr(zone.zh,zone.en):tr(`${zone.zh} · ${depth}m`,`${zone.en} · ${depth}m`);
   const phase=game.nightState==='night'?tr('夜袭','Night Watch'):game.nightState==='dusk'?tr('暮色','Dusk'):tr('白昼','Daylight');$('#timeText').textContent=timeLabel()+' · '+phase;
   const beacon=nearestBeacon(),route=routeStateAt(p.x,p.y),supply=totalBeaconSupply();
-  const routeText=(route.active?tr(`补给路 +8% · ${route.biomeCount}地 · ${supply}`,`SUPPLY ROUTE +8% · ${route.biomeCount} biomes · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon'))+` · ◆${Math.max(0,Math.floor(game.trade?.credits||0))}`;
+  const routeText=(route.active?tr(`补给路 +8% · ${route.biomeCount}地 · ${supply}`,`SUPPLY ROUTE +8% · ${route.biomeCount} biomes · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon'))+` · ◆${Math.max(0,Math.floor(game.trade?.credits||0))} · ▣${cargoLoad()}/${cargoCapacity()}`;
   const beaconEl=$('#beaconText');if(beaconEl){beaconEl.textContent=routeText;beaconEl.classList.toggle('route-active',route.active);beaconEl.classList.toggle('has-supply',supply>0);}
   const danger=$('#dangerText');if(danger){danger.textContent=game.nightState==='night'?(game.nightSurge>0?tr('夜袭高压','NIGHT SURGE'):tr('夜袭','NIGHT WATCH')):game.nightState==='dusk'?tr('守夜准备','PREPARE'):tr('安全','SAFE');danger.classList.toggle('active',game.nightState==='night');danger.classList.toggle('warning',game.nightState==='dusk');danger.title=[fireNotice(),routeText].filter(Boolean).join(' · ');}
 }
@@ -957,7 +990,7 @@ function drawFx(){
   ctx.globalAlpha=1;
 }
 function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawSupplyRoutes();drawProjectiles();drawEnemyProjectiles();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
-function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.BEACON){const b=beaconAt(t.x,t.y),linked=linkedBeaconKeys().has(beaconKey(b?.x||t.x,b?.y||t.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0)),component=beaconComponentFor(b),biomeCount=componentBiomeIds(component).length,exchange=b?beaconExchangeGood(b):null,cargo=exchange?itemName(exchange.id,lang):tr('本地','Local');$('#targetTip').textContent=tr(`边境路标 · ${linked?biomeCount+'地路网':'孤立'} · 补给 ${supply}/${MAX_BEACON_SUPPLY} · 货运 ${cargo} · E→贸易`,`Frontier Beacon · ${linked?biomeCount+'-biome link':'Isolated'} · Supply ${supply}/${MAX_BEACON_SUPPLY} · Cargo ${cargo}`);}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
+function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.BEACON){const b=beaconAt(t.x,t.y),linked=linkedBeaconKeys().has(beaconKey(b?.x||t.x,b?.y||t.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0)),component=beaconComponentFor(b),biomeCount=componentBiomeIds(component).length,exchange=b?beaconExchangeGood(b):null,cargo=exchange?itemName(exchange.id,lang):tr('本地','Local'),stored=warehouseUnits(b);$('#targetTip').textContent=tr(`边境路标 · ${linked?biomeCount+'地路网':'孤立'} · 仓库 ${stored}/${WAREHOUSE_CAP} · E→贸易`,`Frontier Beacon · ${linked?biomeCount+'-biome link':'Isolated'} · Depot ${stored}/${WAREHOUSE_CAP} · E→Trade`);}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
 function updateCamera(dt){const p=game.player,s=game.camera.tile,lookX=Math.max(-1.35,Math.min(1.35,p.vx*.22)),lookY=p.vy>5?Math.min(.7,(p.vy-5)*.07):0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.pow(.0014,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
 
 function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateProjectiles(dt);updateEnemyProjectiles(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
@@ -999,7 +1032,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
