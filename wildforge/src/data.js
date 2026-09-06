@@ -1,4 +1,4 @@
-export const VERSION = '0.12.0';
+export const VERSION = '0.13.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -114,6 +114,7 @@ export const ENEMY_TYPES = Object.freeze({
   ash_scuttler:{zh:'灰烬疾足',en:'Ash Scuttler',hp:23,damage:5,speed:2.15,color:'#b35f4b',biome:'ember'},
   shardback:{zh:'霜晶脊兽',en:'Shardback',hp:29,damage:6,speed:1.35,color:'#79a8c5',biome:'frost'},
   hollow_wisp:{zh:'空洞微光',en:'Hollow Wisp',hp:16,damage:5,speed:1.7,color:'#66c7ae',underground:true,flying:true},
+  greyveil_raider:{zh:'灰披劫徒',en:'Greyveil Raider',hp:26,damage:6,speed:1.85,color:'#8b7467',raider:true},
   ruin_sentinel:{zh:'遗迹守望者',en:'Ruin Sentinel',hp:42,damage:8,speed:1.15,color:'#8b729b',underground:true},
   rift_beast:{zh:'裂隙巨兽',en:'Rift Behemoth',hp:168,damage:14,speed:.8,color:'#c06b72',underground:true,boss:true}
 });

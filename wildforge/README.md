@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.12.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.13.0 build is an incubation build, not a public production release.
 
-## v0.12.0 playable incubation build
+## v0.13.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -23,6 +23,16 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
 
+## Single-file playtest export
+
+Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`). For review/share builds, generate a self-contained HTML without changing source authority:
+
+```bash
+node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
+```
+
+The exporter inlines CSS and the data/world/game module graph, and its output is smoke-tested as a standalone file.
+
 ## Originality boundary
 
 The project may take genre-level inspiration from block sandbox and side-scrolling survival games, but it must not copy Terraria or Minecraft characters, enemies, names, recipes, UI, music, textures, biome identities or other protected assets. Current visuals are procedural and repository-native.
@@ -31,6 +41,14 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.13.0
+- 标准货物进入“占手”状态：随身携货时主角无法正常攻击，必须按 `R` / 手机“货包”键将整批货物放到地上后再战斗；
+- 地面货包拥有耐久，可被敌方投射物、灰披劫徒近战和玩家自己的远程攻击误伤；耐久归零时随机报废 1 件货物，其余货物继续保留；
+- 新增灰披劫徒：低货值夜运时出现概率极低，货值上升后伏击概率提高；商路、营火与护卫都会压低风险；
+- 边境货站可使用铸印雇佣临时护卫。护卫会跟随玩家、主动攻击附近普通敌人，也能吸收部分正面压力；契约持续约 1.5 个昼夜或直至阵亡；
+- 劫徒被击退后提供少量缉赏铸印，形成“护货—反击—继续运输”的正反馈，但不足以替代贸易利润；
+- 货包与护卫契约写入本地存档；新增 v0.12.0 → v0.13.0 迁移。
 
 ## v0.12.0
 - 货运负重开始影响实际移动：超过轻载阈值后逐步降速，满载时约 -14%；商路会抵消大部分重载惩罚，使道路真正具备物流效率价值；
