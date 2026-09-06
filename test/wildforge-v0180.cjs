@@ -3,11 +3,11 @@ const assert=require('assert'),fs=require('fs'),path=require('path');
 const root=path.resolve(__dirname,'..');
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const html=read('wildforge/index.html'),css=read('wildforge/style.css'),game=read('wildforge/src/game.js'),world=read('wildforge/src/world.js'),data=read('wildforge/src/data.js');
-assert.equal(read('wildforge/VERSION').trim(),'0.17.0');
-assert(html.includes('<meta name="version" content="0.17.0"'));
-assert(data.includes("VERSION = '0.17.0'"));
-assert(game.includes("const SAVE_KEY = 'wildforge.save.v0170'"));
-assert(html.includes('<meta name="version" content="0.17.0"'));assert(html.includes('id="victoryScreen"')&&html.includes('id="continueAfterVictory"'),'v0.3 finale UI missing');
+assert.equal(read('wildforge/VERSION').trim(),'0.18.0');
+assert(html.includes('<meta name="version" content="0.18.0"'));
+assert(data.includes("VERSION = '0.18.0'"));
+assert(game.includes("const SAVE_KEY = 'wildforge.save.v0180'"));
+assert(html.includes('<meta name="version" content="0.18.0"'));assert(html.includes('id="victoryScreen"')&&html.includes('id="continueAfterVictory"'),'v0.3 finale UI missing');
 for(const marker of ['id="game"','id="hotbar"','id="mobileControls"','id="portraitGuard"','id="inventoryPanel"','id="fullscreenBtn"']) assert(html.includes(marker),'missing '+marker);
 assert(css.includes('@media (orientation:portrait)')&&css.includes('@media (max-height:520px) and (orientation:landscape)'),'landscape-first responsive contract missing');
 assert(game.includes("screen.orientation.lock('landscape')"),'fullscreen landscape lock missing');
@@ -62,8 +62,8 @@ assert(game.includes("if(game.player?.dashTimer>0&&amount<999)return;"),'dash i-
 assert(html.includes('id="mobileDash"'),'mobile dash control missing');
 assert(game.includes("e.code==='KeyQ'")&&game.includes("$('#mobileDash')"),'dash input contract missing');
 
-assert(data.includes("VERSION = '0.17.0'"),'data module version must match incubation build');
-assert(game.includes("const SAVE_KEY = 'wildforge.save.v0170'"),'v0.9 save key missing');
+assert(data.includes("VERSION = '0.18.0'"),'data module version must match incubation build');
+assert(game.includes("const SAVE_KEY = 'wildforge.save.v0180'"),'v0.9 save key missing');
 assert(game.includes('function nightPhase()')&&game.includes('function updateWorldRhythm(dt)'),'day/night rhythm runtime missing');
 assert(game.includes('nightSurge')&&game.includes('nightsSurvived'),'night survival state missing');
 assert(game.includes('LEGACY_SAVE_KEY_OLDEST')&&game.includes('LEGACY_SAVE_KEY_070')&&game.includes('location.reload()'),'new-world reset must clear all legacy saves');
@@ -73,9 +73,9 @@ assert(game.includes('game.rng()<.46')&&game.includes("type==='hollow_wisp"),'ni
 assert(html.includes('id="dangerText"'),'night danger HUD marker missing');
 assert(html.includes('class="route-readout"')&&html.includes('id="beaconText"'),'dedicated route HUD line missing');
 assert(css.includes('#dangerText.active')&&css.includes('#dangerText.warning'),'night danger HUD styling missing');
-console.log(`wildforge_v0170=PASS tiles=${tileEntries} recipes=${recipeEntries} enemies=${enemyEntries}`);
+console.log(`wildforge_v0180=PASS tiles=${tileEntries} recipes=${recipeEntries} enemies=${enemyEntries}`);
 
-assert(game.includes("const SAVE_KEY = 'wildforge.save.v0170'"),'v0.9 save key missing');
+assert(game.includes("const SAVE_KEY = 'wildforge.save.v0180'"),'v0.9 save key missing');
 assert(game.includes('outpostReady'),'outpost readiness state missing');
 assert(game.includes('outpost salvage')&&game.includes('日出 · 守夜'),'dawn outpost salvage feedback missing');
 assert(game.includes("Math.round(amount*.72)")&&game.includes("!['ruin_sentinel','rift_beast'].includes(source)"),'outpost ward damage mitigation must exclude elite/boss damage');
@@ -87,12 +87,12 @@ assert(game.includes('worldProgress:game.worldProgress'),'world memory must be p
 assert(game.includes('evolveRelicSite')&&game.includes('evolveOutpost'),'world evolution traces missing');
 assert(game.includes('updateWorldEvolution')&&game.includes('evolution:0'),'world evolution state missing');
 
-assert(game.includes("const SAVE_KEY = 'wildforge.save.v0170'"),'v0.9 save key missing');
+assert(game.includes("const SAVE_KEY = 'wildforge.save.v0180'"),'v0.9 save key missing');
 assert(data.includes('BEACON:29')&&data.includes("id:'beacon'"),'persistent beacon content missing');
 assert(game.includes('infrastructure')&&game.includes('registerBeacon')&&game.includes('attuneBeacon')&&game.includes('nearestBeacon'),'beacon network runtime missing');
 assert(game.includes('infrastructure:game.infrastructure'),'beacon network must be persisted');
 assert(game.includes("raw.v===VERSION")&&game.includes("raw.v==='0.8.0'")&&game.includes("LEGACY_SAVE_KEY_080 = 'wildforge.save.v080'"),'v0.8 migration chain missing');
-console.log('wildforge_v0170=PASS beacon_network=persistent');
+console.log('wildforge_v0180=PASS beacon_network=persistent');
 
 
 assert(game.includes('const BEACON_LINK_RANGE=96'),'v0.9.2 beacon link range missing');
@@ -111,7 +111,7 @@ assert(game.includes("classList.toggle('route-active'")&&css.includes('.route-re
 assert(game.includes('for(let i=0;i<supply;i++)'),'beacon supply pips missing');
 assert(game.includes('let claimable=charges')&&game.includes('b.supply=charges-claimable'),'beacon claim must preserve unclaimed supply instead of silently clipping stacks');
 assert(game.includes("!['ruin_sentinel','rift_beast'].includes(source)"),'route work must preserve elite/boss damage exception');
-console.log('wildforge_v0170=PASS route_network=supply-route');
+console.log('wildforge_v0180=PASS route_network=supply-route');
 
 
 for(const fn of ['function beaconComponents()','function beaconComponentFor(b)','function componentBiomeIds(component)','function beaconExchangeGood(b)','function drawSupplyRoutes()']) assert(game.includes(fn),'v0.9.2 route/cargo helper missing: '+fn);
@@ -123,7 +123,7 @@ assert(game.includes('ctx.setLineDash')&&game.includes('drawSupplyRoutes();'),'r
 assert(game.includes("raw.v==='0.9.2'")&&game.includes("LEGACY_SAVE_KEY = 'wildforge.save.v092'"),'v0.9.1 migration chain missing');
 assert(game.includes("LEGACY_SAVE_KEY_090 = 'wildforge.save.v090'"),'v0.9.0 migration key must remain explicit');
 assert(css.includes('.route-readout .cargo'),'route cargo HUD styling missing');
-console.log('wildforge_v0170=PASS route_visibility=cross-biome-cargo');
+console.log('wildforge_v0180=PASS route_visibility=cross-biome-cargo');
 
 
 assert(html.includes('data-tab="trade"')&&html.includes('id="tradeView"'),'trade tab surface missing');
@@ -132,13 +132,13 @@ assert(game.includes('game.trade.credits-=price')&&game.includes('game.trade.cre
 assert(game.includes('trade:game.trade')&&game.includes('sanitizeTrade(raw.trade)'),'trade state must persist and migrate');
 assert(html.includes('求生 <i>→</i> 采集')&&html.includes('生产')&&html.includes('装货')&&html.includes('运输')&&html.includes('交易'),'trade-survival logistics loop is not visible on start screen');
 assert(css.includes('.trade-row.export')&&css.includes('.trade-row.demand'),'trade market visual states missing');
-console.log('wildforge_v0170=PASS frontier_market=regional-arbitrage');
+console.log('wildforge_v0180=PASS frontier_market=regional-arbitrage');
 
 assert(data.includes("{id:'beacon',out:{id:'beacon',n:1},need:{plank:8,torch:2,rope:2},station:'workbench'}"),'trade post must be craftable before metal-tier progression');
 assert(!data.includes("{id:'beacon',out:{id:'beacon',n:1},need:{iron_bar:"),'trade core must not remain cold-iron gated');
 assert(game.includes("if(!raw||typeof raw!=='object')return freshTrade()"),'legacy saves must receive starter trade state');
 assert(game.includes('E→贸易')&&game.includes('load local cargo'),'trade onboarding feedback missing');
-console.log('wildforge_v0170=PASS trade_onboarding=early-game');
+console.log('wildforge_v0180=PASS trade_onboarding=early-game');
 
 assert(game.includes("const LEGACY_SAVE_KEY_0100 = 'wildforge.save.v0100'" )&&game.includes("raw.v==='0.10.0'"),'v0.10 migration chain missing');
 for(const id of ['greenheart_bale','emberfuel_crate','frostglass_case','freight_frame']) assert(data.includes(id+':{id:'), 'v0.11 cargo/upgrader item missing: '+id);
@@ -152,7 +152,7 @@ assert(data.includes("{id:'freight_frame',out:{id:'freight_frame',n:1},need:{pla
 assert(game.includes('TRADE_DAILY_PRODUCTION_CAP')&&game.includes("nearStation('workbench')")&&game.includes('game.trade.produced'),'bounded depot production missing');
 assert(html.includes('生产 <i>→</i> 装货'),'v0.11 logistics core loop is not surfaced');
 assert(css.includes('.logistics-strip'),'logistics HUD/panel styling missing');
-console.log('wildforge_v0170=PASS depot_logistics=production-storage-capacity');
+console.log('wildforge_v0180=PASS depot_logistics=production-storage-capacity');
 
 assert(game.includes("const LEGACY_SAVE_KEY_0110 = 'wildforge.save.v0110'")&&game.includes("raw.v==='0.11.0'"),'v0.11 migration chain missing');
 assert(game.includes('const FREIGHT_FULL_SPEED_PENALTY=.14')&&game.includes('const FREIGHT_NIGHT_THREAT=.18')&&game.includes('const FREIGHT_SPILL_BASE=.18'),'freight risk tuning constants missing');
@@ -163,7 +163,7 @@ assert(game.includes('spillCargoOnHit(source)')&&game.includes('d.age=-.85'),'ac
 assert(game.includes("route.active?.45:1")&&game.includes("frame?.55:1")&&game.includes("ward?.25:1"),'route/frame/camp spill mitigation missing');
 assert(game.includes("cargoLoadRatio()>.75?tr(' 重载',' HEAVY')"),'heavy-load HUD warning missing');
 assert(html.includes('货包'),'haul risk is not surfaced to players');
-console.log('wildforge_v0170=PASS haul_risk=weight-night-spill');
+console.log('wildforge_v0180=PASS haul_risk=weight-night-spill');
 
 
 assert(game.includes("const LEGACY_SAVE_KEY_0120 = 'wildforge.save.v0120'")&&game.includes("raw.v==='0.12.0'"),'v0.12 migration chain missing');
@@ -181,21 +181,22 @@ assert(game.includes("const strandedCargo=cargoLoad();if(strandedCargo>0)deployC
 assert(game.includes("const base=.0015+Math.min(.058")&&game.includes("game.nightState==='night'?1.55:1")&&game.includes("route.active?.48:1")&&game.includes("activeGuard()?.72:1"),'raider risk must scale with cargo value and be mitigated by route/guard');
 assert(game.includes('cargoBundles:game.cargoBundles')&&game.includes('guard:activeGuard()'),'cargo bundles and escort contract must persist');
 assert(css.includes('.escort-hire')&&css.includes('.mobile-side-actions .cargo'),'escort/cargo controls styling missing');
-console.log('wildforge_v0170=PASS armed_haul=cargo-setdown-raiders-escort');
+console.log('wildforge_v0180=PASS armed_haul=cargo-setdown-raiders-escort');
 
 assert(game.includes("const LEGACY_SAVE_KEY_0130 = 'wildforge.save.v0130'")&&game.includes("raw.v==='0.13.0'"),'v0.13.0 migration chain missing');
-console.log('wildforge_v0170=PASS hotfix-save-migration');
+console.log('wildforge_v0180=PASS hotfix-save-migration');
 
 
-const artPath=path.join(root,'wildforge/assets/core-art.webp');
-assert(fs.existsSync(artPath)&&fs.statSync(artPath).size>4000,'runtime pixel atlas missing/empty');
+const artPath=path.join(root,'wildforge/assets/core-art.webp'),artSources=read('wildforge/assets/ART-SOURCES.md');
+assert(fs.existsSync(artPath)&&fs.statSync(artPath).size>30000,'v0.18 Drive-derived runtime pixel atlas missing/too small');
+for(const source of ['01_environment_tileset.png','02_characters_enemies_animations.png','03_trade_outpost_props.png','04_items_ui_icons.png'])assert(artSources.includes(source),'Drive art source manifest missing: '+source);
 for(const marker of ["const CORE_ART_SRC='./assets/core-art.webp'",'function artReady()','function drawArt(key,x,y,w,h)',"[TILE.GRASS]:'tile_grass'","drawArt('player_'+frame","t==='moss_crawler'&&artReady()","t==='greyveil_raider'&&artReady()","drawArt('guard_'+frame","drawArt('prop_cargo'"]) assert(game.includes(marker),'v0.14 pixel-art runtime missing: '+marker);
 assert(game.includes("const LEGACY_SAVE_KEY_0131 = 'wildforge.save.v0131'")&&game.includes("raw.v==='0.13.1'"),'v0.13.1 migration chain missing');
 const exporter=read('ops/release/build-wildforge-single-html.mjs');
 assert(exporter.includes("assets/core-art.webp")&&exporter.includes("data:image/webp;base64"),'single-file exporter must inline the pixel atlas');
 assert(game.includes('ctx.imageSmoothingEnabled=false'),'pixel-art rendering must disable interpolation');
 assert(game.includes('function drawDrops(){'),'drop rendering must remain intact after art integration');
-console.log('wildforge_v0170=PASS visual_foundation=pixel-atlas');
+console.log('wildforge_v0180=PASS visual_foundation=pixel-atlas');
 
 assert(game.includes('const PHYSICS_STEP=1/120')&&game.includes('while(game.physicsAccumulator>=PHYSICS_STEP'),'fixed-step control simulation missing');
 assert(game.includes('const GROUND_TURN=104')&&game.includes('turning?GROUND_TURN:GROUND_ACCEL'),'responsive reversal tuning missing');
@@ -209,6 +210,9 @@ assert(game.includes('Math.exp(-18*Math.max(0,dt))')&&game.includes('Math.round(
 assert(game.includes("const LEGACY_SAVE_KEY_0140 = 'wildforge.save.v0140'")&&game.includes("raw.v==='0.14.0'"),'v0.14 save migration missing');
 
 const inventoryCss=read('wildforge/inventory-ui.css'),inventoryUi=read('wildforge/src/inventory-ui.js'),combatTuning=read('wildforge/src/combat-tuning.js'),surfaceContent=read('wildforge/src/surface-content.js'),settlementEconomy=read('wildforge/src/settlement-economy.js');
+assert(inventoryUi.includes('ATLAS_SIZE=Object.freeze({w:512,h:256})'),'Drive atlas inventory dimensions missing');
+for(const id of ['wood','fiber','copper_ore','iron_ore','sand','ice','clay','rope','campfire','crystal'])assert(inventoryUi.includes(id+':['),'Drive atlas item mapping missing: '+id);
+assert(data.includes("bramble_boar:{zh:'棘鬃兽'")&&game.includes("t==='bramble_boar'&&artReady()"),'Drive atlas surface fauna integration missing');
 assert(world.includes('export const WORLD_W = 1920'),'v0.16 horizontal world expansion missing');
 assert(world.includes('BIOME_BAND_W = 160')&&world.includes('LEGACY_WORLD_W = 480'),'v0.16 repeated biome bands / legacy expansion contract missing');
 assert(world.includes('decorateSurface(this,rng')&&surfaceContent.includes('export function decorateSurface'),'surface content module missing');
@@ -221,6 +225,7 @@ assert(game.includes('encounterCap({underground,night')&&game.includes('nextEnco
 assert(combatTuning.includes('dayBase:6.2')&&combatTuning.includes('surfaceCapDay:5'),'surface encounter pressure was not reduced');
 assert(game.includes("const LEGACY_SAVE_KEY_0150 = 'wildforge.save.v0150'"),'v0.15 save expansion bridge missing');
 assert(game.includes("const LEGACY_SAVE_KEY_0160 = 'wildforge.save.v0160'")&&game.includes("raw.v==='0.16.0'"),'v0.16 save migration bridge missing');
+assert(game.includes("const LEGACY_SAVE_KEY_0170 = 'wildforge.save.v0170'")&&game.includes("raw.v==='0.17.0'"),'v0.17 save migration bridge missing');
 assert(surfaceContent.includes('export function buildSettlements')&&world.includes('this.settlements=buildSettlements(this,this.seed)'),'deterministic surface settlements missing');
 const settlementRuntime=new Function(settlementEconomy.replace(/^export\s+/gm,'')+'\nreturn {settlementName,settlementDailyDemand,settlementDemandRemaining,settlementSellPrice};')();
 const demandA=settlementRuntime.settlementDailyDemand({id:'test-verdant',biome:'verdant'},2),demandB=settlementRuntime.settlementDailyDemand({id:'test-verdant',biome:'verdant'},2);assert.deepEqual(demandA,demandB,'settlement demand must be deterministic per site/day');assert.notEqual(demandA.goodId,'greenheart_bale','priority demand must be imported cargo');assert(demandA.quantity>=4&&demandA.quantity<=7&&demandA.premium>=1.16&&demandA.premium<=1.36,'settlement demand tuning out of bounds');
@@ -228,9 +233,10 @@ const surfaceRuntime=new Function(surfaceContent.replace(/^export\s+/gm,'')+'\nr
 for(const marker of ['SETTLEMENT_TRADE_RADIUS','SETTLEMENT_SAFE_RADIUS','SETTLEMENT_GENERAL_DEMAND_CAP','settlementDailyDemand','settlementDemandRemaining','settlementSellPrice']) assert(settlementEconomy.includes(marker),'settlement economy contract missing: '+marker);
 for(const marker of ['function nearestSettlement(','function nearbySettlementMarket()','function sellSettlementGood(id)','function renderSettlementTrade(view,market)','function drawSettlements()']) assert(game.includes(marker),'settlement runtime missing: '+marker);
 assert(game.includes('nearestSettlement(p.x,p.y,SETTLEMENT_SAFE_RADIUS)'),'settlement safe perimeter must affect surface encounters');
+assert(game.includes("drawArt('prop_crates'")&&game.includes("drawArt('prop_workbench'")&&game.includes("drawArt('prop_barrels'"),'Drive settlement props are not integrated');
 assert(game.includes("for(const t of [.25,.5,.75])")&&game.includes('drawSettlements();drawSupplyRoutes();'),'recognizable route-node / settlement render layer missing');
 assert(css.includes('.settlement-order')&&css.includes('.trade-row.priority-demand'),'settlement demand UI styling missing');
-assert(html.includes('地表聚落')&&html.includes('每日需求订单'),'v0.17 settlement loop is not surfaced on start screen');
-console.log('wildforge_v0170=PASS settlement-demand-destinations');
-console.log('wildforge_v0170=PASS surface-inventory-knockback-expansion');
-console.log('wildforge_v0170=PASS terraria_like_controls=fixed-step-context-use-camera');
+assert(html.includes('Drive 像素图集')&&html.includes('聚落商路'),'v0.18 art/settlement loop is not surfaced on start screen');
+console.log('wildforge_v0180=PASS settlement-demand-destinations');
+console.log('wildforge_v0180=PASS surface-inventory-knockback-expansion');
+console.log('wildforge_v0180=PASS terraria_like_controls=fixed-step-context-use-camera');
