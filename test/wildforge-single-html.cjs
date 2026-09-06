@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const cp=require('node:child_process');
+const root=path.resolve(__dirname,'..');
+const out=path.join('/tmp','wildforge-single-html-contract.html');
+cp.execFileSync(process.execPath,[path.join(root,'ops/release/build-wildforge-single-html.mjs'),out],{cwd:root,stdio:'pipe'});
+const html=fs.readFileSync(out,'utf8');
+assert(html.startsWith('<!-- GENERATED:'),'generated marker missing');
+assert(!/src\/game\.js|style\.css\?v=|<script[^>]+src=/.test(html),'external runtime reference remains');
+assert(html.includes('const $$ = s => [...document.querySelectorAll(s)];'),'$$ selector helper was corrupted during HTML replacement');
+const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
+assert.equal(scripts.length,1,'expected exactly one inline runtime script');
+assert.doesNotThrow(()=>new Function(scripts[0]),'inline runtime script does not compile');
+assert(html.includes('WILDFORGE · v0.13.0'),'playtest version marker missing');
+console.log('wildforge_single_html=PASS compile-scope-dollar-preservation');
