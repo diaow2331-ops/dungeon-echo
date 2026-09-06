@@ -7,7 +7,7 @@ const out=path.join('/tmp','wildforge-single-html-contract.html');
 cp.execFileSync(process.execPath,[path.join(root,'ops/release/build-wildforge-single-html.mjs'),out],{cwd:root,stdio:'pipe'});
 const html=fs.readFileSync(out,'utf8');
 assert(html.startsWith('<!-- GENERATED:'),'generated marker missing');
-assert(!/src\/game\.js|style\.css\?v=|<script[^>]+src=/.test(html),'external runtime reference remains');
+assert(!/src\/game\.js|(?:style|inventory-ui)\.css\?v=|<script[^>]+src=/.test(html),'external runtime reference remains');
 assert(html.includes('const $$ = s => [...document.querySelectorAll(s)];'),'$$ selector helper was corrupted during HTML replacement');
 const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
 assert.equal(scripts.length,1,'expected exactly one inline runtime script');
@@ -15,5 +15,6 @@ assert.doesNotThrow(()=>new Function(scripts[0]),'inline runtime script does not
 const version=fs.readFileSync(path.join(root,'wildforge/VERSION'),'utf8').trim();
 assert(html.includes(`WILDFORGE · v${version}`),'playtest version marker missing');
 assert(html.includes('data:image/webp;base64'),'pixel atlas was not inlined into single-file build');
+assert(html.includes('INVENTORY_SLOT_COUNT=40')&&html.includes('applyEnemyKnockback'),'v0.16 modular runtime was not bundled');
 assert(!html.includes("const CORE_ART_SRC='./assets/core-art.webp'"),'standalone build still points at external pixel atlas');
 console.log('wildforge_single_html=PASS compile-scope-dollar-preservation');

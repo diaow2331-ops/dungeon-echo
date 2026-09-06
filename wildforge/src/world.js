@@ -1,7 +1,10 @@
 import {BIOMES, TILE, TILE_DEFS} from './data.js';
+import {decorateSurface} from './surface-content.js';
 
-export const WORLD_W = 480;
+export const LEGACY_WORLD_W = 480;
+export const WORLD_W = 1920;
 export const WORLD_H = 144;
+export const BIOME_BAND_W = 160;
 
 function hashSeed(text='wildforge') {
   let h = 2166136261 >>> 0;
@@ -23,8 +26,12 @@ const idx = (x,y,w=WORLD_W) => y*w+x;
 const inBounds = (x,y,w=WORLD_W,h=WORLD_H) => x>=0 && x<w && y>=0 && y<h;
 
 export function biomeIndexAt(x,w=WORLD_W) {
-  const t = Math.max(0, Math.min(.9999, x/w));
-  return Math.min(BIOMES.length-1, Math.floor(t*BIOMES.length));
+  const width=Math.max(1,Number(w)||WORLD_W),clamped=Math.max(0,Math.min(width-1,Math.floor(Number(x)||0)));
+  return Math.floor(clamped/BIOME_BAND_W)%BIOMES.length;
+}
+
+function encodedTileCount(raw){
+  let total=0;for(const run of String(raw||'').split(',')){if(!run)continue;const parts=run.split('.'),count=parseInt(parts[1],36);if(!Number.isFinite(count)||count<1)return 0;total+=count;}return total;
 }
 
 export function encodeTiles(tiles) {
@@ -58,10 +65,18 @@ export class World {
     this.seed=String(seed||'wildforge'); this.w=WORLD_W; this.h=WORLD_H;
     this.surface=new Int16Array(this.w);
     this.ruins=[];
+    this.surfaceSites=[];
     if (saved) {
-      this.tiles=decodeTiles(saved,this.w*this.h);
-      this.rebuildSurface();
-      const sx=54; this.spawn={x:sx+.5,y:this.surface[sx]-1.1};
+      const count=encodedTileCount(saved);
+      if(count===this.w*this.h){
+        this.tiles=decodeTiles(saved,this.w*this.h);this.rebuildSurface();this.surfaceSites=[];
+        const sx=Math.min(this.w-8,560);this.spawn={x:sx+.5,y:this.surface[sx]-1.1};
+      }else if(count===LEGACY_WORLD_W*this.h){
+        const legacy=decodeTiles(saved,LEGACY_WORLD_W*this.h);this.generate();
+        for(let y=0;y<this.h;y++)for(let x=0;x<LEGACY_WORLD_W;x++)this.tiles[y*this.w+x]=legacy[y*LEGACY_WORLD_W+x];
+        this.rebuildSurface();this.surfaceSites=this.surfaceSites.filter(site=>site.x>=LEGACY_WORLD_W+18);
+        const sx=54;this.spawn={x:sx+.5,y:this.surface[sx]-1.1};this.expandedLegacy=true;
+      }else throw new Error('unsupported tile save dimensions');
     } else this.generate();
   }
   get(x,y) {
@@ -110,10 +125,13 @@ export class World {
     this.placeTrees(rng);
     this.placeGlowMoss(rng);
     this.placeRuins(rng);
-    this.clearSpawn();
+    const spawnX=Math.min(this.w-8,560);
+    decorateSurface(this,rng,{TILE,spawnX});
+    this.clearSpawn(spawnX);
   }
   carveCaves(rng) {
-    for (let c=0;c<165;c++) {
+    const caveCount=Math.round(165*(this.w/LEGACY_WORLD_W));
+    for (let c=0;c<caveCount;c++) {
       let x=6+Math.floor(rng()*(this.w-12));
       let y=this.surface[x]+7+Math.floor(rng()*(this.h-this.surface[x]-15));
       let angle=rng()*Math.PI*2;
@@ -130,7 +148,8 @@ export class World {
     }
   }
   scatterOre(rng,tile,minDepth,maxY,minR,maxR) {
-    const tries=tile===TILE.COAL?270:tile===TILE.COPPER?190:tile===TILE.IRON?145:tile===TILE.CRYSTAL?72:105;
+    const base=tile===TILE.COAL?270:tile===TILE.COPPER?190:tile===TILE.IRON?145:tile===TILE.CRYSTAL?72:105;
+    const tries=Math.round(base*(this.w/LEGACY_WORLD_W));
     for (let n=0;n<tries;n++) {
       const x=4+Math.floor(rng()*(this.w-8));
       const sy=this.surface[x];
@@ -159,38 +178,35 @@ export class World {
     }
   }
   placeGlowMoss(rng) {
-    for (let n=0;n<520;n++) {
+    const mossCount=Math.round(520*(this.w/LEGACY_WORLD_W));
+    for (let n=0;n<mossCount;n++) {
       const x=3+Math.floor(rng()*(this.w-6)), y=52+Math.floor(rng()*(this.h-56));
       if (this.get(x,y)!==TILE.AIR) continue;
       if ([this.get(x,y+1),this.get(x-1,y),this.get(x+1,y)].some(t=>TILE_DEFS[t]&&TILE_DEFS[t].solid) && rng()<.72) this.set(x,y,TILE.GLOW_MOSS);
     }
   }
   placeRuins(rng) {
-    for (let b=0;b<BIOMES.length;b++) {
-      for (let n=0;n<3;n++) {
-        const minX=Math.floor((b/3)*this.w)+18, maxX=Math.floor(((b+1)/3)*this.w)-18;
+    for(let bandStart=0;bandStart<this.w;bandStart+=BIOME_BAND_W){
+      const biome=biomeIndexAt(bandStart+1,this.w),minX=bandStart+18,maxX=Math.min(this.w-18,bandStart+BIOME_BAND_W-18);
+      const count=1+(rng()<.35?1:0);
+      for(let n=0;n<count;n++){
         const x=minX+Math.floor(rng()*Math.max(8,maxX-minX));
         const y=Math.min(this.h-18,this.surface[x]+24+Math.floor(rng()*42));
-        const rw=8+Math.floor(rng()*8), rh=5+Math.floor(rng()*5);
-        for (let yy=0;yy<rh;yy++) for (let xx=0;xx<rw;xx++) {
-          const edge=yy===0||yy===rh-1||xx===0||xx===rw-1;
-          this.set(x+xx,y+yy,edge?TILE.RUIN:TILE.AIR);
-        }
-        const door=1+Math.floor(rng()*(rw-2)); this.set(x+door,y+rh-1,TILE.AIR); this.set(x+door,y+rh-2,TILE.AIR);
-        if (rng()<.7) this.set(x+Math.floor(rw/2),y+rh-2,TILE.TORCH);
-        const chestX=x+Math.max(1,Math.min(rw-2,Math.floor(rw*.68))),chestY=y+rh-2;
-        this.set(chestX,chestY,TILE.RELIC_CHEST);
-        const traps=1+(rng()<.45?1:0);
-        for(let t=0;t<traps;t++){const trapX=x+2+Math.floor(rng()*Math.max(1,rw-4)),trapY=y+rh-2;if(this.get(trapX,trapY)===TILE.AIR)this.set(trapX,trapY,TILE.RUIN_SPIKE);}
-        const urns=1+Math.floor(rng()*3);
-        for(let u=0;u<urns;u++){const urnX=x+1+Math.floor(rng()*Math.max(1,rw-2)),urnY=y+rh-2;if(this.get(urnX,urnY)===TILE.AIR&&Math.abs(urnX-chestX)>1)this.set(urnX,urnY,TILE.RUIN_URN);}
-        this.ruins.push({x,y,w:rw,h:rh,biome:b,chestX,chestY});
+        const rw=8+Math.floor(rng()*8),rh=5+Math.floor(rng()*5);
+        for(let yy=0;yy<rh;yy++)for(let xx=0;xx<rw;xx++){const edge=yy===0||yy===rh-1||xx===0||xx===rw-1;this.set(x+xx,y+yy,edge?TILE.RUIN:TILE.AIR);}
+        const door=1+Math.floor(rng()*(rw-2));this.set(x+door,y+rh-1,TILE.AIR);this.set(x+door,y+rh-2,TILE.AIR);
+        if(rng()<.7)this.set(x+Math.floor(rw/2),y+rh-2,TILE.TORCH);
+        const chestX=x+Math.max(1,Math.min(rw-2,Math.floor(rw*.68))),chestY=y+rh-2;this.set(chestX,chestY,TILE.RELIC_CHEST);
+        const traps=1+(rng()<.45?1:0);for(let t=0;t<traps;t++){const trapX=x+2+Math.floor(rng()*Math.max(1,rw-4)),trapY=y+rh-2;if(this.get(trapX,trapY)===TILE.AIR)this.set(trapX,trapY,TILE.RUIN_SPIKE);}
+        const urns=1+Math.floor(rng()*3);for(let u=0;u<urns;u++){const urnX=x+1+Math.floor(rng()*Math.max(1,rw-2)),urnY=y+rh-2;if(this.get(urnX,urnY)===TILE.AIR&&Math.abs(urnX-chestX)>1)this.set(urnX,urnY,TILE.RUIN_URN);}
+        this.ruins.push({x,y,w:rw,h:rh,biome,chestX,chestY});
       }
     }
   }
-  clearSpawn() {
-    const x=54, y=this.surface[x];
-    for (let yy=y-5;yy<y;yy++) for (let xx=x-3;xx<=x+3;xx++) this.set(xx,yy,TILE.AIR);
+  clearSpawn(spawnX=Math.min(this.w-8,560)) {
+    const x=spawnX,y=this.surface[x];
+    for(let yy=y-5;yy<y;yy++)for(let xx=x-3;xx<=x+3;xx++)this.set(xx,yy,TILE.AIR);
     this.spawn={x:x+.5,y:y-1.1};
   }
+
 }

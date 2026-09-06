@@ -1,5 +1,7 @@
 import {VERSION, TILE, TILE_DEFS, ITEMS, RECIPES, ENEMY_TYPES, itemName, tileName} from './data.js';
 import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './world.js';
+import {renderInventorySlots,renderHotbarSlots,normalizeHotbar} from './inventory-ui.js';
+import {encounterCap,nextEncounterDelay,suppressEarlySurfaceEncounter,applyEnemyKnockback} from './combat-tuning.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -20,7 +22,8 @@ const ART=Object.freeze({
 
 function artReady(){return CORE_ART.complete&&CORE_ART.naturalWidth>0;}
 function drawArt(key,x,y,w,h){const r=ART[key];if(!r||!artReady())return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(CORE_ART,r[0],r[1],r[2],r[3],Math.round(x),Math.round(y),Math.round(w),Math.round(h));return true;}
-const SAVE_KEY = 'wildforge.save.v0150';
+const SAVE_KEY = 'wildforge.save.v0160';
+const LEGACY_SAVE_KEY_0150 = 'wildforge.save.v0150';
 const LEGACY_SAVE_KEY_0140 = 'wildforge.save.v0140';
 const LEGACY_SAVE_KEY_0131 = 'wildforge.save.v0131';
 const LEGACY_SAVE_KEY_0130 = 'wildforge.save.v0130';
@@ -37,7 +40,7 @@ const LEGACY_SAVE_KEY_OLD = 'wildforge.save.v050';
 const LEGACY_SAVE_KEY_OLDER = 'wildforge.save.v040';
 const LEGACY_SAVE_KEY_OLDEST = 'wildforge.save.v010';
 const LANG_KEY = 'wildforge.lang';
-const HOTBAR_SIZE = 8;
+const HOTBAR_SIZE = 10;
 const PHYSICS_STEP=1/120;
 const MAX_PHYSICS_STEPS=8;
 const MAX_FRAME_DT=.066;
@@ -88,7 +91,7 @@ const TRADE_PRODUCTION=Object.freeze({
   emberfuel_crate:{home:'ember',need:{coal:2,sandstone:2}},
   frostglass_case:{home:'frost',need:{ice:3,snow:2}}
 });
-const HOTBAR_DEFAULT = ['wood','soil','stone','torch','plank','workbench','campfire','rope'];
+const HOTBAR_DEFAULT = ['wood','soil','stone','torch','plank','workbench','campfire','rope','',''];
 const DEPTH_ZONES = Object.freeze([
   {min:0,id:'surface',zh:'地表边境',en:'Frontier Surface'},
   {min:8,id:'shallow',zh:'浅层洞带',en:'Shallow Caves'},
@@ -187,14 +190,14 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
   game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
-  game.hotbar=Array.isArray(raw.hotbar)&&raw.hotbar.length===HOTBAR_SIZE?raw.hotbar:[...HOTBAR_DEFAULT];
-  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.trade=sanitizeTrade(raw.trade); game.cargoBundles=sanitizeCargoBundles(raw.cargoBundles); game.guard=sanitizeGuard(raw.guard); game.raiderCooldown=0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0)),warehouse:sanitizeWarehouse(b.warehouse)})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
+  game.hotbar=normalizeHotbar(raw.hotbar,HOTBAR_DEFAULT);
+  game.selected=Math.max(0,Math.min(HOTBAR_SIZE-1,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.trade=sanitizeTrade(raw.trade); game.cargoBundles=sanitizeCargoBundles(raw.cargoBundles); game.guard=sanitizeGuard(raw.guard); game.raiderCooldown=0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0)),warehouse:sanitizeWarehouse(b.warehouse)})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
   game.enemies=[]; game.drops=[]; game.projectiles=[]; game.enemyProjectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
@@ -226,7 +229,7 @@ function updateWorldRhythm(dt){
   if(phase===game.nightState){if(phase==='night')game.nightSurge=Math.max(0,game.nightSurge-dt);return;}
   const previous=game.nightState;game.nightState=phase;
   if(phase==='night'){
-    game.nightSurge=18;game.spawnTimer=Math.min(game.spawnTimer,.45);
+    game.nightSurge=18;game.spawnTimer=Math.min(game.spawnTimer,1.4);
     toast(tr('夜幕降临 · 荒兽开始躁动','Nightfall · the frontier grows restless'));game.fx.shake=Math.max(game.fx.shake,.7);
   }else if(previous==='night'&&phase==='dusk'){
     game.nightSurge=0;
@@ -606,7 +609,7 @@ function attack(e=null) {
   game.attackCd=.30;game.player.attackFlash=.18;
   if(!e)e=meleeEnemyTarget();
   if(!e)return;
-  e.hp-=damage;e.hit=.16;sfx('hit',.9);spawnDebris(e.x,e.y,e.def.color,5,.9);game.fx.shake=Math.max(game.fx.shake,2.2);haptic(10);
+  e.hp-=damage;e.hit=.16;applyEnemyKnockback(e,{base:weapon.knockback||4.2,damage,direction:Math.sign(e.x-game.player.x)||game.player.facing});sfx('hit',.9);spawnDebris(e.x,e.y,e.def.color,5,.9);game.fx.shake=Math.max(game.fx.shake,2.2);haptic(10);
   if(e.hp<=0)killEnemy(e);
 }
 function spawnDrop(id,n,x,y) {
@@ -772,16 +775,17 @@ function updateDrops(dt){
   game.drops=game.drops.filter(d=>!d.dead&&d.age<45);
 }
 function updateProjectiles(dt){
-  for(const p of game.projectiles){p.life-=dt;p.vy+=7.5*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.life<=0||game.world.solid(Math.floor(p.x),Math.floor(p.y))){p.dead=true;continue;}const bundle=nearestCargoBundle(p.x,p.y,.58);if(bundle){damageCargoBundle(bundle,Math.max(4,p.damage*.75),'friendly');p.dead=true;continue;}for(const e of game.enemies){if(e.dead||Math.hypot(e.x-p.x,e.y-p.y)>.58)continue;e.hp-=p.damage;e.hit=.13;spawnDebris(e.x,e.y,e.def.color,4,.65);game.fx.shake=Math.max(game.fx.shake,1.4);p.dead=true;if(e.hp<=0)killEnemy(e);break;}}
+  for(const p of game.projectiles){p.life-=dt;p.vy+=7.5*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.life<=0||game.world.solid(Math.floor(p.x),Math.floor(p.y))){p.dead=true;continue;}const bundle=nearestCargoBundle(p.x,p.y,.58);if(bundle){damageCargoBundle(bundle,Math.max(4,p.damage*.75),'friendly');p.dead=true;continue;}for(const e of game.enemies){if(e.dead||Math.hypot(e.x-p.x,e.y-p.y)>.58)continue;e.hp-=p.damage;e.hit=.13;applyEnemyKnockback(e,{base:ITEMS[p.kind]?.knockback||2.6,damage:p.damage,direction:Math.sign(p.vx)||1,vertical:.42});spawnDebris(e.x,e.y,e.def.color,4,.65);game.fx.shake=Math.max(game.fx.shake,1.4);p.dead=true;if(e.hp<=0)killEnemy(e);break;}}
   game.projectiles=game.projectiles.filter(p=>!p.dead&&p.life>0);
 }
 function enemyCollides(x,y,w=.72,h=.72){const minX=Math.floor(x-w/2),maxX=Math.floor(x+w/2),minY=Math.floor(y-h/2),maxY=Math.floor(y+h/2);for(let yy=minY;yy<=maxY;yy++)for(let xx=minX;xx<=maxX;xx++)if(game.world.solid(xx,yy))return true;return false;}
 function spawnEnemy() {
-  if(game.enemies.filter(e=>!e.dead).length>=11)return;
   const p=game.player,side=game.rng()<.5?-1:1,fire=nearbyStationTile('campfire');
   let x=Math.max(3,Math.min(WORLD_W-4,p.x+side*(9+game.rng()*12)));
   if(game.nightState==='night'&&fire){const fx=fire.x+.5,fy=fire.y+.5;for(let tries=0;tries<5&&Math.hypot(x-fx,p.y-fy)<7.5;tries++)x=Math.max(3,Math.min(WORLD_W-4,p.x+(game.rng()<.5?-1:1)*(10+game.rng()*15)));}
-  const sx=Math.floor(x), surface=game.world.surface[sx], underground=p.y>surface+9;
+  const sx=Math.floor(x), surface=game.world.surface[sx], underground=p.y>surface+9,night=game.nightState==='night';
+  if(game.enemies.filter(e=>!e.dead).length>=encounterCap({underground,night,surge:game.nightSurge>0}))return;
+  if(suppressEarlySurfaceEncounter({underground,night,distanceFromSpawn:Math.abs(p.x-game.world.spawn.x),cargoValue:cargoDeclaredValue(),rng:game.rng}))return;
   let candidates=Object.entries(ENEMY_TYPES).filter(([,d])=>!d.boss&&!d.raider&&(underground?d.underground:(!d.underground&&d.biome===game.world.biome(x).id)));
   const raider=ENEMY_TYPES.greyveil_raider;if(!underground&&game.raiderCooldown<=0&&raider&&game.rng()<raiderSpawnChance()){candidates=[['greyveil_raider',raider]];game.raiderCooldown=RAIDER_MIN_COOLDOWN+game.rng()*45;toast(tr('灰披劫徒盯上了你的货！','Greyveil raiders have marked your cargo!'));}
   if(underground&&p.y<68)candidates=candidates.filter(([,d])=>d.flying||game.rng()>.35);
@@ -801,9 +805,10 @@ function updateEnemyProjectiles(dt){
   game.enemyProjectiles=game.enemyProjectiles.filter(p=>!p.dead&&p.life>0);
 }
 function updateEnemies(dt) {
-  game.raiderCooldown=Math.max(0,(game.raiderCooldown||0)-dt);updateGuard(dt);const p=game.player,night=game.nightState==='night',fire=nearbyStationTile('campfire');game.spawnTimer-=dt;if(game.spawnTimer<=0){const route=routeStateAt(p.x,p.y),relief=night&&route.active?ROUTE_NIGHT_SPAWN_RELIEF:1,freightThreat=cargoNightSpawnFactor(route.active);game.spawnTimer=((night?(game.nightSurge>0?.72:1.15):dayLight()<.58?2.1:2.9)+game.rng()*(night?1.15:2))*relief*freightThreat;spawnEnemy();}
+  game.raiderCooldown=Math.max(0,(game.raiderCooldown||0)-dt);updateGuard(dt);const p=game.player,night=game.nightState==='night',fire=nearbyStationTile('campfire');game.spawnTimer-=dt;if(game.spawnTimer<=0){const route=routeStateAt(p.x,p.y),relief=night&&route.active?ROUTE_NIGHT_SPAWN_RELIEF:1,freightThreat=cargoNightSpawnFactor(route.active),phase=night?'night':dayLight()<.58?'dusk':'day';game.spawnTimer=nextEncounterDelay({phase,surge:game.nightSurge>0,rng:game.rng,routeRelief:relief,freightFactor:freightThreat});spawnEnemy();}
   for(const e of game.enemies){if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.attack=Math.max(0,e.attack-dt);const g=!e.elite?activeGuard():null,cargoTarget=e.type==='greyveil_raider'?nearestCargoBundle(e.x,e.y,18):null,playerDist=Math.hypot(p.x-e.x,p.y-e.y),guardDist=g?Math.hypot(g.x-e.x,g.y-e.y):Infinity,target=cargoTarget||((g&&guardDist<playerDist*.92)?g:p),dx=target.x-e.x,dy=target.y-e.y,dist=Math.hypot(dx,dy);if(Math.min(playerDist,dist)>30)continue;
     const fireDist=campfireDistance(e.x,e.y,fire);if(fireDist<4.1&&!e.elite){e.vx*=Math.pow(.03,dt);if(e.flying)e.vy*=Math.pow(.03,dt);continue;}
+    if((e.knockbackTimer||0)>0){e.knockbackTimer=Math.max(0,e.knockbackTimer-dt);if(e.flying){e.x+=e.vx*dt;e.y+=e.vy*dt;e.vx*=Math.pow(.16,dt);e.vy*=Math.pow(.22,dt);}else{e.vy=Math.min(12,e.vy+25*dt);const kx=e.x+e.vx*dt;if(!enemyCollides(kx,e.y))e.x=kx;else e.vx=0;const ky=e.y+e.vy*dt;if(!enemyCollides(e.x,ky))e.y=ky;else e.vy=0;e.vx*=Math.pow(.08,dt);}continue;}
     const dir=Math.sign(dx)||1;e.dir=dir;
     if(e.type==='hollow_wisp'){
       e.rangedCd=Math.max(0,(e.rangedCd||0)-dt);
@@ -864,12 +869,11 @@ function craft(r) {
   for(const [id,n] of Object.entries(r.need))consume(id,n);addItem(r.out.id,r.out.n);if(['pick','weapon'].includes(ITEMS[r.out.id]?.kind))game.hotbar[game.selected]=r.out.id;renderInventory();renderCraft();renderHotbar();toast(r.out.id==='beacon'?tr('边境路标完成 · 建站后可采购本地货，再运往异地出售','Frontier Beacon ready · establish a post, load local cargo, then sell it abroad'):`${tr('制造','Crafted')} · ${itemName(r.out.id,lang)} ×${r.out.n}`);
 }
 function renderInventory() {
-  const view=$('#inventoryView');if(!view)return;const rows=Object.entries(game.inventory).filter(([,n])=>n>0).sort((a,b)=>(ITEMS[a[0]]?.kind||'').localeCompare(ITEMS[b[0]]?.kind||'')||a[0].localeCompare(b[0]));
-  if(!rows.length){view.innerHTML=`<div class="inv-empty">${tr('行囊还是空的。先从地表开始采集。','Your pack is empty. Start gathering at the surface.')}</div>`;return;}
-  view.innerHTML='<div class="inv-grid">'+rows.map(([id,n])=>`<button class="inv-item${selectedId()===id?' active':''}${ITEMS[id]?.rare?' rare':''}" data-equip="${id}"><b>${GLYPH[id]||'•'} ${itemName(id,lang)}</b><span>× ${n}</span></button>`).join('')+'</div>';
-  view.querySelectorAll('[data-equip]').forEach(btn=>btn.onclick=()=>equipToHotbar(btn.dataset.equip));
+  renderInventorySlots({view:$('#inventoryView'),inventory:game.inventory,items:ITEMS,itemName,lang,glyph:GLYPH,selectedId,onEquip:equipToHotbar});
 }
-function equipToHotbar(id){game.hotbar[game.selected]=id;renderHotbar();renderInventory();game.saveDirty=true;}
+function equipToHotbar(id){return equipToHotbarSlot(game.selected,id);}
+function equipToHotbarSlot(slot,id){const index=Math.max(0,Math.min(HOTBAR_SIZE-1,Number(slot)||0));if(!ITEMS[id]||count(id)<=0)return false;game.hotbar[index]=id;game.selected=index;renderHotbar();renderInventory();game.saveDirty=true;return true;}
+function clearHotbarSlot(slot){const index=Math.max(0,Math.min(HOTBAR_SIZE-1,Number(slot)||0));game.hotbar[index]='';renderHotbar();renderInventory();game.saveDirty=true;}
 function renderCraft() {
   const view=$('#craftView');if(!view)return;const wb=game.world&&nearStation('workbench'),cf=game.world&&nearStation('campfire');$('#stationText').textContent=tr(`附近设施：${wb?'工匠台 ':''}${cf?'熔火堆':''}${!wb&&!cf?'徒手制造':''}`,`Nearby: ${wb?'Craft Table ':''}${cf?'Ember Pit':''}${!wb&&!cf?'Hand crafting':''}`);
   view.innerHTML='<div class="recipe-list">'+RECIPES.map((r,i)=>{const can=game.world&&canCraft(r);const need=Object.entries(r.need).map(([id,n])=>`${itemName(id,lang)} ${count(id)}/${n}`).join(' · ');const station=r.station?`<span class="station">${r.station==='workbench'?tr('工匠台','Craft Table'):tr('熔火堆','Ember Pit')}</span>`:'';return `<button class="recipe ${can?'can':'locked'}" data-recipe="${i}"><span class="name">${itemName(r.out.id,lang)} ×${r.out.n}</span>${station}<span class="need">${need}</span></button>`;}).join('')+'</div>';
@@ -884,7 +888,7 @@ function renderTrade(){
 }
 
 function renderHotbar() {
-  const bar=$('#hotbar');bar.innerHTML=game.hotbar.map((id,i)=>{const n=count(id),def=ITEMS[id],has=n>1;return `<button class="hot-slot${i===game.selected?' active':''}${has?' has-count':''}" data-slot="${i}" title="${def?itemName(id,lang):''}"><span class="key">${i+1}</span><span class="glyph">${GLYPH[id]||'·'}</span><span class="label">${def?itemName(id,lang):'—'}</span>${has?`<span class="count">${n}</span>`:''}</button>`;}).join('');bar.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{game.selected=+b.dataset.slot;renderHotbar();renderInventory();game.saveDirty=true;});
+  renderHotbarSlots({bar:$('#hotbar'),hotbar:game.hotbar,inventory:game.inventory,items:ITEMS,itemName,lang,glyph:GLYPH,selected:game.selected,onSelect:slot=>{game.selected=slot;renderHotbar();renderInventory();game.saveDirty=true;},onEquip:equipToHotbarSlot,onClear:clearHotbarSlot});
 }
 
 function dayLight(){const phase=(game.time%1);return Math.max(.13,Math.min(1,.18+.95*Math.max(0,Math.sin(phase*Math.PI*2-Math.PI/2)*.5+.5)));}
@@ -1161,7 +1165,7 @@ canvas.addEventListener('pointerdown',e=>{ensureAudio();if(!game.running||game.u
 canvas.addEventListener('pointerup',e=>{if(e.button===2)game.input.place=false;else game.input.mine=false;e.preventDefault();});
 canvas.addEventListener('pointercancel',()=>{game.input.mine=game.input.place=false;});canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('wheel',e=>{if(!game.running||game.uiOpen)return;game.wheelAccum+=e.deltaY;if(Math.abs(game.wheelAccum)>=48){cycleHotbar(game.wheelAccum>0?1:-1);game.wheelAccum=0;}e.preventDefault();},{passive:false});
-addEventListener('keydown',e=>{ensureAudio();if(['KeyA','KeyD','KeyS','KeyW','Space','ArrowLeft','ArrowRight','ArrowDown','ArrowUp'].includes(e.code))e.preventDefault();if(e.repeat&&['KeyE','KeyF','KeyR','Escape','ControlLeft','ControlRight'].includes(e.code))return;if(/^Digit[1-8]$/.test(e.code)){game.selected=+e.code.slice(-1)-1;renderHotbar();renderInventory();return;}if(e.code==='ControlLeft'||e.code==='ControlRight'){game.smartCursor=!game.smartCursor;toast(game.smartCursor?tr('智能光标 · 开','Smart Cursor · ON'):tr('智能光标 · 关','Smart Cursor · OFF'));e.preventDefault();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){game.autoTool=true;return;}if(e.code==='KeyE'){togglePanel('inventoryPanel');return;}if(e.code==='KeyR'){toggleCargoBundle();e.preventDefault();return;}if(e.code==='KeyQ'){setInput('dash',true);e.preventDefault();return;}if(e.code==='Escape'){closePanels();return;}if(e.code==='KeyF'){goFullscreen();return;}if(e.code==='KeyA'||e.code==='ArrowLeft')setInput('left',true);if(e.code==='KeyD'||e.code==='ArrowRight')setInput('right',true);if(e.code==='KeyS'||e.code==='ArrowDown')setInput('down',true);if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp'){setInput('jump',true);e.preventDefault();}});
+addEventListener('keydown',e=>{ensureAudio();if(['KeyA','KeyD','KeyS','KeyW','Space','ArrowLeft','ArrowRight','ArrowDown','ArrowUp'].includes(e.code))e.preventDefault();if(e.repeat&&['KeyE','KeyF','KeyR','Escape','ControlLeft','ControlRight'].includes(e.code))return;if(/^Digit[0-9]$/.test(e.code)){const digit=+e.code.slice(-1);game.selected=digit===0?9:digit-1;renderHotbar();renderInventory();return;}if(e.code==='ControlLeft'||e.code==='ControlRight'){game.smartCursor=!game.smartCursor;toast(game.smartCursor?tr('智能光标 · 开','Smart Cursor · ON'):tr('智能光标 · 关','Smart Cursor · OFF'));e.preventDefault();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){game.autoTool=true;return;}if(e.code==='KeyE'){togglePanel('inventoryPanel');return;}if(e.code==='KeyR'){toggleCargoBundle();e.preventDefault();return;}if(e.code==='KeyQ'){setInput('dash',true);e.preventDefault();return;}if(e.code==='Escape'){closePanels();return;}if(e.code==='KeyF'){goFullscreen();return;}if(e.code==='KeyA'||e.code==='ArrowLeft')setInput('left',true);if(e.code==='KeyD'||e.code==='ArrowRight')setInput('right',true);if(e.code==='KeyS'||e.code==='ArrowDown')setInput('down',true);if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp'){setInput('jump',true);e.preventDefault();}});
 addEventListener('keyup',e=>{if(e.code==='KeyA'||e.code==='ArrowLeft')setInput('left',false);if(e.code==='KeyD'||e.code==='ArrowRight')setInput('right',false);if(e.code==='KeyQ')setInput('dash',false);if(e.code==='KeyS'||e.code==='ArrowDown')setInput('down',false);if(e.code==='ShiftLeft'||e.code==='ShiftRight')game.autoTool=false;if(e.code==='Space'||e.code==='KeyW'||e.code==='ArrowUp')setInput('jump',false);});
 addEventListener('blur',clearHeldInputs);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearHeldInputs();});
 
@@ -1187,7 +1191,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
