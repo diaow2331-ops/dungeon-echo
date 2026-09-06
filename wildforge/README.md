@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.9.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.9.1 build is an incubation build, not a public production release.
 
-## v0.9.0 playable incubation build
+## v0.9.1 playable incubation build
 
 Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrade → Explore deeper.
 
@@ -14,11 +14,11 @@ Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrad
 - 180-second day/night cycle;
 - Outpost ward, dawn salvage and camp-based damage mitigation;
 - Persistent world memory: visited biomes receive permanent trail lights, opened relic sites gain permanent traces, and bound outposts leave a persistent marker;
-- Persistent Frontier Beacon network for long-range return points and route memory;
+- Persistent Frontier Beacon network for long-range return points and route memory; linked neighboring beacons now form bounded supply routes with a small travel-speed bonus, slightly lower night spawn pressure, and banked dawn utility supplies;
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.7.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.9.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
@@ -31,6 +31,12 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.9.1
+- 相邻边境路标现在会派生为补给路线：沿线移动速度 +8%，夜间新荒兽生成节奏降低 18%，不改动精英/首领伤害与既有战斗规则；
+- 已联网路标会在日出积累 1 层小型地貌补给（最多 3 层），靠近路标使用采/战键即可校准归点并领取；
+- HUD、路标世界表现与目标提示新增“联网 / 孤立 / 补给”状态，路线无需另建地图或第二套状态机；
+- 新增 v0.9.0 → v0.9.1 存档迁移，旧路标以 0 补给载入并立即参与派生路网。
 
 ## v0.9.0
 - 新增边境路标网络：路标可制作、放置、校准，写入世界存档并作为远方归点；

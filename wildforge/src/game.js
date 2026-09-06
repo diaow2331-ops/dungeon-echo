@@ -4,8 +4,9 @@ import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './wor
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v090';
-const LEGACY_SAVE_KEY = 'wildforge.save.v080';
+const SAVE_KEY = 'wildforge.save.v091';
+const LEGACY_SAVE_KEY = 'wildforge.save.v090';
+const LEGACY_SAVE_KEY_080 = 'wildforge.save.v080';
 const LEGACY_SAVE_KEY_070 = 'wildforge.save.v070';
 const LEGACY_SAVE_KEY_060 = 'wildforge.save.v060';
 const LEGACY_SAVE_KEY_OLD = 'wildforge.save.v050';
@@ -13,6 +14,11 @@ const LEGACY_SAVE_KEY_OLDER = 'wildforge.save.v040';
 const LEGACY_SAVE_KEY_OLDEST = 'wildforge.save.v010';
 const LANG_KEY = 'wildforge.lang';
 const HOTBAR_SIZE = 8;
+const BEACON_LINK_RANGE=96;
+const ROUTE_RADIUS=4.5;
+const ROUTE_SPEED_MULT=1.08;
+const ROUTE_NIGHT_SPAWN_RELIEF=1.18;
+const MAX_BEACON_SUPPLY=3;
 const HOTBAR_DEFAULT = ['wood','soil','stone','torch','plank','workbench','campfire','rope'];
 const DEPTH_ZONES = Object.freeze([
   {min:0,id:'surface',zh:'地表边境',en:'Frontier Surface'},
@@ -95,14 +101,14 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
   game.inventory=raw.inventory&&typeof raw.inventory==='object'?raw.inventory:freshInventory();
   game.hotbar=Array.isArray(raw.hotbar)&&raw.hotbar.length===HOTBAR_SIZE?raw.hotbar:[...HOTBAR_DEFAULT];
-  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
+  game.selected=Math.max(0,Math.min(7,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0))})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
   game.enemies=[]; game.drops=[]; game.projectiles=[]; game.enemyProjectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
@@ -133,10 +139,26 @@ function updateWorldRhythm(dt){
   if(game.nightState==='init'){game.nightState=phase;game.nightSurge=phase==='night'?18:0;return;}
   if(phase===game.nightState){if(phase==='night')game.nightSurge=Math.max(0,game.nightSurge-dt);return;}
   const previous=game.nightState;game.nightState=phase;
-  if(phase==='night'){game.nightSurge=18;game.spawnTimer=Math.min(game.spawnTimer,.45);toast(tr('夜幕降临 · 荒兽开始躁动','Nightfall · the frontier grows restless'));game.fx.shake=Math.max(game.fx.shake,.7);}
-  else if(previous==='night'&&phase==='dusk'){game.nightSurge=0;}
-  else if(previous==='dusk'&&phase==='day'){game.nightsSurvived++;game.saveDirty=true;const fire=nearbyStationTile('campfire'),bench=nearbyStationTile('workbench');game.outpostReady=!!(fire&&bench&&game.campRespawn);if(game.outpostReady){const biome=game.world.biome(game.player.x),reward=biome.id==='verdant'?'fiber':biome.id==='ember'?'coal':'ice';const bonus=1+(game.nightsSurvived%3===0?1:0);addItem(reward,bonus);toast(tr(`日出 · 守夜 ${game.nightsSurvived} 夜 · 前哨回收 ${itemName(reward,'zh')} ×${bonus}`,`Sunrise · ${game.nightsSurvived} nights · outpost salvage ${itemName(reward,'en')} ×${bonus}`));}else toast(tr(`日出 · 守夜 ${game.nightsSurvived} 夜`,`Sunrise · ${game.nightsSurvived} nights survived`));saveGame(false);}
+  if(phase==='night'){
+    game.nightSurge=18;game.spawnTimer=Math.min(game.spawnTimer,.45);
+    toast(tr('夜幕降临 · 荒兽开始躁动','Nightfall · the frontier grows restless'));game.fx.shake=Math.max(game.fx.shake,.7);
+  }else if(previous==='night'&&phase==='dusk'){
+    game.nightSurge=0;
+  }else if(previous==='dusk'&&phase==='day'){
+    game.nightsSurvived++;game.saveDirty=true;
+    const fire=nearbyStationTile('campfire'),bench=nearbyStationTile('workbench');
+    game.outpostReady=!!(fire&&bench&&game.campRespawn);
+    const supplied=replenishBeaconSupplies();
+    const supplyCopy=supplied?tr(` · 路网补给 ${supplied} 处`,` · route supplies ${supplied}`):'';
+    if(game.outpostReady){
+      const biome=game.world.biome(game.player.x),reward=biome.id==='verdant'?'fiber':biome.id==='ember'?'coal':'ice';
+      const bonus=1+(game.nightsSurvived%3===0?1:0);addItem(reward,bonus);
+      toast(tr(`日出 · 守夜 ${game.nightsSurvived} 夜 · 前哨回收 ${itemName(reward,'zh')} ×${bonus}`,`Sunrise · ${game.nightsSurvived} nights · outpost salvage ${itemName(reward,'en')} ×${bonus}`)+supplyCopy);
+    }else toast(tr(`日出 · 守夜 ${game.nightsSurvived} 夜`,`Sunrise · ${game.nightsSurvived} nights survived`)+supplyCopy);
+    saveGame(false);
+  }
 }
+
 function updateObjective() {
   let stage=0;
   if(count('wood')>=4)stage=1;
@@ -166,12 +188,55 @@ function updateRelicHint(dt){
 }
 function freshWorldProgress(){return {biomesVisited:[],relicBiomes:[],evolution:0};}
 function freshInfrastructure(){return {beacons:[]};}
-function beaconAt(x,y){const list=game.infrastructure?.beacons||[]; return list.find(b=>Math.hypot(b.x-(x+.5),b.y-(y+.5))<.72)||null;}
+function beaconAt(x,y){const list=game.infrastructure?.beacons||[];return list.find(b=>Math.hypot(b.x-(x+.5),b.y-(y+.5))<.72)||null;}
 function nearestBeacon(){const p=game.player,list=game.infrastructure?.beacons||[];let best=null,bd=Infinity;for(const b of list){const d=Math.hypot(b.x-p.x,b.y-p.y);if(d<bd){bd=d;best={...b,d};}}return best;}
 function beaconKey(x,y){return `${Math.floor(x)},${Math.floor(y)}`;}
-function registerBeacon(x,y){const key=beaconKey(x,y);const list=game.infrastructure?.beacons||[];if(list.some(b=>beaconKey(b.x,b.y)===key))return false;if(list.length>=8){toast(tr('边境路标已达上限（8处），先拆除旧路标','Beacon network is full (8). Remove an old beacon first'));return false;}list.push({x:x+.5,y:y+.5,createdAt:Math.floor(Date.now()/1000)});game.infrastructure={beacons:list};game.saveDirty=true;return true;}
+function beaconLinks(){
+  const list=[...(game.infrastructure?.beacons||[])].sort((a,b)=>a.x-b.x||a.y-b.y);
+  const links=[];
+  for(let i=1;i<list.length;i++){const a=list[i-1],b=list[i],d=Math.hypot(b.x-a.x,b.y-a.y);if(d<=BEACON_LINK_RANGE)links.push({a,b,d});}
+  return links;
+}
+function pointSegmentDistance(x,y,a,b){
+  const vx=b.x-a.x,vy=b.y-a.y,wx=x-a.x,wy=y-a.y,len2=vx*vx+vy*vy;
+  const t=len2?Math.max(0,Math.min(1,(wx*vx+wy*vy)/len2)):0,px=a.x+vx*t,py=a.y+vy*t;
+  return Math.hypot(x-px,y-py);
+}
+function linkedBeaconKeys(){const keys=new Set();for(const link of beaconLinks()){keys.add(beaconKey(link.a.x,link.a.y));keys.add(beaconKey(link.b.x,link.b.y));}return keys;}
+function routeStateAt(x,y){
+  const links=beaconLinks();let best=null,distance=Infinity;
+  for(const link of links){const d=pointSegmentDistance(x,y,link.a,link.b);if(d<distance){distance=d;best=link;}}
+  return {active:!!best&&distance<=ROUTE_RADIUS,distance,links,linkedCount:linkedBeaconKeys().size,link:best};
+}
+function totalBeaconSupply(){return (game.infrastructure?.beacons||[]).reduce((n,b)=>n+Math.max(0,Number(b.supply)||0),0);}
+function registerBeacon(x,y){
+  const key=beaconKey(x,y),list=game.infrastructure?.beacons||[];
+  if(list.some(b=>beaconKey(b.x,b.y)===key))return false;
+  if(list.length>=8){toast(tr('边境路标已达上限（8处），先拆除旧路标','Beacon network is full (8). Remove an old beacon first'));return false;}
+  list.push({x:x+.5,y:y+.5,createdAt:Math.floor(Date.now()/1000),supply:0});game.infrastructure={beacons:list};game.saveDirty=true;return true;
+}
 function removeBeacon(x,y){const key=beaconKey(x,y);const list=(game.infrastructure?.beacons||[]).filter(b=>beaconKey(b.x,b.y)!==key);game.infrastructure={beacons:list};game.saveDirty=true;}
-function attuneBeacon(t){const b=beaconAt(t.x,t.y);if(!b)return false;if(Math.hypot(game.player.x-b.x,game.player.y-b.y)>3.2)return false;game.campRespawn={x:b.x,y:b.y};game.outpostReady=!!(nearbyStationTile('campfire')&&nearbyStationTile('workbench')&&game.campRespawn);game.saveDirty=true;saveGame(false);toast(tr('路标已校准 · 它现在是你的远方归点','Beacon attuned · it is now your distant return point'));spawnDebris(b.x,b.y,'#d6a557',9,.65);return true;}
+function replenishBeaconSupplies(){
+  const linked=linkedBeaconKeys();let supplied=0;
+  for(const b of game.infrastructure?.beacons||[]){if(!linked.has(beaconKey(b.x,b.y)))continue;const before=Math.max(0,Number(b.supply)||0);b.supply=Math.min(MAX_BEACON_SUPPLY,before+1);if(b.supply>before)supplied++;}
+  if(supplied)game.saveDirty=true;return supplied;
+}
+function beaconSupplyBundle(b){const biome=game.world.biome(b.x).id;return biome==='verdant'?[['fiber',2],['wood',1]]:biome==='ember'?[['coal',2],['torch',1]]:[['rope',2],['ice',1]];}
+function claimBeaconSupply(b){
+  const charges=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0));if(!charges)return 0;
+  const bundle=beaconSupplyBundle(b);let claimable=charges;
+  for(const [id,n] of bundle){const room=Math.max(0,(ITEMS[id]?.stack||99)-count(id));claimable=Math.min(claimable,Math.floor(room/n));}
+  if(claimable<=0){toast(tr('行囊中的对应物资已满，补给继续留存在路标','Matching supplies are full; the beacon keeps its stored charge'));return 0;}
+  for(const [id,n] of bundle)addItem(id,n*claimable);b.supply=charges-claimable;game.saveDirty=true;renderHotbar();
+  const detail=bundle.map(([id,n])=>`${itemName(id,lang)} ×${n*claimable}`).join(' · ');toast(tr(`路网补给已领取 · ${detail}`,`Route supply claimed · ${detail}`));return claimable;
+}
+function attuneBeacon(t){
+  const b=beaconAt(t.x,t.y);if(!b)return false;if(Math.hypot(game.player.x-b.x,game.player.y-b.y)>3.2)return false;
+  const claimed=claimBeaconSupply(b);game.campRespawn={x:b.x,y:b.y};game.outpostReady=!!(nearbyStationTile('campfire')&&nearbyStationTile('workbench')&&game.campRespawn);game.saveDirty=true;saveGame(false);
+  if(!claimed)toast(tr('路标已校准 · 它现在是你的远方归点','Beacon attuned · it is now your distant return point'));
+  spawnDebris(b.x,b.y,'#d6a557',claimed?13:9,.65);return true;
+}
+
 function updateWorldEvolution(){
   const p=game.worldProgress||freshWorldProgress();
   const next=Math.max(p.evolution, game.bossDefeated?4: p.relicBiomes.length>=3?3: p.biomesVisited.length>=3?2: p.biomesVisited.length>=1?1:0);
@@ -270,7 +335,7 @@ function updatePlayer(dt) {
   if(game.input.down&&wasGrounded&&wasPlatform){p.dropThrough=.24;p.grounded=false;p.onPlatform=false;p.y+=.09;p.fallStartY=p.y;}
 
   const keyboard=(game.input.right?1:0)-(game.input.left?1:0),analog=game.moveAxis.touch?game.moveAxis.x:keyboard;
-  const dir=Math.abs(analog)<.08?0:Math.max(-1,Math.min(1,analog)),max=5.75,targetVx=dir*max;
+  const dir=Math.abs(analog)<.08?0:Math.max(-1,Math.min(1,analog)),route=routeStateAt(p.x,p.y),max=5.75*(route.active?ROUTE_SPEED_MULT:1),targetVx=dir*max;
   const accel=p.grounded?39:22,decel=p.grounded?47:9;
   if(dir){p.vx=approach(p.vx,targetVx,accel*dt);p.facing=dir>0?1:-1;}else p.vx=approach(p.vx,0,decel*dt);
   if(game.pointer.active&&(game.input.mine||game.input.place)){const q=pointerWorld();if(Math.abs(q.x-p.x)>.18)p.facing=Math.sign(q.x-p.x)||p.facing;}
@@ -546,7 +611,7 @@ function updateEnemyProjectiles(dt){
   game.enemyProjectiles=game.enemyProjectiles.filter(p=>!p.dead&&p.life>0);
 }
 function updateEnemies(dt) {
-  const p=game.player,night=game.nightState==='night',fire=nearbyStationTile('campfire');game.spawnTimer-=dt;if(game.spawnTimer<=0){game.spawnTimer=(night?(game.nightSurge>0?.72:1.15):dayLight()<.58?2.1:2.9)+game.rng()*(night?1.15:2);spawnEnemy();}
+  const p=game.player,night=game.nightState==='night',fire=nearbyStationTile('campfire');game.spawnTimer-=dt;if(game.spawnTimer<=0){const relief=night&&routeStateAt(p.x,p.y).active?ROUTE_NIGHT_SPAWN_RELIEF:1;game.spawnTimer=((night?(game.nightSurge>0?.72:1.15):dayLight()<.58?2.1:2.9)+game.rng()*(night?1.15:2))*relief;spawnEnemy();}
   for(const e of game.enemies){if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.attack=Math.max(0,e.attack-dt);const dx=p.x-e.x,dy=p.y-e.y,dist=Math.hypot(dx,dy);if(dist>30)continue;
     const fireDist=campfireDistance(e.x,e.y,fire);if(fireDist<4.1&&!e.elite){e.vx*=Math.pow(.03,dt);if(e.flying)e.vy*=Math.pow(.03,dt);continue;}
     const dir=Math.sign(dx)||1;e.dir=dir;
@@ -626,7 +691,17 @@ function renderHotbar() {
 
 function dayLight(){const phase=(game.time%1);return Math.max(.13,Math.min(1,.18+.95*Math.max(0,Math.sin(phase*Math.PI*2-Math.PI/2)*.5+.5)));}
 function timeLabel(){const t=(game.time%1)*24;const hour=Math.floor((t+6)%24);return `${String(hour).padStart(2,'0')}:${String(Math.floor((t*60)%60)).padStart(2,'0')}`;}
-function updateHud(){const p=game.player;if(!p)return;$('#hpFill').style.width=(100*p.hp/p.maxHp)+'%';$('#hpText').textContent=`${Math.ceil(p.hp)} / ${p.maxHp}`;const b=game.world.biome(p.x);$('#biomeText').textContent=lang==='zh'?b.zh:b.en;const surface=game.world.surface[Math.max(0,Math.min(WORLD_W-1,Math.floor(p.x)))];const depth=Math.max(0,Math.floor(p.y-surface)),zone=currentDepthZone(depth);$('#depthText').textContent=depth<3?tr(zone.zh,zone.en):tr(`${zone.zh} · ${depth}m`,`${zone.en} · ${depth}m`);const phase=game.nightState==='night'?tr('夜袭','Night Watch'):game.nightState==='dusk'?tr('暮色','Dusk'):tr('白昼','Daylight');$('#timeText').textContent=timeLabel()+' · '+phase;const beacon=nearestBeacon();const routeText=beacon?tr(`路标 ${Math.ceil(beacon.d)}m` ,`Beacon ${Math.ceil(beacon.d)}m`):tr('无路标','No beacon');const beaconEl=$('#beaconText');if(beaconEl)beaconEl.textContent=routeText;const danger=$('#dangerText');if(danger){danger.textContent=game.nightState==='night'?(game.nightSurge>0?tr('夜袭高压','NIGHT SURGE'):tr('夜袭','NIGHT WATCH')):game.nightState==='dusk'?tr('守夜准备','PREPARE'):tr('安全','SAFE');danger.classList.toggle('active',game.nightState==='night');danger.classList.toggle('warning',game.nightState==='dusk');danger.title=[fireNotice(),routeText].filter(Boolean).join(' · ');}}
+function updateHud(){
+  const p=game.player;if(!p)return;$('#hpFill').style.width=(100*p.hp/p.maxHp)+'%';$('#hpText').textContent=`${Math.ceil(p.hp)} / ${p.maxHp}`;
+  const b=game.world.biome(p.x);$('#biomeText').textContent=lang==='zh'?b.zh:b.en;const surface=game.world.surface[Math.max(0,Math.min(WORLD_W-1,Math.floor(p.x)))];
+  const depth=Math.max(0,Math.floor(p.y-surface)),zone=currentDepthZone(depth);$('#depthText').textContent=depth<3?tr(zone.zh,zone.en):tr(`${zone.zh} · ${depth}m`,`${zone.en} · ${depth}m`);
+  const phase=game.nightState==='night'?tr('夜袭','Night Watch'):game.nightState==='dusk'?tr('暮色','Dusk'):tr('白昼','Daylight');$('#timeText').textContent=timeLabel()+' · '+phase;
+  const beacon=nearestBeacon(),route=routeStateAt(p.x,p.y),supply=totalBeaconSupply();
+  const routeText=route.active?tr(`补给路 +8% · ${supply}`,`SUPPLY ROUTE +8% · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon');
+  const beaconEl=$('#beaconText');if(beaconEl){beaconEl.textContent=routeText;beaconEl.classList.toggle('route-active',route.active);beaconEl.classList.toggle('has-supply',supply>0);}
+  const danger=$('#dangerText');if(danger){danger.textContent=game.nightState==='night'?(game.nightSurge>0?tr('夜袭高压','NIGHT SURGE'):tr('夜袭','NIGHT WATCH')):game.nightState==='dusk'?tr('守夜准备','PREPARE'):tr('安全','SAFE');danger.classList.toggle('active',game.nightState==='night');danger.classList.toggle('warning',game.nightState==='dusk');danger.title=[fireNotice(),routeText].filter(Boolean).join(' · ');}
+}
+
 function fireNotice(){const d=campfireDistance(game.player?.x||0,game.player?.y||0);return d<4.1?tr('熔火堆守护范围内','Within Ember Pit ward'):d<Infinity?tr('靠近熔火堆可建立守护营地','Stay near an Ember Pit to establish a safe camp'):'';}
 
 function tileRect(tx,ty){const s=game.camera.tile;return {x:Math.floor((tx-game.camera.x)*s),y:Math.floor((ty-game.camera.y)*s),s};}
@@ -703,7 +778,7 @@ function drawTile(tx,ty,id) {
   }
   if(id===TILE.WOOD){ctx.fillStyle='rgba(48,27,17,.34)';ctx.fillRect(x+s*.46,y,s*.10,s);ctx.fillStyle='rgba(236,185,109,.14)';ctx.fillRect(x+s*.20,y+s*.16,s*.5,Math.max(2,s*.06));}
   if(id===TILE.WORKBENCH){ctx.fillStyle='#63412c';ctx.fillRect(x+2,y+s*.27,s-4,s*.18);ctx.fillRect(x+s*.17,y+s*.44,s*.12,s*.56);ctx.fillRect(x+s*.71,y+s*.44,s*.12,s*.56);ctx.fillStyle='#d29b60';ctx.fillRect(x+s*.27,y+s*.06,s*.46,s*.10);}
-  if(id===TILE.BEACON){const active=beaconAt(tx,ty),pulse=.55+.45*Math.sin(performance.now()*.005+tx);ctx.fillStyle='#5d4730';ctx.fillRect(x+s*.36,y+s*.20,s*.28,s*.70);ctx.fillStyle='#b58a52';ctx.fillRect(x+s*.22,y+s*.14,s*.56,s*.16);ctx.fillStyle=`rgba(238,207,132,${.42+pulse*.35})`;ctx.fillRect(x+s*.40,y+s*.02,s*.20,s*.20);if(active){ctx.strokeStyle='rgba(238,207,132,.55)';ctx.lineWidth=Math.max(1,s*.035);ctx.beginPath();ctx.arc(x+s*.5,y+s*.10,s*.34,Math.PI,Math.PI*2);ctx.stroke();}}
+  if(id===TILE.BEACON){const active=beaconAt(tx,ty),linked=active&&linkedBeaconKeys().has(beaconKey(active.x,active.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(active?.supply)||0)),pulse=.55+.45*Math.sin(performance.now()*.005+tx);ctx.fillStyle='#5d4730';ctx.fillRect(x+s*.36,y+s*.20,s*.28,s*.70);ctx.fillStyle=linked?'#d0a15e':'#b58a52';ctx.fillRect(x+s*.22,y+s*.14,s*.56,s*.16);ctx.fillStyle=`rgba(238,207,132,${.42+pulse*(linked?.5:.35)})`;ctx.fillRect(x+s*.40,y+s*.02,s*.20,s*.20);if(active){ctx.strokeStyle=linked?'rgba(114,215,184,.78)':'rgba(238,207,132,.55)';ctx.lineWidth=Math.max(1,s*(linked?.055:.035));ctx.beginPath();ctx.arc(x+s*.5,y+s*.10,s*(linked?.39:.34),Math.PI,Math.PI*2);ctx.stroke();}for(let i=0;i<supply;i++){ctx.fillStyle='#85d9bd';ctx.fillRect(x+s*(.28+i*.20),y+s*.80,s*.12,s*.10);}}
   if(id===TILE.STAR_FORGE){const pulse=.55+.45*Math.sin(performance.now()*.006+tx);ctx.fillStyle='#29283e';ctx.fillRect(x+s*.09,y+s*.22,s*.82,s*.70);ctx.fillStyle='#65558e';ctx.fillRect(x+s*.18,y+s*.12,s*.64,s*.18);ctx.fillStyle=`rgba(190,158,255,${.35+pulse*.35})`;ctx.fillRect(x+s*.38,y+s*.28,s*.24,s*.48);ctx.fillStyle='#d9c5ff';ctx.fillRect(x+s*.44,y+s*.34,s*.12,s*.30);ctx.strokeStyle=`rgba(236,217,255,${.35+pulse*.3})`;ctx.lineWidth=Math.max(1,s*.045);ctx.strokeRect(x+s*.10,y+s*.23,s*.80,s*.66);}
   if(id===TILE.RUIN){ctx.strokeStyle='rgba(227,209,222,.24)';ctx.lineWidth=Math.max(1,s*.04);ctx.strokeRect(x+1,y+1,s-2,s-2);ctx.fillStyle='rgba(220,205,218,.08)';ctx.fillRect(x+s*.14,y+s*.15,s*.72,s*.06);}
   if(id===TILE.RELIC_CHEST){const pulse=.55+.45*Math.sin(performance.now()*.004+tx);ctx.fillStyle='#49371f';ctx.fillRect(x+s*.08,y+s*.3,s*.84,s*.62);ctx.fillStyle='#9d7b43';ctx.fillRect(x+s*.05,y+s*.24,s*.9,s*.18);ctx.fillStyle='#e1bd6c';ctx.fillRect(x+s*.44,y+s*.28,s*.13,s*.48);ctx.fillStyle=`rgba(255,220,130,${.18+pulse*.34})`;ctx.fillRect(x+s*.28,y+s*.08,s*.44,s*.15);ctx.strokeStyle='#2e2418';ctx.lineWidth=Math.max(1,s*.05);ctx.strokeRect(x+s*.08,y+s*.3,s*.84,s*.62);}
@@ -829,7 +904,7 @@ function drawFx(){
   ctx.globalAlpha=1;
 }
 function render(){ctx.save();if(game.fx.shake>0)ctx.translate((game.rng()-.5)*game.fx.shake,(game.rng()-.5)*game.fx.shake);drawBackdrop();drawWorld();drawProjectiles();drawEnemyProjectiles();drawEnemies();drawDrops();drawPlayer();drawTarget();drawFx();ctx.restore();drawLighting();updateHud();updateTargetTip();}
-function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
+function updateTargetTip(){if(!game.pointer.active){$('#targetTip').classList.remove('show');return;}const t=reachTarget();if(!t.ok){$('#targetTip').textContent=tr('超出触及范围','Out of reach');$('#targetTip').classList.add('show');return;}const e=nearestEnemyAtTarget(t);if(e)$('#targetTip').textContent=`${e.elite?tr('精英 · ','ELITE · '):''}${lang==='zh'?e.def.zh:e.def.en} · ${Math.ceil(e.hp)}/${e.maxHp}`;else{const id=game.world.get(t.x,t.y);if(id===TILE.RELIC_CHEST){const unlocked=!!game.guardianDefeated[chestKey(t.x,t.y)];$('#targetTip').textContent=unlocked?tr('遗物箱 · 已解锁 · 采/战键开启','Relic Cache · Unlocked · Mine/Fight to open'):tr('遗物箱 · 守箱者沉睡其中','Relic Cache · A warden sleeps within');}else if(id===TILE.BEACON){const b=beaconAt(t.x,t.y),linked=linkedBeaconKeys().has(beaconKey(b?.x||t.x,b?.y||t.y)),supply=Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b?.supply)||0));$('#targetTip').textContent=tr(`边境路标 · ${linked?'路网':'孤立'} · 补给 ${supply}/${MAX_BEACON_SUPPLY} · 采/战键校准并领取`,`Frontier Beacon · ${linked?'Linked':'Isolated'} · Supply ${supply}/${MAX_BEACON_SUPPLY} · Mine/Use to attune & claim`);}else if(id===TILE.STAR_FORGE){const pct=Math.round(game.forgeProgress*100);$('#targetTip').textContent=game.forgeActive?(game.bossActive?tr('星核炉 · 裂隙已唤醒 · 撑住！','Starcore Forge · Rift awakened · Hold the line!'):tr('星核炉 · 已点燃','Starcore Forge · Ignited')):(pct>0?tr(`星核炉 · 点燃 ${pct}%`,`Starcore Forge · Igniting ${pct}%`):tr('星核炉 · 长按采/战键点燃','Starcore Forge · Hold Mine/Use to ignite'));}else $('#targetTip').textContent=id===TILE.AIR?`${t.x}, ${t.y}`:`${tileName(id,lang)} · ${t.x}, ${t.y}`;}$('#targetTip').classList.add('show');}
 function updateCamera(dt){const p=game.player,s=game.camera.tile,lookX=Math.max(-1.35,Math.min(1.35,p.vx*.22)),lookY=p.vy>5?Math.min(.7,(p.vy-5)*.07):0,targetX=p.x+lookX-game.cssW/s*.5,targetY=p.y+lookY-game.cssH/s*.55,k=1-Math.pow(.0014,dt);game.camera.x+=(targetX-game.camera.x)*k;game.camera.y+=(targetY-game.camera.y)*k;game.camera.x=Math.max(0,Math.min(WORLD_W-game.cssW/s,game.camera.x));game.camera.y=Math.max(0,Math.min(WORLD_H-game.cssH/s,game.camera.y));}
 
 function loop(now){if(!game.running)return;let dt=Math.min(.033,Math.max(.001,(now-(game.last||now))/1000));game.last=now;syncMobileAim();if(!game.uiOpen){updatePlayer(dt);updateHazards();updateActions(dt);updateProjectiles(dt);updateEnemyProjectiles(dt);updateEnemies(dt);updateDrops(dt);updateCampfireRest(dt);updateProgression(dt);game.time=(game.time+dt/180)%1;}updateFx(dt);updateCamera(dt);render();game.autosave+=dt;if(game.autosave>10&&game.saveDirty)saveGame(false);requestAnimationFrame(loop);}
@@ -871,7 +946,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));$('#inventoryView').classList.toggle('hidden',btn.dataset.tab!=='inventory');$('#craftView').classList.toggle('hidden',btn.dataset.tab!=='craft');if(btn.dataset.tab==='craft')renderCraft();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
