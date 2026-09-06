@@ -69,6 +69,28 @@ export function decorateSurface(world,rng,{TILE,spawnX}){
   return sites;
 }
 
+function settlementHash(text=''){
+  let h=2166136261>>>0;
+  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
+function settlementRoll(seed,index){
+  let a=settlementHash(`${seed}:settlement:${index}`)||0x9e3779b9;
+  a^=a<<13;a^=a>>>17;a^=a<<5;
+  return (a>>>0)/4294967296;
+}
+export function buildSettlements(world,seed='wildforge'){
+  const sites=[],bandWidth=160;
+  for(let bandStart=0,index=0;bandStart<world.w;bandStart+=bandWidth,index++){
+    const bandEnd=Math.min(world.w-24,bandStart+136),base=bandStart+58+Math.floor(settlementRoll(seed,index)*44);
+    let best=clamp(base,bandStart+24,bandEnd),bestScore=99;
+    for(let dx=-18;dx<=18;dx+=3){const x=clamp(base+dx,bandStart+24,bandEnd),y=world.surface[x];let score=0;for(let q=-4;q<=4;q++)score=Math.max(score,Math.abs(world.surface[clamp(x+q,0,world.w-1)]-y));if(score<bestScore){best=x;bestScore=score;}if(score<=1)break;}
+    const biome=world.biome(best),y=world.surface[best];
+    sites.push(Object.freeze({id:`settlement-${index}-${biome.id}`,index,x:best+.5,y:y-.35,biome:biome.id,kind:'settlement'}));
+  }
+  return sites;
+}
+
 export function surfaceContentDensity(worldWidth){
   return Math.max(1,Math.round(worldWidth/100));
 }

@@ -1,5 +1,5 @@
 import {BIOMES, TILE, TILE_DEFS} from './data.js';
-import {decorateSurface} from './surface-content.js';
+import {decorateSurface,buildSettlements} from './surface-content.js';
 
 export const LEGACY_WORLD_W = 480;
 export const WORLD_W = 1920;
@@ -66,6 +66,7 @@ export class World {
     this.surface=new Int16Array(this.w);
     this.ruins=[];
     this.surfaceSites=[];
+    this.settlements=[];
     if (saved) {
       const count=encodedTileCount(saved);
       if(count===this.w*this.h){
@@ -78,6 +79,7 @@ export class World {
         const sx=54;this.spawn={x:sx+.5,y:this.surface[sx]-1.1};this.expandedLegacy=true;
       }else throw new Error('unsupported tile save dimensions');
     } else this.generate();
+    this.settlements=buildSettlements(this,this.seed);
   }
   get(x,y) {
     x=Math.floor(x); y=Math.floor(y);
