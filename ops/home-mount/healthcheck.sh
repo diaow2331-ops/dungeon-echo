@@ -115,7 +115,7 @@ check_de_detail(){
   file="$1"
   require_fixed "$file" "data-site-version=\"$version\"" 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" "softwareVersion\":\"$expected_de\"" 'Dungeon Echo detail software version' || return 1
-  require_fixed "$file" '单一规则权威' 'Dungeon Echo v1.6 release copy' || return 1
+  require_fixed "$file" "v$expected_de 为当前公开版本" 'Dungeon Echo current release copy' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
   require_fixed "$file" 'class-roster.webp' 'Dungeon Echo roster art' || return 1
   require_fixed "$file" 'dungeon-town.webp' 'Dungeon Echo town art' || return 1

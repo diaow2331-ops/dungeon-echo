@@ -29,11 +29,11 @@ if(!home.includes(`Board Trio v${versions.board}`))home=home.replace(/(Clock Out
 fs.writeFileSync(homePath,home);
 
 let dungeon=upgrade(dePath).replaceAll('v1.5.0',`v${versions.dungeon}`);
-const oldDeZh='v1.6.0 强化战斗打击反馈、移动端触控与远征整备流程；职业命中音效、暴击/受伤反馈、可选触觉和一键补给均收进单一权威运行时，现有存档继续兼容。';
-const oldDeEn='v1.6.0 upgrades combat feedback, mobile controls and expedition readiness with class-specific hit audio, critical/hurt cues, optional haptics and one-tap core supplies inside the single-authority runtime, while existing saves remain compatible.';
-const newDeZh='v1.6.0 保留 v1.5 的战斗反馈、移动触控与远征整备体验，并进一步把城镇检查点、远征整备阈值与经济计算收拢到单一规则权威，降低后续维护风险；现有存档继续兼容。';
-const newDeEn='v1.6.0 keeps the v1.5 combat feedback, mobile controls and expedition-readiness flow while consolidating town checkpoints, readiness thresholds and economy calculations into single rule authorities. Existing saves remain compatible.';
-dungeon=dungeon.replace(oldDeZh,newDeZh).replace(oldDeEn,newDeEn);
+const releaseZh=`v${versions.dungeon} 为当前公开版本。项目详情页与游玩入口均从仓库版本权威同步；战斗、城镇、装备与存档的具体变化以对应发行说明和当前游戏行为为准。`;
+const releaseEn=`v${versions.dungeon} is the current public release. This project page and play entry are synchronized from repository version authority; release notes and the live game remain the source of truth for combat, town, equipment and save changes.`;
+const releaseCard=/(<small><span class="zh">06 · 当前版<\/span><span class="en">06 · RELEASE<\/span><\/small><h3>)v[^<]+(<\/h3><p><span class="zh">)[\s\S]*?(<\/span><span class="en">)[\s\S]*?(<\/span><\/p>)/;
+if(!releaseCard.test(dungeon))throw new Error('Dungeon release card marker missing');
+dungeon=dungeon.replace(releaseCard,`$1v${versions.dungeon}$2${releaseZh}$3${releaseEn}$4`);
 const oldGallery=/<section class="section"><div class="gallery">[\s\S]*?<\/div><\/section><section class="final">/;
 const deGallery=`<section class="section project-media"><div class="project-media-head"><div><div class="kicker"><span class="zh">现有美术资产</span><span class="en">IN-GAME ART</span></div><h2><span class="zh">城镇、守卫与百层终局。</span><span class="en">Town, guardians and the floor-100 finale.</span></h2></div><p><span class="zh">这里展示的是游戏仓库正在使用的场景与图集，不是另做的一套宣传图。</span><span class="en">These are production scenes and atlases from the game repository, not a separate promotional art set.</span></p></div><div class="project-gallery"><figure class="media-card wide"><img src="/assets/site-v1118/dungeon-town.webp" alt="Dungeon Echo town"><figcaption><b><span class="zh">城镇 · 远征之间的安全阶段</span><span class="en">Town · the safe phase between expeditions</span></b><small>TOWN BACKDROP</small></figcaption></figure><figure class="media-card tall atlas"><img src="/assets/site-v1118/dungeon-guardians.webp" alt="Dungeon Echo guardian atlas"><figcaption><b><span class="zh">守卫图集 · 阶段压力来源</span><span class="en">Guardian atlas · staged pressure</span></b><small>GUARDIAN ATLAS</small></figcaption></figure><figure class="media-card tall atlas"><img src="/assets/site-v1118/dungeon-weapons.webp" alt="Dungeon Echo equipment weapons"><figcaption><b><span class="zh">装备构筑 · 武器层级</span><span class="en">Build craft · weapon tiers</span></b><small>EQUIPMENT ATLAS</small></figcaption></figure><figure class="media-card wide atlas"><img src="/assets/site-v1118/dungeon-final.webp" alt="Dungeon Echo final boss"><figcaption><b><span class="zh">第 100 层 · 终局首领</span><span class="en">Floor 100 · final boss</span></b><small>FINAL BOSS</small></figcaption></figure></div></section><section class="final">`;
 if(!oldGallery.test(dungeon))throw new Error('Dungeon legacy gallery marker missing');
@@ -57,7 +57,7 @@ for(const file of rest)fs.writeFileSync(file,upgrade(file));
 
 for(const file of pages){const s=fs.readFileSync(file,'utf8');if(!s.includes('data-site-version="1.11.8"'))throw new Error(`site version drift: ${file}`);if(!s.includes('/assets/site-v1110/style.css?v=1.11.8')||!s.includes('/assets/site-v1110/site.js?v=1.11.8'))throw new Error(`shared cache drift: ${file}`);if(/mailto:[^"'\s>]+@/i.test(s))throw new Error(`personal mail route remains: ${file}`);if(/https:\/\/x\.com\//i.test(s))throw new Error(`personal social route remains: ${file}`)}
 if(!home.includes('/toys/board-games/')||!home.includes('board-xiangqi.webp')||!home.includes('board-card-shot'))throw new Error('homepage Board details / real imagery missing');
-if(!dungeon.includes('dungeon-guardians.webp')||!dungeon.includes(newDeZh))throw new Error('Dungeon v1.11.8 detail enrichment missing');
+if(!dungeon.includes('dungeon-guardians.webp')||!dungeon.includes(releaseZh)||!dungeon.includes(releaseEn))throw new Error('Dungeon v1.11.8 detail enrichment missing');
 if(!moyu.includes('moyu-scenes.webp')||!moyu.includes('detail-moyu-hero'))throw new Error('Moyu v1.11.8 detail enrichment missing');
 if(board.includes('__BOARD_VERSION__')||!board.includes(`softwareVersion\":\"${versions.board}\"`)||!board.includes('三种棋，一张桌')||!board.includes('board-gomoku.webp'))throw new Error('Board detail build missing');
 console.log(`site_v1118_project_details=PASS site=${versions.site} dungeon=${versions.dungeon} moyu=${versions.moyu} board=${versions.board}`);

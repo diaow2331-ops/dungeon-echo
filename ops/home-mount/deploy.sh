@@ -89,7 +89,7 @@ grep -Fq '三种棋，一张桌' "$PUBLIC_ROOT/$BOARD_REL/index.html" || fail 'B
 grep -Fq 'board-gomoku.webp' "$PUBLIC_ROOT/$BOARD_REL/index.html" || fail 'Board Trio detail art missing'
 grep -Fq 'href="/privacy/"' "$PUBLIC_ROOT/index.html" || fail 'homepage privacy link missing'
 grep -Fq "softwareVersion\":\"$expected_de\"" "$PUBLIC_ROOT/$DE_REL/index.html" || fail "Dungeon Echo v$expected_de detail marker missing"
-grep -Fq '单一规则权威' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo release copy missing'
+grep -Fq "v$expected_de 为当前公开版本" "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo current release copy missing'
 grep -Fq 'dungeon-guardians.webp' "$PUBLIC_ROOT/$DE_REL/index.html" || fail 'Dungeon Echo project art missing'
 grep -Fq "softwareVersion\":\"$expected_moyu\"" "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail "Clock Out Alive v$expected_moyu detail marker missing"
 grep -Fq '画面与信息都更清楚' "$PUBLIC_ROOT/$MOYU_REL/index.html" || fail 'current Moyu Chinese release copy missing'
