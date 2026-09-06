@@ -74,7 +74,9 @@ for file in \
   "$source_root/public/about/index.html" \
   "$source_root/public/privacy/index.html" \
   "$source_root/public/contact/index.html" \
-  "$source_root/public/ads.txt"; do
+  "$source_root/public/ads.txt" \
+  "$source_root/public/robots.txt" \
+  "$source_root/public/sitemap.xml"; do
   rel="${file#$repo_root/}"
   git -C "$repo_root" cat-file -e "HEAD:$rel" 2>/dev/null || { echo "untracked site release source: $rel" >&2; exit 2; }
 done
@@ -96,6 +98,8 @@ cp "$source_root/public/about/index.html" "$stage_root/site/public/about/index.h
 cp "$source_root/public/privacy/index.html" "$stage_root/site/public/privacy/index.html"
 cp "$source_root/public/contact/index.html" "$stage_root/site/public/contact/index.html"
 cp "$source_root/public/ads.txt" "$stage_root/site/public/ads.txt"
+cp "$source_root/public/robots.txt" "$stage_root/site/public/robots.txt"
+cp "$source_root/public/sitemap.xml" "$stage_root/site/public/sitemap.xml"
 cp "$source_root/public/assets/site-v1110/style.css" "$stage_root/site/public/assets/site-v1110/style.css"
 cp "$source_root/public/assets/site-v1110/site.js" "$stage_root/site/public/assets/site-v1110/site.js"
 cp "$source_root/public/assets/site-v1100/wang-jian-landscape-1668.jpg" "$stage_root/site/public/assets/site-v1110/wang-jian-landscape-1668.jpg"
@@ -227,6 +231,8 @@ about="$stage_root/site/public/about/index.html"
 privacy="$stage_root/site/public/privacy/index.html"
 contact="$stage_root/site/public/contact/index.html"
 ads_txt="$stage_root/site/public/ads.txt"
+robots_txt="$stage_root/site/public/robots.txt"
+sitemap_xml="$stage_root/site/public/sitemap.xml"
 
 grep -Fq 'data-site-version="1.11.8"' "$home"
 grep -Fq 'name="google" content="notranslate"' "$home"
@@ -300,6 +306,9 @@ grep -Fq 'contact-side' "$contact"
 ! grep -Fq 'data-copy-email' "$contact"
 grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$contact"
 ! grep -Fq 'data-copy-email' "$source_root/public/assets/site-v1110/site.js"
+grep -Fq 'persistQueryPrefs' "$source_root/public/assets/site-v1110/site.js"
+! grep -Fq "searchParams.set('lang'" "$source_root/public/assets/site-v1110/site.js"
+! grep -Fq "searchParams.set('theme'" "$source_root/public/assets/site-v1110/site.js"
 for page in "$home" "$de_detail" "$moyu_detail" "$board_detail" "$about" "$privacy" "$contact"; do
   ! grep -Eiq 'mailto:|https://x\.com/' "$page" || { echo "personal contact route remains in built site: $page" >&2; exit 2; }
 done
@@ -310,6 +319,11 @@ for page in "$about" "$privacy" "$contact"; do
   grep -Fq 'href="/contact/"' "$page"
 done
 grep -Fxq 'google.com, pub-2648680835467283, DIRECT, f08c47fec0942fa0' "$ads_txt"
+grep -Fxq 'Sitemap: https://91hwl.cn/sitemap.xml' "$robots_txt"
+grep -Fq '<loc>https://91hwl.cn/</loc>' "$sitemap_xml"
+grep -Fq '<loc>https://91hwl.cn/toys/dungeon-echo/</loc>' "$sitemap_xml"
+grep -Fq '<loc>https://91hwl.cn/toys/moyu/</loc>' "$sitemap_xml"
+grep -Fq '<loc>https://91hwl.cn/toys/board-games/</loc>' "$sitemap_xml"
 
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
@@ -350,6 +364,8 @@ install -m 0644 "$about" "$bundle/public/about/index.html"
 install -m 0644 "$privacy" "$bundle/public/privacy/index.html"
 install -m 0644 "$contact" "$bundle/public/contact/index.html"
 install -m 0644 "$ads_txt" "$bundle/public/ads.txt"
+install -m 0644 "$robots_txt" "$bundle/public/robots.txt"
+install -m 0644 "$sitemap_xml" "$bundle/public/sitemap.xml"
 install -m 0644 "$stage_root/site/public/assets/site-v1110/style.css" "$bundle/public/assets/site-v1110/style.css"
 install -m 0644 "$stage_root/site/public/assets/site-v1110/site.js" "$bundle/public/assets/site-v1110/site.js"
 install -m 0644 "$stage_root/site/public/assets/site-v1110/wang-jian-landscape-1668.jpg" "$bundle/public/assets/site-v1110/wang-jian-landscape-1668.jpg"
