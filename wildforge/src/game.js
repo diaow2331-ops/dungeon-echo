@@ -4,7 +4,8 @@ import {World, WORLD_W, WORLD_H, encodeTiles, biomeIndexAt, makeRng} from './wor
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v0110';
+const SAVE_KEY = 'wildforge.save.v0120';
+const LEGACY_SAVE_KEY_0110 = 'wildforge.save.v0110';
 const LEGACY_SAVE_KEY_0100 = 'wildforge.save.v0100';
 const LEGACY_SAVE_KEY = 'wildforge.save.v092';
 const LEGACY_SAVE_KEY_091 = 'wildforge.save.v091';
@@ -29,6 +30,9 @@ const TRADE_DAILY_PRODUCTION_CAP=8;
 const WAREHOUSE_CAP=24;
 const CARGO_BASE_CAP=8;
 const CARGO_FRAME_BONUS=8;
+const FREIGHT_FULL_SPEED_PENALTY=.14;
+const FREIGHT_NIGHT_THREAT=.18;
+const FREIGHT_SPILL_BASE=.18;
 const TRADE_GOODS=Object.freeze({
   greenheart_bale:{home:'verdant',base:12},
   emberfuel_crate:{home:'ember',base:16},
@@ -130,7 +134,7 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
@@ -246,6 +250,10 @@ function nearbyTradePost(){
 }
 function cargoLoad(){return Object.keys(TRADE_GOODS).reduce((n,id)=>n+count(id)*Math.max(1,Number(ITEMS[id]?.cargoWeight)||1),0);}
 function cargoCapacity(){return CARGO_BASE_CAP+(count('freight_frame')>0?CARGO_FRAME_BONUS:0);}
+function cargoLoadRatio(){return Math.max(0,Math.min(1,cargoLoad()/Math.max(1,cargoCapacity())));}
+function cargoMoveMultiplier(routeActive=false){const effective=Math.max(0,(cargoLoadRatio()-.2)/.8),routeMitigation=routeActive?.35:1;return 1-FREIGHT_FULL_SPEED_PENALTY*effective*routeMitigation;}
+function cargoNightSpawnFactor(routeActive=false){if(routeActive||game.nightState!=='night')return 1;return 1-FREIGHT_NIGHT_THREAT*cargoLoadRatio();}
+function carriedCargoIds(){return Object.keys(TRADE_GOODS).filter(id=>count(id)>0);}
 function cargoRoom(id,n=1){const weight=Math.max(1,Number(ITEMS[id]?.cargoWeight)||1);return cargoLoad()+weight*n<=cargoCapacity()&&count(id)+n<=(ITEMS[id]?.stack||20);}
 function warehouseUnits(b){return Object.keys(TRADE_GOODS).reduce((n,id)=>n+Math.max(0,Number(b?.warehouse?.[id])||0),0);}
 function warehouseCount(b,id){return Math.max(0,Number(b?.warehouse?.[id])||0);}
@@ -407,7 +415,7 @@ function updatePlayer(dt) {
   if(game.input.down&&wasGrounded&&wasPlatform){p.dropThrough=.24;p.grounded=false;p.onPlatform=false;p.y+=.09;p.fallStartY=p.y;}
 
   const keyboard=(game.input.right?1:0)-(game.input.left?1:0),analog=game.moveAxis.touch?game.moveAxis.x:keyboard;
-  const dir=Math.abs(analog)<.08?0:Math.max(-1,Math.min(1,analog)),route=routeStateAt(p.x,p.y),max=5.75*(route.active?ROUTE_SPEED_MULT:1),targetVx=dir*max;
+  const dir=Math.abs(analog)<.08?0:Math.max(-1,Math.min(1,analog)),route=routeStateAt(p.x,p.y),freightMove=cargoMoveMultiplier(route.active),max=5.75*(route.active?ROUTE_SPEED_MULT:1)*freightMove,targetVx=dir*max;
   const accel=p.grounded?39:22,decel=p.grounded?47:9;
   if(dir){p.vx=approach(p.vx,targetVx,accel*dt);p.facing=dir>0?1:-1;}else p.vx=approach(p.vx,0,decel*dt);
   if(game.pointer.active&&(game.input.mine||game.input.place)){const q=pointerWorld();if(Math.abs(q.x-p.x)>.18)p.facing=Math.sign(q.x-p.x)||p.facing;}
@@ -512,8 +520,11 @@ function attack(e) {
   if(e.hp<=0)killEnemy(e);
 }
 function spawnDrop(id,n,x,y) {
-  if(!ITEMS[id]||n<=0)return;
-  game.drops.push({id,n,x,y:y-.15,vx:(game.rng()-.5)*2.5,vy:-2.8-game.rng()*1.4,age:0,bob:game.rng()*Math.PI*2});
+  if(!ITEMS[id]||n<=0)return null;
+  const drop={id,n,x,y:y-.15,vx:(game.rng()-.5)*2.5,vy:-2.8-game.rng()*1.4,age:0,bob:game.rng()*Math.PI*2};game.drops.push(drop);return drop;
+}
+function spillCargoOnHit(source='enemy'){
+  const ids=carriedCargoIds();if(!ids.length||source==='fall'||source==='void')return false;const p=game.player,route=routeStateAt(p.x,p.y),ward=campfireDistance(p.x,p.y)<4.1,ratio=cargoLoadRatio(),frame=count('freight_frame')>0;let chance=FREIGHT_SPILL_BASE*ratio*(game.nightState==='night'?1.35:1)*(route.active?.45:1)*(ward?.25:1)*(frame?.55:1);if(['ruin_sentinel','rift_beast'].includes(source))chance*=.65;if(game.rng()>=chance)return false;let roll=Math.floor(game.rng()*ids.reduce((n,id)=>n+count(id),0)),id=ids[0];for(const candidate of ids){roll-=count(candidate);if(roll<0){id=candidate;break;}}consume(id,1);const d=spawnDrop(id,1,p.x+p.facing*.45,p.y+.1);if(d){d.age=-.85;d.vx=-p.facing*(3.2+game.rng()*1.4);d.vy=-3.4-game.rng();}renderInventory();renderHotbar();renderTrade();toast(tr(`货物震落 · ${itemName(id,'zh')} · 快捡回来！`,`Cargo spilled · ${itemName(id,'en')} · recover it!`));return true;
 }
 function chestKey(x,y){return `${Math.floor(x)},${Math.floor(y)}`;}
 function activeChestGuardian(key){return game.enemies.find(e=>!e.dead&&e.elite&&e.chestKey===key)||null;}
@@ -683,7 +694,7 @@ function updateEnemyProjectiles(dt){
   game.enemyProjectiles=game.enemyProjectiles.filter(p=>!p.dead&&p.life>0);
 }
 function updateEnemies(dt) {
-  const p=game.player,night=game.nightState==='night',fire=nearbyStationTile('campfire');game.spawnTimer-=dt;if(game.spawnTimer<=0){const relief=night&&routeStateAt(p.x,p.y).active?ROUTE_NIGHT_SPAWN_RELIEF:1;game.spawnTimer=((night?(game.nightSurge>0?.72:1.15):dayLight()<.58?2.1:2.9)+game.rng()*(night?1.15:2))*relief;spawnEnemy();}
+  const p=game.player,night=game.nightState==='night',fire=nearbyStationTile('campfire');game.spawnTimer-=dt;if(game.spawnTimer<=0){const route=routeStateAt(p.x,p.y),relief=night&&route.active?ROUTE_NIGHT_SPAWN_RELIEF:1,freightThreat=cargoNightSpawnFactor(route.active);game.spawnTimer=((night?(game.nightSurge>0?.72:1.15):dayLight()<.58?2.1:2.9)+game.rng()*(night?1.15:2))*relief*freightThreat;spawnEnemy();}
   for(const e of game.enemies){if(e.dead)continue;e.hit=Math.max(0,e.hit-dt);e.attack=Math.max(0,e.attack-dt);const dx=p.x-e.x,dy=p.y-e.y,dist=Math.hypot(dx,dy);if(dist>30)continue;
     const fireDist=campfireDistance(e.x,e.y,fire);if(fireDist<4.1&&!e.elite){e.vx*=Math.pow(.03,dt);if(e.flying)e.vy*=Math.pow(.03,dt);continue;}
     const dir=Math.sign(dx)||1;e.dir=dir;
@@ -715,7 +726,7 @@ function hurtPlayer(amount,source='enemy') {
   if(game.player?.dashTimer>0&&amount<999)return;
   const ward=campfireDistance(game.player?.x||0,game.player?.y||0)<4.1;
   if(ward&&amount<999&&source!=='fall'&&!['ruin_sentinel','rift_beast'].includes(source))amount=Math.max(1,Math.round(amount*.72));
-  if(game.hurtCd>0&&amount<999&&source!=='fall')return;const p=game.player;p.hp=Math.max(0,p.hp-amount);game.hurtCd=.65;if(source!=='fall')p.vx-=p.facing*2.2;if(p.hp<=0)die(source);
+  if(game.hurtCd>0&&amount<999&&source!=='fall')return;const p=game.player;p.hp=Math.max(0,p.hp-amount);game.hurtCd=.65;if(source!=='fall'){p.vx-=p.facing*2.2;spillCargoOnHit(source);}if(p.hp<=0)die(source);
 }
 function die(source) {
   game.input.left=game.input.right=game.input.jump=game.input.mine=game.input.place=false;game.running=false;
@@ -777,7 +788,7 @@ function updateHud(){
   const depth=Math.max(0,Math.floor(p.y-surface)),zone=currentDepthZone(depth);$('#depthText').textContent=depth<3?tr(zone.zh,zone.en):tr(`${zone.zh} · ${depth}m`,`${zone.en} · ${depth}m`);
   const phase=game.nightState==='night'?tr('夜袭','Night Watch'):game.nightState==='dusk'?tr('暮色','Dusk'):tr('白昼','Daylight');$('#timeText').textContent=timeLabel()+' · '+phase;
   const beacon=nearestBeacon(),route=routeStateAt(p.x,p.y),supply=totalBeaconSupply();
-  const routeText=(route.active?tr(`补给路 +8% · ${route.biomeCount}地 · ${supply}`,`SUPPLY ROUTE +8% · ${route.biomeCount} biomes · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon'))+` · ◆${Math.max(0,Math.floor(game.trade?.credits||0))} · ▣${cargoLoad()}/${cargoCapacity()}`;
+  const routeText=(route.active?tr(`补给路 +8% · ${route.biomeCount}地 · ${supply}`,`SUPPLY ROUTE +8% · ${route.biomeCount} biomes · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon'))+` · ◆${Math.max(0,Math.floor(game.trade?.credits||0))} · ▣${cargoLoad()}/${cargoCapacity()}${cargoLoadRatio()>.75?tr(' 重载',' HEAVY'):''}`;
   const beaconEl=$('#beaconText');if(beaconEl){beaconEl.textContent=routeText;beaconEl.classList.toggle('route-active',route.active);beaconEl.classList.toggle('has-supply',supply>0);}
   const danger=$('#dangerText');if(danger){danger.textContent=game.nightState==='night'?(game.nightSurge>0?tr('夜袭高压','NIGHT SURGE'):tr('夜袭','NIGHT WATCH')):game.nightState==='dusk'?tr('守夜准备','PREPARE'):tr('安全','SAFE');danger.classList.toggle('active',game.nightState==='night');danger.classList.toggle('warning',game.nightState==='dusk');danger.title=[fireNotice(),routeText].filter(Boolean).join(' · ');}
 }
@@ -1032,7 +1043,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
