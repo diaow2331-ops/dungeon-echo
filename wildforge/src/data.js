@@ -1,4 +1,4 @@
-export const VERSION = '0.9.2';
+export const VERSION = '0.10.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -101,7 +101,7 @@ export const RECIPES = Object.freeze([
   {id:'wood_bow',out:{id:'wood_bow',n:1},need:{plank:8,rope:2},station:'workbench'},
   {id:'crystal_bow',out:{id:'crystal_bow',n:1},need:{crystal:6,iron_bar:2,rope:1},station:'workbench'},
   {id:'star_forge',out:{id:'star_forge',n:1},need:{ancient_core:1,iron_bar:6,crystal:2},station:'workbench'},
-  {id:'beacon',out:{id:'beacon',n:1},need:{iron_bar:1,torch:2,rope:1},station:'workbench'}
+  {id:'beacon',out:{id:'beacon',n:1},need:{plank:8,torch:2,rope:2},station:'workbench'}
 ]);
 
 export const ENEMY_TYPES = Object.freeze({

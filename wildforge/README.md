@@ -1,10 +1,10 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D sandbox survival game designed landscape-first for desktop and touch devices. The current v0.9.2 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.10.0 build is an incubation build, not a public production release.
 
-## v0.9.2 playable incubation build
+## v0.10.0 playable incubation build
 
-Core loop: Explore → Mine → Collect → Craft → Build → Fight → Upgrade → Explore deeper.
+Core loop: Survive → Gather local exports → Build trade posts/routes → Buy low → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
 - deterministic 480×144 destructible world;
 - three authored biome families: Verdant Reach, Ember Wastes, Frostglass Shelf;
@@ -31,6 +31,14 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.10.0
+- 产品主轴正式锁定为“2D 贸易求生”：采掘、建造与战斗服务于跨地貌贸易，而非反过来；
+- 行囊新增贸易页，靠近任意边境路标即可进入当地市场；路标配方前移到早期工匠台阶段，让贸易不再是冷铁之后的附属玩法；
+- 青藤原、烬风荒地、霜晶台地拥有不同低价出口品；异地市场对外来货物给出更高收购价，形成真实的“买低—运输—卖高”闭环；
+- 贸易使用独立“铸印”货币，每日本地库存与市场需求都有上限，日出刷新，避免无限原地套利；
+- 已联网路标对异地需求成交提供小幅加成，既有路线速度与夜间减压直接成为物流价值；
+- 新增 v0.9.2 → v0.10.0 存档迁移，旧世界获得基础贸易资金但保留原有地图、路标、库存与进度。
 
 ## v0.9.2
 - 路网现在以低干扰信号线直接呈现在世界中，跨地貌链路使用更醒目的青绿色信号，不遮蔽采掘与战斗主体；
