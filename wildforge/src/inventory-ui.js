@@ -7,10 +7,13 @@ const KIND_LABEL=Object.freeze({
 });
 
 
-const ATLAS_SIZE=Object.freeze({w:256,h:160});
+const ATLAS_SIZE=Object.freeze({w:512,h:256});
 const ITEM_SPRITES=Object.freeze({
-  soil:[16,0,16,16],stone:[32,0,16,16],plank:[48,0,16,16],coal:[64,0,16,16],copper_ore:[80,0,16,16],iron_ore:[96,0,16,16],fiber:[112,0,16,16],
-  beacon:[144,0,24,40],workbench:[144,44,40,24],greenheart_bale:[208,0,40,22],emberfuel_crate:[188,44,40,24],frostglass_case:[232,44,24,24]
+  soil:[16,0,16,16],wood:[256,0,64,64],fiber:[320,0,64,64],stone:[384,0,64,64],coal:[448,0,64,64],
+  copper_ore:[256,64,64,64],iron_ore:[320,64,64,64],sand:[384,64,64,64],ice:[448,64,64,64],
+  clay:[256,128,64,64],plank:[320,128,64,64],rope:[384,128,64,64],torch:[448,128,64,64],
+  campfire:[256,192,64,64],workbench:[320,192,64,64],crystal:[448,192,64,64],
+  beacon:[144,0,24,40],greenheart_bale:[208,0,40,22],emberfuel_crate:[188,44,40,24],frostglass_case:[232,44,24,24]
 });
 function spriteMarkup(id){
   const r=ITEM_SPRITES[id];if(!r)return'';const [x,y,w,h]=r,scale=Math.min(2,32/w,32/h),sw=ATLAS_SIZE.w*scale,sh=ATLAS_SIZE.h*scale;

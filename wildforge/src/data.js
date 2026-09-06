@@ -1,4 +1,4 @@
-export const VERSION = '0.17.0';
+export const VERSION = '0.18.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -111,6 +111,7 @@ export const RECIPES = Object.freeze([
 
 export const ENEMY_TYPES = Object.freeze({
   moss_crawler:{zh:'苔壳爬兽',en:'Moss Crawler',hp:18,damage:4,speed:1.6,knockbackResist:.1,color:'#6d9357',biome:'verdant'},
+  bramble_boar:{zh:'棘鬃兽',en:'Bramble Boar',hp:25,damage:5,speed:1.95,knockbackResist:.28,color:'#8b6b4e',biome:'verdant'},
   ash_scuttler:{zh:'灰烬疾足',en:'Ash Scuttler',hp:23,damage:5,speed:2.15,knockbackResist:.08,color:'#b35f4b',biome:'ember'},
   shardback:{zh:'霜晶脊兽',en:'Shardback',hp:29,damage:6,speed:1.35,knockbackResist:.34,color:'#79a8c5',biome:'frost'},
   hollow_wisp:{zh:'空洞微光',en:'Hollow Wisp',hp:16,damage:5,speed:1.7,knockbackResist:.28,color:'#66c7ae',underground:true,flying:true},

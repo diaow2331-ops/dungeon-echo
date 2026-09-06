@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.17.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.18.0 build is an incubation build, not a public production release.
 
-## v0.17.0 playable incubation build
+## v0.18.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -10,7 +10,7 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - three authored biome families: Verdant Reach, Ember Wastes, Frostglass Shelf, repeated as 160-tile frontier bands so long-distance travel does not exhaust the map in under a minute;
 - caves, ore clusters, trees, glow moss and underground ruins;
 - 20+ materials/placeables, four pick tiers, multiple weapon tiers and 23 recipes;
-- six original enemy families, including the finale boss, with contact combat and resource drops;
+- eight original enemy families, including the finale boss and a second Verdant surface fauna family, with contact combat and resource drops;
 - 180-second day/night cycle;
 - Outpost ward, dawn salvage and camp-based damage mitigation;
 - Persistent world memory: visited biomes receive permanent trail lights, opened relic sites gain permanent traces, and bound outposts leave a persistent marker;
@@ -19,7 +19,7 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.16.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.17.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
@@ -32,7 +32,7 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter remains a release utility, but v0.17 development is intentionally modular while settlement and surface systems are being rebuilt. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
+The exporter remains a release utility, but v0.18 development is intentionally modular while the Drive art atlas is being integrated into the live surface, inventory and settlement presentation. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
 
 ## Originality boundary
 
@@ -40,7 +40,16 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.17 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns only deterministic settlement demand calculations and naming. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.18 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns only deterministic settlement demand calculations and naming. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+
+
+## v0.18.0
+- 将 Google Drive `Wildforge / Art Atlas / Batch 01` 的四张原创图集纳入正式运行时素材链：环境瓦片、角色/敌人动画、贸易前哨道具、物品/UI 图标都经过裁切后汇入唯一 `core-art.webp`，不直接把整张 1254×1254 工作图塞进浏览器。
+- 运行时图集从旧的原型级 256×160 扩展为 512×256；玩家、携货动作、护卫、灰披劫徒、苔壳爬兽、边境路标、遗物箱、货包、工匠台、货箱/木桶以及常用材料图标开始直接使用 Drive 素材。
+- 物品栏新增青芯木、纤维、石料、煤、铜/铁矿、沙、冰、黏土、木板、绳索、火把、熔火堆、工匠台、晶体等高频图标映射，未覆盖物品仍保留文字/符号 fallback。
+- 青藤原新增“棘鬃兽 / Bramble Boar”，直接使用图集中的四帧地表生物动画，掉落木材与纤维，用来降低地表只有单一苔壳爬兽时的重复感。
+- 聚落近景新增图集货箱、工作台和木桶陈设，让订单终点与纯程序几何房屋拉开层级；程序绘制仍作为缺图 fallback。
+- 新增 `assets/ART-SOURCES.md` 记录 Drive 源图集与运行时映射边界；v0.17 存档通过显式迁移键继续加载。
 
 
 ## v0.17.0
