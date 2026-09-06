@@ -1,13 +1,13 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.15.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.16.0 build is an incubation build, not a public production release.
 
-## v0.15.0 playable incubation build
+## v0.16.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
-- deterministic 480×144 destructible world;
-- three authored biome families: Verdant Reach, Ember Wastes, Frostglass Shelf;
+- deterministic 1920×144 destructible world, with v0.15-era 480×144 saves expanded in place rather than discarded;
+- three authored biome families: Verdant Reach, Ember Wastes, Frostglass Shelf, repeated as 160-tile frontier bands so long-distance travel does not exhaust the map in under a minute;
 - caves, ore clusters, trees, glow moss and underground ruins;
 - 20+ materials/placeables, four pick tiers, multiple weapon tiers and 23 recipes;
 - six original enemy families, including the finale boss, with contact combat and resource drops;
@@ -18,7 +18,7 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.14.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.15.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
@@ -31,7 +31,7 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter inlines CSS and the data/world/game module graph, and its output is smoke-tested as a standalone file. The repository also keeps `wildforge/playtest.html` as the current generated review snapshot; it is never the source authority.
+The exporter remains a release utility, but v0.16 development is intentionally modular while surface systems are being rebuilt. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
 
 ## Originality boundary
 
@@ -39,8 +39,17 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.16 splits bounded presentation/tuning authority into `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`; `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
 
+
+
+## v0.16.0
+- 物品栏从“信息卡片列表”改为槽位优先的游戏内 UI：10 格快捷栏（1–9 / 0）、40 格主物品区、堆叠数角标、当前手持摘要、悬停属性提示、桌面拖放换栏与右键清空槽位；常用建材/货物优先复用现有原创像素图集，不再只靠文字卡片。
+- 战斗加入真正的敌人受击位移：近战与箭矢按攻击方向施加冲量，普通敌人、飞行敌人、精英与首领拥有不同击退抗性；短暂击退窗口阻止 AI 加速度立刻吞掉受击反馈。
+- 地表遭遇压力整体下调：白昼普通地表上限 5、夜间上限 7、地下上限 9；白昼生成间隔提高到约 6–10 秒，初始夜袭也显著放缓；无货运的新玩家在出生点附近还有额外白昼缓冲。
+- 横向世界从 480 扩展到 1920 格。地貌以 160 格为一个带状单元循环，保留原前三地貌节奏，同时让长途运输真正拥有距离；旧 480 格存档会保留原地图并向右生成新边境。
+- 新增独立 `surface-content.js`：按地貌在地表分布林地、小型残骸、荒地石柱/拱门、霜晶拱门/石冢等可直接经过、采集和利用的地标，先提升“水平面本身值得走”的密度，再继续扩地下。
+- 本轮按模块开发，不更新生成式 `playtest.html` 单文件快照；等地表/物品栏/战斗模块稳定后再统一打包。
 
 ## v0.15.0
 - 操控核心改为 120 Hz 固定物理步进，降低不同刷新率与掉帧情况下的加速、跳跃和碰撞手感漂移；

@@ -1,4 +1,4 @@
-export const VERSION = '0.15.0';
+export const VERSION = '0.16.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -69,16 +69,16 @@ export const ITEMS = Object.freeze({
   stone_pick:{id:'stone_pick',zh:'灰岩镐',en:'Greyrock Pick',stack:1,kind:'pick',tier:2,power:1.75},
   copper_pick:{id:'copper_pick',zh:'赤铜镐',en:'Red Copper Pick',stack:1,kind:'pick',tier:3,power:2.3},
   iron_pick:{id:'iron_pick',zh:'冷铁镐',en:'Cold Iron Pick',stack:1,kind:'pick',tier:4,power:3.05},
-  wood_blade:{id:'wood_blade',zh:'木脊短刃',en:'Woodspine Blade',stack:1,kind:'weapon',damage:5},
-  stone_blade:{id:'stone_blade',zh:'岩牙刃',en:'Stonefang Blade',stack:1,kind:'weapon',damage:7},
-  copper_blade:{id:'copper_blade',zh:'赤铜弯刃',en:'Red Copper Cutter',stack:1,kind:'weapon',damage:10},
-  iron_blade:{id:'iron_blade',zh:'冷铁长刃',en:'Cold Iron Longblade',stack:1,kind:'weapon',damage:14},
-  crystal_blade:{id:'crystal_blade',zh:'星晶裂刃',en:'Starshard Edge',stack:1,kind:'weapon',damage:19},
+  wood_blade:{id:'wood_blade',zh:'木脊短刃',en:'Woodspine Blade',stack:1,kind:'weapon',damage:5,knockback:4.2},
+  stone_blade:{id:'stone_blade',zh:'岩牙刃',en:'Stonefang Blade',stack:1,kind:'weapon',damage:7,knockback:4.8},
+  copper_blade:{id:'copper_blade',zh:'赤铜弯刃',en:'Red Copper Cutter',stack:1,kind:'weapon',damage:10,knockback:5.5},
+  iron_blade:{id:'iron_blade',zh:'冷铁长刃',en:'Cold Iron Longblade',stack:1,kind:'weapon',damage:14,knockback:6.2},
+  crystal_blade:{id:'crystal_blade',zh:'星晶裂刃',en:'Starshard Edge',stack:1,kind:'weapon',damage:19,knockback:6.8},
   delver_pick:{id:'delver_pick',zh:'遗迹掘星镐',en:'Relic Delver Pick',stack:1,kind:'pick',tier:3,power:2.7,rare:true},
-  sentinel_blade:{id:'sentinel_blade',zh:'守望残刃',en:'Sentinel Shardblade',stack:1,kind:'weapon',damage:13,rare:true},
+  sentinel_blade:{id:'sentinel_blade',zh:'守望残刃',en:'Sentinel Shardblade',stack:1,kind:'weapon',damage:13,knockback:7.2,rare:true},
   arrow:{id:'arrow',zh:'骨木箭',en:'Woodbone Arrow',stack:999,kind:'ammo'},
-  wood_bow:{id:'wood_bow',zh:'青芯短弓',en:'Greenheart Bow',stack:1,kind:'weapon',damage:8,ranged:true,range:12,speed:15,ammo:'arrow'},
-  crystal_bow:{id:'crystal_bow',zh:'星晶长弓',en:'Starshard Bow',stack:1,kind:'weapon',damage:16,ranged:true,range:14,speed:18,ammo:'arrow',rare:true}
+  wood_bow:{id:'wood_bow',zh:'青芯短弓',en:'Greenheart Bow',stack:1,kind:'weapon',damage:8,knockback:2.7,ranged:true,range:12,speed:15,ammo:'arrow'},
+  crystal_bow:{id:'crystal_bow',zh:'星晶长弓',en:'Starshard Bow',stack:1,kind:'weapon',damage:16,knockback:3.6,ranged:true,range:14,speed:18,ammo:'arrow',rare:true}
 });
 
 export const RECIPES = Object.freeze([
@@ -110,13 +110,13 @@ export const RECIPES = Object.freeze([
 ]);
 
 export const ENEMY_TYPES = Object.freeze({
-  moss_crawler:{zh:'苔壳爬兽',en:'Moss Crawler',hp:18,damage:4,speed:1.6,color:'#6d9357',biome:'verdant'},
-  ash_scuttler:{zh:'灰烬疾足',en:'Ash Scuttler',hp:23,damage:5,speed:2.15,color:'#b35f4b',biome:'ember'},
-  shardback:{zh:'霜晶脊兽',en:'Shardback',hp:29,damage:6,speed:1.35,color:'#79a8c5',biome:'frost'},
-  hollow_wisp:{zh:'空洞微光',en:'Hollow Wisp',hp:16,damage:5,speed:1.7,color:'#66c7ae',underground:true,flying:true},
-  greyveil_raider:{zh:'灰披劫徒',en:'Greyveil Raider',hp:26,damage:6,speed:1.85,color:'#8b7467',raider:true},
-  ruin_sentinel:{zh:'遗迹守望者',en:'Ruin Sentinel',hp:42,damage:8,speed:1.15,color:'#8b729b',underground:true},
-  rift_beast:{zh:'裂隙巨兽',en:'Rift Behemoth',hp:168,damage:14,speed:.8,color:'#c06b72',underground:true,boss:true}
+  moss_crawler:{zh:'苔壳爬兽',en:'Moss Crawler',hp:18,damage:4,speed:1.6,knockbackResist:.1,color:'#6d9357',biome:'verdant'},
+  ash_scuttler:{zh:'灰烬疾足',en:'Ash Scuttler',hp:23,damage:5,speed:2.15,knockbackResist:.08,color:'#b35f4b',biome:'ember'},
+  shardback:{zh:'霜晶脊兽',en:'Shardback',hp:29,damage:6,speed:1.35,knockbackResist:.34,color:'#79a8c5',biome:'frost'},
+  hollow_wisp:{zh:'空洞微光',en:'Hollow Wisp',hp:16,damage:5,speed:1.7,knockbackResist:.28,color:'#66c7ae',underground:true,flying:true},
+  greyveil_raider:{zh:'灰披劫徒',en:'Greyveil Raider',hp:26,damage:6,speed:1.85,knockbackResist:.18,color:'#8b7467',raider:true},
+  ruin_sentinel:{zh:'遗迹守望者',en:'Ruin Sentinel',hp:42,damage:8,speed:1.15,knockbackResist:.58,color:'#8b729b',underground:true},
+  rift_beast:{zh:'裂隙巨兽',en:'Rift Behemoth',hp:168,damage:14,speed:.8,knockbackResist:.9,color:'#c06b72',underground:true,boss:true}
 });
 
 export const itemName = (id, lang='zh') => (ITEMS[id] && ITEMS[id][lang]) || id;
