@@ -1,9 +1,9 @@
-export const VERSION = '0.19.0';
+export const VERSION = '0.20.0';
 export const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
   LEAF:15, CLAY:16, RUIN:17, GLOW_MOSS:18, PLANK:19, WORKBENCH:20,
-  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26, PLATFORM:27, STAR_FORGE:28, BEACON:29
+  TORCH:21, CAMPFIRE:22, RELIC_CHEST:23, RUIN_SPIKE:24, RUIN_URN:25, ROPE:26, PLATFORM:27, STAR_FORGE:28, BEACON:29, TREE_TRUNK:30
 });
 
 export const BIOMES = Object.freeze([
@@ -42,12 +42,13 @@ export const TILE_DEFS = Object.freeze({
   26:{id:'rope', zh:'攀索', en:'Climbing Cord', solid:false, hardness:.12, drop:'rope', place:'rope', color:'#a8875a'},
   27:{id:'platform', zh:'青芯踏板', en:'Greenheart Platform', solid:false, hardness:.28, drop:'platform', place:'platform', platform:true, color:'#92704b'},
   28:{id:'star_forge', zh:'星核炉', en:'Starcore Forge', solid:true, hardness:3.1, tier:3, color:'#4f496f'},
-  29:{id:'beacon', zh:'边境路标', en:'Frontier Beacon', solid:true, hardness:.62, drop:'beacon', place:'beacon', color:'#b58a52'}
+  29:{id:'beacon', zh:'边境路标', en:'Frontier Beacon', solid:true, hardness:.62, drop:'beacon', place:'beacon', color:'#b58a52'},
+  30:{id:'tree_trunk', zh:'青芯树干', en:'Greenheart Trunk', solid:false, hardness:.62, drop:'wood', natural:true, color:'#76543b'}
 });
 
 const blockItems = {};
 for (const [key, def] of Object.entries(TILE_DEFS)) {
-  if (+key === TILE.AIR || !def.drop) continue;
+  if (+key === TILE.AIR || !def.drop || def.natural) continue;
   blockItems[def.drop] = {id:def.drop, zh:def.zh, en:def.en, stack:99, tile:+key, kind:'material'};
 }
 

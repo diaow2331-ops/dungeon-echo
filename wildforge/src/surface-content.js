@@ -23,7 +23,7 @@ function verdantWreck(world,rng,TILE,x,y){
 
 function verdantGrove(world,rng,TILE,x,y){
   const count=2+Math.floor(rng()*2);
-  for(let i=0;i<count;i++){const tx=x-3+i*3,gy=world.surface[tx],h=3+Math.floor(rng()*3);for(let n=1;n<=h;n++)world.set(tx,gy-n,TILE.WOOD);for(let oy=-1;oy<=1;oy++)for(let ox=-2;ox<=2;ox++)if(Math.abs(ox)+Math.abs(oy)<3&&world.get(tx+ox,gy-h+oy)===TILE.AIR)world.set(tx+ox,gy-h+oy,TILE.LEAF);}
+  for(let i=0;i<count;i++){const tx=x-3+i*3,gy=world.surface[tx],h=3+Math.floor(rng()*3);for(let n=1;n<=h;n++)world.set(tx,gy-n,TILE.TREE_TRUNK);for(let oy=-1;oy<=1;oy++)for(let ox=-2;ox<=2;ox++)if(Math.abs(ox)+Math.abs(oy)<3&&world.get(tx+ox,gy-h+oy)===TILE.AIR)world.set(tx+ox,gy-h+oy,TILE.LEAF);}
   return 'verdant-grove';
 }function emberSpire(world,rng,TILE,x,y){
   const towers=[-2,0,2];for(const dx of towers){const gy=world.surface[x+dx],h=2+Math.floor(rng()*4);for(let n=1;n<=h;n++)world.set(x+dx,gy-n,n===h?TILE.RUIN:TILE.BASALT);}

@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.19.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.20.0 build is an incubation build, not a public production release.
 
-## v0.19.0 playable incubation build
+## v0.20.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -19,7 +19,7 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.18.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.19.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
@@ -32,7 +32,7 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter remains a release utility, but v0.19 development is intentionally modular while transport contracts and the Drive art presentation are being iterated together. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
+The exporter remains a release utility, but v0.20 development is intentionally modular while transport contracts and the Drive art presentation are being iterated together. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
 
 ## Originality boundary
 
@@ -40,8 +40,17 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.19 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.20 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
 
+
+## v0.20.0
+
+Foundation-feel pass after direct playtest feedback:
+- settlements render as full roadside hamlets rather than miniature markers; trade/safe radii now match the visible footprint;
+- inventory is a persistent fixed 40-slot layout with drag-to-reorder and saved slot positions;
+- new worlds start with an actually empty hotbar/inventory; acquired items enter the pack and useful non-cargo items can populate empty hotbar slots naturally;
+- natural Greenheart tree trunks are now mineable but non-blocking, with legacy surface-tree migration; player-built wood remains a solid block;
+- v0.19 saves migrate through `wildforge.save.v0190` into the v0.20 save key.
 
 ## v0.19.0
 - 边境货站每天生成一份确定性的运输委托：指定本地标准货物、数量、异地聚落、距离、两日交付期限与整单奖励。

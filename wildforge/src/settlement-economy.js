@@ -6,8 +6,8 @@ const NAMES=Object.freeze({
   frost:[['霜镜站','Frostmirror'],['白晶营','Whiteglass'],['寒灯驿','Cold Lantern'],['雪脊村','Snowridge']]
 });
 
-export const SETTLEMENT_TRADE_RADIUS=5.4;
-export const SETTLEMENT_SAFE_RADIUS=7.5;
+export const SETTLEMENT_TRADE_RADIUS=8.5;
+export const SETTLEMENT_SAFE_RADIUS=11.5;
 export const SETTLEMENT_GENERAL_DEMAND_CAP=8;
 
 function hashText(text=''){
