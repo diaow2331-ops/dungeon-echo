@@ -12,5 +12,5 @@ assert(html.includes('const $$ = s => [...document.querySelectorAll(s)];'),'$$ s
 const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
 assert.equal(scripts.length,1,'expected exactly one inline runtime script');
 assert.doesNotThrow(()=>new Function(scripts[0]),'inline runtime script does not compile');
-assert(html.includes('WILDFORGE · v0.13.0'),'playtest version marker missing');
+assert(html.includes('WILDFORGE · v0.13.1'),'playtest version marker missing');
 console.log('wildforge_single_html=PASS compile-scope-dollar-preservation');

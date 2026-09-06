@@ -5,11 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#10171b">
-  <meta name="version" content="0.13.0">
+  <meta name="version" content="0.13.1">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23141e21%27/%3E%3Cpath d=%27M16 5 27 16 16 27 5 16Z%27 fill=%27%23d6a557%27/%3E%3C/svg%3E">
   <meta name="description" content="荒境熔炉 Wildforge：原创横屏 2D 沙盒生存建造游戏。探索、采矿、制造、建造、战斗并深入地下世界。">
   <title>荒境熔炉 · Wildforge</title>
-  <style data-wildforge-inline="0.13.0">
+  <style data-wildforge-inline="0.13.1">
 :root{
   color-scheme:dark; --ink:#edf3f1; --muted:#9db0ad; --line:rgba(213,235,229,.18);
   --glass:rgba(10,18,21,.78); --glass-strong:rgba(9,16,19,.94); --accent:#d6a557;
@@ -63,7 +63,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
 
     <header id="hud">
       <div class="hud-left">
-        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.13.0</small></div>
+        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.13.1</small></div>
         <div class="meters">
           <div class="meter hp"><span id="hpFill"></span><b id="hpText">100 / 100</b></div>
           <div class="world-readout"><span id="biomeText">青藤原</span><i>·</i><span id="depthText">地表</span><i>·</i><span id="timeText">白昼</span><i>·</i><span id="dangerText">安全</span></div><div class="route-readout"><span id="beaconText">无路标</span></div>
@@ -123,7 +123,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
         <div class="loop">求生 <i>→</i> 采集 <i>→</i> 建站 <i>→</i> 生产 <i>→</i> 装货 <i>→</i> 运输 <i>→</i> 交易 <i>→</i> 扩张</div>
         <label class="seed-field"><span class="zh">世界种子</span><span class="en">World seed</span><input id="seedInput" maxlength="32" autocomplete="off"></label>
         <div class="start-actions"><button id="continueBtn" class="primary hidden"><span class="zh">继续世界</span><span class="en">Continue</span></button><button id="startBtn"><span class="zh">生成新世界</span><span class="en">Create world</span></button></div>
-        <small class="zh">当前为 v0.13.0 孵化试玩 · 武装货运 · 本地离线存档</small><small class="en">v0.13.0 incubation build · armed hauling · local offline save</small>
+        <small class="zh">当前为 v0.13.1 孵化试玩 · 武装货运 · 本地离线存档</small><small class="en">v0.13.1 incubation build · armed hauling · local offline save</small>
       </div>
     </section>
 
@@ -146,9 +146,9 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
       <div><b>↻</b><h2 class="zh">请将手机横过来</h2><h2 class="en">Rotate to landscape</h2><p class="zh">《荒境熔炉》的手机界面与触控从一开始就按横屏设计。</p><p class="en">Wildforge is designed landscape-first on touch devices.</p></div>
     </div>
   </main>
-  <script data-wildforge-inline="0.13.0">
+  <script data-wildforge-inline="0.13.1">
 const __WF_DATA=(()=>{
-const VERSION = '0.13.0';
+const VERSION = '0.13.1';
 const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -484,7 +484,8 @@ const {World,WORLD_W,WORLD_H,encodeTiles,biomeIndexAt,makeRng}=__WF_WORLD;
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const canvas = $('#game'), ctx = canvas.getContext('2d', {alpha:false});
-const SAVE_KEY = 'wildforge.save.v0130';
+const SAVE_KEY = 'wildforge.save.v0131';
+const LEGACY_SAVE_KEY_0130 = 'wildforge.save.v0130';
 const LEGACY_SAVE_KEY_0120 = 'wildforge.save.v0120';
 const LEGACY_SAVE_KEY_0110 = 'wildforge.save.v0110';
 const LEGACY_SAVE_KEY_0100 = 'wildforge.save.v0100';
@@ -630,7 +631,7 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
@@ -1568,7 +1569,7 @@ function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>{$$('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));for(const [tab,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',btn.dataset.tab!==tab);if(btn.dataset.tab==='craft')renderCraft();if(btn.dataset.tab==='trade')renderTrade();});
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}

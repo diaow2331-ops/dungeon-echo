@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.13.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.13.1 build is an incubation build, not a public production release.
 
-## v0.13.0 playable incubation build
+## v0.13.1 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -41,6 +41,10 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.13.1
+- 修复单 HTML 试玩版打包器对 `$$` 的错误替换，避免生成文件在脚本初始化阶段因重复 `$` 声明而无法创建世界；
+- 单文件导出现在保留模块作用域，并加入可编译性与 `$` 保真回归门禁。
 
 ## v0.13.0
 - 标准货物进入“占手”状态：随身携货时主角无法正常攻击，必须按 `R` / 手机“货包”键将整批货物放到地上后再战斗；
