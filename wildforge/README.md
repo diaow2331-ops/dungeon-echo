@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.16.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.17.0 build is an incubation build, not a public production release.
 
-## v0.16.0 playable incubation build
+## v0.17.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -14,11 +14,12 @@ Core loop: Survive → Gather local inputs → Build depots/routes → Produce p
 - 180-second day/night cycle;
 - Outpost ward, dawn salvage and camp-based damage mitigation;
 - Persistent world memory: visited biomes receive permanent trail lights, opened relic sites gain permanent traces, and bound outposts leave a persistent marker;
-- Persistent Frontier Beacon network for long-range return points and route memory; linked neighboring beacons now form bounded supply routes with a small travel-speed bonus, slightly lower night spawn pressure, and banked dawn utility supplies;
+- Persistent Frontier Beacon network for long-range return points and route memory; linked neighboring beacons now form bounded supply routes with a small travel-speed bonus, slightly lower night spawn pressure, banked dawn utility supplies, and visible roadside signal nodes;
+- deterministic surface settlements act as destination buyers with a protected perimeter, rotating daily priority cargo, demand caps, premium prices and an order-completion bonus;
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.15.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.16.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
@@ -31,7 +32,7 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter remains a release utility, but v0.16 development is intentionally modular while surface systems are being rebuilt. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
+The exporter remains a release utility, but v0.17 development is intentionally modular while settlement and surface systems are being rebuilt. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
 
 ## Originality boundary
 
@@ -39,9 +40,17 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.16 splits bounded presentation/tuning authority into `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`; `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.17 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns only deterministic settlement demand calculations and naming. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
 
 
+## v0.17.0
+- 地表加入确定性聚落：每个 160 格边境带生成一个可识别买方聚落，名称与位置由世界种子稳定派生；旧 v0.16 世界升级后无需重置地图即可获得同一套聚落网络。
+- 聚落与玩家路标职责分离：路标继续负责生产、仓储、装货与护卫雇佣；聚落只作为终点买方，不复制第二套物流状态。
+- 每个聚落每天从异地标准货物中生成一项优先需求，拥有独立数量上限、16%–36% 的额外需求溢价与整单完成奖励；普通货物仍可按有限常规需求成交。
+- 聚落周边形成约 8 格的安全圈，阻止普通地表敌人与货运劫徒在交付点附近刷出，避免“到达终点却被随机打断”的负反馈。
+- 地表绘制聚落轮廓、名称与近距离急需货物提示；补给路沿线新增固定信号桩，使长距离商路不再只是抽象虚线。
+- HUD 会提示附近聚落及距离；贸易页在聚落范围内自动切换到订单交付视图，直接显示剩余需求、成交价与整单奖励。
+- 新增 `settlement-economy.js` 作为纯计算模块，并把它纳入单 HTML 打包器；v0.16 存档通过显式迁移键继续加载。
 
 ## v0.16.0
 - 物品栏从“信息卡片列表”改为槽位优先的游戏内 UI：10 格快捷栏（1–9 / 0）、40 格主物品区、堆叠数角标、当前手持摘要、悬停属性提示、桌面拖放换栏与右键清空槽位；常用建材/货物优先复用现有原创像素图集，不再只靠文字卡片。
