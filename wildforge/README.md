@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.11.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.12.0 build is an incubation build, not a public production release.
 
-## v0.11.0 playable incubation build
+## v0.12.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -31,6 +31,13 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 `src/game.js` owns live state mutation, runtime input, physics, combat, inventory, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. No other game source root is imported.
 
+
+## v0.12.0
+- 货运负重开始影响实际移动：超过轻载阈值后逐步降速，满载时约 -14%；商路会抵消大部分重载惩罚，使道路真正具备物流效率价值；
+- 夜间携货且离开商路时，荒兽遭遇节奏会随载重提高，满载时最高约增加 18% 压力；
+- 实际受击可能震落一件标准货物到世界中，货物不会直接销毁，并有短暂防磁吸时间，玩家可冒险追回；
+- 熔火堆守护区、已建商路与货运背架都会显著降低震落概率；精英/首领不会获得额外隐藏伤害，只降低震落修正；
+- HUD 对高载重显示“重载 / HEAVY”，让玩家在出发前能判断风险；新增 v0.11.0 → v0.12.0 存档迁移。
 
 ## v0.11.0
 - 贸易货物从普通建材中分离：青藤货束、烬燃货箱、霜晶货匣成为真正的标准货物，不再用 99 个原材料模拟无限货舱；
