@@ -24,7 +24,8 @@ const ART=Object.freeze({
 
 function artReady(){return CORE_ART.complete&&CORE_ART.naturalWidth>0;}
 function drawArt(key,x,y,w,h){const r=ART[key];if(!r||!artReady())return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(CORE_ART,r[0],r[1],r[2],r[3],Math.round(x),Math.round(y),Math.round(w),Math.round(h));return true;}
-const SAVE_KEY = 'wildforge.save.v0220';
+const SAVE_KEY = 'wildforge.save.v0230';
+const LEGACY_SAVE_KEY_0220 = 'wildforge.save.v0220';
 const LEGACY_SAVE_KEY_0210 = 'wildforge.save.v0210';
 const LEGACY_SAVE_KEY_0200 = 'wildforge.save.v0200';
 const LEGACY_SAVE_KEY_0190 = 'wildforge.save.v0190';
@@ -224,7 +225,7 @@ function saveGame(show=true) {
   catch(e){ console.error(e); if(show)toast(tr('保存失败：浏览器存储不可用','Save failed: local storage unavailable')); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.21.0'||raw.v==='0.20.0'||raw.v==='0.19.0'||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.22.0'||raw.v==='0.21.0'||raw.v==='0.20.0'||raw.v==='0.19.0'||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
@@ -1236,7 +1237,7 @@ function drawLighting(){
   const s=game.camera.tile,p=game.player;punchLight((p.x-game.camera.x)*s,(p.y-game.camera.y)*s,s*(depth>8?2.35:3.2),.88);
   const minX=Math.max(0,Math.floor(game.camera.x)-1),maxX=Math.min(WORLD_W-1,Math.ceil(game.camera.x+game.cssW/s)+1),minY=Math.max(0,Math.floor(game.camera.y)-1),maxY=Math.min(WORLD_H-1,Math.ceil(game.camera.y+game.cssH/s)+1);
   for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const id=game.world.get(x,y);if(id===TILE.TORCH)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*5.2,1);else if(id===TILE.CAMPFIRE)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*6.4,1);else if(id===TILE.CRYSTAL||id===TILE.GLOW_MOSS||id===TILE.RELIC_CHEST||id===TILE.STAR_FORGE)punchLight((x+.5-game.camera.x)*s,(y+.5-game.camera.y)*s,s*(id===TILE.CRYSTAL?2.8:id===TILE.RELIC_CHEST?2.25:id===TILE.STAR_FORGE?3.2:1.7),id===TILE.RELIC_CHEST?.36:id===TILE.STAR_FORGE?.62:.55);}
-  for(const site of game.world?.settlements||[]){const px=(site.x-game.camera.x)*s,py=(site.y-game.camera.y)*s;if(px<-s*12||px>game.cssW+s*12||py<-s*6||py>game.cssH+s*3)continue;for(const q of [-8.15,0,8.15])punchLight(px+q*s,py-s*1.65,s*(q?2.35:3.1),q?.34:.24);}
+  for(const site of game.world?.settlements||[]){const px=(site.x-game.camera.x)*s,py=(site.y-game.camera.y)*s;if(px<-s*12||px>game.cssW+s*12||py<-s*6||py>game.cssH+s*3)continue;const reliability=settlementReliability(site),lampCount=2+Math.min(3,reliability);const lampSlots=[-8.15,8.15,0,-4.15,4.15];for(let i=0;i<lampCount;i++){const q=lampSlots[i];punchLight(px+q*s,py-s*(q===0?1.35:1.65),s*(q===0?3.15:2.35),q===0?.22+.035*reliability:.26+.025*reliability);}}
   lightCtx.globalCompositeOperation='source-over';ctx.drawImage(lightCanvas,0,0,game.cssW,game.cssH);
 }
 function drawTarget(){
@@ -1250,9 +1251,9 @@ function drawSettlements(){
   if(!game.world?.settlements?.length)return;const s=game.camera.tile,p=game.player;
   for(const site of game.world.settlements){
     const x=(site.x-game.camera.x)*s,y=(site.y-game.camera.y)*s;if(x<-s*13||x>game.cssW+s*13||y<-s*9||y>game.cssH+s*5)continue;
-    const distance=Math.hypot(site.x-p.x,site.y-p.y),near=distance<22,demand=near?settlementDailyDemand(site,game.trade?.day||0,settlementReliability(site)):null;
+    const distance=Math.hypot(site.x-p.x,site.y-p.y),near=distance<22,reliability=settlementReliability(site),prosperity=Math.max(0,Math.min(5,reliability)),demand=near?settlementDailyDemand(site,game.trade?.day||0,reliability):null;
     const palette=site.biome==='verdant'?['#31594b','#7fa66d','#d4b36b','#b9784e']:site.biome==='ember'?['#663a32','#a96044','#e2b767','#8d4f38']:['#39566d','#79a9bb','#dbe7dd','#577d94'];
-    const now=performance.now()*.001,night=1-dayLight();
+    const now=performance.now()*.001,night=1-dayLight(),crowdCount=1+prosperity,tradeGlow=.025+prosperity*.008;
     ctx.save();ctx.translate(Math.round(x),Math.round(y));
     ctx.globalAlpha=.12+.20*night;ctx.fillStyle=site.biome==='ember'?'#c68162':'#d9e5dd';for(const q of [-6.55,6.1]){for(let puff=0;puff<3;puff++){const py=-s*(3.2+puff*.55+((now*.16+puff*.21)%1)),px=q*s+Math.sin(now*.8+puff+site.index)*s*.13;ctx.beginPath();ctx.arc(px,py,s*(.16+puff*.06),0,Math.PI*2);ctx.fill();}}ctx.globalAlpha=1;
     ctx.fillStyle='rgba(4,8,10,.55)';ctx.fillRect(-s*8.8,-s*.12,s*17.6,s*.28);
@@ -1270,12 +1271,16 @@ function drawSettlements(){
     ctx.strokeStyle=palette[2];ctx.lineWidth=Math.max(1,s*.065);ctx.strokeRect(-s*2.05,-s*1.72,s*4.1,s*1.4);
     ctx.fillStyle=palette[2];ctx.fillRect(-s*2.12,-s*2.44,s*.16,s*2.2);ctx.fillRect(s*1.96,-s*2.44,s*.16,s*2.2);
     ctx.fillRect(-s*.1,-s*4.05,s*.2,s*1.72);ctx.fillRect(-s*.1,-s*4.05,s*1.35,s*.22);
-    drawArt('prop_crates',-s*2.0,-s*.95,s*1.55,s*.88);drawArt('prop_workbench',-s*.75,-s*1.04,s*1.65,s*.93);drawArt('prop_barrels',s*1.15,-s*.86,s*.92,s*.92);
-    ctx.fillStyle=palette[3];ctx.fillRect(-s*3.35,-s*1.42,s*1.28,s*.12);ctx.fillStyle=palette[2];for(let stripe=0;stripe<4;stripe++){ctx.beginPath();ctx.moveTo((-3.42+stripe*.34)*s,-s*1.42);ctx.lineTo((-3.26+stripe*.34)*s,-s*.96);ctx.lineTo((-2.94+stripe*.34)*s,-s*1.42);ctx.closePath();ctx.fill();}
-    const bannerX=site.index%2?-1.35:1.35;ctx.fillStyle=palette[2];ctx.fillRect((bannerX-.06)*s,-s*3.78,s*.12,s*1.45);ctx.fillStyle=palette[3];ctx.beginPath();ctx.moveTo(bannerX*s,-s*3.70);ctx.lineTo((bannerX+1.05)*s,-s*3.48);ctx.lineTo(bannerX*s,-s*3.16);ctx.closePath();ctx.fill();
-    const crowd=[-5.1,-3.2,2.75,5.25];for(let i=0;i<crowd.length;i++){const q=crowd[i],bob=Math.sin(now*1.5+i+site.index)*s*.025;ctx.fillStyle='rgba(18,28,29,.86)';ctx.fillRect((q-.12)*s,-s*.72+bob,s*.24,s*.56);ctx.fillStyle=palette[(i+1)%palette.length];ctx.fillRect((q-.15)*s,-s*.82+bob,s*.30,s*.18);}
-    for(const q of [-8.15,8.15]){ctx.fillStyle='#6a4a32';ctx.fillRect((q-.07)*s,-s*1.8,s*.14,s*1.75);ctx.fillStyle='#f0c873';ctx.fillRect((q-.19)*s,-s*1.95,s*.38,s*.28);ctx.fillStyle=`rgba(240,200,115,${.08+night*.18})`;ctx.beginPath();ctx.arc(q*s,-s*1.8,s*(.65+night*.18),0,Math.PI*2);ctx.fill();}
+    drawArt('prop_workbench',-s*.75,-s*1.04,s*1.65,s*.93);
+    drawArt('prop_crates',-s*(2.0+prosperity*.10),-s*.95,s*(1.1+prosperity*.12),s*.88);if(prosperity>=2)drawArt('prop_barrels',s*1.15,-s*.86,s*.92,s*.92);if(prosperity>=4)drawArt('prop_crates',s*2.25,-s*.92,s*1.25,s*.76);
+    if(prosperity>=1){ctx.fillStyle=palette[3];ctx.fillRect(-s*3.35,-s*1.42,s*(.82+prosperity*.12),s*.12);ctx.fillStyle=palette[2];for(let stripe=0;stripe<Math.min(4,1+prosperity);stripe++){ctx.beginPath();ctx.moveTo((-3.42+stripe*.34)*s,-s*1.42);ctx.lineTo((-3.26+stripe*.34)*s,-s*.96);ctx.lineTo((-2.94+stripe*.34)*s,-s*1.42);ctx.closePath();ctx.fill();}}
+    if(prosperity>=2){const bannerX=site.index%2?-1.35:1.35;ctx.fillStyle=palette[2];ctx.fillRect((bannerX-.06)*s,-s*3.78,s*.12,s*1.45);ctx.fillStyle=palette[3];ctx.beginPath();ctx.moveTo(bannerX*s,-s*3.70);ctx.lineTo((bannerX+(prosperity>=4?1.25:1.05))*s,-s*3.48);ctx.lineTo(bannerX*s,-s*3.16);ctx.closePath();ctx.fill();}
+    if(prosperity>=3){ctx.strokeStyle=`rgba(230,203,144,${.24+prosperity*.07})`;ctx.lineWidth=Math.max(1,s*.035);ctx.beginPath();ctx.moveTo(-s*5.8,-s*2.58);ctx.quadraticCurveTo(0,-s*(3.1+prosperity*.04),s*5.8,-s*2.58);ctx.stroke();for(let i=-4;i<=4;i++){ctx.fillStyle=i%2?palette[2]:palette[3];ctx.beginPath();ctx.moveTo(i*s*1.12,-s*(2.78+Math.abs(i)*.015));ctx.lineTo((i*.1+1)*s+s*i*1.02,-s*2.40);ctx.lineTo((i*.1+.72)*s+s*i*1.02,-s*2.72);ctx.closePath();ctx.fill();}}
+    if(prosperity>=4){ctx.fillStyle='#5b402c';ctx.fillRect(s*3.55,-s*.72,s*1.65,s*.12);ctx.fillRect(s*3.72,-s*.72,s*.10,s*.68);ctx.fillRect(s*4.78,-s*.72,s*.10,s*.68);ctx.strokeStyle=palette[2];ctx.lineWidth=Math.max(1,s*.06);for(const q of [3.84,4.72]){ctx.beginPath();ctx.arc(q*s,-s*.08,s*.24,0,Math.PI*2);ctx.stroke();}}
+    const crowd=[-5.1,-3.2,2.75,5.25,-1.75,1.55];for(let i=0;i<Math.min(crowd.length,crowdCount);i++){const q=crowd[i],bob=Math.sin(now*1.5+i+site.index)*s*.025;ctx.fillStyle='rgba(18,28,29,.86)';ctx.fillRect((q-.12)*s,-s*.72+bob,s*.24,s*.56);ctx.fillStyle=palette[(i+1)%palette.length];ctx.fillRect((q-.15)*s,-s*.82+bob,s*.30,s*.18);}
+    const lamps=[-8.15,8.15,0,-4.15,4.15].slice(0,2+Math.min(3,prosperity));for(const q of lamps){ctx.fillStyle='#6a4a32';ctx.fillRect((q-.07)*s,-s*(q===0?1.55:1.8),s*.14,s*(q===0?1.5:1.75));ctx.fillStyle='#f0c873';ctx.fillRect((q-.19)*s,-s*(q===0?1.7:1.95),s*.38,s*.28);ctx.fillStyle=`rgba(240,200,115,${tradeGlow+night*(.16+prosperity*.014)})`;ctx.beginPath();ctx.arc(q*s,-s*(q===0?1.55:1.8),s*(.48+night*.16+prosperity*.018),0,Math.PI*2);ctx.fill();}
     ctx.font=`800 ${Math.max(12,Math.round(s*.48))}px system-ui`;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle='#f3e3bd';ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=5;ctx.fillText(`⌂ ${settlementName(site,lang)}`,0,-s*4.32);
+    if(near){ctx.font=`700 ${Math.max(9,Math.round(s*.29))}px system-ui`;ctx.fillStyle=prosperity>=4?'#9fe2c9':prosperity>=2?'#e5c77f':'#b9b5a8';ctx.fillText(`${tr('商誉','Standing')} ${settlementReliabilityPips(site)} ${prosperity}/${SETTLEMENT_MAX_RELIABILITY}`,0,-s*5.17);}
     if(demand){ctx.font=`700 ${Math.max(10,Math.round(s*.34))}px system-ui`;ctx.fillStyle='#e9bd69';ctx.fillText(`${tr('急需','WANTS')} ${itemName(demand.goodId,lang)}`,0,-s*4.78);}
     if(distance<9.5){ctx.font=`700 ${Math.max(9,Math.round(s*.29))}px system-ui`;ctx.fillStyle='#d9eee6';ctx.fillText(tr('E · 进入聚落贸易','E · SETTLEMENT TRADE'),0,-s*.38);}
     ctx.restore();
@@ -1349,7 +1354,7 @@ function selectPanelTab(tab){$$('[data-tab]').forEach(x=>x.classList.toggle('act
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>selectPanelTab(btn.dataset.tab));
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
