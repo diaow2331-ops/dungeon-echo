@@ -1,3 +1,10 @@
+## v0.22 · 聚落记忆与可靠度
+
+- 每个聚落获得由世界种子/聚落身份稳定决定的长期进口偏好，长期偏好提供小幅稳定溢价；每日急需仍提供更高、但会轮换的短期溢价。
+- 每个聚落单独记录 0–5 级可靠度，不新增可消费货币。完成每日整单或指定运输委托会提高可靠度；已接运输委托逾期会降低 1 级。
+- 可靠度会反向影响聚落订单规模、整单奖励与运输委托规模/报酬，让长期经营同一条商路产生可积累的关系价值。
+- 聚落贸易页直接显示长期偏好、可靠度及其因果规则；v0.21 存档自动迁移为空关系记录，不丢失现有地图、货物、仓库或委托。
+
 ## v0.21 · 视觉信息层
 
 - 三大生态区增加独立动态氛围：青藤原漂叶与光束、烬风荒地灰烬与热扰动、霜晶台地飘雪与冰晶闪点。
@@ -7,9 +14,9 @@
 
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.20.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.22.0 build is an incubation build, not a public production release.
 
-## v0.20.0 playable incubation build
+## v0.22.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -39,7 +46,7 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter remains a release utility, but v0.20 development is intentionally modular while transport contracts and the Drive art presentation are being iterated together. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
+The exporter remains a release utility, but v0.22 development remains modular while settlement memory, logistics, and presentation are iterated together. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
 
 ## Originality boundary
 
@@ -47,7 +54,7 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.20 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.22 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
 
 
 ## v0.20.0
