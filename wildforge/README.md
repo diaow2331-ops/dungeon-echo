@@ -1,8 +1,8 @@
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.20.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.21.0 build is an incubation build, not a public production release.
 
-## v0.20.0 playable incubation build
+## v0.21.0 playable incubation build
 
 Core loop: Survive → Gather local inputs → Build depots/routes → Produce packaged cargo → Store/load within capacity → Physically transport cargo → Sell into distant demand → Reinvest → Expand the network.
 
@@ -40,8 +40,18 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.20 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.21 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
 
+
+## v0.21.0
+
+Showcase / capture pass for music-led promotion without changing the trade-survival authority:
+- new Showcase mode (`C` on desktop, menu toggle on touch) removes HUD, hotbar, reticle, world labels and combat bars while keeping the game playable;
+- Showcase mode widens the camera slightly and uses slower follow easing so traversal footage reads as a landscape rather than a UI capture;
+- surface biomes gain deterministic ambient motion: Verdant fireflies/leaf motes, Ember ash and cinders, Frostglass snow drift;
+- subtle horizon haze, biome color atmosphere and vignette deepen the 2D scene without introducing a second art renderer;
+- campfires receive restrained animated flame/ember treatment;
+- gameplay UI remains unchanged outside Showcase mode, and v0.20 saves continue to load from the same save authority.
 
 ## v0.20.0
 
