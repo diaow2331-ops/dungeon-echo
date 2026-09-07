@@ -1,3 +1,10 @@
+## v0.21 · 视觉信息层
+
+- 三大生态区增加独立动态氛围：青藤原漂叶与光束、烬风荒地灰烬与热扰动、霜晶台地飘雪与冰晶闪点。
+- 聚落继续沿用 v0.20 的大尺度布局，但增加烟气、旗帜、市集棚、居民剪影与夜间灯火，使其从“功能建筑”变成可辨认的生活地标。
+- 玩家路标的真实仓库库存会直接反馈到世界画面：库存越多，货箱、桶和装卸平台越明显；不新增隐藏数值，只把现有物流状态视觉化。
+- v0.20 存档通过显式迁移键继续兼容。
+
 # 荒境熔炉 / Wildforge
 
 Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.20.0 build is an incubation build, not a public production release.
