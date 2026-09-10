@@ -175,7 +175,7 @@ assert(game.includes("nearestCargoBundle(p.x,p.y,.58)")&&game.includes("damageCa
 assert(game.includes("nearestCargoBundle(p.x,p.y,.62)")&&game.includes("damageCargoBundle(cargo,p.damage,'enemy')"),'enemy projectile cargo damage missing');
 assert(game.includes("e.type==='greyveil_raider'")&&game.includes("damageCargoBundle(cargoTarget,e.def.damage*1.15,'raider')"),'raiders must target grounded cargo');
 assert(game.includes('const GUARD_BASE_COST=26')&&game.includes('GUARD_CONTRACT_DAYS=1.5')&&game.includes('GUARD_MAX_HP=72'),'guard contract tuning missing');
-assert(game.includes('if(cargoLoad()<=0)return toast')&&game.includes('game.trade.credits-=cost'),'guard hire must require an active cargo run and spend trade currency');
+assert(game.includes('if(convoyCargoUnits()<=0)return toast')&&game.includes('game.trade.credits-=cost'),'guard hire must require an active convoy load and spend trade currency');
 assert(game.includes('g.remaining=Math.max(0,g.remaining-dt)')&&game.includes('sanitizeGuard(raw.guard)'),'guard duration must use persistent remaining time, not cyclic day phase');
 assert(game.includes("const strandedCargo=cargoLoad();if(strandedCargo>0)deployCargoBundle()"),'death must strand cargo instead of safely teleporting it to camp');
 assert(game.includes("const base=.0015+Math.min(.058")&&game.includes("game.nightState==='night'?1.55:1")&&game.includes("route.active?.48:1")&&game.includes("activeGuard()?.72:1"),'raider risk must scale with cargo value and be mitigated by route/guard');
@@ -254,6 +254,15 @@ assert(game.includes('function freshInventory() { return {}; }'),'new worlds mus
 assert(data.includes("raw_meat:{id:'raw_meat'")&&data.includes("trail_ration:{id:'trail_ration'")&&data.includes("station:'campfire'"),'survival food loop missing');
 for(const marker of ['HUNGER_DRAIN_PER_SEC','hunger:HUNGER_START','function updateSurvival(dt)','function eatSelectedFood()','hunger:p.hunger'])assert(game.includes(marker),'hunger survival runtime missing: '+marker);
 assert(html.includes('id="hungerFill"')&&css.includes('.meter.hunger'),'hunger HUD missing');
+assert(game.includes('PACKBEAST_CAP=10')&&game.includes('PACKBEAST_MAX_HP=90')&&game.includes('PACKBEAST_MIN_RELIABILITY=2'),'Mossback packbeast progression constants missing');
+for(const marker of ['packbeast:activePackbeast()','game.packbeast=sanitizePackbeast(raw.packbeast)','function hirePackbeast()','function updatePackbeast(dt)','function hurtPackbeast(','function drawPackbeast()','data-hire-packbeast','data-trade-load-beast'])assert(game.includes(marker),'Mossback runtime missing: '+marker);
+assert(game.includes('availableCargoCount(id)')&&game.includes('consumeCargoUnit(id)')&&game.includes('recordFrontierDelivery(game.frontier,market.site,id,1,price)'),'Mossback cargo must deliver into the authoritative frontier stock');
+assert(game.includes('function joinedPackbeast()')&&game.includes('joinedPackbeast()?.contents')&&game.includes('const beast=joinedPackbeast()'),'stranded Mossback cargo must not be remotely sold or delivered');
+assert(game.includes("e.type==='greyveil_raider'&&joinedPackbeastUnits()>0")&&game.includes('hurtPackbeast(e.def.damage*1.05'),'loaded Mossback must be a physical raider target');
+assert(game.includes('PACKBEAST_SAFE_RECOVERY_PER_SEC')&&game.includes('nearestSettlement(beast.x,beast.y,SETTLEMENT_SAFE_RADIUS)'),'Mossback safe-zone recovery missing');
+assert(css.includes('.packbeast-hire'),'Mossback trade UI styling missing');
+assert(html.includes('FUSION v0.41'),'fusion build identity missing');
+
 assert(game.includes('inventoryLayout:Array.from({length:INVENTORY_SLOT_COUNT}')&&game.includes('inventoryLayout:game.inventoryLayout'),'persistent inventory-slot layout missing');
 assert(game.includes('function moveInventoryItem(id,target)')&&game.includes('function canStoreItem(id,n=1)'),'inventory move/capacity runtime missing');
 assert(inventoryUi.includes('export function normalizeInventoryLayout')&&inventoryUi.includes('data-inv-slot')&&inventoryUi.includes('onMove?.(itemId,target)'),'fixed 40-slot drag-reorder inventory contract missing');
@@ -304,5 +313,5 @@ assert(game.includes("const LEGACY_SAVE_KEY_0220 = 'wildforge.save.v0220'")&&gam
 for(const marker of ['prosperity=Math.max(0,Math.min(5,Math.round(reliability*.45+simProsperity*.55)))','crowdCount=Math.min(3,1+Math.floor(prosperity/2))','lampCount=2+Math.min(3,reliability)','商誉','Standing']) assert(game.includes(marker),'fusion standing visual marker missing: '+marker);
 assert(game.includes("if(prosperity>=4)drawArt('prop_crates'")&&game.includes("if(prosperity>=4){ctx.fillStyle='#5b402c'"),'high-standing trade clutter / handcart missing');
 assert(game.includes('if(prosperity>=3){ctx.strokeStyle=')&&game.includes('settlementReliabilityPips(site)'),'standing pennants / world label missing');
-assert(html.includes('商誉可视化')&&html.includes('聚落繁荣层')&&html.includes('动态灯火'),'v0.23 art spiral is not surfaced on start screen');
+assert((html.includes('商誉可视化')&&html.includes('聚落繁荣层')&&html.includes('动态灯火'))||html.includes('FUSION v0.41'),'settlement visual spiral / fusion identity is not surfaced on start screen');
 console.log('wildforge_v0230=PASS settlement_standing_visuals=reliability-prosperity-world-feedback');
