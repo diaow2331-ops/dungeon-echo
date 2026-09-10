@@ -261,6 +261,7 @@ assert(game.includes('function joinedPackbeast()')&&game.includes('joinedPackbea
 assert(game.includes("e.type==='greyveil_raider'&&joinedPackbeastUnits()>0")&&game.includes('hurtPackbeast(e.def.damage*1.05'),'loaded Mossback must be a physical raider target');
 assert(game.includes('PACKBEAST_SAFE_RECOVERY_PER_SEC')&&game.includes('nearestSettlement(beast.x,beast.y,SETTLEMENT_SAFE_RADIUS)'),'Mossback safe-zone recovery missing');
 assert(css.includes('.packbeast-hire'),'Mossback trade UI styling missing');
+assert(game.includes('function aidSettlement(site,id)')&&game.includes('data-settlement-aid')&&css.includes('.settlement-aid'),'player emergency-aid intervention UI missing');
 assert(html.includes('FUSION v0.41'),'fusion build identity missing');
 
 assert(game.includes('inventoryLayout:Array.from({length:INVENTORY_SLOT_COUNT}')&&game.includes('inventoryLayout:game.inventoryLayout'),'persistent inventory-slot layout missing');
