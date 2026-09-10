@@ -251,6 +251,9 @@ console.log('wildforge_v0230=PASS terraria_like_controls=fixed-step-context-use-
 assert(game.includes("const LEGACY_SAVE_KEY_0190 = 'wildforge.save.v0190'" )&&game.includes("raw.v==='0.19.0'"),'v0.19 save migration bridge missing');
 assert(game.includes("const HOTBAR_DEFAULT = Array.from({length:HOTBAR_SIZE},()=> '')"),'new worlds must start with an actually empty hotbar');
 assert(game.includes('function freshInventory() { return {}; }'),'new worlds must start with an actually empty inventory');
+assert(data.includes("raw_meat:{id:'raw_meat'")&&data.includes("trail_ration:{id:'trail_ration'")&&data.includes("station:'campfire'"),'survival food loop missing');
+for(const marker of ['HUNGER_DRAIN_PER_SEC','hunger:HUNGER_START','function updateSurvival(dt)','function eatSelectedFood()','hunger:p.hunger'])assert(game.includes(marker),'hunger survival runtime missing: '+marker);
+assert(html.includes('id="hungerFill"')&&css.includes('.meter.hunger'),'hunger HUD missing');
 assert(game.includes('inventoryLayout:Array.from({length:INVENTORY_SLOT_COUNT}')&&game.includes('inventoryLayout:game.inventoryLayout'),'persistent inventory-slot layout missing');
 assert(game.includes('function moveInventoryItem(id,target)')&&game.includes('function canStoreItem(id,n=1)'),'inventory move/capacity runtime missing');
 assert(inventoryUi.includes('export function normalizeInventoryLayout')&&inventoryUi.includes('data-inv-slot')&&inventoryUi.includes('onMove?.(itemId,target)'),'fixed 40-slot drag-reorder inventory contract missing');
