@@ -22,7 +22,9 @@
 
 # 荒境熔炉 / Wildforge
 
-Wildforge is an original browser-native 2D trade-survival sandbox designed landscape-first for desktop and touch devices. Terraria/Minecraft-like mining, building and combat are the physical language; regional trade, logistics and dangerous overland transport are the product core. The current v0.23.0 build is an incubation build, not a public production release.
+Wildforge is an original browser-native 2D world-simulation sandbox designed landscape-first for desktop and touch devices. Mining, building, combat and physical travel are the player's language; ecology, production, trade, diplomacy, war and raiding form the persistent world underneath. A single world is intentionally limited to at most three major factions, with macro simulation and sparse local actors instead of dozens of roaming AI settlements.
+
+The `feat/wildforge-fusion-v040` line is the current integration track. It preserves the mature v0.23 player-facing foundation while moving world state toward one authoritative simulation. Multi-world traversal is a later progression layer, not part of the current single-world scope.
 
 ## v0.23.0 playable incubation build
 

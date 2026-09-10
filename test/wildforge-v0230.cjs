@@ -130,7 +130,7 @@ assert(html.includes('data-tab="trade"')&&html.includes('id="tradeView"'),'trade
 for(const marker of ['TRADE_GOODS','TRADE_POST_RADIUS','TRADE_DAILY_BUY_CAP','TRADE_DAILY_SELL_CAP','function nearbyTradePost()','function tradePrice(id,market,side)','function buyTradeGood(id)','function sellTradeGood(id)','function renderTrade()']) assert(game.includes(marker),'trade runtime missing: '+marker);
 assert(game.includes('game.trade.credits-=price')&&game.includes('game.trade.credits+=price'),'trade currency mutation missing');
 assert(game.includes('trade:game.trade')&&game.includes('sanitizeTrade(raw.trade)'),'trade state must persist and migrate');
-assert(html.includes('求生 <i>→</i> 采集')&&html.includes('生产')&&html.includes('装货')&&html.includes('运输')&&html.includes('交易'),'trade-survival logistics loop is not visible on start screen');
+assert(html.includes('求生 <i>→</i> 探索')&&html.includes('贸易')&&html.includes('介入势力')&&html.includes('改变世界'),'world-simulation loop is not visible on start screen');
 assert(css.includes('.trade-row.export')&&css.includes('.trade-row.demand'),'trade market visual states missing');
 console.log('wildforge_v0230=PASS frontier_market=regional-arbitrage');
 
@@ -150,7 +150,7 @@ assert(game.includes("if(b&&warehouseUnits(b)>0)")&&game.includes('Empty the dep
 assert(game.includes('if(!cargoRoom(id,1))')&&game.includes('Freight Frame'),'market/warehouse load must respect freight capacity');
 assert(data.includes("{id:'freight_frame',out:{id:'freight_frame',n:1},need:{plank:10,rope:4},station:'workbench'}"),'early freight capacity upgrade recipe missing');
 assert(game.includes('TRADE_DAILY_PRODUCTION_CAP')&&game.includes("nearStation('workbench')")&&game.includes('game.trade.produced'),'bounded depot production missing');
-assert(html.includes('生产 <i>→</i> 装货'),'v0.11 logistics core loop is not surfaced');
+assert(html.includes('贸易')&&html.includes('改变世界'),'fusion logistics role is not surfaced');
 assert(css.includes('.logistics-strip'),'logistics HUD/panel styling missing');
 console.log('wildforge_v0230=PASS depot_logistics=production-storage-capacity');
 
@@ -230,7 +230,7 @@ assert(game.includes("const LEGACY_SAVE_KEY_0180 = 'wildforge.save.v0180'")&&gam
 assert(surfaceContent.includes('export function buildSettlements')&&world.includes('this.settlements=buildSettlements(this,this.seed)'),'deterministic surface settlements missing');
 const settlementRuntime=new Function(settlementEconomy.replace(/^export\s+/gm,'')+'\nreturn {SETTLEMENT_MAX_RELIABILITY,SETTLEMENT_PREFERENCE_PREMIUM,settlementName,settlementLongTermPreference,settlementDailyDemand,settlementDemandRemaining,settlementSellPrice};')();
 const demandA=settlementRuntime.settlementDailyDemand({id:'test-verdant',biome:'verdant'},2),demandB=settlementRuntime.settlementDailyDemand({id:'test-verdant',biome:'verdant'},2);assert.deepEqual(demandA,demandB,'settlement demand must be deterministic per site/day');assert.notEqual(demandA.goodId,'greenheart_bale','priority demand must be imported cargo');assert(demandA.quantity>=4&&demandA.quantity<=7&&demandA.premium>=1.16&&demandA.premium<=1.36,'settlement demand tuning out of bounds');
-const surfaceRuntime=new Function(surfaceContent.replace(/^export\s+/gm,'')+'\nreturn {buildSettlements};')(),fakeWorld={w:1920,surface:Int16Array.from({length:1920},()=>40),biome:x=>({id:['verdant','ember','frost'][Math.floor(x/160)%3]})},sitesA=surfaceRuntime.buildSettlements(fakeWorld,'WF-TEST'),sitesB=surfaceRuntime.buildSettlements(fakeWorld,'WF-TEST');assert.equal(sitesA.length,12,'expected one settlement per 160-tile frontier band');assert.deepEqual(sitesA,sitesB,'settlement placement must be deterministic for a seed');assert.equal(new Set(sitesA.map(site=>settlementRuntime.settlementName(site,'en'))).size,12,'frontier settlements should have distinct first-pass names');
+const surfaceRuntime=new Function(surfaceContent.replace(/^export\s+/gm,'')+'\nreturn {buildSettlements};')(),fakeWorld={w:1920,surface:Int16Array.from({length:1920},()=>40),biome:x=>({id:['verdant','ember','frost'][Math.floor(x/160)%3]})},sitesA=surfaceRuntime.buildSettlements(fakeWorld,'WF-TEST'),sitesB=surfaceRuntime.buildSettlements(fakeWorld,'WF-TEST');assert.equal(sitesA.length,3,'fusion world must expose exactly three major factions');assert.deepEqual(sitesA,sitesB,'faction placement must be deterministic for a seed');assert.deepEqual(sitesA.map(site=>site.biome),['verdant','ember','frost'],'three factions must anchor distinct regional biomes');assert.equal(new Set(sitesA.map(site=>settlementRuntime.settlementName(site,'en'))).size,3,'major faction capitals should have distinct names');
 for(const marker of ['SETTLEMENT_TRADE_RADIUS','SETTLEMENT_SAFE_RADIUS','SETTLEMENT_GENERAL_DEMAND_CAP','settlementDailyDemand','settlementDemandRemaining','settlementSellPrice']) assert(settlementEconomy.includes(marker),'settlement economy contract missing: '+marker);
 for(const marker of ['function nearestSettlement(','function nearbySettlementMarket()','function sellSettlementGood(id)','function renderSettlementTrade(view,market)','function drawSettlements()']) assert(game.includes(marker),'settlement runtime missing: '+marker);
 assert(game.includes('nearestSettlement(p.x,p.y,SETTLEMENT_SAFE_RADIUS)'),'settlement safe perimeter must affect surface encounters');
@@ -298,7 +298,7 @@ console.log('wildforge_v0230=PASS settlement_memory=preference-reliability-causa
 
 // v0.23 settlement-standing visual spiral gates.
 assert(game.includes("const LEGACY_SAVE_KEY_0220 = 'wildforge.save.v0220'")&&game.includes("raw.v==='0.22.0'"),'v0.22 save migration bridge missing');
-for(const marker of ['prosperity=Math.max(0,Math.min(5,reliability))','crowdCount=1+prosperity','lampCount=2+Math.min(3,reliability)','商誉','Standing']) assert(game.includes(marker),'v0.23 reliability visual marker missing: '+marker);
+for(const marker of ['prosperity=Math.max(0,Math.min(5,Math.round(reliability*.45+simProsperity*.55)))','crowdCount=Math.min(3,1+Math.floor(prosperity/2))','lampCount=2+Math.min(3,reliability)','商誉','Standing']) assert(game.includes(marker),'fusion standing visual marker missing: '+marker);
 assert(game.includes("if(prosperity>=4)drawArt('prop_crates'")&&game.includes("if(prosperity>=4){ctx.fillStyle='#5b402c'"),'high-standing trade clutter / handcart missing');
 assert(game.includes('if(prosperity>=3){ctx.strokeStyle=')&&game.includes('settlementReliabilityPips(site)'),'standing pennants / world label missing');
 assert(html.includes('商誉可视化')&&html.includes('聚落繁荣层')&&html.includes('动态灯火'),'v0.23 art spiral is not surfaced on start screen');

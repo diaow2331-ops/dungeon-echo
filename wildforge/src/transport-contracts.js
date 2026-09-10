@@ -6,13 +6,14 @@ function hashText(text=''){
   return h>>>0;
 }
 
-export function makeTransportOffer({day=0,originX=0,originBiome='',settlements=[],cargoByHome={},reliabilityBySettlement={}}={}){
+export function makeTransportOffer({day=0,originX=0,originBiome='',settlements=[],cargoByHome={},reliabilityBySettlement={},demandBySettlement=null}={}){
   const goodId=cargoByHome[originBiome];
   if(!goodId)return null;
   const candidates=(settlements||[]).filter(site=>site?.id&&site.biome!==originBiome&&Math.abs(Number(site.x)-originX)>=48);
   if(!candidates.length)return null;
   const h=hashText(`${Math.max(0,Math.floor(day))}:${originBiome}:${Math.floor(originX/8)}`);
-  const destination=candidates[h%candidates.length],reliability=Math.max(0,Math.min(5,Math.floor(Number(reliabilityBySettlement?.[destination.id])||0))),quantity=3+((h>>>5)%4)+(reliability>=3?1:0),distance=Math.abs(Number(destination.x)-originX);
+  const ranked=demandBySettlement?candidates.map((site,index)=>({site,index,need:Math.max(0,Number(demandBySettlement?.[site.id]?.[goodId])||0)})).sort((a,b)=>b.need-a.need||((a.index-(h%candidates.length)+candidates.length)%candidates.length)-((b.index-(h%candidates.length)+candidates.length)%candidates.length)):null;
+  const destination=ranked?.[0]?.need>0?ranked[0].site:candidates[h%candidates.length],reliability=Math.max(0,Math.min(5,Math.floor(Number(reliabilityBySettlement?.[destination.id])||0))),needBoost=Math.min(2,Math.floor((Number(demandBySettlement?.[destination.id]?.[goodId])||0)*3)),quantity=Math.min(8,3+((h>>>5)%4)+(reliability>=3?1:0)+needBoost),distance=Math.abs(Number(destination.x)-originX);
   const reward=8+quantity*4+Math.min(36,Math.floor(distance/28))+reliability*3;
   return Object.freeze({
     offerId:`${Math.max(0,Math.floor(day))}:${originBiome}:${Math.floor(originX)}:${destination.id}:${goodId}`,
