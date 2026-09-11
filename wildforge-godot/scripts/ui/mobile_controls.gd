@@ -37,7 +37,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if player != null and is_instance_valid(player):
-		status_label.text = "HP %d/%d   ·   GODOT FEEL v0.02" % [int(ceil(player.health)), int(player.max_health)]
+		status_label.text = "HP %d/%d   ·   土 %d  石 %d   ·   GODOT LOOP v0.04" % [int(ceil(player.health)), int(player.max_health), player.material_count(SliceWorld.DIRT), player.material_count(SliceWorld.STONE)]
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:

@@ -2,6 +2,7 @@ extends Node2D
 class_name SliceWorld
 
 const BurstScript = preload("res://scripts/fx/feedback_burst.gd")
+const PickupScript = preload("res://scripts/items/material_pickup.gd")
 const TILE_SIZE := 32.0
 const MIN_X := -42
 const MAX_X := 42
@@ -106,6 +107,16 @@ func place_at(cell: Vector2i, tile: int = DIRT) -> bool:
 	_rebuild_collision()
 	queue_redraw()
 	return true
+
+func spawn_material_pickup(at: Vector2, tile: int, collector: SlicePlayer, amount := 1) -> SliceMaterialPickup:
+	var pickup := PickupScript.new() as SliceMaterialPickup
+	pickup.global_position = at
+	pickup.z_index = 35
+	add_child(pickup)
+	var stored_tile := DIRT if tile == GRASS else tile
+	var impulse := Vector2(randf_range(-72.0, 72.0), randf_range(-175.0, -118.0))
+	pickup.setup(stored_tile, amount, collector, impulse)
+	return pickup
 
 func feedback_burst(at: Vector2, color: Color, count: int, speed: float) -> void:
 	var burst := BurstScript.new() as SliceFeedbackBurst

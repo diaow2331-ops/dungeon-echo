@@ -49,8 +49,10 @@ var previous_fall_speed := 0.0
 var primary_prev := false
 var attack_buffer := 0.0
 var mine_grace := 0.0
+var materials: Dictionary = {}
 
 func _ready() -> void:
+	materials = {SliceWorld.DIRT: 4, SliceWorld.STONE: 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -187,15 +189,53 @@ func _primary_action(delta: float, held: bool = true) -> void:
 		return
 	world.set_mining_feedback(target_cell, clampf(mine_progress / need, 0.0, 1.0))
 	if mine_progress >= need:
-		var center := world.cell_center(target_cell)
-		if world.mine_at(target_cell):
-			camera_trauma = maxf(camera_trauma, 0.075)
-			hitstop = maxf(hitstop, 0.018)
-			world.feedback_burst(center, Color("c8b17e"), 7, 92.0)
+		harvest_cell(target_cell)
 		mine_progress = 0.0
 		mine_cell = Vector2i(99999, 99999)
 		mine_grace = 0.0
 		world.clear_mining_feedback()
+
+func harvest_cell(cell: Vector2i) -> bool:
+	if world == null or not world.has_cell(cell):
+		return false
+	var tile := world.tile_at(cell)
+	var center := world.cell_center(cell)
+	if not world.mine_at(cell):
+		return false
+	camera_trauma = maxf(camera_trauma, 0.075)
+	hitstop = maxf(hitstop, 0.018)
+	world.feedback_burst(center, Color("c8b17e"), 7, 92.0)
+	world.spawn_material_pickup(center, tile, self)
+	return true
+
+func add_material(tile: int, amount := 1) -> void:
+	var stored := SliceWorld.DIRT if tile == SliceWorld.GRASS else tile
+	if stored != SliceWorld.DIRT and stored != SliceWorld.STONE:
+		return
+	materials[stored] = material_count(stored) + maxi(0, amount)
+
+func material_count(tile: int) -> int:
+	return int(materials.get(tile, 0))
+
+func spend_material(tile: int, amount := 1) -> bool:
+	if amount <= 0:
+		return true
+	var have := material_count(tile)
+	if have < amount:
+		return false
+	materials[tile] = have - amount
+	return true
+
+func place_material_at(cell: Vector2i, tile := SliceWorld.DIRT) -> bool:
+	if world == null or material_count(tile) <= 0:
+		return false
+	if not world.place_at(cell, tile):
+		return false
+	spend_material(tile, 1)
+	var center := world.cell_center(cell)
+	camera_trauma = maxf(camera_trauma, 0.04)
+	world.feedback_burst(center, Color("96b677"), 5, 70.0)
+	return true
 
 func _reset_mining() -> void:
 	mine_progress = 0.0
@@ -281,9 +321,7 @@ func place_once() -> void:
 	var center := world.cell_center(last_empty)
 	if center.distance_to(global_position) < 34.0:
 		return
-	if world.place_at(last_empty, SliceWorld.DIRT):
-		camera_trauma = maxf(camera_trauma, 0.04)
-		world.feedback_burst(center, Color("96b677"), 5, 70.0)
+	place_material_at(last_empty, SliceWorld.DIRT)
 
 func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
 	if invuln > 0.0:
