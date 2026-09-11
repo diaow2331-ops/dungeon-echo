@@ -1,6 +1,6 @@
 export const INVENTORY_SLOT_COUNT=40;
 
-const KIND_ORDER=Object.freeze({weapon:0,pick:1,ammo:2,cargo:3,upgrade:4,material:5});
+const KIND_ORDER=Object.freeze({weapon:0,pick:1,food:2,ammo:3,cargo:4,upgrade:5,material:6});
 const ATLAS_SIZE=Object.freeze({w:512,h:256});
 const ITEM_SPRITES=Object.freeze({
   soil:[16,0,16,16],wood:[256,0,64,64],fiber:[320,0,64,64],stone:[384,0,64,64],coal:[448,0,64,64],
@@ -26,6 +26,7 @@ function statLines(id,def,{lang,itemName}){
     if(def.ranged)out.push(lang==='zh'?`远程 · ${itemName(def.ammo||'arrow',lang)}`:`Ranged · ${itemName(def.ammo||'arrow',lang)}`);
   }
   if(def.kind==='pick')out.push(lang==='zh'?`镐力 ${Math.round((def.power||1)*100)}% · 等级 ${def.tier||0}`:`Pick power ${Math.round((def.power||1)*100)}% · tier ${def.tier||0}`);
+  if(def.kind==='food')out.push(lang==='zh'?`食物 · 恢复 ${def.nourish||0} 饱食`:`Food · restores ${def.nourish||0} hunger`);
   if(def.kind==='cargo')out.push(lang==='zh'?`标准货物 · 负重 ${def.cargoWeight||1}`:`Standard cargo · load ${def.cargoWeight||1}`);
   if(def.tile!==undefined)out.push(lang==='zh'?'可放置':'Placeable');
   if(def.rare)out.push(lang==='zh'?'稀有物品':'Rare item');
