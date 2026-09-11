@@ -35,3 +35,7 @@ Do not migrate or redraw the full Wildforge art set before the Godot feel gate p
 ## Feel gate v0.03
 
 The slice must prefer readable committed attacks over passive contact damage. Input forgiveness is allowed only as bounded timing windows (jump buffer, attack buffer, mining aim grace); it must not become aim magnetism or hidden auto-play.
+
+## Material loop rule
+
+The Godot slice may keep a tiny player-owned material wallet to prove mine -> pickup -> collect -> place conservation. It must not become a second production inventory/economy authority before the migration gate is passed.

@@ -31,3 +31,11 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - Touch mining keeps only a 90 ms aim-stick grace so minor thumb jitter does not erase progress.
 - Crawler damage is no longer passive contact damage: chase -> telegraph -> committed lunge -> recovery.
 - Player hits interrupt enemy windup/lunge. Final art remains deferred.
+
+## v0.04 material loop milestone
+
+- Mining now produces a physical material pickup instead of silently deleting world data.
+- Pickups use a short bounded magnet radius and feed one player-owned slice material wallet.
+- Placement consumes material only after a valid world mutation succeeds; failed placement is free.
+- Pickup collection is idempotent to prevent same-frame duplication.
+- This wallet is a vertical-slice mechanic, not the production inventory migration.
