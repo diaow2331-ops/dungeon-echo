@@ -65,6 +65,8 @@ The exporter remains a release utility. Modular source is authoritative, while `
 
 Current regression gate: `node test/wildforge-current.cjs`. Historical version-pinned tests remain as migration/reference fixtures and are not the authority for the current build.
 
+Phase 0 hardening adds fixed-seed fingerprints for world generation and frontier trajectories (`test/fixtures/wildforge-phase0-seeds.json`) plus a read-only runtime probe at `WildforgeDiagnostics.snapshot()`. The probe samples frame time, frontier tick time, save duration and current entity counts; diagnostics are intentionally excluded from saves and do not form a second gameplay state.
+
 ## Originality boundary
 
 The project may take genre-level inspiration from block sandbox and side-scrolling survival games, but it must not copy Terraria or Minecraft characters, enemies, names, recipes, UI, music, textures, biome identities or other protected assets. Current visuals are original repository-native pixel art plus procedural fallback rendering; no third-party game assets are used.
