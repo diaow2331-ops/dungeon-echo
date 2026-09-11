@@ -25,7 +25,8 @@ const ART=Object.freeze({
 
 function artReady(){return CORE_ART.complete&&CORE_ART.naturalWidth>0;}
 function drawArt(key,x,y,w,h){const r=ART[key];if(!r||!artReady())return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(CORE_ART,r[0],r[1],r[2],r[3],Math.round(x),Math.round(y),Math.round(w),Math.round(h));return true;}
-const SAVE_KEY = 'wildforge.save.v0420';
+const SAVE_KEY = 'wildforge.save.v0430';
+const LEGACY_SAVE_KEY_0420 = 'wildforge.save.v0420';
 const LEGACY_SAVE_KEY_0410 = 'wildforge.save.v0410';
 const LEGACY_SAVE_KEY_0230 = 'wildforge.save.v0230';
 const LEGACY_SAVE_KEY_0220 = 'wildforge.save.v0220';
@@ -244,7 +245,7 @@ function tryDash(){
   const len=Math.hypot(dx,dy)||1;p.dashX=dx/len;p.dashY=dy/len;p.dashTimer=.17;p.dashCooldown=.9;game.input.dash=false;p.vx=p.dashX*8;p.vy=p.dashY*2.5;game.player.attackFlash=.08;game.fx.shake=Math.max(game.fx.shake,2.4);sfx('dash',.9);haptic(8);spawnDebris(p.x,p.y+.45,'#d6a557',5,.45);return true;
 }
 function seedNow() { return 'WF-'+Math.random().toString(36).slice(2,7).toUpperCase()+'-'+Date.now().toString(36).slice(-4).toUpperCase(); }
-function saveExists() { try { return !!localStorage.getItem(SAVE_KEY); } catch { return false; } }
+function saveExists() { try { return !!readSave(); } catch { return false; } }
 
 function serialize() {
   const p=game.player;
@@ -258,7 +259,7 @@ function saveGame(show=true) {
   finally { pushDiagnostic('saveMs',performance.now()-started); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0410,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.41.0'||raw.v==='0.23.0'||raw.v==='0.22.0'||raw.v==='0.21.0'||raw.v==='0.20.0'||raw.v==='0.19.0'||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0420,LEGACY_SAVE_KEY_0410,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.42.0'||raw.v==='0.41.0'||raw.v==='0.23.0'||raw.v==='0.22.0'||raw.v==='0.21.0'||raw.v==='0.20.0'||raw.v==='0.19.0'||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
   game.seed=raw.seed; game.settlementLayout=raw.settlementLayout==='onboarding-v2'?'onboarding-v2':(raw.v===VERSION?'onboarding-v2':'legacy-faction-v1'); game.world=new World(raw.seed,raw.tiles,{nearSpawnCapital:game.settlementLayout==='onboarding-v2'}); game.rng=makeRng(raw.seed+'-runtime');
@@ -274,7 +275,7 @@ function applySave(raw) {
 function startNewWorld(seed) {
   game.seed=String(seed||seedNow()).slice(0,32); game.settlementLayout='onboarding-v2'; game.world=new World(game.seed,null,{nearSpawnCapital:true}); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
   resetDiagnostics();game.inventory=freshInventory(); game.inventoryLayout=Array.from({length:INVENTORY_SLOT_COUNT},()=>''); game.projectiles=[]; game.enemyProjectiles=[]; game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.worldProgress={biomesVisited:[],relicBiomes:[],evolution:0}; game.trade=freshTrade(); game.frontier=createFrontierSimulation(game.seed,game.world.settlements||[],0); game.cargoBundles=[]; game.guard=null; game.packbeast=null; game.raiderCooldown=0; game.infrastructure={beacons:[]}; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.nightsSurvived=0; game.outpostReady=false; game.nightState='init'; game.nightSurge=0; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
-  toast(tr('新世界已生成：先解决食物，再收集青芯木','New world generated: secure food, then gather Greenheart Wood'));
+  toast(tr('新世界已生成：先收集青芯木与纤维，准备工匠台','New world generated: gather Greenheart Wood and fiber for a Craft Table'));
 }
 function startWorldUi() {
   $('#startScreen').classList.add('hidden'); $('#deathScreen').classList.add('hidden'); $('#seedText').textContent=game.seed; renderHotbar(); renderInventory(); renderCraft(); resize();
@@ -339,7 +340,7 @@ function updateObjective() {
   else if(!beaconReady){stage=5;zh='制作并放置边境路标 → 建立你的第一处货站';en='Craft and place a Frontier Beacon → establish your first depot';}
   else if(!cargoReady){stage=6;zh='在路标旁放工匠台 → 贸易页生产或采购第一批本地标准货';en='Put a Craft Table by the beacon → produce or buy your first local cargo';}
   else if(!contract&&!routeDone){stage=7;zh='打开路标贸易页 → 接取一份指向真实短缺的运输委托';en='Open beacon Trade → accept a transport contract driven by a real shortage';}
-  else if(contract){const site=transportContractSite(contract),name=site?settlementName(site,lang):tr('目标聚落','destination'),dist=site?Math.ceil(Math.abs(site.x-(game.player?.x||0))):Math.ceil(contract.distance||0);stage=8;zh=`运输 ${itemName(contract.goodId,'zh')} ${contract.delivered}/${contract.quantity} → ${site?settlementName(site,'zh'):'目标聚落'} · ${dist}m`;en=`Haul ${itemName(contract.goodId,'en')} ${contract.delivered}/${contract.quantity} → ${site?settlementName(site,'en'):'destination'} · ${dist}m`;}
+  else if(contract){const site=transportContractSite(contract),where=site?onboardingDirection(site):`→ ${Math.ceil(contract.distance||0)}m`,days=contractDaysLeft(contract,game.trade.day);stage=8;zh=`运输 ${itemName(contract.goodId,'zh')} ${contract.delivered}/${contract.quantity} → ${site?settlementName(site,'zh'):'目标聚落'} · ${where} · 剩 ${days} 日`;en=`Haul ${itemName(contract.goodId,'en')} ${contract.delivered}/${contract.quantity} → ${site?settlementName(site,'en'):'destination'} · ${where} · ${days}d left`; }
   else if(!routeDone){stage=8;zh='把标准货送进聚落真实库存 → 完成第一笔跨区交付';en='Deliver standardized cargo into real settlement stock → finish your first route';}
   else if(count('copper_ore')<2&&count('copper_bar')<1&&count('copper_pick')<1){stage=9;zh='第一条商路已跑通 → 下到浅层洞带寻找赤铜';en='First trade route established → descend into the shallow caves for copper';}
   else if(count('copper_pick')<1){stage=10;zh='熔炼赤铜 → 打造赤铜镐，扩大探索半径';en='Smelt copper → forge a Copper Pick and expand your reach';}
@@ -349,8 +350,8 @@ function updateObjective() {
   else if(!game.forgeActive){stage=14;zh='在裂隙点燃星核炉 → 做好迎战准备';en='Ignite the Starcore Forge in the rift → brace for impact';}
   else if(!game.bossDefeated){stage=15;zh='击败裂隙巨兽 → 改变荒境的终局';en='Defeat the Rift Behemoth → change the frontier’s endgame';}
   else {stage=16;zh='荒境熔炉已点亮 → 继续经营商路、介入战争与改变势力格局';en='Wildforge is lit → keep trading, intervening in wars, and reshaping the frontier';}
-  if(stage!==game.objectiveStage){game.objectiveStage=stage;game.saveDirty=true;}
-  const el=$('#objectiveText');if(el)el.textContent=lang==='zh'?zh:en;
+  const objective=$('#objective'),stageChanged=stage!==game.objectiveStage;if(stageChanged){game.objectiveStage=stage;game.saveDirty=true;if(objective&&game.running){objective.classList.remove('pulse');void objective.offsetWidth;objective.classList.add('pulse');haptic(8);}}
+  if(objective)objective.classList.toggle('contract-active',!!contract);const el=$('#objectiveText');if(el)el.textContent=lang==='zh'?zh:en;
 }
 function relicArrow(dx,dy){if(Math.abs(dx)>Math.abs(dy)*1.45)return dx>0?'→':'←';if(Math.abs(dy)>Math.abs(dx)*1.45)return dy>0?'↓':'↑';return dy>0?(dx>0?'↘':'↙'):(dx>0?'↗':'↖');}
 function updateRelicHint(dt){
@@ -415,12 +416,12 @@ function activeTransportContract(){const c=game.trade?.contract;return c&&c.deli
 function transportContractSite(contract=activeTransportContract()){return contract?(game.world?.settlements||[]).find(site=>site.id===contract.destinationId)||null:null;}
 function transportOfferForMarket(market=nearbyTradePost()){
   if(!market||activeTransportContract())return null;const cargoByHome=Object.fromEntries(Object.entries(TRADE_GOODS).map(([id,good])=>[good.home,id])),settlements=game.world?.settlements||[],reliabilityBySettlement=Object.fromEntries(settlements.map(site=>[site.id,settlementReliability(site)]));
-  return makeTransportOffer({day:game.trade.day,originX:market.beacon.x,originBiome:market.biome.id,settlements,cargoByHome,reliabilityBySettlement,demandBySettlement:frontierDemandMap(game.frontier,settlements)});
+  return makeTransportOffer({day:game.trade.day,originX:market.beacon.x,originBiome:market.biome.id,settlements,cargoByHome,reliabilityBySettlement,demandBySettlement:frontierDemandMap(game.frontier,settlements),completedContracts:game.trade.contractsCompleted||0});
 }
 function acceptTransportContract(){
   syncTradeDay();const market=nearbyTradePost(),offer=transportOfferForMarket(market);if(!market||!offer)return;
   game.trade.contract={...offer,acceptedDay:game.trade.day,deadlineDay:game.trade.day+TRANSPORT_CONTRACT_DAYS,delivered:0};game.saveDirty=true;markMilestone('first-contract');updateObjective();renderTrade();updateHud();
-  const site=transportContractSite(game.trade.contract),name=site?settlementName(site,lang):tr('目标聚落','destination');toast(tr(`运输委托已接 · ${itemName(offer.goodId,'zh')} ×${offer.quantity} → ${name}`,`Contract accepted · ${itemName(offer.goodId,'en')} ×${offer.quantity} → ${name}`));
+  const site=transportContractSite(game.trade.contract),name=site?settlementName(site,lang):tr('目标聚落','destination'),where=site?onboardingDirection(site):`→ ${offer.distance}m`;toast(tr(`运输委托已接 · ${itemName(offer.goodId,'zh')} ×${offer.quantity} → ${name} · ${where}`,`Contract accepted · ${itemName(offer.goodId,'en')} ×${offer.quantity} → ${name} · ${where}`));
 }
 function matchingTransportContract(site,id){const c=activeTransportContract();return c&&site?.id===c.destinationId&&id===c.goodId?c:null;}
 function deliverTransportContract(site,id){
@@ -1074,9 +1075,9 @@ function updateHud(){
   const b=game.world.biome(p.x);$('#biomeText').textContent=lang==='zh'?b.zh:b.en;const surface=game.world.surface[Math.max(0,Math.min(WORLD_W-1,Math.floor(p.x)))];
   const depth=Math.max(0,Math.floor(p.y-surface)),zone=currentDepthZone(depth);$('#depthText').textContent=depth<3?tr(zone.zh,zone.en):tr(`${zone.zh} · ${depth}m`,`${zone.en} · ${depth}m`);
   const phase=game.nightState==='night'?tr('夜袭','Night Watch'):game.nightState==='dusk'?tr('暮色','Dusk'):tr('白昼','Daylight'),weather=frontierWeatherName(game.frontier,lang);$('#timeText').textContent=timeLabel()+' · '+phase+' · '+weather;
-  const beacon=nearestBeacon(),route=routeStateAt(p.x,p.y),supply=totalBeaconSupply(),contract=activeTransportContract(),contractSite=transportContractSite(contract),settlement=contractSite?null:nearestSettlement(p.x,p.y,90),destination=contractSite?` · ⇢${settlementName(contractSite,lang)} ${Math.ceil(Math.hypot(contractSite.x-p.x,contractSite.y-p.y))}m ${contract.delivered}/${contract.quantity}`:settlement?` · ⌂${settlementName(settlement,lang)} ${Math.ceil(settlement.d)}m`:'';
+  const beacon=nearestBeacon(),route=routeStateAt(p.x,p.y),supply=totalBeaconSupply(),contract=activeTransportContract(),contractSite=transportContractSite(contract),settlement=contractSite?null:nearestSettlement(p.x,p.y,90),destination=contractSite?` · ${onboardingDirection(contractSite)} ${settlementName(contractSite,lang)} ${contract.delivered}/${contract.quantity}`:settlement?` · ⌂${settlementName(settlement,lang)} ${Math.ceil(settlement.d)}m`:'';
   const routeText=(route.active?tr(`补给路 +8% · ${route.biomeCount}地 · ${supply}`,`SUPPLY ROUTE +8% · ${route.biomeCount} biomes · ${supply}`):beacon?tr(`路标 ${Math.ceil(beacon.d)}m · 线${route.links.length}`,`Beacon ${Math.ceil(beacon.d)}m · L${route.links.length}`):tr('无路标','No beacon'))+destination+` · ◆${Math.max(0,Math.floor(game.trade?.credits||0))} · ▣${cargoLoad()}/${cargoCapacity()}${cargoLoadRatio()>.75?tr(' 重载',' HEAVY'):''}${activeGuard()?tr(' · ⚔护卫',' · ⚔GUARD'):''}${activePackbeast()?tr(` · 驮${packbeastUnits()}/${PACKBEAST_CAP}${activePackbeast().stranded?'离队':''}`,` · BEAST ${packbeastUnits()}/${PACKBEAST_CAP}${activePackbeast().stranded?' STRANDED':''}`):''}`;
-  const beaconEl=$('#beaconText');if(beaconEl){beaconEl.textContent=routeText;beaconEl.classList.toggle('route-active',route.active);beaconEl.classList.toggle('has-supply',supply>0);}
+  const beaconEl=$('#beaconText');if(beaconEl){beaconEl.textContent=routeText;beaconEl.classList.toggle('route-active',route.active);beaconEl.classList.toggle('has-supply',supply>0);}const cargoBtn=$('#mobileCargo');if(cargoBtn)cargoBtn.classList.toggle('relevant',cargoLoad()>0||(game.cargoBundles?.length||0)>0||!!activePackbeast()?.stranded);
   const danger=$('#dangerText'),settlementSafe=nearestSettlement(p.x,p.y,SETTLEMENT_SAFE_RADIUS);if(danger){danger.textContent=settlementSafe?tr('聚落守望','SETTLEMENT WARD'):game.nightState==='night'?(game.nightSurge>0?tr('夜袭高压','NIGHT SURGE'):tr('夜袭','NIGHT WATCH')):game.nightState==='dusk'?tr('守夜准备','PREPARE'):tr('安全','SAFE');danger.classList.toggle('active',!settlementSafe&&game.nightState==='night');danger.classList.toggle('warning',!settlementSafe&&game.nightState==='dusk');danger.title=[settlementSafe?tr('聚落安全圈内','Inside settlement safe perimeter'):fireNotice(),routeText].filter(Boolean).join(' · ');}
 }
 
@@ -1460,7 +1461,7 @@ function selectPanelTab(tab){$$('[data-tab]').forEach(x=>x.classList.toggle('act
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>selectPanelTab(btn.dataset.tab));
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0410,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0420,LEGACY_SAVE_KEY_0410,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}
