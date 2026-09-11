@@ -4,6 +4,7 @@ const WorldScript = preload("res://scripts/world/block_world.gd")
 const PlayerScript = preload("res://scripts/player/player.gd")
 const EnemyScript = preload("res://scripts/enemies/crawler.gd")
 const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
+const TreeScript = preload("res://scripts/world/tree_resource.gd")
 
 var world: SliceWorld
 var player: SlicePlayer
@@ -29,6 +30,9 @@ func _ready() -> void:
 	camera.limit_top = -800
 	camera.limit_bottom = int((SliceWorld.MAX_Y + 2) * SliceWorld.TILE_SIZE)
 	player.add_child(camera)
+	_spawn_tree(-5)
+	_spawn_tree(3)
+	_spawn_tree(14)
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
 	_spawn_enemy(17)
@@ -40,6 +44,15 @@ func _ready() -> void:
 	touch.name = "TouchControls"
 	touch.player = player
 	ui_layer.add_child(touch)
+
+func _spawn_tree(x: int) -> void:
+	var tree := TreeScript.new() as SliceTreeResource
+	tree.name = "Tree_%d" % x
+	tree.world = world
+	tree.player = player
+	tree.global_position = Vector2(x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, world.surface_y_at(x) * SliceWorld.TILE_SIZE)
+	tree.z_index = 5
+	add_child(tree)
 
 func _spawn_enemy(x: int) -> void:
 	var enemy := EnemyScript.new()

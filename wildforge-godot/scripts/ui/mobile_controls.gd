@@ -26,7 +26,7 @@ func _ready() -> void:
 	status_label.modulate = Color(0.92, 0.96, 0.94, 0.88)
 	add_child(status_label)
 	hint_label = Label.new()
-	hint_label.text = "左侧移动/上推跳跃 · 右侧拖动瞄准并攻击/采集"
+	hint_label.text = "左侧移动/上推跳跃 · 右侧瞄准采/战 · 中央键按情境制作/放置"
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	hint_label.position = Vector2(0, 10)
@@ -37,7 +37,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if player != null and is_instance_valid(player):
-		status_label.text = "HP %d/%d   ·   土 %d  石 %d   ·   GODOT CORE v0.05" % [int(ceil(player.health)), int(player.max_health), player.material_count(SliceWorld.DIRT), player.material_count(SliceWorld.STONE)]
+		status_label.text = "HP %d/%d · 木 %d 板 %d · 土 %d 石 %d · GODOT LOOP v0.06" % [int(ceil(player.health)), int(player.max_health), player.item_count("wood"), player.item_count("plank"), player.item_count("soil"), player.item_count("stone")]
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
@@ -50,7 +50,7 @@ func _input(event: InputEvent) -> void:
 		if t.pressed:
 			if t.position.distance_to(place_center) <= PLACE_RADIUS * 1.35:
 				if player != null:
-					player.place_once()
+					player.context_action()
 				return
 			if t.position.y < size.y * 0.30:
 				return
@@ -111,7 +111,8 @@ func _draw() -> void:
 	var place_center := Vector2(size.x * 0.5, size.y - 40.0)
 	draw_circle(place_center, PLACE_RADIUS, Color(0.08, 0.14, 0.15, 0.28))
 	draw_arc(place_center, PLACE_RADIUS, 0.0, TAU, 32, Color(0.68, 0.75, 0.66, 0.35), 2.0)
-	draw_string(ThemeDB.fallback_font, place_center + Vector2(-8, 5), "置", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.93, 0.82, 0.65))
+	var label := player.context_label() if player != null and is_instance_valid(player) else "置"
+	draw_string(ThemeDB.fallback_font, place_center + Vector2(-8, 5), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.9, 0.93, 0.82, 0.65))
 	if move_id >= 0:
 		_draw_stick(move_origin, move_pos, Color(0.66, 0.80, 0.75, 0.46))
 	if aim_id >= 0:

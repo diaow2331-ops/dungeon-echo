@@ -1,6 +1,8 @@
 extends CharacterBody2D
 class_name SlicePlayer
 
+const CraftingScript = preload("res://scripts/crafting/slice_crafting.gd")
+
 const SPEED := 285.0
 const GROUND_ACCEL := 2500.0
 const AIR_ACCEL := 1280.0
@@ -49,10 +51,10 @@ var previous_fall_speed := 0.0
 var primary_prev := false
 var attack_buffer := 0.0
 var mine_grace := 0.0
-var materials: Dictionary = {}
+var stock: Dictionary = {}
 
 func _ready() -> void:
-	materials = {SliceWorld.DIRT: 4, SliceWorld.STONE: 0}
+	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -138,7 +140,7 @@ func _physics_process(delta: float) -> void:
 		_reset_mining()
 	primary_prev = primary
 	if Input.is_action_just_pressed("place"):
-		place_once()
+		context_action()
 	queue_redraw()
 
 func _handle_landing() -> void:
@@ -166,6 +168,13 @@ func _primary_action(delta: float, held: bool = true) -> void:
 		_reset_mining()
 		if attack_timer <= 0.0 and (held or attack_buffer > 0.0):
 			_start_attack(enemy, aim)
+			attack_buffer = 0.0
+		return
+	var harvestable := _harvestable_in_aim(aim)
+	if harvestable != null:
+		_reset_mining()
+		if attack_timer <= 0.0 and (held or attack_buffer > 0.0):
+			_start_attack(harvestable, aim)
 			attack_buffer = 0.0
 		return
 	if attack_timer > 0.0 or not held:
@@ -208,33 +217,75 @@ func harvest_cell(cell: Vector2i) -> bool:
 	world.spawn_material_pickup(center, tile, self)
 	return true
 
-func add_material(tile: int, amount := 1) -> void:
-	var stored := SliceWorld.DIRT if tile == SliceWorld.GRASS else tile
-	if stored != SliceWorld.DIRT and stored != SliceWorld.STONE:
+func tile_item_id(tile: int) -> String:
+	return "stone" if tile == SliceWorld.STONE else "soil"
+
+func add_item(item_id: String, amount := 1) -> void:
+	if amount <= 0:
 		return
-	materials[stored] = material_count(stored) + maxi(0, amount)
+	stock[item_id] = item_count(item_id) + amount
 
-func material_count(tile: int) -> int:
-	return int(materials.get(tile, 0))
+func item_count(item_id: String) -> int:
+	return int(stock.get(item_id, 0))
 
-func spend_material(tile: int, amount := 1) -> bool:
+func spend_item(item_id: String, amount := 1) -> bool:
 	if amount <= 0:
 		return true
-	var have := material_count(tile)
+	var have := item_count(item_id)
 	if have < amount:
 		return false
-	materials[tile] = have - amount
+	stock[item_id] = have - amount
 	return true
 
+func add_material(tile: int, amount := 1) -> void:
+	add_item(tile_item_id(tile), amount)
+
+func material_count(tile: int) -> int:
+	return item_count(tile_item_id(tile))
+
+func spend_material(tile: int, amount := 1) -> bool:
+	return spend_item(tile_item_id(tile), amount)
+
 func place_material_at(cell: Vector2i, tile := SliceWorld.DIRT) -> bool:
-	if world == null or material_count(tile) <= 0:
+	var item_id := tile_item_id(tile)
+	if world == null or item_count(item_id) <= 0:
 		return false
 	if not world.place_at(cell, tile):
 		return false
-	spend_material(tile, 1)
+	spend_item(item_id, 1)
 	var center := world.cell_center(cell)
 	camera_trauma = maxf(camera_trauma, 0.04)
 	world.feedback_burst(center, Color("96b677"), 5, 70.0)
+	return true
+
+func can_craft(recipe_id: String) -> bool:
+	return CraftingScript.can_craft(self, recipe_id)
+
+func craft(recipe_id: String) -> bool:
+	if not CraftingScript.craft(self, recipe_id):
+		return false
+	camera_trauma = maxf(camera_trauma, 0.025)
+	if world != null:
+		world.feedback_burst(global_position + Vector2(0, -24), Color("d1aa6f"), 6, 62.0)
+	return true
+
+func context_label() -> String:
+	if world != null and not world.has_workbench():
+		if item_count("workbench") > 0:
+			return "台"
+		if can_craft("workbench") or can_craft("plank"):
+			return "制"
+	return "置"
+
+func context_action() -> bool:
+	if world != null and not world.has_workbench():
+		if item_count("workbench") > 0:
+			return place_workbench_once()
+		if can_craft("workbench"):
+			return craft("workbench")
+		if can_craft("plank"):
+			return craft("plank")
+	place_once()
 	return true
 
 func _reset_mining() -> void:
@@ -244,10 +295,10 @@ func _reset_mining() -> void:
 	if world != null:
 		world.clear_mining_feedback()
 
-func _start_attack(enemy: Node2D, aim: Vector2) -> void:
+func _start_attack(target: Node2D, aim: Vector2) -> void:
 	attack_timer = ATTACK_TOTAL
 	attack_connected = false
-	attack_target = enemy
+	attack_target = target
 	attack_aim = aim.normalized()
 	if is_on_floor() and absf(attack_aim.x) > 0.25:
 		velocity.x += attack_aim.x * ATTACK_STEP_SPEED
@@ -272,6 +323,8 @@ func _connect_attack() -> void:
 		return
 	attack_connected = true
 	var force := offset.normalized() * 320.0 + Vector2.UP * 125.0
+	if not attack_target.has_method("apply_hit"):
+		return
 	attack_target.apply_hit(24.0, force)
 	hitstop = 0.042
 	camera_trauma = maxf(camera_trauma, 0.19)
@@ -297,6 +350,22 @@ func _enemy_in_aim(aim: Vector2) -> Node2D:
 		best_d = dist
 	return best
 
+func _harvestable_in_aim(aim: Vector2) -> Node2D:
+	var best: Node2D = null
+	var best_d := 118.0
+	for node in get_tree().get_nodes_in_group("harvestables"):
+		if not is_instance_valid(node) or not node is Node2D:
+			continue
+		var offset: Vector2 = node.global_position + Vector2(0, -28) - global_position
+		var dist := offset.length()
+		if dist > best_d or dist < 0.01:
+			continue
+		if offset.normalized().dot(aim) < 0.28:
+			continue
+		best = node
+		best_d = dist
+	return best
+
 func _first_solid_cell(aim: Vector2) -> Vector2i:
 	if world == null:
 		return Vector2i(99999, 99999)
@@ -307,9 +376,9 @@ func _first_solid_cell(aim: Vector2) -> Vector2i:
 			return cell
 	return Vector2i(99999, 99999)
 
-func place_once() -> void:
+func _placement_cell() -> Vector2i:
 	if world == null:
-		return
+		return Vector2i(99999, 99999)
 	var aim := _aim_direction()
 	var last_empty := world.world_to_cell(global_position + aim * 30.0)
 	for i in range(2, 10):
@@ -320,8 +389,29 @@ func place_once() -> void:
 		last_empty = cell
 	var center := world.cell_center(last_empty)
 	if center.distance_to(global_position) < 34.0:
-		return
-	place_material_at(last_empty, SliceWorld.DIRT)
+		return Vector2i(99999, 99999)
+	return last_empty
+
+func place_once() -> void:
+	var cell := _placement_cell()
+	if cell != Vector2i(99999, 99999):
+		place_material_at(cell, SliceWorld.DIRT)
+
+func place_workbench_at(cell: Vector2i) -> bool:
+	if world == null or item_count("workbench") <= 0:
+		return false
+	var bench := world.spawn_workbench(cell)
+	if bench == null:
+		return false
+	spend_item("workbench", 1)
+	camera_trauma = maxf(camera_trauma, 0.06)
+	return true
+
+func place_workbench_once() -> bool:
+	var cell := _placement_cell()
+	if cell == Vector2i(99999, 99999):
+		return false
+	return place_workbench_at(cell)
 
 func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
 	if invuln > 0.0:
