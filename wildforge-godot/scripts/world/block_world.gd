@@ -161,6 +161,12 @@ func spawn_campfire(cell: Vector2i) -> SliceCampfire:
 func has_workbench() -> bool:
 	return not get_tree().get_nodes_in_group("workbenches").is_empty()
 
+func near_workbench(at: Vector2, radius := TILE_SIZE * 4.1) -> bool:
+	for node in get_tree().get_nodes_in_group("workbenches"):
+		if is_instance_valid(node) and node is Node2D and (node as Node2D).global_position.distance_to(at) <= radius:
+			return true
+	return false
+
 func spawn_workbench(cell: Vector2i) -> SliceWorkbench:
 	if cells.has(cell) or station_cell_occupied(cell) or not cells.has(cell + Vector2i.DOWN):
 		return null

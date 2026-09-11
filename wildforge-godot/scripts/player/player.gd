@@ -30,6 +30,13 @@ const STARVATION_DAMAGE_INTERVAL := 4.0
 const STARVATION_DAMAGE := 2.0
 const RAW_MEAT_NOURISH := 9.0
 const TRAIL_RATION_NOURISH := 38.0
+const STONE_PICK_POWER := 1.75
+const STARTER_BLADE_REFERENCE_DAMAGE := 5.0
+const STONE_BLADE_REFERENCE_DAMAGE := 7.0
+const STARTER_BLADE_REFERENCE_KNOCKBACK := 4.2
+const STONE_BLADE_REFERENCE_KNOCKBACK := 4.8
+const SLICE_BASE_MELEE_DAMAGE := 24.0
+const SLICE_BASE_MELEE_FORCE := 320.0
 
 var world: SliceWorld
 var health := 100.0
@@ -61,9 +68,11 @@ var mine_grace := 0.0
 var stock: Dictionary = {}
 var hunger := HUNGER_START
 var starvation_tick := 0.0
+var equipped_pick_id := "starter_pick"
+var equipped_weapon_id := "starter_blade"
 
 func _ready() -> void:
-	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0}
+	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -202,7 +211,7 @@ func _primary_action(delta: float, held: bool = true) -> void:
 		mine_progress = 0.0
 	mine_grace = MINE_STICK_GRACE
 	mine_progress += delta
-	var need := world.mine_time(target_cell)
+	var need := effective_mine_time(target_cell)
 	if need <= 0.0:
 		_reset_mining()
 		return
@@ -268,6 +277,23 @@ func place_material_at(cell: Vector2i, tile := SliceWorld.DIRT) -> bool:
 	world.feedback_burst(center, Color("96b677"), 5, 70.0)
 	return true
 
+func pick_power() -> float:
+	return STONE_PICK_POWER if equipped_pick_id == "stone_pick" else 1.0
+
+func effective_mine_time(cell: Vector2i) -> float:
+	if world == null:
+		return 0.0
+	var base := world.mine_time(cell)
+	return base / maxf(1.0, pick_power())
+
+func melee_damage() -> float:
+	var multiplier := STONE_BLADE_REFERENCE_DAMAGE / STARTER_BLADE_REFERENCE_DAMAGE if equipped_weapon_id == "stone_blade" else 1.0
+	return SLICE_BASE_MELEE_DAMAGE * multiplier
+
+func melee_force() -> float:
+	var multiplier := STONE_BLADE_REFERENCE_KNOCKBACK / STARTER_BLADE_REFERENCE_KNOCKBACK if equipped_weapon_id == "stone_blade" else 1.0
+	return SLICE_BASE_MELEE_FORCE * multiplier
+
 func movement_speed_multiplier() -> float:
 	if hunger <= 0.0:
 		return 0.78
@@ -320,6 +346,10 @@ func can_craft(recipe_id: String) -> bool:
 func craft(recipe_id: String) -> bool:
 	if not CraftingScript.craft(self, recipe_id):
 		return false
+	if recipe_id == "stone_pick":
+		equipped_pick_id = "stone_pick"
+	elif recipe_id == "stone_blade":
+		equipped_weapon_id = "stone_blade"
 	camera_trauma = maxf(camera_trauma, 0.025)
 	if world != null:
 		world.feedback_burst(global_position + Vector2(0, -24), Color("d1aa6f"), 6, 62.0)
@@ -334,6 +364,11 @@ func context_label() -> String:
 			return "台"
 		if can_craft("workbench") or can_craft("plank"):
 			return "制"
+	if world != null and world.near_workbench(global_position):
+		if can_craft("stone_pick"):
+			return "镐"
+		if can_craft("stone_blade"):
+			return "刃"
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return "火"
@@ -356,6 +391,11 @@ func context_action() -> bool:
 			return craft("workbench")
 		if can_craft("plank"):
 			return craft("plank")
+	if world != null and world.near_workbench(global_position):
+		if can_craft("stone_pick"):
+			return craft("stone_pick")
+		if can_craft("stone_blade"):
+			return craft("stone_blade")
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return place_campfire_once()
@@ -402,10 +442,10 @@ func _connect_attack() -> void:
 	if offset.length() > MELEE_HIT_RANGE or offset.normalized().dot(attack_aim) < 0.20:
 		return
 	attack_connected = true
-	var force := offset.normalized() * 320.0 + Vector2.UP * 125.0
+	var force := offset.normalized() * melee_force() + Vector2.UP * 125.0
 	if not attack_target.has_method("apply_hit"):
 		return
-	attack_target.apply_hit(24.0, force)
+	attack_target.apply_hit(melee_damage(), force)
 	hitstop = 0.042
 	camera_trauma = maxf(camera_trauma, 0.19)
 	if world != null:
