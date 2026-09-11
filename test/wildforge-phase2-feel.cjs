@@ -32,14 +32,14 @@ const noDemand=makeTransportOffer({...common,demandBySettlement:null,completedCo
 assert.equal(noDemand.destinationId,'ember','first route should still prefer the nearest valid foreign settlement when no shortage map exists');
 
 const game=read('wildforge/src/game.js'),css=read('wildforge/style.css'),inventoryCss=read('wildforge/inventory-ui.css'),html=read('wildforge/index.html');
-assert.equal(read('wildforge/VERSION').trim(),'0.43.0');
-assert(html.includes('content="0.43.0"')&&html.includes('style.css?v=0430')&&html.includes('src/game.js?v=0430'),'v0.43 cache/version contract missing');
+assert.equal(read('wildforge/VERSION').trim(),'0.43.1');
+assert(html.includes('content="0.43.1"')&&html.includes('style.css?v=0431')&&html.includes('src/game.js?v=0431'),'v0.43 cache/version contract missing');
 assert(game.includes("const SAVE_KEY = 'wildforge.save.v0430'")&&game.includes("const LEGACY_SAVE_KEY_0420 = 'wildforge.save.v0420'")&&game.includes("raw.v==='0.42.0'"),'v0.42→v0.43 save migration missing');
 assert(game.includes('function saveExists() { try { return !!readSave(); } catch { return false; } }'),'continue button must see migratable legacy saves');
 assert(game.includes('completedContracts:game.trade.contractsCompleted||0'),'transport offer must read existing completed-contract state rather than adding another progression authority');
 assert(game.includes('where=site?onboardingDirection(site)')&&game.includes('contractDaysLeft(contract,game.trade.day)'),'active contract objective must show direction and deadline');
 assert(game.includes("cargoBtn.classList.toggle('relevant'"),'mobile cargo action should emphasize itself only when cargo recovery/set-down is relevant');
-assert(css.includes('grid-template-columns:repeat(2,52px)')&&css.includes('#hotbar{bottom:calc(var(--safe-bottom) + 118px)}')&&inventoryCss.includes('(hover:none) and (pointer:coarse) and (max-height:520px)')&&inventoryCss.includes('#hotbar{bottom:calc(var(--safe-bottom) + 145px)}'),'landscape touch controls must reserve clear space for the hotbar after the inventory skin loads');
+assert(css.includes('.mobile-stick{width:82px;height:82px}')&&css.includes('#hotbar{bottom:calc(var(--safe-bottom) + 7px)')&&inventoryCss.includes('width:32px!important;height:32px!important')&&!inventoryCss.includes('145px'),'landscape touch layout must preserve playfield space with compact controls and an edge hotbar');
 assert(css.includes('#objective.contract-active')&&css.includes('@keyframes objective-pulse'),'objective progression feedback missing');
 assert(!game.includes('phase2State:')&&!game.includes('onboardingV2:'),'Phase 2 must not add a second progression state machine');
 console.log(`wildforge_phase2_feel=PASS starter=${first.destinationId}/${first.quantity}/${first.distance}m experienced=${experienced.destinationId}/${experienced.quantity}/${experienced.distance}m mobile-layout save-migration`);

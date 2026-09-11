@@ -24,9 +24,9 @@
 
 Wildforge is an original browser-native 2D world-simulation sandbox designed landscape-first for desktop and touch devices. Mining, building, combat and physical travel are the player's language; ecology, production, trade, diplomacy, war and raiding form the persistent world underneath. A single world is intentionally limited to at most three major factions, with macro simulation and sparse local actors instead of dozens of roaming AI settlements.
 
-v0.43.0 is the current authoritative integration baseline. It preserves the mature v0.23 player-facing foundation while unifying survival, logistics, diplomacy, raids and sovereignty into one persistent world simulation. Multi-world traversal remains a later progression layer and is not part of the current single-world scope.
+v0.43.1 is the current authoritative integration baseline. It preserves the mature v0.23 player-facing foundation while unifying survival, logistics, diplomacy, raids and sovereignty into one persistent world simulation. Multi-world traversal remains a later progression layer and is not part of the current single-world scope.
 
-## v0.43.0 current integration build
+## v0.43.1 current integration build
 
 Core loop: Survive and stay fed → Gather local inputs → Build depots/routes → Observe faction shortages → Physically trade or intervene in conflict → Shift inventories, diplomacy and sovereignty → Reinvest and expand your influence.
 
