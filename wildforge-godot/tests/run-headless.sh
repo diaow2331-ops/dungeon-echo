@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-GODOT="${GODOT:-godot4}"
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-"$GODOT" --headless --path "$ROOT" --editor --quit
-"$GODOT" --headless --path "$ROOT" --script res://tests/smoke_test.gd
+GODOT_BIN="${GODOT_BIN:-godot4}"
+"$GODOT_BIN" --headless --editor --path "$(cd "$(dirname "$0")/.." && pwd)" --quit
+"$GODOT_BIN" --headless --path "$(cd "$(dirname "$0")/.." && pwd)" --script res://tests/smoke_test.gd
+"$GODOT_BIN" --headless --path "$(cd "$(dirname "$0")/.." && pwd)" --script res://tests/feel_test.gd

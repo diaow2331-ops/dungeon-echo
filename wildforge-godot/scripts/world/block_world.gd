@@ -1,6 +1,7 @@
 extends Node2D
 class_name SliceWorld
 
+const BurstScript = preload("res://scripts/fx/feedback_burst.gd")
 const TILE_SIZE := 32.0
 const MIN_X := -42
 const MAX_X := 42
@@ -9,9 +10,14 @@ const AIR := 0
 const DIRT := 1
 const GRASS := 2
 const STONE := 3
+const NO_CELL := Vector2i(99999, 99999)
 
 var cells: Dictionary = {}
 var collision_root: StaticBody2D
+var mining_cell := NO_CELL
+var mining_progress := 0.0
+var place_flash_cell := NO_CELL
+var place_flash := 0.0
 
 func _ready() -> void:
 	collision_root = StaticBody2D.new()
@@ -23,6 +29,11 @@ func _ready() -> void:
 	_rebuild_collision()
 	queue_redraw()
 
+func _process(delta: float) -> void:
+	if place_flash > 0.0:
+		place_flash = maxf(0.0, place_flash - delta)
+		queue_redraw()
+
 func _generate() -> void:
 	cells.clear()
 	for x in range(MIN_X, MAX_X + 1):
@@ -30,7 +41,6 @@ func _generate() -> void:
 		for y in range(surface, MAX_Y + 1):
 			var depth := y - surface
 			cells[Vector2i(x, y)] = GRASS if depth == 0 else (DIRT if depth < 4 else STONE)
-	# Small stepped ruin: useful for jump/camera testing without adding another system.
 	for x in range(9, 14):
 		cells[Vector2i(x, surface_y_at(x) - 1)] = STONE
 	for y in range(surface_y_at(13) - 4, surface_y_at(13) - 1):
@@ -58,10 +68,24 @@ func mine_time(cell: Vector2i) -> float:
 		STONE: return 0.42
 		_: return 0.0
 
+func set_mining_feedback(cell: Vector2i, progress: float) -> void:
+	mining_cell = cell
+	mining_progress = clampf(progress, 0.0, 1.0)
+	queue_redraw()
+
+func clear_mining_feedback() -> void:
+	if mining_cell == NO_CELL and mining_progress <= 0.0:
+		return
+	mining_cell = NO_CELL
+	mining_progress = 0.0
+	queue_redraw()
+
 func mine_at(cell: Vector2i) -> bool:
 	if not cells.has(cell):
 		return false
 	cells.erase(cell)
+	if mining_cell == cell:
+		clear_mining_feedback()
 	_rebuild_collision()
 	queue_redraw()
 	return true
@@ -77,9 +101,18 @@ func place_at(cell: Vector2i, tile: int = DIRT) -> bool:
 	if not attached:
 		return false
 	cells[cell] = tile
+	place_flash_cell = cell
+	place_flash = 0.16
 	_rebuild_collision()
 	queue_redraw()
 	return true
+
+func feedback_burst(at: Vector2, color: Color, count: int, speed: float) -> void:
+	var burst := BurstScript.new() as SliceFeedbackBurst
+	burst.global_position = at
+	burst.z_index = 50
+	add_child(burst)
+	burst.setup(color, count, speed)
 
 func _is_exposed(cell: Vector2i) -> bool:
 	for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
@@ -103,7 +136,6 @@ func _rebuild_collision() -> void:
 		collision_root.add_child(collider)
 
 func _draw() -> void:
-	# Deliberately simple prototype art: gameplay feel first, final atlas later.
 	draw_rect(Rect2(-1500, -900, 3000, 1800), Color("10252e"))
 	for i in range(6):
 		var y := 160.0 + i * 42.0
@@ -122,3 +154,21 @@ func _draw() -> void:
 			draw_rect(Rect2(pos + Vector2(1, 1), Vector2(TILE_SIZE - 2, 6)), Color("9aad5b"))
 		elif tile == STONE:
 			draw_line(pos + Vector2(7, 9), pos + Vector2(20, 15), Color(0.72, 0.76, 0.78, 0.28), 2.0)
+	if mining_cell != NO_CELL and cells.has(mining_cell):
+		_draw_mining_cracks(mining_cell, mining_progress)
+	if place_flash > 0.0 and place_flash_cell != NO_CELL:
+		var alpha := place_flash / 0.16
+		var rect := Rect2(Vector2(place_flash_cell) * TILE_SIZE + Vector2(2, 2), Vector2(TILE_SIZE - 4, TILE_SIZE - 4))
+		draw_rect(rect, Color(0.72, 0.90, 0.62, alpha * 0.32), false, 3.0)
+
+func _draw_mining_cracks(cell: Vector2i, progress: float) -> void:
+	var c := cell_center(cell)
+	var alpha := 0.28 + progress * 0.65
+	var extent := 4.0 + progress * 10.0
+	var color := Color(0.08, 0.08, 0.07, alpha)
+	draw_line(c, c + Vector2(-extent, -extent * 0.45), color, 2.0)
+	draw_line(c, c + Vector2(extent * 0.75, -extent), color, 2.0)
+	if progress > 0.35:
+		draw_line(c + Vector2(-4, -2), c + Vector2(-extent * 0.8, extent * 0.75), color, 2.0)
+	if progress > 0.68:
+		draw_line(c + Vector2(3, 1), c + Vector2(extent, extent * 0.72), color, 2.0)
