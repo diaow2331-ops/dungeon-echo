@@ -7,6 +7,7 @@ const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
 
 var world: SliceWorld
 var player: SlicePlayer
+var defeats := 0
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(Color("0b171d"))
@@ -22,7 +23,7 @@ func _ready() -> void:
 	var camera := Camera2D.new()
 	camera.name = "Camera2D"
 	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = 9.5
+	camera.position_smoothing_speed = 10.5
 	camera.limit_left = int((SliceWorld.MIN_X - 2) * SliceWorld.TILE_SIZE)
 	camera.limit_right = int((SliceWorld.MAX_X + 2) * SliceWorld.TILE_SIZE)
 	camera.limit_top = -800
@@ -42,10 +43,15 @@ func _ready() -> void:
 
 func _spawn_enemy(x: int) -> void:
 	var enemy := EnemyScript.new()
-	enemy.name = "Crawler_%d" % x
+	enemy.name = "Crawler_%d_%d" % [x, Time.get_ticks_msec()]
 	enemy.player = player
 	enemy.global_position = Vector2(x * SliceWorld.TILE_SIZE, world.surface_y_at(x) * SliceWorld.TILE_SIZE - 28.0)
 	add_child(enemy)
+
+func enemy_defeated(at: Vector2) -> void:
+	defeats += 1
+	if world != null:
+		world.feedback_burst(at, Color("9fd98b"), 12, 155.0)
 
 func _configure_input() -> void:
 	_add_keys("move_left", [KEY_A, KEY_LEFT])

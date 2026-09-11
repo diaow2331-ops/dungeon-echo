@@ -1,12 +1,22 @@
-; Wildforge Godot vertical slice — commercial-client technical proof
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
 
 [application]
+
 config/name="Wildforge Godot Slice"
+config/version="0.02"
 run/main_scene="res://scenes/main/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
+
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/window_width_override=1280
@@ -15,13 +25,7 @@ window/stretch/mode="canvas_items"
 window/handheld/orientation=1
 
 [rendering]
+
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/default_filters/use_nearest_mipmap_filter=false
-textures/canvas_textures/default_texture_filter=0
-
-[physics]
-common/physics_ticks_per_second=60
-
-[debug]
-settings/stdout/print_fps=false

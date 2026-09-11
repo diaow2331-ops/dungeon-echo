@@ -15,3 +15,11 @@ The Godot client only becomes authoritative if this slice is materially better o
 - Low-obstruction touch input: floating left/right sticks, one contextual place button
 
 Explicitly excluded: factions, trade, caravans, annexation, inventory depth, boss content and save migration. Those stay in the Canvas reference until the feel gate passes.
+
+## v0.02 Feel Gate
+
+Before any faction/economy migration, the slice must make the basic verbs feel good: move, jump, land, mine, place, strike, take a hit. v0.02 adds explicit melee windup/active/recovery timing, micro hitstop, enemy stun/flash, camera look-ahead, landing squash, mining crack progress, procedural impact bursts, and touch deadzones.
+
+## Art policy during the engine proof
+
+Final art is intentionally deferred. The proof uses procedural placeholder shapes so gameplay timing can be evaluated independently of polish. Once the feel gate passes, Godot's 2D pipeline will own production art: nearest-filter pixel atlases, TileSet/TileMapLayer-based presentation over chunk data, AnimatedSprite2D/AnimationPlayer character animation, CanvasItem shaders, 2D lights, particles and themed Control UI. Art assets must never become gameplay authority; world simulation stays data-driven.
