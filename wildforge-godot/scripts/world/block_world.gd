@@ -4,6 +4,7 @@ class_name SliceWorld
 const BurstScript = preload("res://scripts/fx/feedback_burst.gd")
 const PickupScript = preload("res://scripts/items/item_pickup.gd")
 const WorkbenchScript = preload("res://scripts/world/workbench.gd")
+const CampfireScript = preload("res://scripts/world/campfire.gd")
 const ChunkViewScript = preload("res://scripts/world/block_chunk_view.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
@@ -100,7 +101,7 @@ func mine_at(cell: Vector2i) -> bool:
 	return true
 
 func place_at(cell: Vector2i, tile: int = DIRT) -> bool:
-	if cells.has(cell) or cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y:
+	if cells.has(cell) or station_cell_occupied(cell) or cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y:
 		return false
 	var attached := false
 	for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
@@ -129,11 +130,39 @@ func spawn_material_pickup(at: Vector2, tile: int, collector: SlicePlayer, amoun
 	var item_id := "stone" if tile == STONE else "soil"
 	return spawn_item_pickup(at, item_id, collector, amount)
 
+
+func station_cell_occupied(cell: Vector2i) -> bool:
+	for group_name in ["workbenches", "campfires"]:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if is_instance_valid(node) and node.get("cell") == cell:
+				return true
+	return false
+
+func has_campfire() -> bool:
+	return not get_tree().get_nodes_in_group("campfires").is_empty()
+
+func near_campfire(at: Vector2, radius := TILE_SIZE * 4.1) -> bool:
+	for node in get_tree().get_nodes_in_group("campfires"):
+		if is_instance_valid(node) and node is Node2D and (node as Node2D).global_position.distance_to(at) <= radius:
+			return true
+	return false
+
+func spawn_campfire(cell: Vector2i) -> SliceCampfire:
+	if cells.has(cell) or station_cell_occupied(cell) or not cells.has(cell + Vector2i.DOWN):
+		return null
+	var fire := CampfireScript.new() as SliceCampfire
+	fire.cell = cell
+	fire.global_position = cell_center(cell) + Vector2(0, 8)
+	fire.z_index = 21
+	add_child(fire)
+	feedback_burst(fire.global_position, Color("e69a55"), 10, 92.0)
+	return fire
+
 func has_workbench() -> bool:
 	return not get_tree().get_nodes_in_group("workbenches").is_empty()
 
 func spawn_workbench(cell: Vector2i) -> SliceWorkbench:
-	if cells.has(cell) or not cells.has(cell + Vector2i.DOWN):
+	if cells.has(cell) or station_cell_occupied(cell) or not cells.has(cell + Vector2i.DOWN):
 		return null
 	for node in get_tree().get_nodes_in_group("workbenches"):
 		if is_instance_valid(node) and node is SliceWorkbench and node.cell == cell:

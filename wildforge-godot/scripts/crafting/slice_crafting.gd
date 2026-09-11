@@ -4,12 +4,18 @@ class_name SliceCrafting
 const RECIPES := {
 	"plank": {"out_id": "plank", "out_n": 4, "need": {"wood": 1}},
 	"workbench": {"out_id": "workbench", "out_n": 1, "need": {"plank": 8}},
+	"campfire": {"out_id": "campfire", "out_n": 1, "need": {"stone": 6, "wood": 2}},
+	"trail_ration": {"out_id": "trail_ration", "out_n": 1, "need": {"raw_meat": 2, "wood": 1}, "station": "campfire"},
 }
 
 static func can_craft(player: SlicePlayer, recipe_id: String) -> bool:
 	if player == null or not RECIPES.has(recipe_id):
 		return false
 	var recipe: Dictionary = RECIPES[recipe_id]
+	if recipe.has("station"):
+		var station := String(recipe["station"])
+		if station == "campfire" and (player.world == null or not player.world.near_campfire(player.global_position)):
+			return false
 	var need: Dictionary = recipe["need"]
 	for item_id in need.keys():
 		if player.item_count(String(item_id)) < int(need[item_id]):
