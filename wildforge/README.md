@@ -24,9 +24,9 @@
 
 Wildforge is an original browser-native 2D world-simulation sandbox designed landscape-first for desktop and touch devices. Mining, building, combat and physical travel are the player's language; ecology, production, trade, diplomacy, war and raiding form the persistent world underneath. A single world is intentionally limited to at most three major factions, with macro simulation and sparse local actors instead of dozens of roaming AI settlements.
 
-The `feat/wildforge-fusion-v040` line is the current integration track. It preserves the mature v0.23 player-facing foundation while moving world state toward one authoritative simulation. Multi-world traversal is a later progression layer, not part of the current single-world scope.
+v0.41.0 is the current authoritative integration baseline. It preserves the mature v0.23 player-facing foundation while unifying survival, logistics, diplomacy, raids and sovereignty into one persistent world simulation. Multi-world traversal remains a later progression layer and is not part of the current single-world scope.
 
-## v0.23.0 playable incubation build
+## v0.41.0 current integration build
 
 Core loop: Survive and stay fed → Gather local inputs → Build depots/routes → Observe faction shortages → Physically trade or intervene in conflict → Shift inventories, diplomacy and sovereignty → Reinvest and expand your influence.
 
@@ -43,13 +43,13 @@ Core loop: Survive and stay fed → Gather local inputs → Build depots/routes 
 - Monotonic frontier evolution state persisted in the local save, forming the base for future route, ecology and aftermath systems;
 - Ranged combat with craftable bows/arrows;
 - Starcore Forge deep-rift finale: craft the forge, ignite it in the Starshard Rift, summon and defeat the Rift Behemoth, then continue in the completed world;
-- backward-compatible loading of local saves from v0.19.0 back through v0.1.0;
+- backward-compatible loading of local saves from v0.23.0 back through v0.1.0;
 - local browser save with explicit and automatic saves;
 - desktop mouse/keyboard and landscape touch controls;
 - portrait touch devices receive a rotate-to-landscape guard instead of a compressed alternate UI.
 
 
-### v0.41 direction · survival and sovereignty
+### v0.41 · survival and sovereignty
 
 The player begins as an unaffiliated survivor, not a ruler. Hunger, food and safe rest create an immediate survival layer before trade becomes the main growth engine. From there, the same world simulation supports several emergent paths: preserve a three-faction balance through commerce, back one faction until it dominates and annexes rivals, or eventually accumulate enough infrastructure and legitimacy to found a player faction. Founding a faction is a later progression layer; the current implementation establishes hunger plus annexation-ready faction sovereignty first.
 
@@ -61,7 +61,9 @@ Authoritative development stays modular (`index.html` + `style.css` + `src/*.js`
 node ops/release/build-wildforge-single-html.mjs /tmp/Wildforge-single.html
 ```
 
-The exporter remains a release utility, but v0.23 development remains modular while settlement memory, logistics, and presentation are iterated together. `wildforge/playtest.html` may therefore lag the modular source during this incubation pass and is never the source authority.
+The exporter remains a release utility. Modular source is authoritative, while `wildforge/playtest.html` is regenerated from that source for each integration baseline so review builds do not drift from the current version.
+
+Current regression gate: `node test/wildforge-current.cjs`. Historical version-pinned tests remain as migration/reference fixtures and are not the authority for the current build.
 
 ## Originality boundary
 
@@ -69,7 +71,7 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.23 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.41 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
 
 
 ## v0.20.0
