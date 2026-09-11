@@ -1,0 +1,33 @@
+'use strict';
+const assert=require('node:assert/strict');
+const crypto=require('node:crypto');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
+const strip=code=>code.replace(/^\s*import\s+[^;]+;\s*$/gm,'').replace(/^export\s+/gm,'');
+const dataCode=strip(read('wildforge/src/data.js'));
+const surfaceCode=strip(read('wildforge/src/surface-content.js'));
+const worldCode=strip(read('wildforge/src/world.js'));
+const frontierCode=strip(read('wildforge/src/frontier-simulation.js'));
+const contractsCode=strip(read('wildforge/src/transport-contracts.js'));
+const game=read('wildforge/src/game.js');
+const fixture=JSON.parse(read('test/fixtures/wildforge-phase0-seeds.json'));
+const data=new Function(`${dataCode}\nreturn {BIOMES,TILE,TILE_DEFS};`)();
+const worldApi=new Function('__data',`const {BIOMES,TILE,TILE_DEFS}=__data;\n${surfaceCode}\n${worldCode}\nreturn {World,encodeTiles};`)(data);
+const frontierApi=new Function(`${frontierCode}\nreturn {createFrontierSimulation,stepFrontierSimulation,frontierRelation,frontierFactionStatus,frontierDemandMap,recordFrontierAid};`)();
+const contractApi=new Function(`${contractsCode}\nreturn {makeTransportOffer};`)();
+const hash=value=>crypto.createHash('sha256').update(value).digest('hex').slice(0,20);
+const worldFingerprint=seed=>{const w=new worldApi.World(seed);return hash(Buffer.concat([Buffer.from(w.tiles),Buffer.from(JSON.stringify({spawn:w.spawn,settlements:w.settlements,ruins:w.ruins,surfaceSites:w.surfaceSites}))]));};
+assert.equal(fixture.schema,1);assert.equal(fixture.seeds.length,6);
+for(const entry of fixture.seeds){assert(entry.id&&entry.seed,`invalid fixed-seed entry: ${JSON.stringify(entry)}`);const first=worldFingerprint(entry.seed),second=worldFingerprint(entry.seed);assert.equal(first,second,`${entry.id} world generation is not deterministic`);if(entry.worldFingerprint)assert.equal(first,entry.worldFingerprint,`${entry.id} world fingerprint drifted`);else console.log(`FINGERPRINT ${entry.id} ${first}`);}
+const sites=[{id:'v',biome:'verdant',x:80},{id:'e',biome:'ember',x:360},{id:'f',biome:'frost',x:720}];
+for(const entry of fixture.seeds){const a=frontierApi.createFrontierSimulation(entry.seed,sites,0),b=frontierApi.createFrontierSimulation(entry.seed,sites,0);for(let i=0;i<320;i++){const args={dtDays:.01,day:i*.01,settlements:sites};frontierApi.stepFrontierSimulation(a,args);frontierApi.stepFrontierSimulation(b,args);}assert.deepEqual(a,b,`${entry.id} frontier trajectory is not deterministic`);const fp=hash(JSON.stringify(a));if(entry.frontierFingerprint)assert.equal(fp,entry.frontierFingerprint,`${entry.id} frontier fingerprint drifted`);else console.log(`FRONTIER ${entry.id} ${fp}`);}
+const annexSeed=fixture.seeds.find(x=>x.id==='strong-annexation').seed,annex=frontierApi.createFrontierSimulation(annexSeed,sites,0);for(const rel of Object.values(annex.relations)){rel.score=10;rel.stance='neutral';rel.warStartedDay=-1;}const war=frontierApi.frontierRelation(annex,'v','e');war.score=-80;war.stance='war';war.warStartedDay=0;Object.assign(annex.settlements.v,{population:55,safety:90,wellbeing:85,treasury:2000});Object.assign(annex.settlements.e,{population:10,safety:18,wellbeing:16,treasury:20});for(const good of ['greenheart_bale','emberfuel_crate','frostglass_case']){annex.settlements.v.stock[good]=120;annex.settlements.e.stock[good]=4;}for(let i=0;i<600&&annex.settlements.e.status!=='annexed';i++)frontierApi.stepFrontierSimulation(annex,{dtDays:.02,day:i*.02,settlements:sites});assert.equal(frontierApi.frontierFactionStatus(annex,'e').ownerFactionId,'v','fixed annexation seed must end with explicit v sovereignty');
+const aidSeed=fixture.seeds.find(x=>x.id==='wartime-aid').seed,aid=frontierApi.createFrontierSimulation(aidSeed,sites,0),aidTown=aid.settlements.e,aidWar=frontierApi.frontierRelation(aid,'e','v');aidWar.score=-70;aidWar.stance='war';aidWar.warStartedDay=0;Object.assign(aidTown,{wellbeing:30,safety:28,collapseClock:.8});aidTown.stock.greenheart_bale=1;const before={wellbeing:aidTown.wellbeing,safety:aidTown.safety,collapseClock:aidTown.collapseClock};const result=frontierApi.recordFrontierAid(aid,sites[1],'greenheart_bale',2);assert(result?.atWar&&aidTown.wellbeing>before.wellbeing&&aidTown.safety>before.safety&&aidTown.collapseClock<before.collapseClock,'fixed wartime-aid seed must stabilize the real faction state');
+const haulSeed=fixture.seeds.find(x=>x.id==='long-haul').seed,haul=frontierApi.createFrontierSimulation(haulSeed,sites,0);haul.settlements.e.stock.greenheart_bale=1;haul.settlements.f.stock.greenheart_bale=80;const demand=frontierApi.frontierDemandMap(haul,sites),offerA=contractApi.makeTransportOffer({day:2,originX:80,originBiome:'verdant',settlements:sites,cargoByHome:{verdant:'greenheart_bale'},demandBySettlement:demand}),offerB=contractApi.makeTransportOffer({day:2,originX:80,originBiome:'verdant',settlements:sites,cargoByHome:{verdant:'greenheart_bale'},demandBySettlement:demand});assert.deepEqual(offerA,offerB,'fixed long-haul seed must produce a deterministic offer');assert.equal(offerA?.destinationId,'e','fixed long-haul shortage must target the real Ember shortage');
+for(const marker of ['bossDefeated:game.bossDefeated','completed:game.completed','game.bossDefeated=!!raw.bossDefeated','game.completed=!!raw.completed','continueAfterVictory'])assert(game.includes(marker),'post-boss continuation contract missing: '+marker);
+for(const marker of ["const SAVE_KEY = 'wildforge.save.v0410'","const LEGACY_SAVE_KEY_0230 = 'wildforge.save.v0230'","raw.v==='0.23.0'"])assert(game.includes(marker),'legacy migration contract missing: '+marker);
+for(const marker of ['WildforgeDiagnostics','DIAGNOSTIC_SAMPLE_CAP=240','frontierTickMs:metricSummary','saveMs:metricSummary','pushDiagnostic(\'frameMs\'','pushDiagnostic(\'frontierMs\'','pushDiagnostic(\'saveMs\''])assert(game.includes(marker),'runtime diagnostics contract missing: '+marker);
+const serializeStart=game.indexOf('function serialize()'),serializeEnd=game.indexOf('function saveGame(',serializeStart);assert(serializeStart>=0&&serializeEnd>serializeStart&&!game.slice(serializeStart,serializeEnd).includes('diagnostics'),'diagnostics must never enter persistent save authority');
+console.log('wildforge_phase0=PASS fixed-seeds world/frontier determinism annexation aid haul boss migration diagnostics');
