@@ -23,3 +23,11 @@ Before any faction/economy migration, the slice must make the basic verbs feel g
 ## Art policy during the engine proof
 
 Final art is intentionally deferred. The proof uses procedural placeholder shapes so gameplay timing can be evaluated independently of polish. Once the feel gate passes, Godot's 2D pipeline will own production art: nearest-filter pixel atlases, TileSet/TileMapLayer-based presentation over chunk data, AnimatedSprite2D/AnimationPlayer character animation, CanvasItem shaders, 2D lights, particles and themed Control UI. Art assets must never become gameplay authority; world simulation stays data-driven.
+
+## v0.03 rhythm milestone
+
+- Faster reversal and bounded apex gravity improve movement response without adding a dash button.
+- Melee taps have a short input buffer plus a small grounded attack step; acquisition range stays wider than actual hit range.
+- Touch mining keeps only a 90 ms aim-stick grace so minor thumb jitter does not erase progress.
+- Crawler damage is no longer passive contact damage: chase -> telegraph -> committed lunge -> recovery.
+- Player hits interrupt enemy windup/lunge. Final art remains deferred.

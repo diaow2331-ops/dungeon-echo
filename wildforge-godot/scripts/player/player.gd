@@ -14,6 +14,13 @@ const ATTACK_WINDUP := 0.055
 const ATTACK_ACTIVE := 0.075
 const ATTACK_RECOVERY := 0.17
 const ATTACK_TOTAL := ATTACK_WINDUP + ATTACK_ACTIVE + ATTACK_RECOVERY
+const ATTACK_BUFFER := 0.11
+const ATTACK_STEP_SPEED := 135.0
+const TURN_ACCEL_MULT := 1.35
+const APEX_GRAVITY_SCALE := 0.72
+const MINE_STICK_GRACE := 0.09
+const MELEE_ACQUIRE_RANGE := 108.0
+const MELEE_HIT_RANGE := 94.0
 
 var world: SliceWorld
 var health := 100.0
@@ -39,6 +46,9 @@ var landing_squash := 0.0
 var landing_strength := 0.0
 var was_on_floor := false
 var previous_fall_speed := 0.0
+var primary_prev := false
+var attack_buffer := 0.0
+var mine_grace := 0.0
 
 func _ready() -> void:
 	collision_layer = 2
@@ -66,6 +76,7 @@ func _physics_process(delta: float) -> void:
 	camera_trauma = maxf(0.0, camera_trauma - delta * 4.2)
 	landing_squash = maxf(0.0, landing_squash - delta * 5.5)
 	hitstop = maxf(0.0, hitstop - delta)
+	attack_buffer = maxf(0.0, attack_buffer - delta)
 	_update_camera()
 	_update_attack(delta)
 	if hitstop > 0.0:
@@ -83,6 +94,8 @@ func _physics_process(delta: float) -> void:
 	var target := axis * SPEED
 	var accel := GROUND_ACCEL if is_on_floor() else AIR_ACCEL
 	if absf(axis) > 0.04:
+		if absf(velocity.x) > 22.0 and signf(axis) != signf(velocity.x):
+			accel *= TURN_ACCEL_MULT
 		velocity.x = move_toward(velocity.x, target, accel * delta)
 		facing = signf(axis)
 	else:
@@ -104,7 +117,8 @@ func _physics_process(delta: float) -> void:
 
 	var jump_held := Input.is_action_pressed("jump") or touch_jump
 	if not is_on_floor():
-		velocity.y += GRAVITY * delta
+		var gravity_scale := APEX_GRAVITY_SCALE if jump_held and absf(velocity.y) < 95.0 else 1.0
+		velocity.y += GRAVITY * gravity_scale * delta
 		if velocity.y < -180.0 and not jump_held:
 			velocity.y += GRAVITY * 1.65 * delta
 	velocity.y = minf(velocity.y, 850.0)
@@ -113,10 +127,14 @@ func _physics_process(delta: float) -> void:
 	_handle_landing()
 
 	var primary := Input.is_action_pressed("primary") or touch_primary
-	if primary:
-		_primary_action(delta)
+	var primary_pressed := primary and not primary_prev
+	if primary_pressed:
+		attack_buffer = ATTACK_BUFFER
+	if primary or attack_buffer > 0.0:
+		_primary_action(delta, primary)
 	else:
 		_reset_mining()
+	primary_prev = primary
 	if Input.is_action_just_pressed("place"):
 		place_once()
 	queue_redraw()
@@ -137,26 +155,31 @@ func _aim_direction() -> Vector2:
 	var d := get_global_mouse_position() - global_position
 	return d.normalized() if d.length_squared() > 4.0 else Vector2(facing, 0)
 
-func _primary_action(delta: float) -> void:
+func _primary_action(delta: float, held: bool = true) -> void:
 	var aim := _aim_direction()
 	if absf(aim.x) > 0.1:
 		facing = signf(aim.x)
 	var enemy := _enemy_in_aim(aim)
 	if enemy != null:
 		_reset_mining()
-		if attack_timer <= 0.0:
+		if attack_timer <= 0.0 and (held or attack_buffer > 0.0):
 			_start_attack(enemy, aim)
+			attack_buffer = 0.0
 		return
-	if attack_timer > 0.0:
+	if attack_timer > 0.0 or not held:
 		_reset_mining()
 		return
 	var target_cell := _first_solid_cell(aim)
 	if target_cell == Vector2i(99999, 99999):
+		if mine_cell != Vector2i(99999, 99999) and mine_grace > 0.0:
+			mine_grace = maxf(0.0, mine_grace - delta)
+			return
 		_reset_mining()
 		return
 	if target_cell != mine_cell:
 		mine_cell = target_cell
 		mine_progress = 0.0
+	mine_grace = MINE_STICK_GRACE
 	mine_progress += delta
 	var need := world.mine_time(target_cell)
 	if need <= 0.0:
@@ -170,10 +193,14 @@ func _primary_action(delta: float) -> void:
 			hitstop = maxf(hitstop, 0.018)
 			world.feedback_burst(center, Color("c8b17e"), 7, 92.0)
 		mine_progress = 0.0
+		mine_cell = Vector2i(99999, 99999)
+		mine_grace = 0.0
+		world.clear_mining_feedback()
 
 func _reset_mining() -> void:
 	mine_progress = 0.0
 	mine_cell = Vector2i(99999, 99999)
+	mine_grace = 0.0
 	if world != null:
 		world.clear_mining_feedback()
 
@@ -182,6 +209,9 @@ func _start_attack(enemy: Node2D, aim: Vector2) -> void:
 	attack_connected = false
 	attack_target = enemy
 	attack_aim = aim.normalized()
+	if is_on_floor() and absf(attack_aim.x) > 0.25:
+		velocity.x += attack_aim.x * ATTACK_STEP_SPEED
+		velocity.x = clampf(velocity.x, -SPEED * 1.08, SPEED * 1.08)
 
 func _update_attack(delta: float) -> void:
 	if attack_timer <= 0.0:
@@ -198,7 +228,7 @@ func _connect_attack() -> void:
 	if attack_target == null or not is_instance_valid(attack_target):
 		return
 	var offset := attack_target.global_position - global_position
-	if offset.length() > 92.0 or offset.normalized().dot(attack_aim) < 0.20:
+	if offset.length() > MELEE_HIT_RANGE or offset.normalized().dot(attack_aim) < 0.20:
 		return
 	attack_connected = true
 	var force := offset.normalized() * 320.0 + Vector2.UP * 125.0
@@ -213,7 +243,7 @@ func attack_phase() -> float:
 
 func _enemy_in_aim(aim: Vector2) -> Node2D:
 	var best: Node2D = null
-	var best_d := 88.0
+	var best_d := MELEE_ACQUIRE_RANGE
 	for node in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(node):
 			continue
