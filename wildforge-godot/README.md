@@ -39,3 +39,12 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - Placement consumes material only after a valid world mutation succeeds; failed placement is free.
 - Pickup collection is idempotent to prevent same-frame duplication.
 - This wallet is a vertical-slice mechanic, not the production inventory migration.
+
+## v0.05 chunk foundation
+
+- The authoritative world remains one `cells` dictionary. Chunks are cache/presentation only.
+- Static terrain drawing is split into 16x16 chunk views, so a tile edit redraws only its chunk.
+- Terrain collision is split into chunk bodies and deferred outside the physics callback.
+- Ordinary edits rebuild exactly one collision chunk; cardinal chunk neighbors are touched only on boundaries.
+- Negative world coordinates use floor-based chunk indexing.
+- The headless runner now requires explicit PASS markers so a script parse failure cannot masquerade as success.
