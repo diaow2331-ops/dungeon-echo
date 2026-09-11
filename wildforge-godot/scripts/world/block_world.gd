@@ -2,7 +2,8 @@ extends Node2D
 class_name SliceWorld
 
 const BurstScript = preload("res://scripts/fx/feedback_burst.gd")
-const PickupScript = preload("res://scripts/items/material_pickup.gd")
+const PickupScript = preload("res://scripts/items/item_pickup.gd")
+const WorkbenchScript = preload("res://scripts/world/workbench.gd")
 const ChunkViewScript = preload("res://scripts/world/block_chunk_view.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
@@ -115,15 +116,35 @@ func place_at(cell: Vector2i, tile: int = DIRT) -> bool:
 	queue_redraw()
 	return true
 
-func spawn_material_pickup(at: Vector2, tile: int, collector: SlicePlayer, amount := 1) -> SliceMaterialPickup:
-	var pickup := PickupScript.new() as SliceMaterialPickup
+func spawn_item_pickup(at: Vector2, item_id: String, collector: SlicePlayer, amount := 1) -> SliceItemPickup:
+	var pickup := PickupScript.new() as SliceItemPickup
 	pickup.global_position = at
 	pickup.z_index = 35
 	add_child(pickup)
-	var stored_tile := DIRT if tile == GRASS else tile
 	var impulse := Vector2(randf_range(-72.0, 72.0), randf_range(-175.0, -118.0))
-	pickup.setup(stored_tile, amount, collector, impulse)
+	pickup.setup(item_id, amount, collector, impulse)
 	return pickup
+
+func spawn_material_pickup(at: Vector2, tile: int, collector: SlicePlayer, amount := 1) -> SliceItemPickup:
+	var item_id := "stone" if tile == STONE else "soil"
+	return spawn_item_pickup(at, item_id, collector, amount)
+
+func has_workbench() -> bool:
+	return not get_tree().get_nodes_in_group("workbenches").is_empty()
+
+func spawn_workbench(cell: Vector2i) -> SliceWorkbench:
+	if cells.has(cell) or not cells.has(cell + Vector2i.DOWN):
+		return null
+	for node in get_tree().get_nodes_in_group("workbenches"):
+		if is_instance_valid(node) and node is SliceWorkbench and node.cell == cell:
+			return null
+	var bench := WorkbenchScript.new() as SliceWorkbench
+	bench.cell = cell
+	bench.global_position = cell_center(cell) + Vector2(0, 10)
+	bench.z_index = 20
+	add_child(bench)
+	feedback_burst(bench.global_position, Color("d4aa6b"), 9, 85.0)
+	return bench
 
 func feedback_burst(at: Vector2, color: Color, count: int, speed: float) -> void:
 	var burst := BurstScript.new() as SliceFeedbackBurst

@@ -48,3 +48,10 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - Ordinary edits rebuild exactly one collision chunk; cardinal chunk neighbors are touched only on boundaries.
 - Negative world coordinates use floor-based chunk indexing.
 - The headless runner now requires explicit PASS markers so a script parse failure cannot masquerade as success.
+
+## v0.06 crafting loop
+
+- Sparse pass-through trees feed the same physical pickup path as mined blocks.
+- The slice ports only the canonical early recipes `1 wood -> 4 plank` and `8 plank -> 1 workbench`.
+- One context action changes from craft to station placement and then back to block placement; no extra permanent mobile buttons are added.
+- A cross-implementation parity gate prevents the Godot slice from silently drifting from the Canvas reference recipe ratios.

@@ -30,8 +30,8 @@ func _run() -> void:
 	_check(player.harvest_cell(stone_cell), "harvesting mutates the world through player authority")
 	var pickups := main.get_tree().get_nodes_in_group("pickups")
 	_check(pickups.size() == pickup_count_before + 1, "harvest creates one physical material pickup")
-	var pickup := pickups[-1] as SliceMaterialPickup
-	_check(pickup.material_id == SliceWorld.STONE, "pickup preserves harvested material identity")
+	var pickup := pickups[-1] as SliceItemPickup
+	_check(pickup.item_id == "stone", "pickup preserves harvested material identity")
 	pickup.collect_now()
 	_check(player.material_count(SliceWorld.STONE) == 1, "pickup collection increments the player's single material wallet")
 	pickup.collect_now()
@@ -47,14 +47,14 @@ func _run() -> void:
 	_check(not player.place_material_at(place_cell, SliceWorld.DIRT), "placing into occupied cell fails")
 	_check(player.material_count(SliceWorld.DIRT) == after_success, "failed placement never consumes material")
 
-	player.materials[SliceWorld.DIRT] = 0
+	player.stock["soil"] = 0
 	var another_cell := surface + Vector2i(-1, -1)
 	var before_zero := world.cells.size()
 	_check(not player.place_material_at(another_cell, SliceWorld.DIRT), "zero stock blocks placement")
 	_check(world.cells.size() == before_zero, "zero-stock placement cannot mutate world data")
 
-	_check(SliceMaterialPickup.MAGNET_RANGE > SliceMaterialPickup.COLLECT_RANGE, "pickup attraction has a bounded approach band")
-	_check(SliceMaterialPickup.MAGNET_SPEED > 0.0, "pickup magnet has explicit movement speed")
+	_check(SliceItemPickup.MAGNET_RANGE > SliceItemPickup.COLLECT_RANGE, "pickup attraction has a bounded approach band")
+	_check(SliceItemPickup.MAGNET_SPEED > 0.0, "pickup magnet has explicit movement speed")
 
 	print("wildforge_godot_loop=", "FAIL" if failed else "PASS")
 	quit(1 if failed else 0)

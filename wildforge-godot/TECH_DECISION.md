@@ -43,3 +43,7 @@ The Godot slice may keep a tiny player-owned material wallet to prove mine -> pi
 ## Chunk authority rule
 
 `SliceWorld.cells` remains the only block-world authority. Render chunks and collision chunks may cache that state, but they must not store independent tile truth. Runtime edits invalidate only the affected chunk and cardinal boundary neighbor.
+
+## Early crafting parity rule
+
+During migration, any recipe copied from the Canvas reference must be guarded by a cross-implementation parity test. The slice may port only the minimum recipes needed to prove a loop; it must not fork a second balance table.
