@@ -3,6 +3,7 @@ extends Node2D
 const WorldScript = preload("res://scripts/world/block_world.gd")
 const PlayerScript = preload("res://scripts/player/player.gd")
 const EnemyScript = preload("res://scripts/enemies/crawler.gd")
+const BoarScript = preload("res://scripts/enemies/bramble_boar.gd")
 const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
 
@@ -35,7 +36,7 @@ func _ready() -> void:
 	_spawn_tree(14)
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
-	_spawn_enemy(17, "raw_meat", 1, 2)
+	_spawn_boar(17)
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
@@ -63,6 +64,13 @@ func _spawn_enemy(x: int, loot_item_id := "", loot_min := 0, loot_max := 0) -> v
 	enemy.loot_max = loot_max
 	enemy.global_position = Vector2(x * SliceWorld.TILE_SIZE, world.surface_y_at(x) * SliceWorld.TILE_SIZE - 28.0)
 	add_child(enemy)
+
+func _spawn_boar(x: int) -> void:
+	var boar := BoarScript.new() as SliceBrambleBoar
+	boar.name = "BrambleBoar_%d_%d" % [x, Time.get_ticks_msec()]
+	boar.player = player
+	boar.global_position = Vector2(x * SliceWorld.TILE_SIZE, world.surface_y_at(x) * SliceWorld.TILE_SIZE - 30.0)
+	add_child(boar)
 
 func enemy_defeated(at: Vector2, loot_item_id := "", loot_count := 0) -> void:
 	defeats += 1

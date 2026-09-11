@@ -42,10 +42,10 @@ func _run() -> void:
 	_check(player.eat_item("raw_meat"), "raw meat can be eaten when hungry")
 	_check(absf(player.hunger - 59.0) < 0.001, "raw meat restores canonical nine hunger")
 
-	var meat_enemy: SliceCrawler = null
-	for node in main.get_tree().get_nodes_in_group("enemies"):
-		if node is SliceCrawler and node.loot_item_id == "raw_meat":
-			meat_enemy = node as SliceCrawler
+	var meat_enemy: Node = null
+	for node in main.get_tree().get_nodes_in_group("hunt_targets"):
+		if is_instance_valid(node) and node.get("loot_item_id") == "raw_meat":
+			meat_enemy = node
 			break
 	_check(meat_enemy != null, "one sparse hunt target carries the canonical raw-meat drop")
 	var pickup_before := main.get_tree().get_nodes_in_group("pickups").size()

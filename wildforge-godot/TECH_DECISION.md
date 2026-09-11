@@ -51,3 +51,7 @@ During migration, any recipe copied from the Canvas reference must be guarded by
 ## Survival parity rule
 
 Hunger, nourishment, starvation cadence and survival recipes are migration data, not new balance work. Until the Godot client becomes authoritative, these values must remain parity-guarded against the Canvas reference. Survival consumes the same slice item stock used by harvesting/crafting; no second food inventory is allowed.
+
+## Early enemy-role rule
+
+Different survival rewards must come from meaningfully different combat roles, not recolored or loot-tagged copies of one enemy. Early hunt targets require readable commitment, counterplay, and a reward identity distinct from ambient harassment enemies.

@@ -64,3 +64,10 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - Canonical survival recipes are preserved: 6 stone + 2 wood -> campfire; 2 raw meat + 1 wood at a nearby campfire -> trail ration.
 - Empty/low hunger applies the same movement penalties as the Canvas reference; a nearby campfire provides the canonical daytime rest-heal rate.
 - The single compact context action handles urgent eating, cooking and campfire placement without adding permanent touch buttons.
+
+## v0.09 hunt differentiation
+
+- Early meat hunting now uses a dedicated Bramble Boar instead of a loot-tagged crawler.
+- The boar stalks, telegraphs a charge, commits through the charge, then exposes a recovery window.
+- Close contact alone is harmless; the tell can be interrupted, while a committed charge has higher resistance.
+- Raw meat remains the canonical 1–2 stack reward and still feeds the same survival inventory authority.
