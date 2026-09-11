@@ -39,3 +39,7 @@ The slice must prefer readable committed attacks over passive contact damage. In
 ## Material loop rule
 
 The Godot slice may keep a tiny player-owned material wallet to prove mine -> pickup -> collect -> place conservation. It must not become a second production inventory/economy authority before the migration gate is passed.
+
+## Chunk authority rule
+
+`SliceWorld.cells` remains the only block-world authority. Render chunks and collision chunks may cache that state, but they must not store independent tile truth. Runtime edits invalidate only the affected chunk and cardinal boundary neighbor.

@@ -3,7 +3,9 @@ class_name SliceWorld
 
 const BurstScript = preload("res://scripts/fx/feedback_burst.gd")
 const PickupScript = preload("res://scripts/items/material_pickup.gd")
+const ChunkViewScript = preload("res://scripts/world/block_chunk_view.gd")
 const TILE_SIZE := 32.0
+const CHUNK_SIZE := 16
 const MIN_X := -42
 const MAX_X := 42
 const MAX_Y := 27
@@ -14,20 +16,25 @@ const STONE := 3
 const NO_CELL := Vector2i(99999, 99999)
 
 var cells: Dictionary = {}
-var collision_root: StaticBody2D
+var collision_root: Node2D
+var collision_chunks: Dictionary = {}
+var render_chunks: Dictionary = {}
+var dirty_collision_chunks: Dictionary = {}
+var collision_flush_scheduled := false
+var last_collision_chunks_rebuilt := 0
+var last_collision_cells_scanned := 0
+var total_collision_rebuilds := 0
 var mining_cell := NO_CELL
 var mining_progress := 0.0
 var place_flash_cell := NO_CELL
 var place_flash := 0.0
 
 func _ready() -> void:
-	collision_root = StaticBody2D.new()
-	collision_root.name = "TerrainCollision"
-	collision_root.collision_layer = 1
-	collision_root.collision_mask = 0
+	collision_root = Node2D.new()
+	collision_root.name = "TerrainCollisionChunks"
 	add_child(collision_root)
 	_generate()
-	_rebuild_collision()
+	_build_initial_chunks()
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -87,7 +94,7 @@ func mine_at(cell: Vector2i) -> bool:
 	cells.erase(cell)
 	if mining_cell == cell:
 		clear_mining_feedback()
-	_rebuild_collision()
+	_mark_cell_changed(cell)
 	queue_redraw()
 	return true
 
@@ -104,7 +111,7 @@ func place_at(cell: Vector2i, tile: int = DIRT) -> bool:
 	cells[cell] = tile
 	place_flash_cell = cell
 	place_flash = 0.16
-	_rebuild_collision()
+	_mark_cell_changed(cell)
 	queue_redraw()
 	return true
 
@@ -131,40 +138,98 @@ func _is_exposed(cell: Vector2i) -> bool:
 			return true
 	return false
 
-func _rebuild_collision() -> void:
-	if collision_root == null:
-		return
-	for child in collision_root.get_children():
-		child.queue_free()
-	for cell in cells.keys():
-		if not _is_exposed(cell):
-			continue
-		var shape := RectangleShape2D.new()
-		shape.size = Vector2(TILE_SIZE, TILE_SIZE)
-		var collider := CollisionShape2D.new()
-		collider.shape = shape
-		collider.position = cell_center(cell)
-		collision_root.add_child(collider)
+func chunk_key_for(cell: Vector2i) -> Vector2i:
+	return Vector2i(floori(float(cell.x) / float(CHUNK_SIZE)), floori(float(cell.y) / float(CHUNK_SIZE)))
+
+func _build_initial_chunks() -> void:
+	var keys: Dictionary = {}
+	for raw in cells.keys():
+		var cell: Vector2i = raw
+		keys[chunk_key_for(cell)] = true
+	for key in keys.keys():
+		_ensure_render_chunk(key)
+		_rebuild_collision_chunk(key)
+	last_collision_chunks_rebuilt = keys.size()
+	last_collision_cells_scanned = keys.size() * CHUNK_SIZE * CHUNK_SIZE
+
+func _ensure_render_chunk(key: Vector2i) -> SliceBlockChunkView:
+	if render_chunks.has(key) and is_instance_valid(render_chunks[key]):
+		return render_chunks[key] as SliceBlockChunkView
+	var view := ChunkViewScript.new() as SliceBlockChunkView
+	view.name = "Chunk_%d_%d" % [key.x, key.y]
+	view.z_index = 0
+	add_child(view)
+	view.setup(self, key)
+	render_chunks[key] = view
+	return view
+
+func _ensure_collision_chunk(key: Vector2i) -> StaticBody2D:
+	if collision_chunks.has(key) and is_instance_valid(collision_chunks[key]):
+		return collision_chunks[key] as StaticBody2D
+	var body := StaticBody2D.new()
+	body.name = "Collision_%d_%d" % [key.x, key.y]
+	body.collision_layer = 1
+	body.collision_mask = 0
+	body.position = Vector2(key * CHUNK_SIZE) * TILE_SIZE
+	collision_root.add_child(body)
+	collision_chunks[key] = body
+	return body
+
+func _mark_cell_changed(cell: Vector2i) -> void:
+	var own := chunk_key_for(cell)
+	_ensure_render_chunk(own).queue_redraw()
+	_mark_collision_chunk(own)
+	var local := cell - own * CHUNK_SIZE
+	if local.x == 0:
+		_mark_collision_chunk(own + Vector2i.LEFT)
+	elif local.x == CHUNK_SIZE - 1:
+		_mark_collision_chunk(own + Vector2i.RIGHT)
+	if local.y == 0:
+		_mark_collision_chunk(own + Vector2i.UP)
+	elif local.y == CHUNK_SIZE - 1:
+		_mark_collision_chunk(own + Vector2i.DOWN)
+	if not collision_flush_scheduled:
+		collision_flush_scheduled = true
+		call_deferred("_flush_collision_rebuilds")
+
+func _mark_collision_chunk(key: Vector2i) -> void:
+	dirty_collision_chunks[key] = true
+
+func _flush_collision_rebuilds() -> void:
+	collision_flush_scheduled = false
+	var keys := dirty_collision_chunks.keys()
+	dirty_collision_chunks.clear()
+	last_collision_chunks_rebuilt = 0
+	last_collision_cells_scanned = 0
+	for raw in keys:
+		var key: Vector2i = raw
+		_rebuild_collision_chunk(key)
+		last_collision_chunks_rebuilt += 1
+		last_collision_cells_scanned += CHUNK_SIZE * CHUNK_SIZE
+
+func _rebuild_collision_chunk(key: Vector2i) -> void:
+	var body := _ensure_collision_chunk(key)
+	for child in body.get_children():
+		child.free()
+	var start := key * CHUNK_SIZE
+	for lx in range(CHUNK_SIZE):
+		for ly in range(CHUNK_SIZE):
+			var cell := start + Vector2i(lx, ly)
+			if not cells.has(cell) or not _is_exposed(cell):
+				continue
+			var shape := RectangleShape2D.new()
+			shape.size = Vector2(TILE_SIZE, TILE_SIZE)
+			var collider := CollisionShape2D.new()
+			collider.shape = shape
+			collider.position = (Vector2(lx, ly) + Vector2(0.5, 0.5)) * TILE_SIZE
+			body.add_child(collider)
+	total_collision_rebuilds += 1
 
 func _draw() -> void:
 	draw_rect(Rect2(-1500, -900, 3000, 1800), Color("10252e"))
 	for i in range(6):
 		var y := 160.0 + i * 42.0
 		draw_circle(Vector2(-900 + i * 360, y), 150.0, Color(0.15, 0.27, 0.29, 0.16))
-	for key in cells.keys():
-		var cell: Vector2i = key
-		var tile := int(cells[cell])
-		var color := Color("6d4c37")
-		if tile == GRASS:
-			color = Color("5e7841")
-		elif tile == STONE:
-			color = Color("59636b")
-		var pos := Vector2(cell) * TILE_SIZE
-		draw_rect(Rect2(pos + Vector2.ONE, Vector2(TILE_SIZE - 2, TILE_SIZE - 2)), color)
-		if tile == GRASS:
-			draw_rect(Rect2(pos + Vector2(1, 1), Vector2(TILE_SIZE - 2, 6)), Color("9aad5b"))
-		elif tile == STONE:
-			draw_line(pos + Vector2(7, 9), pos + Vector2(20, 15), Color(0.72, 0.76, 0.78, 0.28), 2.0)
 	if mining_cell != NO_CELL and cells.has(mining_cell):
 		_draw_mining_cracks(mining_cell, mining_progress)
 	if place_flash > 0.0 and place_flash_cell != NO_CELL:
