@@ -5,11 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#10171b">
-  <meta name="version" content="0.41.0">
+  <meta name="version" content="0.42.0">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23141e21%27/%3E%3Cpath d=%27M16 5 27 16 16 27 5 16Z%27 fill=%27%23d6a557%27/%3E%3C/svg%3E">
   <meta name="description" content="荒境熔炉 Wildforge：原创横屏 2D 沙盒生存建造游戏。探索、采矿、制造、建造、战斗并深入地下世界。">
   <title>荒境熔炉 · Wildforge</title>
-  <style data-wildforge-inline="0.41.0">
+  <style data-wildforge-inline="0.42.0">
 :root{
   color-scheme:dark; --ink:#edf3f1; --muted:#9db0ad; --line:rgba(213,235,229,.18);
   --glass:rgba(10,18,21,.78); --glass-strong:rgba(9,16,19,.94); --accent:#d6a557;
@@ -54,7 +54,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
 .logistics-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 8px}.logistics-strip span{padding:7px 6px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(7,14,16,.42);font-size:9px;color:var(--muted);text-align:center}.logistics-strip b{color:#dbe7e2}.produce-need{color:#9fb7b0!important}.trade-actions{flex-wrap:wrap}.trade-actions button{min-width:72px}
 
 .mobile-side-actions .cargo{border-color:rgba(208,161,94,.62);color:#e5bc78}.escort-hire{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;margin:0 0 8px;padding:7px 8px;border:1px solid rgba(196,158,99,.22);border-radius:8px;background:rgba(32,27,20,.34)}.escort-hire button{padding:7px 9px;font-size:10px}.escort-hire small{font-size:9px;color:var(--muted)}.packbeast-hire{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;margin:0 0 8px;padding:7px 8px;border:1px solid rgba(127,166,109,.24);border-radius:8px;background:rgba(24,39,29,.36)}.packbeast-hire.active{grid-template-columns:1fr}.packbeast-hire button{padding:7px 9px;font-size:10px}.packbeast-hire span{display:block;font-size:9px;color:#9fb7b0}.packbeast-hire b{display:block;margin:2px 0;color:#dce8d8;font-size:10px}.packbeast-hire small{font-size:9px;color:var(--muted)}.settlement-aid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:0 0 8px;padding:7px 8px;border:1px solid rgba(210,160,86,.26);border-radius:8px;background:rgba(53,38,20,.30)}.settlement-aid span,.settlement-aid small{display:block;font-size:9px;color:var(--muted)}.settlement-aid b{display:block;margin:2px 0;font-size:10px;color:#ead7a2}.settlement-aid button{padding:7px 9px;font-size:10px;white-space:nowrap}
-.settlement-head b{color:#f0ddac}.settlement-order{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;margin:0 0 8px;padding:9px 10px;border:1px solid rgba(229,188,112,.38);border-radius:9px;background:linear-gradient(90deg,rgba(72,53,29,.58),rgba(27,40,38,.62))}.settlement-order span{font-size:9px;color:#d9b66f;text-transform:uppercase;letter-spacing:.08em}.settlement-order b{font-size:11px;color:#f0dfb8}.settlement-order small{font-size:9px;color:var(--muted);text-align:right}.trade-row.priority-demand{border-color:rgba(229,188,112,.58);box-shadow:inset 3px 0 rgba(229,188,112,.38)}
+.settlement-head b{color:#f0ddac}.settlement-order{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;margin:0 0 8px;padding:9px 10px;border:1px solid rgba(229,188,112,.38);border-radius:9px;background:linear-gradient(90deg,rgba(72,53,29,.58),rgba(27,40,38,.62))}.settlement-order span{font-size:9px;color:#d9b66f;text-transform:uppercase;letter-spacing:.08em}.settlement-order b{font-size:11px;color:#f0dfb8}.settlement-order small{font-size:9px;color:var(--muted);text-align:right}.settlement-order.live-shortage{border-color:rgba(112,202,168,.5);background:linear-gradient(90deg,rgba(28,66,57,.72),rgba(27,40,38,.62))}.settlement-order.live-shortage span{color:#8fd8bd}.settlement-order.live-shortage b{color:#c7f0df}.trade-row.priority-demand{border-color:rgba(229,188,112,.58);box-shadow:inset 3px 0 rgba(229,188,112,.38)}
 
 .transport-contract{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;margin:0 0 8px;padding:9px 10px;border:1px solid rgba(127,188,151,.28);border-radius:9px;background:linear-gradient(90deg,rgba(26,53,49,.62),rgba(30,35,31,.58))}.transport-contract>div{display:flex;min-width:0;flex-direction:column;gap:2px}.transport-contract span{font-size:8px;color:#8fc7b3;letter-spacing:.09em;text-transform:uppercase}.transport-contract b{font-size:11px;color:#e0eee8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.transport-contract small{font-size:9px;color:var(--muted)}.transport-contract strong{color:#e3bd70;font-size:13px;white-space:nowrap}.transport-contract button{padding:6px 9px;font-size:9px}.transport-contract.offer{border-color:rgba(218,174,99,.38);background:linear-gradient(90deg,rgba(66,48,27,.58),rgba(27,41,38,.56))}.transport-contract.offer span{color:#d9b66f}.transport-contract.active-destination{border-color:rgba(229,188,112,.62);box-shadow:inset 3px 0 rgba(229,188,112,.42)}.trade-row.contract-cargo{border-color:rgba(121,211,177,.58);box-shadow:inset 3px 0 rgba(121,211,177,.42)}
 
@@ -103,7 +103,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
 
     <header id="hud">
       <div class="hud-left">
-        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.41.0</small></div>
+        <div class="brand"><span class="brand-mark">◆</span><b>荒境熔炉</b><small>WILDFORGE · v0.42.0</small></div>
         <div class="meters">
           <div class="meter hp"><span id="hpFill"></span><b id="hpText">100 / 100</b></div>
           <div class="meter hunger"><span id="hungerFill"></span><b id="hungerText">饱食 82</b></div>
@@ -164,7 +164,7 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
         <div class="loop">求生 <i>→</i> 探索 <i>→</i> 贸易 <i>→</i> 介入势力 <i>→</i> 改变世界</div>
         <label class="seed-field"><span class="zh">世界种子</span><span class="en">World seed</span><input id="seedInput" maxlength="32" autocomplete="off"></label>
         <div class="start-actions"><button id="continueBtn" class="primary hidden"><span class="zh">继续世界</span><span class="en">Continue</span></button><button id="startBtn"><span class="zh">生成新世界</span><span class="en">Create world</span></button></div>
-        <small class="zh">v0.41.0 · 求生饱食 · 三势力模拟 · 动态贸易/战争 · 势力吞并 · 苔背驮兽 · 本地离线存档</small><small class="en">v0.41.0 · survival hunger · three-faction simulation · dynamic trade/war · annexation · Mossback packbeast · local offline save</small>
+        <small class="zh">v0.42.0 · 新手生存/贸易闭环 · 三势力模拟 · 动态贸易/战争 · 势力吞并 · 苔背驮兽 · 本地离线存档</small><small class="en">v0.42.0 · survival/trade onboarding · three-faction simulation · dynamic trade/war · annexation · Mossback packbeast · local offline save</small>
       </div>
     </section>
 
@@ -187,9 +187,9 @@ button,input{font:inherit;color:inherit} button{border:1px solid var(--line);bac
       <div><b>↻</b><h2 class="zh">请将手机横过来</h2><h2 class="en">Rotate to landscape</h2><p class="zh">《荒境熔炉》的手机界面与触控从一开始就按横屏设计。</p><p class="en">Wildforge is designed landscape-first on touch devices.</p></div>
     </div>
   </main>
-  <script data-wildforge-inline="0.41.0">
+  <script data-wildforge-inline="0.42.0">
 const __WF_DATA=(()=>{
-const VERSION = '0.41.0';
+const VERSION = '0.42.0';
 const TILE = Object.freeze({
   AIR:0, GRASS:1, SOIL:2, STONE:3, COAL:4, COPPER:5, IRON:6, CRYSTAL:7,
   SAND:8, SANDSTONE:9, ASH:10, BASALT:11, ICE:12, SNOW:13, WOOD:14,
@@ -406,15 +406,16 @@ function settlementRoll(seed,index){
 function buildSettlements(world,seed='wildforge'){
   const sites=[],factionBiomes=['verdant','ember','frost'],zoneWidth=world.w/3;
   for(let index=0;index<3;index++){
-    const zoneStart=Math.floor(index*zoneWidth),zoneEnd=Math.min(world.w-25,Math.floor((index+1)*zoneWidth)-1),targetBiome=factionBiomes[index];
-    const anchor=clamp(Math.floor((index+.5)*zoneWidth+(settlementRoll(seed,index)-.5)*110),zoneStart+30,zoneEnd-30);
+    const zoneStart=Math.floor(index*zoneWidth),zoneEnd=Math.min(world.w-25,Math.floor((index+1)*zoneWidth)-1),targetBiome=factionBiomes[index],spawnX=Number(world.spawn?.x),onboarding=index===0&&world.nearSpawnCapital!==false&&!world.expandedLegacy&&Number.isFinite(spawnX),spawnBandStart=onboarding?Math.floor(spawnX/160)*160:zoneStart,searchMin=onboarding?clamp(spawnBandStart+8,zoneStart+24,zoneEnd-24):zoneStart+24,searchMax=onboarding?clamp(Math.floor(spawnX)-40,searchMin,zoneEnd-24):zoneEnd-24;
+    const anchor=onboarding?clamp(Math.floor(spawnX-56+(settlementRoll(seed,index)-.5)*20),searchMin,searchMax):clamp(Math.floor((index+.5)*zoneWidth+(settlementRoll(seed,index)-.5)*110),zoneStart+30,zoneEnd-30);
     let best=null,bestScore=Infinity;
-    for(let step=0;step<=Math.floor(zoneWidth/4);step+=4)for(const dir of step?[-1,1]:[1]){
-      const x=clamp(anchor+step*dir,zoneStart+24,zoneEnd-24);if(world.biome(x).id!==targetBiome)continue;
+    const searchRadius=onboarding?Math.max(0,searchMax-searchMin):Math.floor(zoneWidth/4);
+    for(let step=0;step<=searchRadius;step+=4)for(const dir of step?[-1,1]:[1]){
+      const x=clamp(anchor+step*dir,searchMin,searchMax);if(world.biome(x).id!==targetBiome)continue;
       const y=world.surface[x];let rough=0;for(let q=-5;q<=5;q++)rough=Math.max(rough,Math.abs(world.surface[clamp(x+q,0,world.w-1)]-y));
       const score=rough*12+Math.abs(x-anchor)/24;if(score<bestScore){best={x,y};bestScore=score;}if(rough<=1&&Math.abs(x-anchor)<48)break;
     }
-    if(!best){const x=clamp(anchor,zoneStart+24,zoneEnd-24);best={x,y:world.surface[x]};}
+    if(!best){const x=clamp(anchor,searchMin,searchMax);best={x,y:world.surface[x]};}
     sites.push(Object.freeze({id:`faction-${index}-${targetBiome}`,index,x:best.x+.5,y:best.y-.35,biome:targetBiome,kind:'faction-capital'}));
   }
   return sites;
@@ -491,8 +492,8 @@ function decodeTiles(raw, expected=WORLD_W*WORLD_H) {
 }
 
 class World {
-  constructor(seed, saved=null) {
-    this.seed=String(seed||'wildforge'); this.w=WORLD_W; this.h=WORLD_H;
+  constructor(seed, saved=null, options={}) {
+    this.seed=String(seed||'wildforge'); this.w=WORLD_W; this.h=WORLD_H; this.nearSpawnCapital=options.nearSpawnCapital??!saved;
     this.surface=new Int16Array(this.w);
     this.ruins=[];
     this.surfaceSites=[];
@@ -1032,7 +1033,8 @@ const ART=Object.freeze({
 
 function artReady(){return CORE_ART.complete&&CORE_ART.naturalWidth>0;}
 function drawArt(key,x,y,w,h){const r=ART[key];if(!r||!artReady())return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(CORE_ART,r[0],r[1],r[2],r[3],Math.round(x),Math.round(y),Math.round(w),Math.round(h));return true;}
-const SAVE_KEY = 'wildforge.save.v0410';
+const SAVE_KEY = 'wildforge.save.v0420';
+const LEGACY_SAVE_KEY_0410 = 'wildforge.save.v0410';
 const LEGACY_SAVE_KEY_0230 = 'wildforge.save.v0230';
 const LEGACY_SAVE_KEY_0220 = 'wildforge.save.v0220';
 const LEGACY_SAVE_KEY_0210 = 'wildforge.save.v0210';
@@ -1147,7 +1149,7 @@ function sfx(kind,intensity=1){
 }
 
 const game = {
-  running:false, world:null, seed:'', time:0.18, last:0, autosave:0, spawnTimer:0, physicsAccumulator:0, wheelAccum:0,
+  running:false, world:null, seed:'', settlementLayout:'onboarding-v2', time:0.18, last:0, autosave:0, spawnTimer:0, physicsAccumulator:0, wheelAccum:0,
   player:null, inventory:{}, inventoryLayout:Array.from({length:INVENTORY_SLOT_COUNT},()=>''), hotbar:[...HOTBAR_DEFAULT], selected:0, enemies:[], drops:[], projectiles:[], enemyProjectiles:[],
   input:{left:false,right:false,down:false,jump:false,mine:false,place:false,dash:false}, pointer:{x:0,y:0,active:false,worldX:0,worldY:0,kind:'mouse'},
   mine:{key:'',progress:0}, attackCd:0, placeCd:0, quickPlaceId:null, interactCd:0, hurtCd:0, uiOpen:false,
@@ -1254,7 +1256,7 @@ function saveExists() { try { return !!localStorage.getItem(SAVE_KEY); } catch {
 
 function serialize() {
   const p=game.player;
-  return {v:VERSION,seed:game.seed,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,hunger:p.hunger,facing:p.facing},inventory:game.inventory,inventoryLayout:game.inventoryLayout,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn,forgePlaced:game.forgePlaced,forgeActive:game.forgeActive,bossActive:game.bossActive,bossDefeated:game.bossDefeated,completed:game.completed,nightsSurvived:game.nightsSurvived,outpostReady:game.outpostReady,infrastructure:game.infrastructure,worldProgress:game.worldProgress,trade:game.trade,frontier:game.frontier,cargoBundles:game.cargoBundles,guard:activeGuard(),packbeast:activePackbeast()};
+  return {v:VERSION,seed:game.seed,settlementLayout:game.settlementLayout,time:game.time,tiles:encodeTiles(game.world.tiles),player:{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,hunger:p.hunger,facing:p.facing},inventory:game.inventory,inventoryLayout:game.inventoryLayout,hotbar:game.hotbar,selected:game.selected,objectiveStage:game.objectiveStage,discoveries:game.discoveries,guardianDefeated:game.guardianDefeated,openedChestCount:game.openedChestCount,campRespawn:game.campRespawn,forgePlaced:game.forgePlaced,forgeActive:game.forgeActive,bossActive:game.bossActive,bossDefeated:game.bossDefeated,completed:game.completed,nightsSurvived:game.nightsSurvived,outpostReady:game.outpostReady,infrastructure:game.infrastructure,worldProgress:game.worldProgress,trade:game.trade,frontier:game.frontier,cargoBundles:game.cargoBundles,guard:activeGuard(),packbeast:activePackbeast()};
 }
 function saveGame(show=true) {
   if (!game.running || !game.world) return;
@@ -1264,21 +1266,21 @@ function saveGame(show=true) {
   finally { pushDiagnostic('saveMs',performance.now()-started); }
 }
 function readSave() {
-  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.23.0'||raw.v==='0.22.0'||raw.v==='0.21.0'||raw.v==='0.20.0'||raw.v==='0.19.0'||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
+  try { for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0410,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST]){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw&&raw.seed&&raw.tiles&&(raw.v===VERSION||raw.v==='0.41.0'||raw.v==='0.23.0'||raw.v==='0.22.0'||raw.v==='0.21.0'||raw.v==='0.20.0'||raw.v==='0.19.0'||raw.v==='0.18.0'||raw.v==='0.17.0'||raw.v==='0.16.0'||raw.v==='0.15.0'||raw.v==='0.14.0'||raw.v==='0.13.1'||raw.v==='0.13.0'||raw.v==='0.12.0'||raw.v==='0.11.0'||raw.v==='0.10.0'||raw.v==='0.9.2'||raw.v==='0.9.1'||raw.v==='0.9.0'||raw.v==='0.8.0'||raw.v==='0.7.0'||raw.v==='0.6.0'||raw.v==='0.5.0'||raw.v==='0.4.0'||raw.v==='0.3.0'||raw.v==='0.1.0'))return raw;} return null; } catch { return null; }
 }
 function applySave(raw) {
-  game.seed=raw.seed; game.world=new World(raw.seed,raw.tiles); game.rng=makeRng(raw.seed+'-runtime');
+  game.seed=raw.seed; game.settlementLayout=raw.settlementLayout==='onboarding-v2'?'onboarding-v2':(raw.v===VERSION?'onboarding-v2':'legacy-faction-v1'); game.world=new World(raw.seed,raw.tiles,{nearSpawnCapital:game.settlementLayout==='onboarding-v2'}); game.rng=makeRng(raw.seed+'-runtime');
   game.player=freshPlayer(game.world.spawn); Object.assign(game.player,raw.player||{}); game.player.hunger=Math.max(0,Math.min(HUNGER_MAX,Number(game.player.hunger??HUNGER_START)));game.player.starveTick=0; game.player.fallStartY=game.player.y; game.player.onPlatform=false; game.player.dropThrough=0;
   game.inventory=sanitizeInventory(raw.inventory);
   game.inventoryLayout=normalizeInventoryLayout(raw.inventoryLayout,game.inventory,ITEMS);
   game.hotbar=ownedHotbar(raw.hotbar);
   if(raw.v!==VERSION&&game.world.relaxLegacySurfaceTrees)game.world.relaxLegacySurfaceTrees();
-  game.selected=Math.max(0,Math.min(HOTBAR_SIZE-1,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.trade=sanitizeTrade(raw.trade); game.cargoBundles=sanitizeCargoBundles(raw.cargoBundles); game.guard=sanitizeGuard(raw.guard); game.packbeast=sanitizePackbeast(raw.packbeast); game.raiderCooldown=0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0)),warehouse:sanitizeWarehouse(b.warehouse)})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
+  game.selected=Math.max(0,Math.min(HOTBAR_SIZE-1,Number(raw.selected)||0)); game.time=Number(raw.time)||.18; game.objectiveStage=Number(raw.objectiveStage)||0; game.trade=sanitizeTrade(raw.trade); game.cargoBundles=sanitizeCargoBundles(raw.cargoBundles); game.guard=sanitizeGuard(raw.guard); game.packbeast=sanitizePackbeast(raw.packbeast); game.raiderCooldown=0; game.worldProgress=raw.worldProgress&&typeof raw.worldProgress==='object'?{biomesVisited:Array.isArray(raw.worldProgress.biomesVisited)?raw.worldProgress.biomesVisited:[],relicBiomes:Array.isArray(raw.worldProgress.relicBiomes)?raw.worldProgress.relicBiomes:[],evolution:Math.max(0,Number(raw.worldProgress.evolution)||0)}:{biomesVisited:[],relicBiomes:[],evolution:0}; game.infrastructure=raw.infrastructure&&typeof raw.infrastructure==='object'?{beacons:Array.isArray(raw.infrastructure.beacons)?raw.infrastructure.beacons.filter(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)).slice(0,8).map(b=>({x:b.x,y:b.y,createdAt:Number(b.createdAt)||0,supply:Math.min(MAX_BEACON_SUPPLY,Math.max(0,Number(b.supply)||0)),warehouse:sanitizeWarehouse(b.warehouse)})):[]}:{beacons:[]}; game.nightsSurvived=Math.max(0,Number(raw.nightsSurvived)||0); game.outpostReady=!!raw.outpostReady; game.nightState='init'; game.nightSurge=0; game.discoveries=Array.isArray(raw.discoveries)?raw.discoveries:[]; seedOnboardingFromSave(raw); game.guardianDefeated=raw.guardianDefeated&&typeof raw.guardianDefeated==='object'?raw.guardianDefeated:{}; game.openedChestCount=Math.max(0,Number(raw.openedChestCount)||0); game.campRespawn=raw.campRespawn&&Number.isFinite(raw.campRespawn.x)&&Number.isFinite(raw.campRespawn.y)?raw.campRespawn:null; game.forgePlaced=!!raw.forgePlaced; game.forgeActive=!!raw.forgeActive; game.forgeProgress=0; game.bossActive=!!raw.bossActive; game.bossDefeated=!!raw.bossDefeated; game.completed=!!raw.completed; game.campBindTimer=0;
   game.frontier=sanitizeFrontierSimulation(raw.frontier,{seed:game.seed,settlements:game.world.settlements||[],day:game.nightsSurvived});resetDiagnostics();
   game.enemies=[]; game.drops=[]; game.projectiles=[]; game.enemyProjectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=raw.v!==VERSION; startWorldUi(); resumeRiftEncounter(); if(game.completed){$('#victoryScreen').classList.remove('hidden');game.uiOpen=true;}
 }
 function startNewWorld(seed) {
-  game.seed=String(seed||seedNow()).slice(0,32); game.world=new World(game.seed); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
+  game.seed=String(seed||seedNow()).slice(0,32); game.settlementLayout='onboarding-v2'; game.world=new World(game.seed,null,{nearSpawnCapital:true}); game.rng=makeRng(game.seed+'-runtime'); game.player=freshPlayer(game.world.spawn);
   resetDiagnostics();game.inventory=freshInventory(); game.inventoryLayout=Array.from({length:INVENTORY_SLOT_COUNT},()=>''); game.projectiles=[]; game.enemyProjectiles=[]; game.hotbar=[...HOTBAR_DEFAULT]; game.selected=0; game.worldProgress={biomesVisited:[],relicBiomes:[],evolution:0}; game.trade=freshTrade(); game.frontier=createFrontierSimulation(game.seed,game.world.settlements||[],0); game.cargoBundles=[]; game.guard=null; game.packbeast=null; game.raiderCooldown=0; game.infrastructure={beacons:[]}; game.time=.18; game.objectiveStage=0; game.discoveries=[]; game.guardianDefeated={}; game.openedChestCount=0; game.campRespawn=null; game.nightsSurvived=0; game.outpostReady=false; game.nightState='init'; game.nightSurge=0; game.forgePlaced=false; game.forgeActive=false; game.forgeProgress=0; game.bossActive=false; game.bossDefeated=false; game.completed=false; game.campBindTimer=0; game.enemies=[]; game.drops=[]; game.projectiles=[]; game.fx={particles:[],shake:0}; game.relicScanCd=0; game.relicHint=null; game.running=true; game.saveDirty=true; startWorldUi(); saveGame(false);
   toast(tr('新世界已生成：先解决食物，再收集青芯木','New world generated: secure food, then gather Greenheart Wood'));
 }
@@ -1325,24 +1327,38 @@ function updateWorldRhythm(dt){
   }
 }
 
+function milestoneKey(id){return `milestone:${id}`;}
+function hasMilestone(id){return game.discoveries.includes(milestoneKey(id));}
+function markMilestone(id){const key=milestoneKey(id);if(game.discoveries.includes(key))return false;game.discoveries.push(key);game.saveDirty=true;updateObjective();return true;}
+function seedOnboardingMilestone(id){const key=milestoneKey(id);if(!game.discoveries.includes(key))game.discoveries.push(key);}
+function seedOnboardingFromSave(raw){const oldStage=Math.max(0,Number(raw?.objectiveStage)||0),trade=raw?.trade||{},beacons=raw?.infrastructure?.beacons||[];if(oldStage>=2||Number(raw?.inventory?.workbench)>0)seedOnboardingMilestone('crafted-workbench');if(oldStage>=3||['wood_pick','stone_pick','copper_pick','iron_pick','delver_pick'].some(id=>Number(raw?.inventory?.[id])>0))seedOnboardingMilestone('crafted-pick');if(beacons.length)seedOnboardingMilestone('first-beacon');const settlementSale=Object.keys(trade.sold||{}).some(key=>String(key).startsWith('settlement:'));if(settlementSale||Number(trade.contractsCompleted)>0){seedOnboardingMilestone('first-settlement');seedOnboardingMilestone('first-market');}if(trade.contract||Number(trade.contractsCompleted)>0)seedOnboardingMilestone('first-contract');if(Number(trade.contractsCompleted)>0)seedOnboardingMilestone('cross-region-delivery');}
+function onboardingCargoReady(){if(Object.keys(TRADE_GOODS).some(id=>availableCargoCount(id)>0))return true;return (game.infrastructure?.beacons||[]).some(b=>Object.values(b.warehouse||{}).some(n=>Number(n)>0));}
+function onboardingSettlement(){return nearestSettlement(game.player?.x||game.world?.spawn?.x||0,game.player?.y||game.world?.spawn?.y||0);}
+function onboardingDirection(site){if(!site||!game.player)return '';const dx=site.x-game.player.x,arrow=Math.abs(dx)<3?'•':dx>0?'→':'←';return `${arrow} ${Math.ceil(Math.abs(dx))}m`;}
+
 function updateObjective() {
-  let stage=0;
-  if(count('wood')>=4)stage=1;
-  if(count('workbench')>=1)stage=2;
-  if(['wood_pick','stone_pick','copper_pick','iron_pick','delver_pick'].some(id=>count(id)>0))stage=3;
-  if(count('copper_ore')>=2||count('copper_bar')>=1||count('copper_pick')>0)stage=4;
-  if(count('copper_pick')>0)stage=5;
-  if(count('iron_ore')>=2||count('iron_bar')>=1||count('iron_pick')>0)stage=6;
-  if(count('iron_pick')>0)stage=7;
-  if(count('crystal')>0)stage=8;
-  if(count('star_forge')>0||game.forgePlaced)stage=9;
-  if(game.forgeActive)stage=10;
-  if(game.bossDefeated)stage=11;
-  if(game.completed)stage=12;
+  const hasWorkbench=hasMilestone('crafted-workbench')||count('workbench')>0,hasPick=hasMilestone('crafted-pick')||['wood_pick','stone_pick','copper_pick','iron_pick','delver_pick'].some(id=>count(id)>0),hasMeal=hasMilestone('first-meal'),settlementSeen=hasMilestone('first-settlement'),marketSeen=hasMilestone('first-market'),beaconReady=(game.infrastructure?.beacons||[]).length>0,cargoReady=onboardingCargoReady(),contract=activeTransportContract(),routeDone=(game.trade?.contractsCompleted||0)>0||hasMilestone('cross-region-delivery');
+  let stage=0,zh='',en='';
+  if(!hasWorkbench){stage=0;zh=count('wood')>=4?'把青芯木加工成木板 → 制作第一张工匠台':'收集青芯木与纤维 → 准备第一张工匠台';en=count('wood')>=4?'Turn Greenheart Wood into planks → craft a Craft Table':'Gather Greenheart Wood and fiber → prepare a Craft Table';}
+  else if(!hasPick){stage=1;zh='制作第一把镐 → 石料、火堆与食物都从这里开始';en='Craft your first pick → stone, a fire pit, and food come next';}
+  else if(!hasMeal){const meat=count('raw_meat')+count('trail_ration');stage=2;zh=meat>0?'饥饿时进食 → 鲜肉可应急，熔火堆能烤成旅行口粮':'制作木刃并猎取棘鬃兽 → 获取鲜肉；饥饿会影响远行';en=meat>0?'Eat when hungry → raw meat works, an Ember Pit makes better trail rations':'Craft a wooden blade and hunt a Bramble Boar → secure meat for travel';}
+  else if(!settlementSeen){const site=onboardingSettlement(),where=site?`${settlementName(site,'zh')} ${onboardingDirection(site)}`:'附近聚落';stage=3;zh=`食物已解决 → 前往 ${where}，看看这个世界需要什么`;en=`Food secured → reach ${site?settlementName(site,'en')+' '+onboardingDirection(site):'a nearby settlement'} and see what the world needs`;}
+  else if(!marketSeen){stage=4;zh='靠近聚落按 E / 行囊 → 打开「贸易」，查看实时短缺';en='At the settlement press E / Pack → Trade and inspect its live shortage';}
+  else if(!beaconReady){stage=5;zh='制作并放置边境路标 → 建立你的第一处货站';en='Craft and place a Frontier Beacon → establish your first depot';}
+  else if(!cargoReady){stage=6;zh='在路标旁放工匠台 → 贸易页生产或采购第一批本地标准货';en='Put a Craft Table by the beacon → produce or buy your first local cargo';}
+  else if(!contract&&!routeDone){stage=7;zh='打开路标贸易页 → 接取一份指向真实短缺的运输委托';en='Open beacon Trade → accept a transport contract driven by a real shortage';}
+  else if(contract){const site=transportContractSite(contract),name=site?settlementName(site,lang):tr('目标聚落','destination'),dist=site?Math.ceil(Math.abs(site.x-(game.player?.x||0))):Math.ceil(contract.distance||0);stage=8;zh=`运输 ${itemName(contract.goodId,'zh')} ${contract.delivered}/${contract.quantity} → ${site?settlementName(site,'zh'):'目标聚落'} · ${dist}m`;en=`Haul ${itemName(contract.goodId,'en')} ${contract.delivered}/${contract.quantity} → ${site?settlementName(site,'en'):'destination'} · ${dist}m`;}
+  else if(!routeDone){stage=8;zh='把标准货送进聚落真实库存 → 完成第一笔跨区交付';en='Deliver standardized cargo into real settlement stock → finish your first route';}
+  else if(count('copper_ore')<2&&count('copper_bar')<1&&count('copper_pick')<1){stage=9;zh='第一条商路已跑通 → 下到浅层洞带寻找赤铜';en='First trade route established → descend into the shallow caves for copper';}
+  else if(count('copper_pick')<1){stage=10;zh='熔炼赤铜 → 打造赤铜镐，扩大探索半径';en='Smelt copper → forge a Copper Pick and expand your reach';}
+  else if(count('iron_pick')<1){stage=11;zh='进入冷铁深层 → 升级冷铁装备';en='Reach the Cold-Iron Deep → upgrade to cold-iron gear';}
+  else if(count('crystal')<1){stage=12;zh='寻找星晶裂隙 → 带回第一块星晶';en='Seek the Starshard Rift → return with your first Star Crystal';}
+  else if(count('star_forge')<1&&!game.forgePlaced){stage=13;zh='打造星核炉 → 带它深入星晶裂隙';en='Build a Starcore Forge → carry it into the Starshard Rift';}
+  else if(!game.forgeActive){stage=14;zh='在裂隙点燃星核炉 → 做好迎战准备';en='Ignite the Starcore Forge in the rift → brace for impact';}
+  else if(!game.bossDefeated){stage=15;zh='击败裂隙巨兽 → 改变荒境的终局';en='Defeat the Rift Behemoth → change the frontier’s endgame';}
+  else {stage=16;zh='荒境熔炉已点亮 → 继续经营商路、介入战争与改变势力格局';en='Wildforge is lit → keep trading, intervening in wars, and reshaping the frontier';}
   if(stage!==game.objectiveStage){game.objectiveStage=stage;game.saveDirty=true;}
-  const copyZh=['砍取青芯木 → 收集至少 4 块','制造木板 → 做出第一张工匠台','制作一把青芯镐 → 开始追踪赤铜','下到浅层洞带 → 采到赤铜矿','熔炼赤铜 → 为下一把镐准备材料','打造赤铜镐 → 前往冷铁深层','采集冷铁 → 升级深层装备','打造冷铁镐 → 寻找星晶裂隙','带回第一块星晶 → 深层循环已打通','打造星核炉 → 带它深入星晶裂隙','在裂隙点燃星核炉 → 做好迎战准备','击败裂隙巨兽 → 为荒境锻造新的回声','荒境熔炉已点亮 → 可以继续探索这个世界'];
-  const copyEn=['Gather at least 4 Greenheart Wood','Make planks → craft your first Craft Table','Craft a Greenheart Pick → start hunting copper','Reach the shallow caves → mine red copper','Smelt red copper → prepare the next pick','Forge a Copper Pick → descend for cold iron','Gather cold iron → upgrade deep gear','Forge a Cold-Iron Pick → seek the Starshard Rift','Return with your first Star Crystal → deep loop online','Build a Starcore Forge → carry it into the Starshard Rift','Ignite the Starcore Forge in the rift → brace for impact','Defeat the Rift Behemoth → forge a new echo for the frontier','Wildforge is lit → the world remains yours to explore'];
-  $('#objectiveText').textContent=(lang==='zh'?copyZh:copyEn)[Math.min(stage,8)];
+  const el=$('#objectiveText');if(el)el.textContent=lang==='zh'?zh:en;
 }
 function relicArrow(dx,dy){if(Math.abs(dx)>Math.abs(dy)*1.45)return dx>0?'→':'←';if(Math.abs(dy)>Math.abs(dx)*1.45)return dy>0?'↓':'↑';return dy>0?(dx>0?'↘':'↙'):(dx>0?'↗':'↖');}
 function updateRelicHint(dt){
@@ -1411,7 +1427,7 @@ function transportOfferForMarket(market=nearbyTradePost()){
 }
 function acceptTransportContract(){
   syncTradeDay();const market=nearbyTradePost(),offer=transportOfferForMarket(market);if(!market||!offer)return;
-  game.trade.contract={...offer,acceptedDay:game.trade.day,deadlineDay:game.trade.day+TRANSPORT_CONTRACT_DAYS,delivered:0};game.saveDirty=true;renderTrade();updateHud();
+  game.trade.contract={...offer,acceptedDay:game.trade.day,deadlineDay:game.trade.day+TRANSPORT_CONTRACT_DAYS,delivered:0};game.saveDirty=true;markMilestone('first-contract');updateObjective();renderTrade();updateHud();
   const site=transportContractSite(game.trade.contract),name=site?settlementName(site,lang):tr('目标聚落','destination');toast(tr(`运输委托已接 · ${itemName(offer.goodId,'zh')} ×${offer.quantity} → ${name}`,`Contract accepted · ${itemName(offer.goodId,'en')} ×${offer.quantity} → ${name}`));
 }
 function matchingTransportContract(site,id){const c=activeTransportContract();return c&&site?.id===c.destinationId&&id===c.goodId?c:null;}
@@ -1477,7 +1493,7 @@ function canProduceTradeGood(id,market=nearbyTradePost()){
   const recipe=TRADE_PRODUCTION[id];if(!market||!recipe||recipe.home!==market.biome.id||!nearStation('workbench'))return false;const used=Number(game.trade.produced[productionKey(market,id)]||0);return used<TRADE_DAILY_PRODUCTION_CAP&&warehouseUnits(market.beacon)<WAREHOUSE_CAP&&Object.entries(recipe.need).every(([mat,n])=>count(mat)>=n);
 }
 function produceTradeGood(id){
-  syncTradeDay();const market=nearbyTradePost(),recipe=TRADE_PRODUCTION[id];if(!market||!recipe||recipe.home!==market.biome.id)return;if(!nearStation('workbench'))return toast(tr('生产货物需要路标附近有工匠台','Cargo production needs a Craft Table beside the trade post'));const key=productionKey(market,id),used=Number(game.trade.produced[key]||0);if(used>=TRADE_DAILY_PRODUCTION_CAP)return toast(tr('该据点今日生产额已满','This depot has reached today’s production limit'));if(warehouseUnits(market.beacon)>=WAREHOUSE_CAP)return toast(tr('据点仓库已满','Depot warehouse is full'));if(!Object.entries(recipe.need).every(([mat,n])=>count(mat)>=n))return toast(tr('生产原料不足','Not enough production materials'));for(const [mat,n] of Object.entries(recipe.need))consume(mat,n);warehouseAdd(market.beacon,id,1);game.trade.produced[key]=used+1;game.saveDirty=true;renderTrade();renderInventory();renderHotbar();toast(tr(`生产完成 · ${itemName(id,'zh')} 已入库`,`Produced · ${itemName(id,'en')} stored at depot`));
+  syncTradeDay();const market=nearbyTradePost(),recipe=TRADE_PRODUCTION[id];if(!market||!recipe||recipe.home!==market.biome.id)return;if(!nearStation('workbench'))return toast(tr('生产货物需要路标附近有工匠台','Cargo production needs a Craft Table beside the trade post'));const key=productionKey(market,id),used=Number(game.trade.produced[key]||0);if(used>=TRADE_DAILY_PRODUCTION_CAP)return toast(tr('该据点今日生产额已满','This depot has reached today’s production limit'));if(warehouseUnits(market.beacon)>=WAREHOUSE_CAP)return toast(tr('据点仓库已满','Depot warehouse is full'));if(!Object.entries(recipe.need).every(([mat,n])=>count(mat)>=n))return toast(tr('生产原料不足','Not enough production materials'));for(const [mat,n] of Object.entries(recipe.need))consume(mat,n);warehouseAdd(market.beacon,id,1);game.trade.produced[key]=used+1;game.saveDirty=true;updateObjective();renderTrade();renderInventory();renderHotbar();toast(tr(`生产完成 · ${itemName(id,'zh')} 已入库`,`Produced · ${itemName(id,'en')} stored at depot`));
 }
 function loadWarehouseCargo(id){
   const market=nearbyTradePost();if(!market||warehouseCount(market.beacon,id)<=0)return;if(!cargoRoom(id,1))return toast(tr(`货运已满 ${cargoLoad()}/${cargoCapacity()} · 制作货运背架可扩容`,`Cargo full ${cargoLoad()}/${cargoCapacity()} · craft a Freight Frame to expand capacity`));if(!warehouseTake(market.beacon,id,1))return;addItem(id,1);renderTrade();renderInventory();renderHotbar();
@@ -1497,7 +1513,7 @@ function sellSettlementGood(id){
   if(used>=cap)return toast(tr('这个聚落今日已经收够这种货','This settlement has enough of that cargo for today'));
   const base=settlementBaseSellPrice(id,market),price=settlementSellPrice(base,market.site,id,game.trade.day,reliability),quote=settlementFrontierQuote(market.site,id);
   if(quote.affordable<price)return toast(tr('聚落金库暂时不足 · 等待商路回款或换个市场','Settlement treasury is short · wait for trade income or use another market'));
-  if(!consumeCargoUnit(id))return;recordFrontierDelivery(game.frontier,market.site,id,1,price);game.trade.credits+=price;game.trade.sold[key]=used+1;game.trade.volume++;game.trade.turnover+=price;
+  if(!consumeCargoUnit(id))return;recordFrontierDelivery(game.frontier,market.site,id,1,price);game.trade.credits+=price;game.trade.sold[key]=used+1;game.trade.volume++;game.trade.turnover+=price;if(good.home!==market.site.biome)markMilestone('cross-region-delivery');
   const dailyBonus=priority&&used+1===demand.quantity?demand.completionBonus:0;if(dailyBonus){game.trade.credits+=dailyBonus;game.trade.turnover+=dailyBonus;adjustSettlementReliability(market.site,1);}const contractReward=deliverTransportContract(market.site,id);
   if(contractReward||dailyBonus){const total=contractReward+dailyBonus,label=contractReward&&dailyBonus?tr('运输委托 + 聚落订单完成','Transport contract + settlement order complete'):contractReward?tr('运输委托完成','Transport contract complete'):tr('聚落订单完成','Settlement order complete');toast(`${label} · ${tr('额外奖励','bonus')} ◆${total} · ${tr('可靠度','Reliability')} ${settlementReliability(market.site)}/${SETTLEMENT_MAX_RELIABILITY}`);}
   game.saveDirty=true;renderTrade();renderInventory();renderHotbar();updateHud();
@@ -1515,7 +1531,7 @@ function registerBeacon(x,y){
   const key=beaconKey(x,y),list=game.infrastructure?.beacons||[];
   if(list.some(b=>beaconKey(b.x,b.y)===key))return false;
   if(list.length>=8){toast(tr('边境路标已达上限（8处），先拆除旧路标','Beacon network is full (8). Remove an old beacon first'));return false;}
-  list.push({x:x+.5,y:y+.5,createdAt:Math.floor(Date.now()/1000),supply:0,warehouse:{}});game.infrastructure={beacons:list};game.saveDirty=true;return true;
+  list.push({x:x+.5,y:y+.5,createdAt:Math.floor(Date.now()/1000),supply:0,warehouse:{}});game.infrastructure={beacons:list};game.saveDirty=true;markMilestone('first-beacon');updateObjective();return true;
 }
 function removeBeacon(x,y){const key=beaconKey(x,y);const list=(game.infrastructure?.beacons||[]).filter(b=>beaconKey(b.x,b.y)!==key);game.infrastructure={beacons:list};game.saveDirty=true;}
 function replenishBeaconSupplies(){
@@ -1567,6 +1583,7 @@ function updateProgression(dt) {
   const zone=currentDepthZone();
   const biomeId=game.world.biome(game.player.x).id;
   if(!(game.worldProgress?.biomesVisited||[]).includes(biomeId))markBiomeVisited(biomeId);
+  const firstTown=nearestSettlement(game.player.x,game.player.y,18);if(firstTown&&markMilestone('first-settlement'))toast(tr(`抵达 ${settlementName(firstTown,'zh')} · 这里的库存与需求会真实变化`,`Reached ${settlementName(firstTown,'en')} · its stock and demand change with the world`));
   if(zone.id!=='surface'&&!game.discoveries.includes(zone.id)){
     game.discoveries.push(zone.id);game.saveDirty=true;
     toast(tr(`发现区域 · ${zone.zh}`,`Region discovered · ${zone.en}`));
@@ -1901,7 +1918,7 @@ function primaryUseMode(){
   if(item?.tile&&count(id)>0){const t=baseTarget();if(targetInReach(t.x,t.y)&&game.world.get(t.x,t.y)===TILE.AIR)return 'place';}
   return 'mine';
 }
-function eatSelectedFood(){const id=selectedId(),item=ITEMS[id];if(item?.kind!=='food'||count(id)<1||game.attackCd>0)return false;const p=game.player;if(p.hunger>=HUNGER_MAX-1)return toast(tr('现在还不饿','You are not hungry enough yet'));consume(id,1);p.hunger=Math.min(HUNGER_MAX,p.hunger+Math.max(1,Number(item.nourish)||1));p.starveTick=0;game.attackCd=.35;game.saveDirty=true;renderHotbar();renderInventory();toast(tr(`进食 · ${itemName(id,'zh')} · 饱食 ${Math.round(p.hunger)}/${HUNGER_MAX}`,`Ate ${itemName(id,'en')} · Hunger ${Math.round(p.hunger)}/${HUNGER_MAX}`));return true;}
+function eatSelectedFood(){const id=selectedId(),item=ITEMS[id];if(item?.kind!=='food'||count(id)<1||game.attackCd>0)return false;const p=game.player;if(p.hunger>=HUNGER_MAX-1)return toast(tr('现在还不饿','You are not hungry enough yet'));consume(id,1);p.hunger=Math.min(HUNGER_MAX,p.hunger+Math.max(1,Number(item.nourish)||1));p.starveTick=0;game.attackCd=.35;game.saveDirty=true;markMilestone('first-meal');renderHotbar();renderInventory();toast(tr(`进食 · ${itemName(id,'zh')} · 饱食 ${Math.round(p.hunger)}/${HUNGER_MAX}`,`Ate ${itemName(id,'en')} · Hunger ${Math.round(p.hunger)}/${HUNGER_MAX}`));return true;}
 function updateSurvival(dt){const p=game.player;if(!p)return;p.hunger=Math.max(0,p.hunger-HUNGER_DRAIN_PER_SEC*dt);if(p.hunger<=0){p.starveTick=(p.starveTick||0)+dt;if(p.starveTick>=STARVATION_DAMAGE_INTERVAL){p.starveTick=0;hurtPlayer(2,'starvation');}}else p.starveTick=0;}
 function usePrimary(dt){
   const mode=primaryUseMode();
@@ -2020,7 +2037,7 @@ function canCraft(r){return stationAvailable(r.station)&&Object.entries(r.need).
 function craft(r) {
   if(!canCraft(r)){toast(r.station&&!stationAvailable(r.station)?tr('需要靠近对应制造设施','Move closer to the required crafting station'):tr('材料不足','Not enough materials'));return;}
   if(!canStoreItem(r.out.id,r.out.n)){toast(tr('物品栏没有足够空间','Not enough inventory space'));return;}
-  for(const [id,n] of Object.entries(r.need))consume(id,n);addItem(r.out.id,r.out.n);if(['pick','weapon'].includes(ITEMS[r.out.id]?.kind))game.hotbar[game.selected]=r.out.id;renderInventory();renderCraft();renderHotbar();toast(r.out.id==='beacon'?tr('边境路标完成 · 建站后可采购本地货，再运往异地出售','Frontier Beacon ready · establish a post, load local cargo, then sell it abroad'):`${tr('制造','Crafted')} · ${itemName(r.out.id,lang)} ×${r.out.n}`);
+  for(const [id,n] of Object.entries(r.need))consume(id,n);addItem(r.out.id,r.out.n);if(r.out.id==='workbench')markMilestone('crafted-workbench');if(ITEMS[r.out.id]?.kind==='pick')markMilestone('crafted-pick');if(r.out.id==='campfire')markMilestone('crafted-campfire');if(r.out.id==='beacon')markMilestone('crafted-beacon');if(['pick','weapon'].includes(ITEMS[r.out.id]?.kind))game.hotbar[game.selected]=r.out.id;renderInventory();renderCraft();renderHotbar();toast(r.out.id==='beacon'?tr('边境路标完成 · 建站后可采购本地货，再运往异地出售','Frontier Beacon ready · establish a post, load local cargo, then sell it abroad'):`${tr('制造','Crafted')} · ${itemName(r.out.id,lang)} ×${r.out.n}`);
 }
 function renderInventory() {
   renderInventorySlots({view:$('#inventoryView'),inventory:game.inventory,layout:game.inventoryLayout,items:ITEMS,itemName,lang,glyph:GLYPH,selectedId,onEquip:equipToHotbar,onMove:moveInventoryItem});
@@ -2035,13 +2052,14 @@ function renderCraft() {
 }
 function renderSettlementTrade(view,market){
   const site=market.site,reliability=settlementReliability(site),preference=settlementLongTermPreference(site),demand=settlementDailyDemand(site,game.trade.day,reliability),name=settlementName(site,lang),soldPriority=settlementSold(site,demand.goodId),remaining=settlementDemandRemaining(site,game.trade.day,soldPriority,reliability),load=cargoLoad(),cap=cargoCapacity(),beast=activePackbeast(),beastLoad=packbeastUnits(),contract=activeTransportContract(),contractSite=transportContractSite(contract),contractHere=!!contract&&contract.destinationId===site.id,simTown=frontierSettlement(game.frontier,site);
+  const liveNeeds=Object.keys(TRADE_GOODS).map(id=>{const q=settlementFrontierQuote(site,id);return {id,q,ratio:q.shortage/Math.max(1,q.target)};}).sort((a,b)=>b.ratio-a.ratio),liveNeed=liveNeeds[0],liveNeedCard=liveNeed?`<div class="settlement-order live-shortage"><span>${tr('实时短缺','LIVE SHORTAGE')}</span><b>${itemName(liveNeed.id,lang)} · ${tr('缺口','Shortage')} ${Math.ceil(liveNeed.q.shortage)}</b><small>${tr(`真实库存 ${Math.round(liveNeed.q.stock)}/${Math.round(liveNeed.q.target)} · 市场 ×${liveNeed.q.multiplier.toFixed(2)}`,`Live stock ${Math.round(liveNeed.q.stock)}/${Math.round(liveNeed.q.target)} · market ×${liveNeed.q.multiplier.toFixed(2)}`)}</small></div>`:'';
   const contractCard=contract?`<div class="transport-contract ${contractHere?'active-destination':''}"><div><span>${tr('运输委托','Transport contract')}</span><b>${contractSite?settlementName(contractSite,lang):tr('目标聚落','Destination')} · ${itemName(contract.goodId,lang)} ×${contract.quantity}</b><small>${contractHere?tr(`已交付 ${contract.delivered}/${contract.quantity} · 剩 ${contractDaysLeft(contract,game.trade.day)} 日`,`Delivered ${contract.delivered}/${contract.quantity} · ${contractDaysLeft(contract,game.trade.day)} days left`):tr(`目标距此 ${Math.ceil(Math.abs((contractSite?.x||contract.destinationX)-site.x))}m · 剩 ${contractDaysLeft(contract,game.trade.day)} 日`,`Destination ${Math.ceil(Math.abs((contractSite?.x||contract.destinationX)-site.x))}m away · ${contractDaysLeft(contract,game.trade.day)} days left`)}</small></div><strong>+◆${contract.reward}</strong></div>`:'';
-  const rows=Object.entries(TRADE_GOODS).map(([id,good])=>{const priority=id===demand.goodId,preferred=id===preference,local=good.home===site.biome,contractMatch=matchingTransportContract(site,id),used=settlementSold(site,id),baseLimit=priority?demand.quantity:SETTLEMENT_GENERAL_DEMAND_CAP,contractRemaining=contractMatch?Math.max(0,contractMatch.quantity-contractMatch.delivered):0,limit=contractMatch?Math.max(baseLimit,used+contractRemaining):baseLimit,left=Math.max(0,limit-used),quote=settlementFrontierQuote(site,id),base=settlementBaseSellPrice(id,market),price=settlementSellPrice(base,site,id,game.trade.day,reliability),owned=availableCargoCount(id),beastHeld=packbeastCount(id),detail=contractMatch?tr(`运输委托 · ${contractMatch.delivered}/${contractMatch.quantity}`,`TRANSPORT CONTRACT · ${contractMatch.delivered}/${contractMatch.quantity}`):priority?tr(`今日急需 · 溢价 +${Math.round((demand.premium-1)*100)}%`,`TODAY'S ORDER · +${Math.round((demand.premium-1)*100)}% premium`):preferred?tr(`长期偏好 · 稳定溢价 +${Math.round((SETTLEMENT_PREFERENCE_PREMIUM-1)*100)}%`,`LONG-TERM PREFERENCE · +${Math.round((SETTLEMENT_PREFERENCE_PREMIUM-1)*100)}% stable premium`):local?tr('本地产物 · 低价消化','Local surplus · low-value intake'):tr('常规异地需求','Regular imported demand'),marketState=tr(`真实库存 ${Math.round(quote.stock)}/${Math.round(quote.target)} · 市场 ×${quote.multiplier.toFixed(2)}`,`Live stock ${Math.round(quote.stock)}/${Math.round(quote.target)} · market ×${quote.multiplier.toFixed(2)}`),cashOk=quote.affordable>=price;return `<div class="trade-row ${contractMatch?'contract-cargo':priority?'priority-demand':preferred?'preferred-demand':local?'export':'demand'}"><div class="trade-good"><b>${GLYPH[id]||'◆'} ${itemName(id,lang)}</b><small>${detail}</small><small class="market-live">${marketState}</small></div><div class="trade-owned">${tr('可交付','Deliverable')} ${owned}${beast?` · ${tr('驮','Beast')} ${beastHeld}`:''}</div><div class="trade-actions"><button data-settlement-sell="${id}" ${owned<=0||left<=0||!cashOk?'disabled':''}>${cashOk?tr('交付','Deliver'):tr('金库不足','Treasury low')} ◆${price}<small>${left}</small></button></div></div>`;}).join('');
+  const rows=Object.entries(TRADE_GOODS).map(([id,good])=>{const priority=id===demand.goodId,preferred=id===preference,local=good.home===site.biome,contractMatch=matchingTransportContract(site,id),used=settlementSold(site,id),baseLimit=priority?demand.quantity:SETTLEMENT_GENERAL_DEMAND_CAP,contractRemaining=contractMatch?Math.max(0,contractMatch.quantity-contractMatch.delivered):0,limit=contractMatch?Math.max(baseLimit,used+contractRemaining):baseLimit,left=Math.max(0,limit-used),quote=settlementFrontierQuote(site,id),base=settlementBaseSellPrice(id,market),price=settlementSellPrice(base,site,id,game.trade.day,reliability),owned=availableCargoCount(id),beastHeld=packbeastCount(id),detail=contractMatch?tr(`运输委托 · ${contractMatch.delivered}/${contractMatch.quantity}`,`TRANSPORT CONTRACT · ${contractMatch.delivered}/${contractMatch.quantity}`):priority?tr(`今日采购订单 · 溢价 +${Math.round((demand.premium-1)*100)}%`,`TODAY'S ORDER · +${Math.round((demand.premium-1)*100)}% premium`):preferred?tr(`长期偏好 · 稳定溢价 +${Math.round((SETTLEMENT_PREFERENCE_PREMIUM-1)*100)}%`,`LONG-TERM PREFERENCE · +${Math.round((SETTLEMENT_PREFERENCE_PREMIUM-1)*100)}% stable premium`):local?tr('本地产物 · 低价消化','Local surplus · low-value intake'):tr('常规异地需求','Regular imported demand'),marketState=tr(`真实库存 ${Math.round(quote.stock)}/${Math.round(quote.target)} · 市场 ×${quote.multiplier.toFixed(2)}`,`Live stock ${Math.round(quote.stock)}/${Math.round(quote.target)} · market ×${quote.multiplier.toFixed(2)}`),cashOk=quote.affordable>=price;return `<div class="trade-row ${contractMatch?'contract-cargo':priority?'priority-demand':preferred?'preferred-demand':local?'export':'demand'}"><div class="trade-good"><b>${GLYPH[id]||'◆'} ${itemName(id,lang)}</b><small>${detail}</small><small class="market-live">${marketState}</small></div><div class="trade-owned">${tr('可交付','Deliverable')} ${owned}${beast?` · ${tr('驮','Beast')} ${beastHeld}`:''}</div><div class="trade-actions"><button data-settlement-sell="${id}" ${owned<=0||left<=0||!cashOk?'disabled':''}>${cashOk?tr('交付','Deliver'):tr('金库不足','Treasury low')} ◆${price}<small>${left}</small></button></div></div>`;}).join('');
   const memory=`<div class="settlement-memory"><div><span>${tr('长期偏好','Long-term preference')}</span><b>${itemName(preference,lang)} · +${Math.round((SETTLEMENT_PREFERENCE_PREMIUM-1)*100)}%</b></div><div><span>${tr('可靠度','Reliability')}</span><b>${settlementReliabilityPips(site)} ${reliability}/${SETTLEMENT_MAX_RELIABILITY}</b></div><small>${tr('商誉仍记录你与聚落的长期关系；实时库存、商队与生态则决定当前市场压力。','Standing remains your long-term relationship; live stock, caravans and ecology now shape current market pressure.')}</small></div>`;
   const simStrip=simTown?`<div class="logistics-strip frontier-live"><span>${tr('人口','Population')} <b>${simTown.population}</b></span><span>${tr('活力','Vitality')} <b>${Math.round(simTown.wellbeing)}</b></span><span>${tr('安全','Safety')} <b>${Math.round(simTown.safety)}</b></span><span>${tr('外交','Diplomacy')} <b>${settlementDiplomacySummary(site)}</b></span></div>`:'';
   const aidOptions=Object.keys(TRADE_GOODS).map(id=>{const q=settlementFrontierQuote(site,id);return {id,q,ratio:q.shortage/Math.max(1,q.target),owned:availableCargoCount(id)};}).sort((a,b)=>b.ratio-a.ratio),aid=aidOptions.find(x=>x.owned>0&&x.ratio>=.08)||aidOptions[0],aidVisible=!!aid&&(aid.ratio>=.22||settlementAtWar(site)||['weakened','collapsing'].includes(simTown?.status)),aidCard=aidVisible?`<div class="settlement-aid"><div><span>${settlementAtWar(site)?tr('战时支援','Wartime aid'):tr('紧急援助','Emergency aid')}</span><b>${itemName(aid.id,lang)} · ${tr('缺口','Shortage')} ${Math.ceil(aid.q.shortage)}</b><small>${tr('无偿交付会直接补入真实库存；每 3 次有效援助提升一次可靠度。','Donation enters real stock with no payment; every 3 effective aid deliveries improves reliability.')}</small></div><button data-settlement-aid="${aid.id}" ${aid.owned<=0||aid.ratio<.08?'disabled':''}>${tr('援助 1','Aid 1')} · ${tr('持有','Own')} ${aid.owned}</button></div>`:'';
   const packbeastPanel=beast?`<div class="packbeast-hire active"><div><span>${tr('苔背驮兽','Mossback Packbeast')}</span><b>${tr('驮载','Hold')} ${beastLoad}/${PACKBEAST_CAP} · HP ${Math.ceil(beast.hp)}/${beast.maxHp}</b><small>${beast.stranded?tr('驮兽已离队：回到它身边按 R / 货包键重新编队。','Packbeast is stranded: return to it and press R / Cargo to regroup.'):tr('驮兽货物不占用双手；整支商队货值仍会吸引劫徒。','Pack cargo leaves your hands free; total convoy value still attracts raiders.')}</small></div></div>`:`<div class="packbeast-hire"><button data-hire-packbeast ${reliability<PACKBEAST_MIN_RELIABILITY?'disabled':''}>${reliability<PACKBEAST_MIN_RELIABILITY?tr(`可靠度 ${PACKBEAST_MIN_RELIABILITY}/5 解锁驮兽`,`Unlock packbeast at ${PACKBEAST_MIN_RELIABILITY}/5 reliability`):tr(`签领苔背驮兽 ◆${PACKBEAST_HIRE_COST}`,`Acquire Mossback Packbeast ◆${PACKBEAST_HIRE_COST}`)}</button><small>${tr(`独立驮载 ${PACKBEAST_CAP} 件；双手可继续战斗，但驮兽会成为劫掠目标。`,`Separate ${PACKBEAST_CAP}-unit hold; your hands stay free, but the beast becomes a raid target.`)}</small></div>`;
-  view.innerHTML=`<div class="trade-head settlement-head"><div><b>⌂ ${name} · ${lang==='zh'?market.biome.zh:market.biome.en}</b><small>${tr('活体聚落市场 · 周边受保护','Living settlement market · protected perimeter')}</small></div><strong>◆ ${game.trade.credits}</strong></div>${simStrip}${memory}${aidCard}${packbeastPanel}${contractCard}<div class="settlement-order"><span>${tr('今日急需','Priority')}</span><b>${itemName(demand.goodId,lang)} ×${remaining}</b><small>${tr(`完成整单另奖 ◆${demand.completionBonus}`,`Complete the order for +◆${demand.completionBonus}`)}</small></div><div class="logistics-strip"><span>${tr('随身货运','Carried')} <b>${load}/${cap}</b></span><span>${tr('驮兽','Packbeast')} <b>${beast?beastLoad+'/'+PACKBEAST_CAP:tr('无','None')}</b></span><span>${tr('订单剩余','Order left')} <b>${remaining}</b></span><span>${tr('天气','Weather')} <b>${frontierWeatherName(game.frontier,lang)}</b></span></div><div class="trade-note">${tr('价格现在同时受库存、聚落生态与旧有商誉/急需影响。你交付的货物会真实进入这里的库存，AI 商队也会搬运同一批货。','Prices now combine live stock pressure with standing and daily orders. Your deliveries enter the same inventory used by autonomous caravans.')}</div><div class="trade-list">${rows}</div>`;
+  view.innerHTML=`<div class="trade-head settlement-head"><div><b>⌂ ${name} · ${lang==='zh'?market.biome.zh:market.biome.en}</b><small>${tr('活体聚落市场 · 周边受保护','Living settlement market · protected perimeter')}</small></div><strong>◆ ${game.trade.credits}</strong></div>${simStrip}${liveNeedCard}${memory}${aidCard}${packbeastPanel}${contractCard}<div class="settlement-order"><span>${tr('今日采购订单','Daily procurement')}</span><b>${itemName(demand.goodId,lang)} ×${remaining}</b><small>${tr(`完成整单另奖 ◆${demand.completionBonus}`,`Complete the order for +◆${demand.completionBonus}`)}</small></div><div class="logistics-strip"><span>${tr('随身货运','Carried')} <b>${load}/${cap}</b></span><span>${tr('驮兽','Packbeast')} <b>${beast?beastLoad+'/'+PACKBEAST_CAP:tr('无','None')}</b></span><span>${tr('订单剩余','Order left')} <b>${remaining}</b></span><span>${tr('天气','Weather')} <b>${frontierWeatherName(game.frontier,lang)}</b></span></div><div class="trade-note">${tr('价格现在同时受库存、聚落生态与旧有商誉/急需影响。你交付的货物会真实进入这里的库存，AI 商队也会搬运同一批货。','Prices now combine live stock pressure with standing and daily orders. Your deliveries enter the same inventory used by autonomous caravans.')}</div><div class="trade-list">${rows}</div>`;
   view.querySelector('[data-settlement-aid]')?.addEventListener('click',b=>aidSettlement(site,b.currentTarget.dataset.settlementAid));view.querySelector('[data-hire-packbeast]')?.addEventListener('click',hirePackbeast);view.querySelectorAll('[data-settlement-sell]').forEach(b=>b.onclick=()=>sellSettlementGood(b.dataset.settlementSell));
 }
 function renderTrade(){
@@ -2446,11 +2464,11 @@ $('#mobilePack').onclick=()=>{const tradeNode=nearbySettlementMarket()||nearbyTr
 
 function closePanels(){for(const id of ['inventoryPanel','menuPanel'])$('#'+id).classList.add('hidden');game.uiOpen=false;}
 function togglePanel(id){const panel=$('#'+id),willOpen=panel.classList.contains('hidden');closePanels();if(willOpen){panel.classList.remove('hidden');game.uiOpen=true;if(id==='inventoryPanel'){renderInventory();renderCraft();renderTrade();}}}
-function selectPanelTab(tab){$$('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));for(const [name,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',name!==tab);if(tab==='craft')renderCraft();if(tab==='trade')renderTrade();}
+function selectPanelTab(tab){$$('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));for(const [name,id] of [['inventory','inventoryView'],['craft','craftView'],['trade','tradeView']])$('#'+id).classList.toggle('hidden',name!==tab);if(tab==='craft')renderCraft();if(tab==='trade'){renderTrade();if(nearbySettlementMarket())markMilestone('first-market');}}
 $$('.panel-close').forEach(b=>b.onclick=()=>closePanels());
 $$('[data-tab]').forEach(btn=>btn.onclick=()=>selectPanelTab(btn.dataset.tab));
 $('#menuBtn').onclick=()=>togglePanel('menuPanel');$('#saveBtn').onclick=()=>saveGame(true);$('#menuSaveBtn').onclick=()=>saveGame(true);$('#controlsBtn').onclick=()=>$('#controlsCopy').classList.toggle('hidden');
-$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
+$('#newWorldBtn').onclick=()=>{if(confirm(tr('这会替换当前本地世界。继续？','This replaces the current local world. Continue?'))){for(const key of [SAVE_KEY,LEGACY_SAVE_KEY_0410,LEGACY_SAVE_KEY_0230,LEGACY_SAVE_KEY_0220,LEGACY_SAVE_KEY_0210,LEGACY_SAVE_KEY_0200,LEGACY_SAVE_KEY_0190,LEGACY_SAVE_KEY_0180,LEGACY_SAVE_KEY_0170,LEGACY_SAVE_KEY_0160,LEGACY_SAVE_KEY_0150,LEGACY_SAVE_KEY_0140,LEGACY_SAVE_KEY_0131,LEGACY_SAVE_KEY_0130,LEGACY_SAVE_KEY_0120,LEGACY_SAVE_KEY_0110,LEGACY_SAVE_KEY_0100,LEGACY_SAVE_KEY,LEGACY_SAVE_KEY_091,LEGACY_SAVE_KEY_090,LEGACY_SAVE_KEY_080,LEGACY_SAVE_KEY_070,LEGACY_SAVE_KEY_060,LEGACY_SAVE_KEY_OLD,LEGACY_SAVE_KEY_OLDER,LEGACY_SAVE_KEY_OLDEST])localStorage.removeItem(key);location.reload();}};
 $('#respawnBtn').onclick=respawn;
 $('#continueAfterVictory').onclick=()=>{$('#victoryScreen').classList.add('hidden');game.uiOpen=false;game.last=performance.now();};
 async function goFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();if(screen.orientation?.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch{}resize();}

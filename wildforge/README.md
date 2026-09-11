@@ -24,9 +24,9 @@
 
 Wildforge is an original browser-native 2D world-simulation sandbox designed landscape-first for desktop and touch devices. Mining, building, combat and physical travel are the player's language; ecology, production, trade, diplomacy, war and raiding form the persistent world underneath. A single world is intentionally limited to at most three major factions, with macro simulation and sparse local actors instead of dozens of roaming AI settlements.
 
-v0.41.0 is the current authoritative integration baseline. It preserves the mature v0.23 player-facing foundation while unifying survival, logistics, diplomacy, raids and sovereignty into one persistent world simulation. Multi-world traversal remains a later progression layer and is not part of the current single-world scope.
+v0.42.0 is the current authoritative integration baseline. It preserves the mature v0.23 player-facing foundation while unifying survival, logistics, diplomacy, raids and sovereignty into one persistent world simulation. Multi-world traversal remains a later progression layer and is not part of the current single-world scope.
 
-## v0.41.0 current integration build
+## v0.42.0 current integration build
 
 Core loop: Survive and stay fed → Gather local inputs → Build depots/routes → Observe faction shortages → Physically trade or intervene in conflict → Shift inventories, diplomacy and sovereignty → Reinvest and expand your influence.
 
@@ -73,7 +73,7 @@ The project may take genre-level inspiration from block sandbox and side-scrolli
 
 ## Source authority
 
-`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.41 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
+`src/game.js` owns live state mutation, runtime input, physics, crafting and persistence. `src/world.js` owns deterministic world generation/serialization. `src/data.js` is immutable content data. v0.42 keeps bounded presentation/tuning authority in `src/inventory-ui.js`, `src/combat-tuning.js`, and `src/surface-content.js`, while `src/settlement-economy.js` owns deterministic settlement demand calculations/naming and `src/transport-contracts.js` owns deterministic transport-offer calculations only. `inventory-ui.css` owns the inventory/hotbar skin. These modules do not own a second game state. No other game source root is imported.
 
 
 ## v0.20.0

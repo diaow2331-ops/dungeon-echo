@@ -10,31 +10,31 @@
     {
       "id": "strong-annexation",
       "seed": "WF-P0-ANNEX-01",
-      "worldFingerprint": "417d8a39f27d06892e0f",
+      "worldFingerprint": "67c4f00e56dcb8bf8356",
       "frontierFingerprint": "c759b30373c92282c6bd"
     },
     {
       "id": "wartime-aid",
       "seed": "WF-P0-AID-01",
-      "worldFingerprint": "e1710e33b47311064d46",
+      "worldFingerprint": "7673e09bfdbf8d9d22f3",
       "frontierFingerprint": "7850164d3445411bd305"
     },
     {
       "id": "long-haul",
       "seed": "WF-P0-HAUL-01",
-      "worldFingerprint": "b28d0381d9ddc0ad1624",
+      "worldFingerprint": "ccafb22c07e58ec59902",
       "frontierFingerprint": "30184faa14268ce43741"
     },
     {
       "id": "post-boss-world",
       "seed": "WF-P0-BOSS-01",
-      "worldFingerprint": "f30909cd45a4b535e976",
+      "worldFingerprint": "c347263edbc8f6d4d31b",
       "frontierFingerprint": "c3e906351830fa8b18fc"
     },
     {
       "id": "legacy-migration",
       "seed": "WF-P0-MIGRATE-01",
-      "worldFingerprint": "6ae84c55c29f222c43e7",
+      "worldFingerprint": "87b2f2104f965b1c00e9",
       "frontierFingerprint": "90297c280068a5dbf20a"
     }
   ]

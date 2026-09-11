@@ -61,8 +61,8 @@ export function decodeTiles(raw, expected=WORLD_W*WORLD_H) {
 }
 
 export class World {
-  constructor(seed, saved=null) {
-    this.seed=String(seed||'wildforge'); this.w=WORLD_W; this.h=WORLD_H;
+  constructor(seed, saved=null, options={}) {
+    this.seed=String(seed||'wildforge'); this.w=WORLD_W; this.h=WORLD_H; this.nearSpawnCapital=options.nearSpawnCapital??!saved;
     this.surface=new Int16Array(this.w);
     this.ruins=[];
     this.surfaceSites=[];

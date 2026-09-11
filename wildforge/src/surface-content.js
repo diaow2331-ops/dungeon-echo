@@ -82,15 +82,16 @@ function settlementRoll(seed,index){
 export function buildSettlements(world,seed='wildforge'){
   const sites=[],factionBiomes=['verdant','ember','frost'],zoneWidth=world.w/3;
   for(let index=0;index<3;index++){
-    const zoneStart=Math.floor(index*zoneWidth),zoneEnd=Math.min(world.w-25,Math.floor((index+1)*zoneWidth)-1),targetBiome=factionBiomes[index];
-    const anchor=clamp(Math.floor((index+.5)*zoneWidth+(settlementRoll(seed,index)-.5)*110),zoneStart+30,zoneEnd-30);
+    const zoneStart=Math.floor(index*zoneWidth),zoneEnd=Math.min(world.w-25,Math.floor((index+1)*zoneWidth)-1),targetBiome=factionBiomes[index],spawnX=Number(world.spawn?.x),onboarding=index===0&&world.nearSpawnCapital!==false&&!world.expandedLegacy&&Number.isFinite(spawnX),spawnBandStart=onboarding?Math.floor(spawnX/160)*160:zoneStart,searchMin=onboarding?clamp(spawnBandStart+8,zoneStart+24,zoneEnd-24):zoneStart+24,searchMax=onboarding?clamp(Math.floor(spawnX)-40,searchMin,zoneEnd-24):zoneEnd-24;
+    const anchor=onboarding?clamp(Math.floor(spawnX-56+(settlementRoll(seed,index)-.5)*20),searchMin,searchMax):clamp(Math.floor((index+.5)*zoneWidth+(settlementRoll(seed,index)-.5)*110),zoneStart+30,zoneEnd-30);
     let best=null,bestScore=Infinity;
-    for(let step=0;step<=Math.floor(zoneWidth/4);step+=4)for(const dir of step?[-1,1]:[1]){
-      const x=clamp(anchor+step*dir,zoneStart+24,zoneEnd-24);if(world.biome(x).id!==targetBiome)continue;
+    const searchRadius=onboarding?Math.max(0,searchMax-searchMin):Math.floor(zoneWidth/4);
+    for(let step=0;step<=searchRadius;step+=4)for(const dir of step?[-1,1]:[1]){
+      const x=clamp(anchor+step*dir,searchMin,searchMax);if(world.biome(x).id!==targetBiome)continue;
       const y=world.surface[x];let rough=0;for(let q=-5;q<=5;q++)rough=Math.max(rough,Math.abs(world.surface[clamp(x+q,0,world.w-1)]-y));
       const score=rough*12+Math.abs(x-anchor)/24;if(score<bestScore){best={x,y};bestScore=score;}if(rough<=1&&Math.abs(x-anchor)<48)break;
     }
-    if(!best){const x=clamp(anchor,zoneStart+24,zoneEnd-24);best={x,y:world.surface[x]};}
+    if(!best){const x=clamp(anchor,searchMin,searchMax);best={x,y:world.surface[x]};}
     sites.push(Object.freeze({id:`faction-${index}-${targetBiome}`,index,x:best.x+.5,y:best.y-.35,biome:targetBiome,kind:'faction-capital'}));
   }
   return sites;
