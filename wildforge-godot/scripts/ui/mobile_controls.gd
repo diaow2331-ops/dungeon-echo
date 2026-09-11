@@ -37,7 +37,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if player != null and is_instance_valid(player):
-		status_label.text = "HP %d · 饱食 %d · 木 %d 石 %d · 肉 %d 粮 %d · v0.07" % [int(ceil(player.health)), int(ceil(player.hunger)), player.item_count("wood"), player.item_count("stone"), player.item_count("raw_meat"), player.item_count("trail_ration")]
+		status_label.text = "HP %d · 饱食 %d · 木%d 石%d · 镐%s 刃%s · v0.08" % [int(ceil(player.health)), int(ceil(player.hunger)), player.item_count("wood"), player.item_count("stone"), "Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ", "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ"]
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
