@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const read=p=>fs.readFileSync(p,'utf8');
+const css=read('wildforge/style.css'), inv=read('wildforge/inventory-ui.css'), game=read('wildforge/src/game.js'), html=read('wildforge/index.html');
+assert.equal(read('wildforge/VERSION').trim(),'0.43.1');
+assert(css.includes('.mobile-stick{width:82px;height:82px}'),'touch sticks must stay compact');
+assert(css.includes('.mobile-jump{display:none!important}'),'redundant jump button must not occupy mobile playfield');
+assert(css.includes('#mobileTorch{display:none!important}'),'torch must not remain a permanent mobile action');
+assert(css.includes('#mobilePlace.relevant')&&game.includes("placeBtn.classList.toggle('relevant'"),'place action must be contextual');
+assert(css.includes('#mobileCargo.relevant')&&game.includes("cargoBtn.classList.toggle('relevant'"),'cargo action must be contextual');
+assert(inv.includes('width:32px!important;height:32px!important'),'landscape hotbar must remain compact');
+assert(!inv.includes('145px'),'obsolete raised-hotbar clearance must stay deleted');
+assert(css.includes('#hotbar{bottom:calc(var(--safe-bottom) + 7px)'),'hotbar must return to the screen edge');
+assert(css.includes('.brand{display:none}')&&css.includes('#objective b{display:none}'),'mobile HUD must remove redundant branding/labels');
+assert(html.includes('手机沉浸式 HUD')&&html.includes('?v=0431'),'build identity/cache generation must reflect mobile UX revision');
+assert(game.includes("raw.v==='0.43.0'"),'v0.43.0 saves must migrate through the same v0430 key');
+console.log('wildforge_mobile_ux_v0431=PASS compact-hud contextual-actions bottom-hotbar save-bridge');
