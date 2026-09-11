@@ -63,6 +63,9 @@ func _material_color() -> Color:
 		"wood": return Color("9a6b45")
 		"plank": return Color("c18a55")
 		"workbench": return Color("d1aa6f")
+		"campfire": return Color("e69a55")
+		"raw_meat": return Color("c96862")
+		"trail_ration": return Color("d8a45d")
 		_: return Color("a97c58")
 
 func _draw() -> void:

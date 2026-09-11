@@ -47,3 +47,7 @@ The Godot slice may keep a tiny player-owned material wallet to prove mine -> pi
 ## Early crafting parity rule
 
 During migration, any recipe copied from the Canvas reference must be guarded by a cross-implementation parity test. The slice may port only the minimum recipes needed to prove a loop; it must not fork a second balance table.
+
+## Survival parity rule
+
+Hunger, nourishment, starvation cadence and survival recipes are migration data, not new balance work. Until the Godot client becomes authoritative, these values must remain parity-guarded against the Canvas reference. Survival consumes the same slice item stock used by harvesting/crafting; no second food inventory is allowed.

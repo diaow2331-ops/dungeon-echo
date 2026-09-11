@@ -37,7 +37,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if player != null and is_instance_valid(player):
-		status_label.text = "HP %d/%d · 木 %d 板 %d · 土 %d 石 %d · GODOT LOOP v0.06" % [int(ceil(player.health)), int(player.max_health), player.item_count("wood"), player.item_count("plank"), player.item_count("soil"), player.item_count("stone")]
+		status_label.text = "HP %d · 饱食 %d · 木 %d 石 %d · 肉 %d 粮 %d · v0.07" % [int(ceil(player.health)), int(ceil(player.hunger)), player.item_count("wood"), player.item_count("stone"), player.item_count("raw_meat"), player.item_count("trail_ration")]
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:

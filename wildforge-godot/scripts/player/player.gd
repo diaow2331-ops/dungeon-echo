@@ -23,6 +23,13 @@ const APEX_GRAVITY_SCALE := 0.72
 const MINE_STICK_GRACE := 0.09
 const MELEE_ACQUIRE_RANGE := 108.0
 const MELEE_HIT_RANGE := 94.0
+const HUNGER_MAX := 100.0
+const HUNGER_START := 82.0
+const HUNGER_DRAIN_PER_SEC := HUNGER_MAX / (180.0 * 4.0)
+const STARVATION_DAMAGE_INTERVAL := 4.0
+const STARVATION_DAMAGE := 2.0
+const RAW_MEAT_NOURISH := 9.0
+const TRAIL_RATION_NOURISH := 38.0
 
 var world: SliceWorld
 var health := 100.0
@@ -52,9 +59,11 @@ var primary_prev := false
 var attack_buffer := 0.0
 var mine_grace := 0.0
 var stock: Dictionary = {}
+var hunger := HUNGER_START
+var starvation_tick := 0.0
 
 func _ready() -> void:
-	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0}
+	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -75,6 +84,7 @@ func set_touch_aim(v: Vector2, active: bool) -> void:
 	touch_primary = active
 
 func _physics_process(delta: float) -> void:
+	_update_survival(delta)
 	invuln = maxf(0.0, invuln - delta)
 	hurt_flash = maxf(0.0, hurt_flash - delta)
 	camera_trauma = maxf(0.0, camera_trauma - delta * 4.2)
@@ -95,7 +105,7 @@ func _physics_process(delta: float) -> void:
 
 	var keyboard := Input.get_axis("move_left", "move_right")
 	var axis := touch_move.x if absf(touch_move.x) > 0.06 else keyboard
-	var target := axis * SPEED
+	var target := axis * SPEED * movement_speed_multiplier()
 	var accel := GROUND_ACCEL if is_on_floor() else AIR_ACCEL
 	if absf(axis) > 0.04:
 		if absf(velocity.x) > 22.0 and signf(axis) != signf(velocity.x):
@@ -258,6 +268,52 @@ func place_material_at(cell: Vector2i, tile := SliceWorld.DIRT) -> bool:
 	world.feedback_burst(center, Color("96b677"), 5, 70.0)
 	return true
 
+func movement_speed_multiplier() -> float:
+	if hunger <= 0.0:
+		return 0.78
+	if hunger < 20.0:
+		return 0.88
+	return 1.0
+
+func _update_survival(delta: float) -> void:
+	hunger = maxf(0.0, hunger - HUNGER_DRAIN_PER_SEC * delta)
+	if hunger <= 0.0:
+		starvation_tick += delta
+		if starvation_tick >= STARVATION_DAMAGE_INTERVAL:
+			starvation_tick = 0.0
+			health = maxf(0.0, health - STARVATION_DAMAGE)
+			if health <= 0.0:
+				_respawn_after_death()
+	else:
+		starvation_tick = 0.0
+	if world != null and hunger > 0.0 and health < max_health and invuln <= 0.0 and world.near_campfire(global_position):
+		health = minf(max_health, health + 2.4 * delta)
+
+func food_nourish(item_id: String) -> float:
+	match item_id:
+		"raw_meat": return RAW_MEAT_NOURISH
+		"trail_ration": return TRAIL_RATION_NOURISH
+		_: return 0.0
+
+func eat_item(item_id: String) -> bool:
+	var nourish := food_nourish(item_id)
+	if nourish <= 0.0 or item_count(item_id) <= 0 or hunger >= HUNGER_MAX - 1.0:
+		return false
+	if not spend_item(item_id, 1):
+		return false
+	hunger = minf(HUNGER_MAX, hunger + nourish)
+	starvation_tick = 0.0
+	if world != null:
+		world.feedback_burst(global_position + Vector2(0, -22), Color("d8a45d"), 5, 54.0)
+	return true
+
+func preferred_food_id() -> String:
+	if item_count("trail_ration") > 0:
+		return "trail_ration"
+	if item_count("raw_meat") > 0:
+		return "raw_meat"
+	return ""
+
 func can_craft(recipe_id: String) -> bool:
 	return CraftingScript.can_craft(self, recipe_id)
 
@@ -270,14 +326,29 @@ func craft(recipe_id: String) -> bool:
 	return true
 
 func context_label() -> String:
+	var food := preferred_food_id()
+	if hunger <= 25.0 and not food.is_empty():
+		return "食"
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return "台"
 		if can_craft("workbench") or can_craft("plank"):
 			return "制"
+	if world != null and not world.has_campfire():
+		if item_count("campfire") > 0:
+			return "火"
+		if can_craft("campfire"):
+			return "制"
+	if can_craft("trail_ration"):
+		return "烤"
+	if hunger < 65.0 and not food.is_empty():
+		return "食"
 	return "置"
 
 func context_action() -> bool:
+	var food := preferred_food_id()
+	if hunger <= 25.0 and not food.is_empty():
+		return eat_item(food)
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return place_workbench_once()
@@ -285,6 +356,15 @@ func context_action() -> bool:
 			return craft("workbench")
 		if can_craft("plank"):
 			return craft("plank")
+	if world != null and not world.has_campfire():
+		if item_count("campfire") > 0:
+			return place_campfire_once()
+		if can_craft("campfire"):
+			return craft("campfire")
+	if can_craft("trail_ration"):
+		return craft("trail_ration")
+	if hunger < 65.0 and not food.is_empty():
+		return eat_item(food)
 	place_once()
 	return true
 
@@ -413,6 +493,22 @@ func place_workbench_once() -> bool:
 		return false
 	return place_workbench_at(cell)
 
+func place_campfire_at(cell: Vector2i) -> bool:
+	if world == null or item_count("campfire") <= 0:
+		return false
+	var fire := world.spawn_campfire(cell)
+	if fire == null:
+		return false
+	spend_item("campfire", 1)
+	camera_trauma = maxf(camera_trauma, 0.07)
+	return true
+
+func place_campfire_once() -> bool:
+	var cell := _placement_cell()
+	if cell == Vector2i(99999, 99999):
+		return false
+	return place_campfire_at(cell)
+
 func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
 	if invuln > 0.0:
 		return
@@ -425,9 +521,15 @@ func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
 	if world != null:
 		world.feedback_burst(global_position, Color("ef8b73"), 9, 135.0)
 	if health <= 0.0:
-		health = max_health
+		_respawn_after_death()
+
+func _respawn_after_death() -> void:
+	health = max_health
+	hunger = maxf(35.0, hunger)
+	starvation_tick = 0.0
+	if world != null:
 		global_position = Vector2(0, world.surface_y_at(0) * SliceWorld.TILE_SIZE - 60.0)
-		velocity = Vector2.ZERO
+	velocity = Vector2.ZERO
 
 func _update_camera() -> void:
 	var cam := get_node_or_null("Camera2D") as Camera2D

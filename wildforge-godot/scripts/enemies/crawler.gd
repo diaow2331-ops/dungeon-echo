@@ -23,6 +23,9 @@ var attack_state := 0 # 0 roam, 1 tell, 2 lunge, 3 recover
 var attack_timer := 0.0
 var attack_dir := 1.0
 var attack_connected := false
+var loot_item_id := ""
+var loot_min := 0
+var loot_max := 0
 
 func _ready() -> void:
 	collision_layer = 4
@@ -122,7 +125,8 @@ func apply_hit(damage: float, force: Vector2) -> void:
 	if hp <= 0.0:
 		var main := get_parent()
 		if main != null and main.has_method("enemy_defeated"):
-			main.enemy_defeated(global_position)
+			var loot_count := 0 if loot_item_id.is_empty() else randi_range(loot_min, maxi(loot_min, loot_max))
+			main.enemy_defeated(global_position, loot_item_id, loot_count)
 		queue_free()
 
 func _draw() -> void:

@@ -35,7 +35,7 @@ func _ready() -> void:
 	_spawn_tree(14)
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
-	_spawn_enemy(17)
+	_spawn_enemy(17, "raw_meat", 1, 2)
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
@@ -54,17 +54,22 @@ func _spawn_tree(x: int) -> void:
 	tree.z_index = 5
 	add_child(tree)
 
-func _spawn_enemy(x: int) -> void:
+func _spawn_enemy(x: int, loot_item_id := "", loot_min := 0, loot_max := 0) -> void:
 	var enemy := EnemyScript.new()
 	enemy.name = "Crawler_%d_%d" % [x, Time.get_ticks_msec()]
 	enemy.player = player
+	enemy.loot_item_id = loot_item_id
+	enemy.loot_min = loot_min
+	enemy.loot_max = loot_max
 	enemy.global_position = Vector2(x * SliceWorld.TILE_SIZE, world.surface_y_at(x) * SliceWorld.TILE_SIZE - 28.0)
 	add_child(enemy)
 
-func enemy_defeated(at: Vector2) -> void:
+func enemy_defeated(at: Vector2, loot_item_id := "", loot_count := 0) -> void:
 	defeats += 1
 	if world != null:
 		world.feedback_burst(at, Color("9fd98b"), 12, 155.0)
+		if not loot_item_id.is_empty() and loot_count > 0:
+			world.spawn_item_pickup(at, loot_item_id, player, loot_count)
 
 func _configure_input() -> void:
 	_add_keys("move_left", [KEY_A, KEY_LEFT])

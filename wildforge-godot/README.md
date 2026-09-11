@@ -55,3 +55,12 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - The slice ports only the canonical early recipes `1 wood -> 4 plank` and `8 plank -> 1 workbench`.
 - One context action changes from craft to station placement and then back to block placement; no extra permanent mobile buttons are added.
 - A cross-implementation parity gate prevents the Godot slice from silently drifting from the Canvas reference recipe ratios.
+
+## v0.07 survival loop
+
+- Canonical hunger values are ported unchanged: 100 max, 82 start, 100/720 drain per second, 2 starvation damage every 4 seconds.
+- One sparse hunt target proves physical raw-meat drops without migrating the full enemy catalog.
+- Canonical food values are preserved: raw meat +9 hunger; trail ration +38.
+- Canonical survival recipes are preserved: 6 stone + 2 wood -> campfire; 2 raw meat + 1 wood at a nearby campfire -> trail ration.
+- Empty/low hunger applies the same movement penalties as the Canvas reference; a nearby campfire provides the canonical daytime rest-heal rate.
+- The single compact context action handles urgent eating, cooking and campfire placement without adding permanent touch buttons.

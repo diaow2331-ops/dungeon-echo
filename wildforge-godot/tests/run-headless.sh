@@ -31,5 +31,8 @@ run_gate res://tests/rhythm_test.gd 'wildforge_godot_rhythm=PASS'
 run_gate res://tests/loop_test.gd 'wildforge_godot_loop=PASS'
 run_gate res://tests/chunk_test.gd 'wildforge_godot_chunks=PASS'
 run_gate res://tests/crafting_test.gd 'wildforge_godot_crafting=PASS'
+run_gate res://tests/survival_test.gd 'wildforge_godot_survival=PASS'
 node "$ROOT/tests/recipe_parity.mjs" | tee /tmp/wildforge-recipe-parity.log
 grep -Fq 'wildforge_godot_recipe_parity=PASS' /tmp/wildforge-recipe-parity.log
+node "$ROOT/tests/survival_parity.mjs" | tee /tmp/wildforge-survival-parity.log
+grep -Fq 'wildforge_godot_survival_parity=PASS' /tmp/wildforge-survival-parity.log
