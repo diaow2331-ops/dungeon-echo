@@ -31,6 +31,7 @@ const STARVATION_DAMAGE := 2.0
 const RAW_MEAT_NOURISH := 9.0
 const TRAIL_RATION_NOURISH := 38.0
 const STONE_PICK_POWER := 1.75
+const COPPER_PICK_POWER := 2.30
 const STARTER_BLADE_REFERENCE_DAMAGE := 5.0
 const STONE_BLADE_REFERENCE_DAMAGE := 7.0
 const STARTER_BLADE_REFERENCE_KNOCKBACK := 4.2
@@ -72,7 +73,7 @@ var equipped_pick_id := "starter_pick"
 var equipped_weapon_id := "starter_blade"
 
 func _ready() -> void:
-	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0}
+	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -278,7 +279,10 @@ func place_material_at(cell: Vector2i, tile := SliceWorld.DIRT) -> bool:
 	return true
 
 func pick_power() -> float:
-	return STONE_PICK_POWER if equipped_pick_id == "stone_pick" else 1.0
+	match equipped_pick_id:
+		"copper_pick": return COPPER_PICK_POWER
+		"stone_pick": return STONE_PICK_POWER
+		_: return 1.0
 
 func effective_mine_time(cell: Vector2i) -> float:
 	if world == null:
@@ -348,6 +352,8 @@ func craft(recipe_id: String) -> bool:
 		return false
 	if recipe_id == "stone_pick":
 		equipped_pick_id = "stone_pick"
+	elif recipe_id == "copper_pick":
+		equipped_pick_id = "copper_pick"
 	elif recipe_id == "stone_blade":
 		equipped_weapon_id = "stone_blade"
 	camera_trauma = maxf(camera_trauma, 0.025)
@@ -365,6 +371,8 @@ func context_label() -> String:
 		if can_craft("workbench") or can_craft("plank"):
 			return "制"
 	if world != null and world.near_workbench(global_position):
+		if can_craft("copper_pick"):
+			return "铜"
 		if can_craft("stone_pick"):
 			return "镐"
 		if can_craft("stone_blade"):
@@ -374,6 +382,8 @@ func context_label() -> String:
 			return "火"
 		if can_craft("campfire"):
 			return "制"
+	if can_craft("copper_bar"):
+		return "炼"
 	if can_craft("trail_ration"):
 		return "烤"
 	if hunger < 65.0 and not food.is_empty():
@@ -392,6 +402,8 @@ func context_action() -> bool:
 		if can_craft("plank"):
 			return craft("plank")
 	if world != null and world.near_workbench(global_position):
+		if can_craft("copper_pick"):
+			return craft("copper_pick")
 		if can_craft("stone_pick"):
 			return craft("stone_pick")
 		if can_craft("stone_blade"):
@@ -401,6 +413,8 @@ func context_action() -> bool:
 			return place_campfire_once()
 		if can_craft("campfire"):
 			return craft("campfire")
+	if can_craft("copper_bar"):
+		return craft("copper_bar")
 	if can_craft("trail_ration"):
 		return craft("trail_ration")
 	if hunger < 65.0 and not food.is_empty():
