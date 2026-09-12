@@ -1,7 +1,7 @@
 extends SceneTree
 
 var failed := false
-const TEMP_PATH := "user://wildforge-godot-v016-test.json"
+const TEMP_PATH := "user://wildforge-godot-v017-test.json"
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -46,7 +46,10 @@ func _run() -> void:
 
 	var trees := main.get_tree().get_nodes_in_group("resource_trees")
 	_check(trees.size() == 3, "save fixture starts with three resource trees")
-	trees[0].free()
+	var felled_tree := trees[0] as SliceTreeResource
+	for _hit in range(3):
+		felled_tree.apply_hit(24.0, Vector2.ZERO)
+	await process_frame
 	var caches := main.get_tree().get_nodes_in_group("relic_caches")
 	var cache := caches[0] as SliceRelicCache
 	var opened_x := world.world_to_cell(cache.global_position).x
@@ -64,6 +67,7 @@ func _run() -> void:
 	_check(world.set_fluid(fluid_cell, "water", 0.73), "save fixture adds authoritative fluid state")
 	var snap := SliceSaveSystem.snapshot(main)
 	_check(int(snap["version"]) == SliceSaveSystem.SAVE_VERSION, "snapshot carries explicit save schema version")
+	_check((snap["vegetation"]["removed"] as Array).size() == 1 and (snap["vegetation"]["planted"] as Array).is_empty(), "current save stores one felled baseline tree as vegetation delta")
 	_check(SliceSaveSystem.save_to_path(main, TEMP_PATH), "save snapshot writes to disk")
 	main.free()
 	await process_frame
@@ -122,14 +126,28 @@ func _run() -> void:
 	_check(SliceSaveSystem.load_from_path(recovered, TEMP_PATH), "corrupt primary automatically falls back to the previous valid backup")
 	var recovered_player := recovered.get_node("Player") as SlicePlayer
 	_check(recovered_player.equipped_pick_id == "delver_pick" and recovered_player.item_count("ancient_core") >= 1, "backup recovery preserves real progression authority")
-	var legacy_snap := snap.duplicate(true)
+	var legacy_v16 := snap.duplicate(true)
+	legacy_v16["version"] = SliceSaveSystem.LEGACY_FLUID_SAVE_VERSION
+	legacy_v16.erase("vegetation")
+	legacy_v16["trees"] = [-5, 14]
+	_check(SliceSaveSystem.validate_legacy_fluid_snapshot(legacy_v16), "v16 fluid snapshot remains a recognized migration source")
+	var legacy16_restored := _new_main()
+	await process_frame
+	await process_frame
+	_check(SliceSaveSystem.apply_snapshot(legacy16_restored, legacy_v16), "v16 snapshot migrates into the v17 runtime")
+	var legacy16_authority := legacy16_restored.actor_authority as SliceWorldActorAuthority
+	_check((legacy16_authority.vegetation_delta()["removed"] as Array).size() == 1, "v16 migration applies only the historical three-tree presence contract")
+	_check(legacy16_authority.descriptor_count(SliceWorldActorAuthority.KIND_TREE) > 3, "v16 migration preserves newly generated distant forest baseline")
+	legacy16_restored.free()
+
+	var legacy_snap := legacy_v16.duplicate(true)
 	legacy_snap["version"] = SliceSaveSystem.LEGACY_OWNERSHIP_SAVE_VERSION
 	legacy_snap.erase("fluid_cells")
 	_check(SliceSaveSystem.validate_legacy_ownership_snapshot(legacy_snap), "v15 ownership snapshot remains a recognized migration source")
 	var legacy_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy_restored, legacy_snap), "v15 snapshot migrates into the v16 runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy_restored, legacy_snap), "v15 snapshot migrates into the v17 runtime")
 	var legacy_world := legacy_restored.get_node("World") as SliceWorld
 	_check(legacy_world.fluid_authority.cells.is_empty(), "v15 migration initializes fluid authority without inventing persisted liquid")
 	legacy_restored.free()

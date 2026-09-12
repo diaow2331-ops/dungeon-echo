@@ -5,7 +5,6 @@ const PlayerScript = preload("res://scripts/player/player.gd")
 const EnemyScript = preload("res://scripts/enemies/crawler.gd")
 const BoarScript = preload("res://scripts/enemies/bramble_boar.gd")
 const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
-const TreeScript = preload("res://scripts/world/tree_resource.gd")
 const WorldActorAuthorityScript = preload("res://scripts/world/actors/world_actor_authority.gd")
 const SaveScript = preload("res://scripts/save/slice_save_system.gd")
 
@@ -37,14 +36,12 @@ func _ready() -> void:
 	camera.limit_top = -800
 	camera.limit_bottom = int((SliceWorld.MAX_Y + 2) * SliceWorld.TILE_SIZE)
 	player.add_child(camera)
-	_spawn_tree(-5)
-	_spawn_tree(3)
-	_spawn_tree(14)
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
 	_spawn_boar(17)
 	actor_authority = WorldActorAuthorityScript.new(self, world, player) as SliceWorldActorAuthority
 	actor_authority.register_exploration_sites(world.exploration_sites)
+	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
@@ -79,15 +76,6 @@ func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST]:
 		if not SaveScript.is_test_run() and world != null and player != null:
 			SaveScript.save_to_path(self)
-
-func _spawn_tree(x: int) -> void:
-	var tree := TreeScript.new() as SliceTreeResource
-	tree.name = "Tree_%d" % x
-	tree.world = world
-	tree.player = player
-	tree.global_position = Vector2(x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, world.surface_y_at(x) * SliceWorld.TILE_SIZE)
-	tree.z_index = 5
-	add_child(tree)
 
 func _spawn_enemy(x: int, loot_item_id := "", loot_min := 0, loot_max := 0) -> void:
 	var enemy := EnemyScript.new()
