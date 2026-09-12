@@ -19,9 +19,12 @@ const FluidAuthorityScript = preload("res://scripts/world/fluid/fluid_authority.
 const StructureAuthorityScript = preload("res://scripts/world/structures/structure_authority.gd")
 const WorldGeneratorScript = preload("res://scripts/world/generation/world_generator.gd")
 const WorldClockScript = preload("res://scripts/world/time/world_clock.gd")
+const SettlementGeneratorScript = preload("res://scripts/world/settlements/settlement_generator.gd")
+const SettlementAuthorityScript = preload("res://scripts/world/settlements/settlement_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
-const WORLD_GENERATION_VERSION := 2
+const WORLD_GENERATION_VERSION := 3
+const SEEDED_WORLD_GENERATION_VERSION := 2
 const LEGACY_WORLD_GENERATION_VERSION := 1
 const DEFAULT_WORLD_SEED := 730241
 const MIN_X := -512
@@ -35,6 +38,8 @@ const COAL := 4
 const COPPER := 5
 const RUIN_BRICK := 6
 const SEALED_RUIN := 7
+const SETTLEMENT_TIMBER := 8
+const SETTLEMENT_STONE := 9
 const NO_CELL := Vector2i(99999, 99999)
 const LEGACY_TREE_XS: Array[int] = [-5, 3, 14]
 
@@ -49,6 +54,7 @@ var lighting_authority: SliceLightingAuthority
 var fluid_registry := FluidRegistryScript.new() as SliceFluidRegistry
 var fluid_authority: SliceFluidAuthority
 var structure_authority: SliceStructureAuthority
+var settlement_authority: SliceSettlementAuthority
 var fluid_tick_accumulator := 0.0
 const FLUID_TICK_SECONDS := 0.10
 var cells: Dictionary = {}
@@ -70,6 +76,7 @@ var place_flash := 0.0
 var exploration_sites: Array = []
 var deep_sites: Array = []
 var baseline_structures: Array = []
+var baseline_settlements: Array = []
 
 func _ready() -> void:
 	collision_root = Node2D.new()
@@ -79,6 +86,9 @@ func _ready() -> void:
 	fluid_authority = FluidAuthorityScript.new(self, fluid_registry) as SliceFluidAuthority
 	structure_authority = StructureAuthorityScript.new(self) as SliceStructureAuthority
 	structure_authority.register_baseline(baseline_structures)
+	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
+	settlement_authority.register_baseline(baseline_settlements)
+	apply_baseline_ownership()
 	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
 	chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
 	chunk_streamer.refresh_at_cell(Vector2i(0, surface_y_at(0)), true)
@@ -101,6 +111,9 @@ func rebuild_for_seed(new_seed: int) -> bool:
 	if structure_authority != null:
 		structure_authority = StructureAuthorityScript.new(self) as SliceStructureAuthority
 		structure_authority.register_baseline(baseline_structures)
+	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
+	settlement_authority.register_baseline(baseline_settlements)
+	apply_baseline_ownership()
 	if lighting_authority != null:
 		lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
 	_rebuild_world_views()
@@ -122,6 +135,7 @@ func _generate() -> void:
 	exploration_sites.clear()
 	deep_sites.clear()
 	baseline_structures.clear()
+	baseline_settlements.clear()
 	remote_vein_cells.clear()
 	for x in range(MIN_X, MAX_X + 1):
 		var surface := surface_y_at(x)
@@ -132,6 +146,9 @@ func _generate() -> void:
 				cells[cell] = tile
 				if abs(x) > 42 and tile in [COAL, COPPER]:
 					remote_vein_cells.append(cell)
+	var first_settlement := SettlementGeneratorScript.new().generate(self)
+	baseline_settlements.append(first_settlement)
+	remote_vein_cells = remote_vein_cells.filter(func(cell: Vector2i): return tile_at(cell) in [COAL, COPPER])
 	for x in range(9, 14):
 		cells[Vector2i(x, surface_y_at(x) - 1)] = STONE
 	for y in range(surface_y_at(13) - 4, surface_y_at(13) - 1):
@@ -141,17 +158,44 @@ func _generate() -> void:
 	baseline_cells = cells.duplicate(true)
 	cell_overrides.clear()
 
+func apply_baseline_ownership() -> void:
+	if structure_authority == null:
+		return
+	for raw in baseline_settlements:
+		if not raw is Dictionary:
+			continue
+		var settlement: Dictionary = raw
+		var faction := String(settlement.get("founding_faction", ""))
+		var territory = settlement.get("territory", [])
+		if faction.is_empty() or not territory is Array or territory.size() < 4:
+			continue
+		claim_region(faction, Rect2i(int(territory[0]), int(territory[1]), int(territory[2]), int(territory[3])), "settlement_territory", String(settlement.get("id", "")))
+		for structure_id in settlement.get("structures", []):
+			structure_authority.claim_structure(String(structure_id), faction, "protected_structure")
+
 func vegetation_baseline() -> Array:
 	var sites: Array = []
 	for x in LEGACY_TREE_XS:
 		sites.append(_tree_site(int(x)))
 	# Distant vegetation is a deterministic world-generation channel.
 	for x in range(MIN_X + 8, MAX_X - 7):
-		if abs(x) <= 50 or x in LEGACY_TREE_XS:
+		if abs(x) <= 50 or x in LEGACY_TREE_XS or _x_in_baseline_settlement(x):
 			continue
 		if generator.should_spawn_tree(x):
 			sites.append(_tree_site(x))
 	return sites
+
+func _x_in_baseline_settlement(x: int) -> bool:
+	for raw in baseline_settlements:
+		if not raw is Dictionary:
+			continue
+		var territory = (raw as Dictionary).get("territory", [])
+		if territory is Array and territory.size() >= 4:
+			var left := int(territory[0])
+			var width := int(territory[2])
+			if x >= left and x < left + width:
+				return true
+	return false
 
 func _tree_site(x: int) -> Dictionary:
 	return {
@@ -254,6 +298,16 @@ func surface_y_at(x: int) -> int:
 func biome_at(x: int) -> String:
 	return generator.biome_at(x)
 
+# Generation-only baseline writers. Runtime gameplay must use WorldEditAuthority.
+func baseline_set_cell(cell: Vector2i, tile: int) -> void:
+	if tile == AIR:
+		cells.erase(cell)
+	else:
+		cells[cell] = tile
+
+func baseline_erase_cell(cell: Vector2i) -> void:
+	cells.erase(cell)
+
 func export_cells() -> Array:
 	var rows: Array = []
 	for raw in cells.keys():
@@ -277,13 +331,35 @@ func restore_cell_overrides(rows: Array) -> bool:
 			return false
 		var cell := Vector2i(int(row[0]), int(row[1]))
 		var tile := int(row[2])
-		if cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y or tile < AIR or tile > SEALED_RUIN:
+		if cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y or tile < AIR or tile > SETTLEMENT_STONE:
 			return false
 		var base_tile := int(baseline_cells.get(cell, AIR))
 		if tile != base_tile:
 			restored_overrides[cell] = tile
 	_apply_overrides(restored_overrides)
 	return true
+
+func restore_generation2_overrides(rows: Array) -> bool:
+	var protected_rects: Array[Rect2i] = []
+	for raw in baseline_settlements:
+		if not raw is Dictionary:
+			continue
+		var territory = (raw as Dictionary).get("territory", [])
+		if territory is Array and territory.size() >= 4:
+			protected_rects.append(Rect2i(int(territory[0]), int(territory[1]), int(territory[2]), int(territory[3])))
+	var migrated: Array = []
+	for row in rows:
+		if not row is Array or row.size() < 3:
+			return false
+		var cell := Vector2i(int(row[0]), int(row[1]))
+		var protected := false
+		for rect in protected_rects:
+			if rect.has_point(cell):
+				protected = true
+				break
+		if not protected:
+			migrated.append(row)
+	return restore_cell_overrides(migrated)
 
 func restore_legacy_v13_cells(rows: Array, legacy_min_x := -42, legacy_max_x := 42, legacy_max_y := 27) -> bool:
 	if rows.is_empty():

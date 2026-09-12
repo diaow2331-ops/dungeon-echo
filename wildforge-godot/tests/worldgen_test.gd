@@ -50,12 +50,12 @@ func _run() -> void:
 	var changed := Vector2i(0, world.surface_y_at(0) + 4)
 	_check(world.mine_at(changed), "seeded world mutation still routes through the ordinary edit authority")
 	var snapshot := SliceSaveSystem.snapshot(main)
-	_check(int(snapshot["world_seed"]) == ALT_SEED and int(snapshot["world_generation"]) == SliceWorld.WORLD_GENERATION_VERSION, "v18 snapshot binds deltas to seed and generation")
+	_check(int(snapshot["world_seed"]) == ALT_SEED and int(snapshot["world_generation"]) == SliceWorld.WORLD_GENERATION_VERSION, "current snapshot binds deltas to seed and generation")
 
 	var fresh := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(fresh, snapshot), "v18 snapshot can reconfigure a fresh runtime to its saved seed")
+	_check(SliceSaveSystem.apply_snapshot(fresh, snapshot), "current snapshot can reconfigure a fresh runtime to its saved seed")
 	var restored := fresh.get_node("World") as SliceWorld
 	_check(restored.world_seed == ALT_SEED, "restored world uses the saved non-default seed")
 	_check(restored.surface_y_at(247) == world.surface_y_at(247), "restored seed reconstructs the same deterministic terrain")
@@ -64,10 +64,10 @@ func _run() -> void:
 
 	var missing_seed := snapshot.duplicate(true)
 	missing_seed.erase("world_seed")
-	_check(not SliceSaveSystem.validate_snapshot(missing_seed), "v18 validation rejects a delta save with no seed")
+	_check(not SliceSaveSystem.validate_snapshot(missing_seed), "current validation rejects a delta save with no seed")
 	var wrong_generation := snapshot.duplicate(true)
 	wrong_generation["world_generation"] = SliceWorld.LEGACY_WORLD_GENERATION_VERSION
-	_check(not SliceSaveSystem.validate_snapshot(wrong_generation), "v18 validation rejects a mismatched generation contract")
+	_check(not SliceSaveSystem.validate_snapshot(wrong_generation), "current validation rejects a mismatched generation contract")
 	var forged_v17 := snapshot.duplicate(true)
 	forged_v17["version"] = SliceSaveSystem.LEGACY_VEGETATION_SAVE_VERSION
 	forged_v17["world_generation"] = SliceWorld.LEGACY_WORLD_GENERATION_VERSION

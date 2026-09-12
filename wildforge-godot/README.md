@@ -175,3 +175,11 @@ The proof world expands to 1025 columns (`-512..512`) and depth 79 while present
 The formal new-game role is now a traveler rather than an innate miner. A fresh player owns one ordinary blade, no pick, no axe and no free placement reserve. Mining power is zero until a real mining tool is acquired; trees require an axe-capable role rather than treating melee weapons as logging tools. Historical `starter_pick` support remains only for old proof saves/tests and is not granted to new players.
 
 One authoritative world day lasts 720 real seconds. Hunger is deliberately slower than the old proof balance (about 30 real minutes from full to empty), ordinary movement never regenerates health, and campfire healing requires a fed, stationary, non-combat rest state at 0.4 HP/s. Save schema 19 persists the world clock and the explicit absence/presence of extraction tools; schema 18 and older saves migrate without inventing an axe or a new-game pick.
+
+## v0.17 first physical settlement
+
+The first formal faction settlement is Verdant's Mossbridge, generated as deterministic world baseline rather than a decorative scene. Its warehouse, market and two gates are real block blueprints owned through `SliceStructureAuthority` and `SliceWorldOwnershipAuthority`; damage, illegality and repair therefore use the same world-edit path as every other physical structure.
+
+`SliceSettlementAuthority` owns the settlement inventory and treasury. The first production trade loop is deliberately narrow: hunted raw meat can be sold only at the physical Mossbridge market, moving goods into settlement stock, debiting settlement treasury and crediting player Forge Marks. Prices respond to the settlement's current shortage, and batch sales are priced marginally so an initial shortage quote cannot be exploited across the whole stack.
+
+Save schema 20 persists settlement economy and player currency. Because Mossbridge changes the deterministic world baseline, world generation is version 3; schema-19/18 generation-2 saves migrate explicitly and cannot erase the newly introduced settlement with historical terrain deltas.

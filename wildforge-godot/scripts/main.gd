@@ -38,7 +38,7 @@ func _ready() -> void:
 	player.add_child(camera)
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
-	_spawn_boar(17)
+	_spawn_boar(-18)
 	actor_authority = WorldActorAuthorityScript.new(self, world, player) as SliceWorldActorAuthority
 	actor_authority.register_exploration_sites(world.exploration_sites)
 	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
@@ -71,7 +71,7 @@ func reconfigure_world_seed(new_seed: int) -> bool:
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
-	_spawn_boar(17)
+	_spawn_boar(-18)
 	return true
 
 func _process(delta: float) -> void:
