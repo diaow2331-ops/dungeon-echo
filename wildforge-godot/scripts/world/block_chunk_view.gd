@@ -19,6 +19,10 @@ func _draw() -> void:
 			var cell := start + Vector2i(lx, ly)
 			var tile := world.tile_at(cell)
 			if tile == SliceWorld.AIR:
+				var air_pos := Vector2(lx, ly) * SliceWorld.TILE_SIZE
+				var air_darkness := clampf(1.0 - world.light_level(cell), 0.0, 1.0) * 0.82
+				if air_darkness > 0.01:
+					draw_rect(Rect2(air_pos, Vector2(SliceWorld.TILE_SIZE, SliceWorld.TILE_SIZE)), Color(0.015, 0.025, 0.035, air_darkness))
 				continue
 			var color := Color("6d4c37")
 			if tile == SliceWorld.GRASS:
@@ -49,3 +53,6 @@ func _draw() -> void:
 			elif tile == SliceWorld.SEALED_RUIN:
 				draw_rect(Rect2(pos + Vector2(6, 6), Vector2(20, 20)), Color(0.73, 0.62, 0.88, 0.16), false, 2.0)
 				draw_line(pos + Vector2(8, 23), pos + Vector2(24, 8), Color(0.75, 0.65, 0.92, 0.32), 2.0)
+			var darkness := clampf(1.0 - world.light_level(cell), 0.0, 1.0) * 0.82
+			if darkness > 0.01:
+				draw_rect(Rect2(pos, Vector2(SliceWorld.TILE_SIZE, SliceWorld.TILE_SIZE)), Color(0.015, 0.025, 0.035, darkness))

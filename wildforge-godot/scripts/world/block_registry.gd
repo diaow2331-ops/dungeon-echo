@@ -48,3 +48,9 @@ func is_solid(tile: int) -> bool:
 
 func resource_class(tile: int) -> String:
 	return String((blocks.get(tile, {}) as Dictionary).get("resource_class", "unknown"))
+
+func light_absorption(tile: int) -> float:
+	return clampf(float((blocks.get(tile, {}) as Dictionary).get("light_absorption", 1.0)), 0.0, 1.0)
+
+func light_emission(tile: int) -> float:
+	return clampf(float((blocks.get(tile, {}) as Dictionary).get("light_emission", 0.0)), 0.0, 1.0)

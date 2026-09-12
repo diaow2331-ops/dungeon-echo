@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "blocks": {
     "0": {
       "key": "air",
@@ -9,17 +9,21 @@
       "drop_item": "",
       "placeable": false,
       "solid": false,
-      "resource_class": "none"
+      "resource_class": "none",
+      "light_absorption": 0.0,
+      "light_emission": 0.0
     },
     "1": {
       "key": "dirt",
       "display_name": "Dirt",
-      "hardness": 0.20,
+      "hardness": 0.2,
       "required_pick_power": 1.0,
       "drop_item": "soil",
       "placeable": true,
       "solid": true,
-      "resource_class": "terrain"
+      "resource_class": "terrain",
+      "light_absorption": 0.88,
+      "light_emission": 0.0
     },
     "2": {
       "key": "grass",
@@ -29,7 +33,9 @@
       "drop_item": "soil",
       "placeable": false,
       "solid": true,
-      "resource_class": "terrain"
+      "resource_class": "terrain",
+      "light_absorption": 0.82,
+      "light_emission": 0.0
     },
     "3": {
       "key": "stone",
@@ -39,7 +45,9 @@
       "drop_item": "stone",
       "placeable": true,
       "solid": true,
-      "resource_class": "terrain"
+      "resource_class": "terrain",
+      "light_absorption": 0.94,
+      "light_emission": 0.0
     },
     "4": {
       "key": "coal",
@@ -49,7 +57,9 @@
       "drop_item": "coal",
       "placeable": false,
       "solid": true,
-      "resource_class": "ore"
+      "resource_class": "ore",
+      "light_absorption": 0.96,
+      "light_emission": 0.0
     },
     "5": {
       "key": "copper_ore",
@@ -59,7 +69,9 @@
       "drop_item": "copper_ore",
       "placeable": false,
       "solid": true,
-      "resource_class": "ore"
+      "resource_class": "ore",
+      "light_absorption": 0.93,
+      "light_emission": 0.0
     },
     "6": {
       "key": "ruin_brick",
@@ -69,17 +81,21 @@
       "drop_item": "stone",
       "placeable": false,
       "solid": true,
-      "resource_class": "structure"
+      "resource_class": "structure",
+      "light_absorption": 0.9,
+      "light_emission": 0.0
     },
     "7": {
       "key": "sealed_ruin",
       "display_name": "Sealed Ruin",
       "hardness": 1.15,
-      "required_pick_power": 2.30,
+      "required_pick_power": 2.3,
       "drop_item": "stone",
       "placeable": false,
       "solid": true,
-      "resource_class": "protected_structure"
+      "resource_class": "protected_structure",
+      "light_absorption": 0.98,
+      "light_emission": 0.0
     }
   }
 }
