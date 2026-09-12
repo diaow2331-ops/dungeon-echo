@@ -26,6 +26,8 @@ var attack_connected := false
 var loot_item_id := ""
 var loot_min := 0
 var loot_max := 0
+var world_actor_id := ""
+var world_actor_authority: RefCounted
 
 func _ready() -> void:
 	collision_layer = 4
@@ -123,6 +125,8 @@ func apply_hit(damage: float, force: Vector2) -> void:
 	attack_connected = false
 	contact_cd = maxf(contact_cd, 0.12)
 	if hp <= 0.0:
+		if not world_actor_id.is_empty() and world_actor_authority != null and world_actor_authority.has_method("mark_removed"):
+			world_actor_authority.mark_removed(world_actor_id)
 		var main := get_parent()
 		if main != null and main.has_method("enemy_defeated"):
 			var loot_count := 0 if loot_item_id.is_empty() else randi_range(loot_min, maxi(loot_min, loot_max))
