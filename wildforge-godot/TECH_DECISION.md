@@ -67,3 +67,7 @@ Exploration rewards are not complete content until they convert into a measurabl
 ## Capability-gated exploration rule
 
 New regions should open from capabilities already earned through the same world loop, not from arbitrary level numbers. v0.12 uses authoritative sealed world tiles requiring copper-pick power, then converts the existing Ancient Core reward through the canonical Relic Delver Pick recipe.
+
+## Persistence authority
+
+Godot saves data, not the scene tree. World cells, player progression and durable world interactions are serialized; render chunks, effects, camera state, live input buffers and ordinary regenerative enemies are reconstructed. This keeps future art/node refactors independent from save compatibility. Save payloads are explicitly versioned and must pass a full memory + disk round-trip gate before a schema becomes authoritative.

@@ -146,6 +146,43 @@ func depth_at(cell: Vector2i) -> int:
 func surface_y_at(x: int) -> int:
 	return 13 + int(round(sin(float(x) * 0.19) * 1.4 + sin(float(x) * 0.057) * 1.1))
 
+func export_cells() -> Array:
+	var rows: Array = []
+	for raw in cells.keys():
+		var cell: Vector2i = raw
+		rows.append([cell.x, cell.y, int(cells[cell])])
+	rows.sort_custom(func(a, b): return int(a[0]) < int(b[0]) or (int(a[0]) == int(b[0]) and int(a[1]) < int(b[1])))
+	return rows
+
+func restore_cells(rows: Array) -> bool:
+	if rows.is_empty():
+		return false
+	var restored: Dictionary = {}
+	for row in rows:
+		if not row is Array or row.size() < 3:
+			return false
+		var cell := Vector2i(int(row[0]), int(row[1]))
+		var tile := int(row[2])
+		if tile <= AIR:
+			continue
+		restored[cell] = tile
+	if restored.is_empty():
+		return false
+	cells = restored
+	for view in render_chunks.values():
+		if is_instance_valid(view):
+			view.free()
+	for body in collision_chunks.values():
+		if is_instance_valid(body):
+			body.free()
+	render_chunks.clear()
+	collision_chunks.clear()
+	dirty_collision_chunks.clear()
+	collision_flush_scheduled = false
+	_build_initial_chunks()
+	queue_redraw()
+	return true
+
 func world_to_cell(p: Vector2) -> Vector2i:
 	return Vector2i(floori(p.x / TILE_SIZE), floori(p.y / TILE_SIZE))
 

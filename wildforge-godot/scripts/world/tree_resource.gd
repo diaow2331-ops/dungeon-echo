@@ -8,6 +8,7 @@ var felled := false
 
 func _ready() -> void:
 	add_to_group("harvestables")
+	add_to_group("resource_trees")
 	queue_redraw()
 
 func apply_hit(_damage: float, _force := Vector2.ZERO) -> void:

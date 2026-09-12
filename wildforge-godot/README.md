@@ -95,3 +95,9 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - The annex contains exactly 6 copper ore + 3 coal, enough for three additional canonical copper bars.
 - One Ancient Core + 3 copper bars + 2 wood at a Craft Table creates the canonical Relic Delver Pick.
 - Relic Delver Pick auto-equips at canonical 2.70 mining power.
+
+## v0.13 persistence milestone
+
+The Godot client now owns a versioned save schema (`SAVE_VERSION = 13`) instead of behaving like a disposable proof scene. Persistent authority includes world-cell mutations, player transform/health/hunger, the single stock wallet, equipped tools, placed Craft Tables/Ember Pits, felled resource trees, opened relic caches, and defeated relic guards. Ordinary ambient enemies remain regenerative local actors and are intentionally excluded.
+
+Saves are written every ~20 seconds and on application pause/close. Loading rebuilds scene presentation from persistent authority and explicitly clears transient movement, touch, mining and attack state so a resumed session cannot inherit stale momentum/input. `tests/save_test.gd` performs in-memory and disk round trips; tests never auto-load the user's normal save path.
