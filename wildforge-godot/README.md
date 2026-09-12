@@ -157,3 +157,9 @@ Trees now come from deterministic world vegetation data instead of three eager s
 Vegetation follows the same baseline-plus-delta rule as terrain. Save schema 17 stores only removed deterministic trees and planted trees; a fresh forest costs zero vegetation rows, felling one baseline tree adds one removal, and restoring that baseline tree collapses the delta again. Schema-16 migration applies its historical `trees` list only to the three legacy onboarding positions so newly generated forests are never erased by an older save.
 
 Tree ownership is resolved from current `SliceWorldOwnershipAuthority` unless a planted tree has an explicit owner override. Territorial transfer therefore changes the legal owner of existing forest without rewriting every tree. Plant/fell APIs are authority operations ready for later faction forestry, permits and theft consequences; Foundation 0.7 does not yet add logging jobs or axe progression. `tests/vegetation_test.gd` locks streaming, ownership transfer, delta persistence, legacy migration and stale-projection cleanup.
+
+## WF-Foundation 0.8 structure authority
+
+Structures are blueprints over real world cells, not decorative scene labels and not a parallel HP system. `SliceStructureAuthority` registers deterministic structure identities and expected tiles, then derives integrity and repair deficits directly from authoritative terrain. Existing ruin chambers and the deep sealed gate are the first baseline structures.
+
+Ownership is not duplicated inside structures. Structure claims are delegated to `SliceWorldOwnershipAuthority`; annexation changes the owner seen by a structure without rewriting its blueprint. Repairs use the same `SliceWorldEditAuthority` path as other runtime edits, including protected/non-player-placeable blueprint tiles. Baseline structure condition requires no new save schema: terrain deltas persist damage and ownership claims persist sovereignty, so integrity reconstructs on load.

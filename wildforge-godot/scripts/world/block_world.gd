@@ -16,6 +16,7 @@ const ChunkStreamerScript = preload("res://scripts/world/streaming/chunk_streame
 const LightingAuthorityScript = preload("res://scripts/world/lighting/lighting_authority.gd")
 const FluidRegistryScript = preload("res://scripts/world/fluid/fluid_registry.gd")
 const FluidAuthorityScript = preload("res://scripts/world/fluid/fluid_authority.gd")
+const StructureAuthorityScript = preload("res://scripts/world/structures/structure_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 1
@@ -40,6 +41,7 @@ var chunk_streamer: SliceChunkStreamer
 var lighting_authority: SliceLightingAuthority
 var fluid_registry := FluidRegistryScript.new() as SliceFluidRegistry
 var fluid_authority: SliceFluidAuthority
+var structure_authority: SliceStructureAuthority
 var fluid_tick_accumulator := 0.0
 const FLUID_TICK_SECONDS := 0.10
 var cells: Dictionary = {}
@@ -60,6 +62,7 @@ var place_flash_cell := NO_CELL
 var place_flash := 0.0
 var exploration_sites: Array = []
 var deep_sites: Array = []
+var baseline_structures: Array = []
 
 func _ready() -> void:
 	collision_root = Node2D.new()
@@ -67,6 +70,8 @@ func _ready() -> void:
 	add_child(collision_root)
 	_generate()
 	fluid_authority = FluidAuthorityScript.new(self, fluid_registry) as SliceFluidAuthority
+	structure_authority = StructureAuthorityScript.new(self) as SliceStructureAuthority
+	structure_authority.register_baseline(baseline_structures)
 	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
 	chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
 	chunk_streamer.refresh_at_cell(Vector2i(0, surface_y_at(0)), true)
@@ -86,6 +91,7 @@ func _generate() -> void:
 	cells.clear()
 	exploration_sites.clear()
 	deep_sites.clear()
+	baseline_structures.clear()
 	for x in range(MIN_X, MAX_X + 1):
 		var surface := surface_y_at(x)
 		for y in range(surface, MAX_Y + 1):
@@ -149,11 +155,18 @@ func _carve_ruin_pocket(side: int) -> void:
 	# Compact chamber: cache in the center, ore in the surrounding stone.
 	var anchor_x := direction * anchor_abs
 	var chamber_floor := surface_y_at(anchor_x) + 8
+	var chamber_blueprint: Array = []
 	for x in range(anchor_x - 3, anchor_x + 4):
 		for y in range(chamber_floor - 4, chamber_floor):
 			cells.erase(Vector2i(x, y))
 		for y in range(chamber_floor, chamber_floor + 2):
 			cells[Vector2i(x, y)] = RUIN_BRICK
+			chamber_blueprint.append([x, y, RUIN_BRICK])
+	baseline_structures.append({
+		"id": "ruin_chamber_%s" % ("west" if direction < 0 else "east"),
+		"kind": "ruin_chamber",
+		"blueprint": chamber_blueprint,
+	})
 	var ore_x := anchor_x - direction * 3
 	cells[Vector2i(ore_x, chamber_floor - 1)] = COPPER
 	cells[Vector2i(ore_x, chamber_floor - 2)] = COPPER
@@ -194,6 +207,10 @@ func _carve_deep_annex(anchor_x: int, chamber_floor: int) -> void:
 		var c := Vector2i(deep_x + dx, deep_floor + 1)
 		cells[c] = COAL
 		coal_cells.append(c)
+	var gate_blueprint: Array = []
+	for gate_cell in gate_cells:
+		gate_blueprint.append([gate_cell.x, gate_cell.y, SEALED_RUIN])
+	baseline_structures.append({"id": "ruin_deep_gate_east", "kind": "sealed_gate", "blueprint": gate_blueprint})
 	deep_sites.append({
 		"gate_cells": gate_cells,
 		"copper_cells": copper_cells,
@@ -406,7 +423,7 @@ func request_world_edit(request: Dictionary) -> Dictionary:
 		if mining_cell == cell:
 			clear_mining_feedback()
 		_mark_cell_changed(cell)
-	elif action == SliceWorldEditAuthority.ACTION_PLACE:
+	elif action in [SliceWorldEditAuthority.ACTION_PLACE, SliceWorldEditAuthority.ACTION_REPAIR]:
 		var tile := int(decision.get("tile", AIR))
 		if fluid_authority != null:
 			fluid_authority.clear_cell(cell)
