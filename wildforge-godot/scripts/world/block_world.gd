@@ -8,6 +8,7 @@ const CampfireScript = preload("res://scripts/world/campfire.gd")
 const ChunkViewScript = preload("res://scripts/world/block_chunk_view.gd")
 const BlockRegistryScript = preload("res://scripts/world/block_registry.gd")
 const WorldEditAuthorityScript = preload("res://scripts/world/authority/world_edit_authority.gd")
+const OwnershipAuthorityScript = preload("res://scripts/world/authority/world_ownership_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 1
@@ -25,6 +26,7 @@ const SEALED_RUIN := 7
 const NO_CELL := Vector2i(99999, 99999)
 
 var block_registry := BlockRegistryScript.new() as SliceBlockRegistry
+var ownership_authority := OwnershipAuthorityScript.new() as SliceWorldOwnershipAuthority
 var edit_authority := WorldEditAuthorityScript.new(block_registry) as SliceWorldEditAuthority
 var cells: Dictionary = {}
 var baseline_cells: Dictionary = {}
@@ -316,9 +318,17 @@ func has_support_neighbor(cell: Vector2i) -> bool:
 			return true
 	return false
 
-func owner_at(_cell: Vector2i) -> String:
-	# Foundation 0.1: all generated land is wilderness until territorial claims land.
-	return "wilderness"
+func ownership_at(cell: Vector2i) -> Dictionary:
+	return ownership_authority.resolve(cell)
+
+func owner_at(cell: Vector2i) -> String:
+	return ownership_authority.owner_at(cell)
+
+func claim_region(owner_id: String, rect: Rect2i, zone_type := "territory", structure_id := "") -> bool:
+	return ownership_authority.claim_region(owner_id, rect, zone_type, structure_id)
+
+func claim_cells(owner_id: String, claimed_cells: Array, zone_type := "structure", structure_id := "") -> int:
+	return ownership_authority.claim_cells(owner_id, claimed_cells, zone_type, structure_id)
 
 func mine_time(cell: Vector2i) -> float:
 	return block_registry.hardness(tile_at(cell))
