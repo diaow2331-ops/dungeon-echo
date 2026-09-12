@@ -32,6 +32,7 @@ const RAW_MEAT_NOURISH := 9.0
 const TRAIL_RATION_NOURISH := 38.0
 const STONE_PICK_POWER := 1.75
 const COPPER_PICK_POWER := 2.30
+const DELVER_PICK_POWER := 2.70
 const STARTER_BLADE_REFERENCE_DAMAGE := 5.0
 const STONE_BLADE_REFERENCE_DAMAGE := 7.0
 const STARTER_BLADE_REFERENCE_KNOCKBACK := 4.2
@@ -73,7 +74,7 @@ var equipped_pick_id := "starter_pick"
 var equipped_weapon_id := "starter_blade"
 
 func _ready() -> void:
-	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0}
+	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -227,6 +228,8 @@ func _primary_action(delta: float, held: bool = true) -> void:
 func harvest_cell(cell: Vector2i) -> bool:
 	if world == null or not world.has_cell(cell):
 		return false
+	if pick_power() + 0.001 < world.required_pick_power(cell):
+		return false
 	var tile := world.tile_at(cell)
 	var center := world.cell_center(cell)
 	if not world.mine_at(cell):
@@ -280,12 +283,15 @@ func place_material_at(cell: Vector2i, tile := SliceWorld.DIRT) -> bool:
 
 func pick_power() -> float:
 	match equipped_pick_id:
+		"delver_pick": return DELVER_PICK_POWER
 		"copper_pick": return COPPER_PICK_POWER
 		"stone_pick": return STONE_PICK_POWER
 		_: return 1.0
 
 func effective_mine_time(cell: Vector2i) -> float:
 	if world == null:
+		return 0.0
+	if pick_power() + 0.001 < world.required_pick_power(cell):
 		return 0.0
 	var base := world.mine_time(cell)
 	return base / maxf(1.0, pick_power())
@@ -354,6 +360,8 @@ func craft(recipe_id: String) -> bool:
 		equipped_pick_id = "stone_pick"
 	elif recipe_id == "copper_pick":
 		equipped_pick_id = "copper_pick"
+	elif recipe_id == "delver_pick":
+		equipped_pick_id = "delver_pick"
 	elif recipe_id == "stone_blade":
 		equipped_weapon_id = "stone_blade"
 	camera_trauma = maxf(camera_trauma, 0.025)
@@ -371,6 +379,8 @@ func context_label() -> String:
 		if can_craft("workbench") or can_craft("plank"):
 			return "制"
 	if world != null and world.near_workbench(global_position):
+		if can_craft("delver_pick"):
+			return "遗"
 		if can_craft("copper_pick"):
 			return "铜"
 		if can_craft("stone_pick"):
@@ -402,6 +412,8 @@ func context_action() -> bool:
 		if can_craft("plank"):
 			return craft("plank")
 	if world != null and world.near_workbench(global_position):
+		if can_craft("delver_pick"):
+			return craft("delver_pick")
 		if can_craft("copper_pick"):
 			return craft("copper_pick")
 		if can_craft("stone_pick"):

@@ -31,6 +31,8 @@ func _draw() -> void:
 				color = Color("9f6047")
 			elif tile == SliceWorld.RUIN_BRICK:
 				color = Color("655c70")
+			elif tile == SliceWorld.SEALED_RUIN:
+				color = Color("4b405d")
 			var pos := Vector2(lx, ly) * SliceWorld.TILE_SIZE
 			draw_rect(Rect2(pos + Vector2.ONE, Vector2(SliceWorld.TILE_SIZE - 2, SliceWorld.TILE_SIZE - 2)), color)
 			if tile == SliceWorld.GRASS:
@@ -44,3 +46,6 @@ func _draw() -> void:
 				draw_line(pos + Vector2(7, 22), pos + Vector2(24, 8), Color("d18661"), 4.0)
 			elif tile == SliceWorld.RUIN_BRICK:
 				draw_line(pos + Vector2(2, 16), pos + Vector2(30, 16), Color(0.78, 0.72, 0.84, 0.25), 2.0)
+			elif tile == SliceWorld.SEALED_RUIN:
+				draw_rect(Rect2(pos + Vector2(6, 6), Vector2(20, 20)), Color(0.73, 0.62, 0.88, 0.16), false, 2.0)
+				draw_line(pos + Vector2(8, 23), pos + Vector2(24, 8), Color(0.75, 0.65, 0.92, 0.32), 2.0)
