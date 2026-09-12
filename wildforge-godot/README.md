@@ -71,3 +71,11 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - The boar stalks, telegraphs a charge, commits through the charge, then exposes a recovery window.
 - Close contact alone is harmless; the tell can be interrupted, while a committed charge has higher resistance.
 - Raw meat remains the canonical 1–2 stack reward and still feeds the same survival inventory authority.
+
+## v0.10 exploration milestone
+
+- Two deterministic shallow ruin pockets sit outside the spawn neighborhood on opposite sides of the slice.
+- Each ruin exposes real coal/copper world tiles plus one guard-locked relic cache.
+- Cache rewards preserve the Canvas shallow-ruin contract: one Ancient Core, bounded coal, bounded copper ore.
+- Relic caches reuse the primary-action/harvestable path; no new permanent mobile button is introduced.
+- Exploration rewards enter the same proof stock authority used by mining, crafting and survival.

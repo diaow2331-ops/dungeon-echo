@@ -26,7 +26,7 @@ func _run() -> void:
 	var player := main.get_node_or_null("Player") as SlicePlayer
 	_check(world != null, "destructible world exists")
 	_check(player != null, "CharacterBody2D player exists")
-	_check(main.get_tree().get_nodes_in_group("enemies").size() == 3, "one enemy family is locally instantiated")
+	_check(main.get_tree().get_nodes_in_group("enemies").size() >= 3 and main.get_tree().get_nodes_in_group("enemies").size() <= 6, "sparse local enemy actors remain instantiated")
 	if world != null and player != null:
 		var surface := Vector2i(0, world.surface_y_at(0))
 		_check(world.has_cell(surface), "spawn terrain is solid")

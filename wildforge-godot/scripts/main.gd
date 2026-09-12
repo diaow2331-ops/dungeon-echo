@@ -6,6 +6,7 @@ const EnemyScript = preload("res://scripts/enemies/crawler.gd")
 const BoarScript = preload("res://scripts/enemies/bramble_boar.gd")
 const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
+const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
 
 var world: SliceWorld
 var player: SlicePlayer
@@ -37,6 +38,7 @@ func _ready() -> void:
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
 	_spawn_boar(17)
+	_spawn_exploration_sites()
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
@@ -71,6 +73,27 @@ func _spawn_boar(x: int) -> void:
 	boar.player = player
 	boar.global_position = Vector2(x * SliceWorld.TILE_SIZE, world.surface_y_at(x) * SliceWorld.TILE_SIZE - 30.0)
 	add_child(boar)
+
+func _spawn_exploration_sites() -> void:
+	for site in world.exploration_sites:
+		var guard := EnemyScript.new() as SliceCrawler
+		var guard_cell: Vector2i = site["guard_cell"]
+		guard.name = "RuinGuard_%d" % guard_cell.x
+		guard.player = player
+		guard.hp = 78.0
+		guard.global_position = world.cell_center(guard_cell) + Vector2(0, -16)
+		add_child(guard)
+		guard.add_to_group("ruin_guards")
+
+		var cache := RelicCacheScript.new() as SliceRelicCache
+		var cache_cell: Vector2i = site["cache_cell"]
+		cache.name = "RelicCache_%d" % cache_cell.x
+		cache.world = world
+		cache.player = player
+		cache.guard = guard
+		cache.global_position = world.cell_center(cache_cell) + Vector2(0, 8)
+		cache.z_index = 15
+		add_child(cache)
 
 func enemy_defeated(at: Vector2, loot_item_id := "", loot_count := 0) -> void:
 	defeats += 1

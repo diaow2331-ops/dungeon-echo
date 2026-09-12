@@ -15,6 +15,9 @@ const AIR := 0
 const DIRT := 1
 const GRASS := 2
 const STONE := 3
+const COAL := 4
+const COPPER := 5
+const RUIN_BRICK := 6
 const NO_CELL := Vector2i(99999, 99999)
 
 var cells: Dictionary = {}
@@ -30,6 +33,7 @@ var mining_cell := NO_CELL
 var mining_progress := 0.0
 var place_flash_cell := NO_CELL
 var place_flash := 0.0
+var exploration_sites: Array = []
 
 func _ready() -> void:
 	collision_root = Node2D.new()
@@ -46,6 +50,7 @@ func _process(delta: float) -> void:
 
 func _generate() -> void:
 	cells.clear()
+	exploration_sites.clear()
 	for x in range(MIN_X, MAX_X + 1):
 		var surface := surface_y_at(x)
 		for y in range(surface, MAX_Y + 1):
@@ -55,6 +60,43 @@ func _generate() -> void:
 		cells[Vector2i(x, surface_y_at(x) - 1)] = STONE
 	for y in range(surface_y_at(13) - 4, surface_y_at(13) - 1):
 		cells[Vector2i(13, y)] = STONE
+	_carve_ruin_pocket(-1)
+	_carve_ruin_pocket(1)
+
+func _carve_ruin_pocket(side: int) -> void:
+	var direction := -1 if side < 0 else 1
+	var entry_abs := 17
+	var anchor_abs := 31
+	# A walkable stepped tunnel forces a short expedition without requiring ropes.
+	for i in range(anchor_abs - entry_abs + 1):
+		var x := direction * (entry_abs + i)
+		var floor_y := surface_y_at(x) + 1 + i / 2
+		for y in range(floor_y - 3, floor_y):
+			cells.erase(Vector2i(x, y))
+	# Compact chamber: cache in the center, ore in the surrounding stone.
+	var anchor_x := direction * anchor_abs
+	var chamber_floor := surface_y_at(anchor_x) + 8
+	for x in range(anchor_x - 3, anchor_x + 4):
+		for y in range(chamber_floor - 4, chamber_floor):
+			cells.erase(Vector2i(x, y))
+		for y in range(chamber_floor, chamber_floor + 2):
+			cells[Vector2i(x, y)] = RUIN_BRICK
+	var ore_x := anchor_x - direction * 3
+	cells[Vector2i(ore_x, chamber_floor - 1)] = COPPER
+	cells[Vector2i(ore_x, chamber_floor - 2)] = COPPER
+	cells[Vector2i(ore_x - direction, chamber_floor - 1)] = COAL
+	cells[Vector2i(ore_x - direction, chamber_floor - 2)] = COAL
+	exploration_sites.append({
+		"cache_cell": Vector2i(anchor_x, chamber_floor - 1),
+		"guard_cell": Vector2i(anchor_x + direction * 2, chamber_floor - 1),
+		"side": direction,
+	})
+
+func exploration_site_count() -> int:
+	return exploration_sites.size()
+
+func depth_at(cell: Vector2i) -> int:
+	return cell.y - surface_y_at(cell.x)
 
 func surface_y_at(x: int) -> int:
 	return 13 + int(round(sin(float(x) * 0.19) * 1.4 + sin(float(x) * 0.057) * 1.1))
@@ -76,6 +118,9 @@ func mine_time(cell: Vector2i) -> float:
 		GRASS: return 0.16
 		DIRT: return 0.20
 		STONE: return 0.42
+		COAL: return 0.54
+		COPPER: return 0.72
+		RUIN_BRICK: return 0.82
 		_: return 0.0
 
 func set_mining_feedback(cell: Vector2i, progress: float) -> void:
@@ -127,7 +172,12 @@ func spawn_item_pickup(at: Vector2, item_id: String, collector: SlicePlayer, amo
 	return pickup
 
 func spawn_material_pickup(at: Vector2, tile: int, collector: SlicePlayer, amount := 1) -> SliceItemPickup:
-	var item_id := "stone" if tile == STONE else "soil"
+	var item_id := "soil"
+	match tile:
+		STONE, RUIN_BRICK: item_id = "stone"
+		COAL: item_id = "coal"
+		COPPER: item_id = "copper_ore"
+		_: item_id = "soil"
 	return spawn_item_pickup(at, item_id, collector, amount)
 
 
