@@ -1,8 +1,10 @@
 extends RefCounted
 class_name SliceSaveSystem
 
-const SAVE_VERSION := 13
-const SAVE_PATH := "user://wildforge-godot-v013.json"
+const SAVE_VERSION := 14
+const SAVE_PATH := "user://wildforge-godot-v014.json"
+const LEGACY_SAVE_VERSION := 13
+const LEGACY_SAVE_PATH := "user://wildforge-godot-v013.json"
 
 static func is_test_run() -> bool:
 	for arg in OS.get_cmdline_args():
@@ -15,7 +17,8 @@ static func snapshot(main: Node) -> Dictionary:
 	var player := main.get_node("Player") as SlicePlayer
 	return {
 		"version": SAVE_VERSION,
-		"world_cells": world.export_cells(),
+		"world_generation": SliceWorld.WORLD_GENERATION_VERSION,
+		"world_overrides": world.export_cell_overrides(),
 		"player": {
 			"x": player.global_position.x,
 			"y": player.global_position.y,
@@ -33,15 +36,23 @@ static func snapshot(main: Node) -> Dictionary:
 	}
 
 static func apply_snapshot(main: Node, data: Dictionary) -> bool:
-	if int(data.get("version", 0)) != SAVE_VERSION:
+	var version := int(data.get("version", 0))
+	if version != SAVE_VERSION and version != LEGACY_SAVE_VERSION:
 		return false
 	var world := main.get_node_or_null("World") as SliceWorld
 	var player := main.get_node_or_null("Player") as SlicePlayer
 	if world == null or player == null:
 		return false
-	var rows = data.get("world_cells", [])
-	if not rows is Array or not world.restore_cells(rows):
-		return false
+	if version == SAVE_VERSION:
+		if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+			return false
+		var overrides = data.get("world_overrides", [])
+		if not overrides is Array or not world.restore_cell_overrides(overrides):
+			return false
+	else:
+		var legacy_rows = data.get("world_cells", [])
+		if not legacy_rows is Array or not world.restore_legacy_v13_cells(legacy_rows):
+			return false
 	var p = data.get("player", {})
 	if not p is Dictionary:
 		return false
@@ -90,7 +101,8 @@ static func save_to_path(main: Node, path := SAVE_PATH) -> bool:
 	file.store_string(JSON.stringify(data))
 	file.flush()
 	file = null
-	if not _read_snapshot(temp_path).is_empty():
+	var candidate := _read_snapshot(temp_path)
+	if not candidate.is_empty() and validate_snapshot(candidate):
 		if FileAccess.file_exists(path):
 			if FileAccess.file_exists(backup_path):
 				DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
@@ -106,24 +118,44 @@ static func save_to_path(main: Node, path := SAVE_PATH) -> bool:
 	return false
 
 static func load_from_path(main: Node, path := SAVE_PATH) -> bool:
-	var primary := _read_snapshot(path)
-	if not primary.is_empty() and apply_snapshot(main, primary):
-		return true
-	var backup := _read_snapshot(path + ".bak")
-	return not backup.is_empty() and apply_snapshot(main, backup)
+	for candidate_path in [path, path + ".bak"]:
+		var candidate := _read_snapshot(String(candidate_path))
+		if _is_supported_snapshot(candidate) and apply_snapshot(main, candidate):
+			return true
+	if path == SAVE_PATH:
+		for legacy_path in [LEGACY_SAVE_PATH, LEGACY_SAVE_PATH + ".bak"]:
+			var legacy := _read_snapshot(String(legacy_path))
+			if validate_legacy_snapshot(legacy) and apply_snapshot(main, legacy):
+				# Promote a successfully migrated legacy save into the current delta schema.
+				save_to_path(main, SAVE_PATH)
+				return true
+	return false
 
 static func validate_snapshot(data: Dictionary) -> bool:
 	if int(data.get("version", 0)) != SAVE_VERSION:
+		return false
+	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+		return false
+	var rows = data.get("world_overrides", [])
+	if not rows is Array or rows.size() > 250000:
+		return false
+	for row in rows:
+		if not _valid_world_row(row, true):
+			return false
+	return _validate_common(data)
+
+static func validate_legacy_snapshot(data: Dictionary) -> bool:
+	if int(data.get("version", 0)) != LEGACY_SAVE_VERSION:
 		return false
 	var rows = data.get("world_cells", [])
 	if not rows is Array or rows.is_empty() or rows.size() > 1000000:
 		return false
 	for row in rows:
-		if not row is Array or row.size() < 3:
+		if not _valid_world_row(row, false):
 			return false
-		var tile := int(row[2])
-		if tile <= SliceWorld.AIR or tile > SliceWorld.SEALED_RUIN:
-			return false
+	return _validate_common(data)
+
+static func _validate_common(data: Dictionary) -> bool:
 	var player = data.get("player", {})
 	if not player is Dictionary:
 		return false
@@ -137,6 +169,18 @@ static func validate_snapshot(data: Dictionary) -> bool:
 			return false
 	return true
 
+static func _valid_world_row(row, allow_air: bool) -> bool:
+	if not row is Array or row.size() < 3:
+		return false
+	var tile := int(row[2])
+	if allow_air:
+		return tile >= SliceWorld.AIR and tile <= SliceWorld.SEALED_RUIN
+	return tile > SliceWorld.AIR and tile <= SliceWorld.SEALED_RUIN
+
+static func _is_supported_snapshot(data: Dictionary) -> bool:
+	var version := int(data.get("version", 0))
+	return validate_snapshot(data) if version == SAVE_VERSION else validate_legacy_snapshot(data)
+
 static func _read_snapshot(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
@@ -147,9 +191,7 @@ static func _read_snapshot(path: String) -> Dictionary:
 	if parser.parse(file.get_as_text()) != OK:
 		return {}
 	var parsed = parser.data
-	if not parsed is Dictionary or not validate_snapshot(parsed):
-		return {}
-	return parsed
+	return parsed if parsed is Dictionary else {}
 
 static func _sanitized_stock(raw) -> Dictionary:
 	var clean: Dictionary = {}

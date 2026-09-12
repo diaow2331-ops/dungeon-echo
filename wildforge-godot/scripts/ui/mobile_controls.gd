@@ -38,7 +38,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if player != null and is_instance_valid(player):
 		var relic := " · 芯%d 铜%d" % [player.item_count("ancient_core"), player.item_count("copper_ore")] if player.item_count("ancient_core") + player.item_count("copper_ore") > 0 else ""
-		status_label.text = "HP %d · 饱食 %d · 木%d 石%d · 镐%s 刃%s%s · v0.14" % [int(ceil(player.health)), int(ceil(player.hunger)), player.item_count("wood"), player.item_count("stone"), "遗" if player.equipped_pick_id == "delver_pick" else ("Ⅲ" if player.equipped_pick_id == "copper_pick" else ("Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ")), "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic]
+		status_label.text = "HP %d · 饱食 %d · 木%d 石%d · 镐%s 刃%s%s · v0.15" % [int(ceil(player.health)), int(ceil(player.hunger)), player.item_count("wood"), player.item_count("stone"), "遗" if player.equipped_pick_id == "delver_pick" else ("Ⅲ" if player.equipped_pick_id == "copper_pick" else ("Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ")), "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic]
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
