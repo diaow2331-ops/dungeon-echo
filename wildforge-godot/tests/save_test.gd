@@ -1,7 +1,7 @@
 extends SceneTree
 
 var failed := false
-const TEMP_PATH := "user://wildforge-godot-v013-test.json"
+const TEMP_PATH := "user://wildforge-godot-v016-test.json"
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -60,6 +60,8 @@ func _run() -> void:
 			node.collect_now()
 	await process_frame
 
+	var fluid_cell := Vector2i(4, world.surface_y_at(4) - 2)
+	_check(world.set_fluid(fluid_cell, "water", 0.73), "save fixture adds authoritative fluid state")
 	var snap := SliceSaveSystem.snapshot(main)
 	_check(int(snap["version"]) == SliceSaveSystem.SAVE_VERSION, "snapshot carries explicit save schema version")
 	_check(SliceSaveSystem.save_to_path(main, TEMP_PATH), "save snapshot writes to disk")
@@ -73,6 +75,10 @@ func _run() -> void:
 	var world2 := restored.get_node("World") as SliceWorld
 	var player2 := restored.get_node("Player") as SlicePlayer
 	_check(not world2.has_cell(mined_cell), "mined world cell stays mined after restore")
+	var saved_fluid_total := 0.0
+	for row in snap["fluid_cells"]:
+		saved_fluid_total += float(row[3])
+	_check(absf(world2.fluid_authority.total_amount() - saved_fluid_total) < 0.001, "fluid authority round-trips through the current save schema")
 	var saved_pos := Vector2(float(snap["player"]["x"]), float(snap["player"]["y"]))
 	_check(player2.global_position.distance_to(saved_pos) < 0.01, "player position persists at the exact snapshot transform")
 	var saved_health := float(snap["player"]["health"])
@@ -116,6 +122,18 @@ func _run() -> void:
 	_check(SliceSaveSystem.load_from_path(recovered, TEMP_PATH), "corrupt primary automatically falls back to the previous valid backup")
 	var recovered_player := recovered.get_node("Player") as SlicePlayer
 	_check(recovered_player.equipped_pick_id == "delver_pick" and recovered_player.item_count("ancient_core") >= 1, "backup recovery preserves real progression authority")
+	var legacy_snap := snap.duplicate(true)
+	legacy_snap["version"] = SliceSaveSystem.LEGACY_OWNERSHIP_SAVE_VERSION
+	legacy_snap.erase("fluid_cells")
+	_check(SliceSaveSystem.validate_legacy_ownership_snapshot(legacy_snap), "v15 ownership snapshot remains a recognized migration source")
+	var legacy_restored := _new_main()
+	await process_frame
+	await process_frame
+	_check(SliceSaveSystem.apply_snapshot(legacy_restored, legacy_snap), "v15 snapshot migrates into the v16 runtime")
+	var legacy_world := legacy_restored.get_node("World") as SliceWorld
+	_check(legacy_world.fluid_authority.cells.is_empty(), "v15 migration initializes fluid authority without inventing persisted liquid")
+	legacy_restored.free()
+
 	recovered.free()
 	disk_restored.free()
 	await process_frame

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "fluids": {
+    "water": {
+      "display_name": "Water",
+      "color": "438fc4",
+      "light_absorption": 0.06,
+      "light_emission": 0.0
+    },
+    "lava": {
+      "display_name": "Lava",
+      "color": "e87532",
+      "light_absorption": 0.02,
+      "light_emission": 0.82
+    }
+  }
+}

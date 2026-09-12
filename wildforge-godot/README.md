@@ -136,3 +136,10 @@ World data remains fully authoritative while render/collision chunks are streame
 Block optical properties are data-driven in `data/blocks.json`; light absorption/emission no longer belongs in presentation code. `SliceLightingAuthority` computes sunlight and local-source propagation only for streamed chunks plus a one-chunk halo, and keeps the resulting scalar light field as derived cache rather than save authority.
 
 Terrain edits invalidate nearby lighting, local emitters propagate across chunk boundaries, and distant unloaded emitters do not allocate caches. Approaching a region rebuilds light from current terrain, while unloading releases its light cache. Lighting is intentionally absent from save payloads. Final colored lighting, shaders and art-directed grading remain presentation work layered above this foundation.
+## WF-Foundation 0.5 chunk fluid authority
+
+Water and lava now live in a dedicated `SliceFluidAuthority` instead of overloading terrain block IDs. Fluid amount/type are persistent world authority, while rendering and lighting remain derived presentation. A sparse chunk index means each 10 Hz simulation tick visits only liquid cells in streamed chunks plus a one-chunk halo; distant liquid remains stored but asleep until the player approaches.
+
+Flow is bounded and conservative: unobstructed liquid falls first, blocked liquid equalizes laterally, capacity is clamped to one cell-volume, and propagation crosses chunk boundaries without waking the whole world. Water/lava contact uses one explicit reaction entry point with measured consumption. Placing solid terrain displaces fluid through the same world edit path.
+
+Fluid optical data is registry-driven in `data/fluids.json`; water attenuates light and lava contributes emission to the existing chunk-lighting authority. Save schema 16 persists fluid cells, while schema 15 ownership saves, schema 14 delta saves and schema 13 full-map saves remain migration sources. `tests/fluid_test.gd` locks conservation, cross-chunk flow, active/halo sleeping, reaction accounting, lighting integration and authoritative persistence.
