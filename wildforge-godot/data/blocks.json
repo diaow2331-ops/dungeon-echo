@@ -96,6 +96,30 @@
       "resource_class": "protected_structure",
       "light_absorption": 0.98,
       "light_emission": 0.0
+    },
+    "8": {
+      "key": "settlement_timber",
+      "display_name": "Settlement Timber",
+      "hardness": 0.46,
+      "required_pick_power": 1.0,
+      "drop_item": "wood",
+      "placeable": false,
+      "solid": true,
+      "resource_class": "protected_structure",
+      "light_absorption": 0.86,
+      "light_emission": 0.0
+    },
+    "9": {
+      "key": "settlement_stone",
+      "display_name": "Settlement Stone",
+      "hardness": 0.68,
+      "required_pick_power": 1.0,
+      "drop_item": "stone",
+      "placeable": false,
+      "solid": true,
+      "resource_class": "protected_structure",
+      "light_absorption": 0.93,
+      "light_emission": 0.0
     }
   }
 }

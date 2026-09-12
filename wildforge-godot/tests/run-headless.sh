@@ -47,6 +47,7 @@ run_gate res://tests/save_test.gd 'wildforge_godot_save=PASS'
 run_gate res://tests/worldscale_test.gd 'wildforge_godot_worldscale=PASS'
 run_gate res://tests/worldgen_test.gd 'wildforge_world_generator=PASS'
 run_gate res://tests/traveler_start_test.gd 'wildforge_traveler_start=PASS'
+run_gate res://tests/settlement_test.gd 'wildforge_first_settlement=PASS'
 run_gate res://tests/world_authority_test.gd 'wildforge_world_authority=PASS'
 run_gate res://tests/ownership_test.gd 'wildforge_ownership_authority=PASS'
 node "$ROOT/tests/recipe_parity.mjs" | tee /tmp/wildforge-recipe-parity.log

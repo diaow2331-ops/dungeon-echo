@@ -105,3 +105,11 @@ New-game capability must come from owned tools, contracts and permissions, not f
 ## World-time authority
 
 Day/night time belongs to world simulation and persistence, not HUD animation. One full day is 720 real seconds. Survival, future settlement schedules, markets and faction simulation must read the same world clock; save/load restores that clock exactly instead of reconstructing time from presentation state.
+
+## Settlement economy authority
+
+Faction settlements are physical world overlays plus pure data economy, never a parallel decorative town scene. Structure condition derives from real cells, sovereignty derives from ownership claims, and settlement inventory/treasury live in one `SliceSettlementAuthority`.
+
+Trade must conserve both sides of the transaction: player goods/currency and settlement stock/treasury change together or not at all. Prices may derive from authoritative shortages but presentation code never owns price state.
+
+Any deterministic settlement added to the generated baseline requires a world-generation version bump and an explicit migration boundary. Legacy terrain deltas must not silently overwrite cells introduced by a newer settlement baseline.

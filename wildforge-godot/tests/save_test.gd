@@ -130,19 +130,39 @@ func _run() -> void:
 	var recovered_player := recovered.get_node("Player") as SlicePlayer
 	_check(recovered_player.equipped_pick_id == "delver_pick" and recovered_player.item_count("ancient_core") >= 1, "backup recovery preserves real progression authority")
 
-	var legacy_v18 := snap.duplicate(true)
+	var legacy_v19 := snap.duplicate(true)
+	legacy_v19["version"] = SliceSaveSystem.LEGACY_TRAVELER_SAVE_VERSION
+	legacy_v19["world_generation"] = SliceWorld.SEEDED_WORLD_GENERATION_VERSION
+	legacy_v19.erase("settlements")
+	(legacy_v19["player"] as Dictionary).erase("marks")
+	legacy_v19["ownership_claims"] = {"regions": [], "cells": []}
+	_check(SliceSaveSystem.validate_legacy_traveler_snapshot(legacy_v19), "v19 traveler snapshot remains a recognized generation-2 migration source")
+	var legacy19_restored := _new_main()
+	await process_frame
+	await process_frame
+	_check(SliceSaveSystem.apply_snapshot(legacy19_restored, legacy_v19), "v19 traveler snapshot migrates into the v20 settlement runtime")
+	var legacy19_world := legacy19_restored.get_node("World") as SliceWorld
+	var legacy19_player := legacy19_restored.get_node("Player") as SlicePlayer
+	_check(legacy19_world.clock.day_index == int(legacy_v19["world_clock"]["day"]), "v19 migration preserves the authoritative traveler clock")
+	_check(legacy19_world.settlement_authority.ids().size() == 1, "v19 migration installs the deterministic first settlement")
+	_check(legacy19_player.forge_marks == 0, "v19 migration never invents settlement currency")
+	legacy19_restored.free()
+
+	var legacy_v18 := legacy_v19.duplicate(true)
 	legacy_v18["version"] = SliceSaveSystem.LEGACY_SEEDED_SAVE_VERSION
 	legacy_v18.erase("world_clock")
 	(legacy_v18["player"] as Dictionary).erase("axe")
-	_check(SliceSaveSystem.validate_legacy_seeded_snapshot(legacy_v18), "v18 seeded snapshot remains a recognized migration source")
+	_check(SliceSaveSystem.validate_legacy_seeded_snapshot(legacy_v18), "v18 seeded snapshot remains a recognized generation-2 migration source")
 	var legacy18_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy18_restored, legacy_v18), "v18 seeded snapshot migrates into the v19 traveler runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy18_restored, legacy_v18), "v18 seeded snapshot migrates into the v20 settlement runtime")
 	var legacy18_world := legacy18_restored.get_node("World") as SliceWorld
 	var legacy18_player := legacy18_restored.get_node("Player") as SlicePlayer
-	_check(legacy18_world.clock.day_index == 0 and absf(legacy18_world.clock.time_of_day - SliceWorldClock.DEFAULT_TIME_OF_DAY) < 0.0001, "v18 migration initializes the new clock at its deterministic default")
+	_check(legacy18_world.clock.day_index == 0 and absf(legacy18_world.clock.time_of_day - SliceWorldClock.DEFAULT_TIME_OF_DAY) < 0.0001, "v18 migration initializes the world clock at its deterministic default")
+	_check(legacy18_world.settlement_authority.ids().size() == 1, "v18 migration installs the deterministic first settlement")
 	_check(legacy18_player.equipped_axe_id.is_empty(), "v18 migration never invents an axe")
+	_check(legacy18_player.forge_marks == 0, "v18 migration never invents settlement currency")
 	legacy18_restored.free()
 
 	var legacy_v17 := snap.duplicate(true)
@@ -153,7 +173,7 @@ func _run() -> void:
 	var legacy17_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy17_restored, legacy_v17), "v17 snapshot migrates explicitly into the v19 traveler runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy17_restored, legacy_v17), "v17 snapshot migrates explicitly into the v20 settlement runtime")
 	var legacy17_world := legacy17_restored.get_node("World") as SliceWorld
 	var legacy17_authority := legacy17_restored.actor_authority as SliceWorldActorAuthority
 	_check(legacy17_world.world_seed == SliceWorld.DEFAULT_WORLD_SEED, "v17 migration assigns only the historical default seed")
@@ -168,7 +188,7 @@ func _run() -> void:
 	var legacy16_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy16_restored, legacy_v16), "v16 snapshot migrates into the v19 runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy16_restored, legacy_v16), "v16 snapshot migrates into the v20 runtime")
 	var legacy16_authority := legacy16_restored.actor_authority as SliceWorldActorAuthority
 	_check((legacy16_authority.vegetation_delta()["removed"] as Array).size() == 1, "v16 migration applies only the historical three-tree presence contract")
 	_check(legacy16_authority.descriptor_count(SliceWorldActorAuthority.KIND_TREE) > 3, "v16 migration preserves newly generated distant forest baseline")
@@ -181,7 +201,7 @@ func _run() -> void:
 	var legacy_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy_restored, legacy_snap), "v15 snapshot migrates into the v19 runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy_restored, legacy_snap), "v15 snapshot migrates into the v20 runtime")
 	var legacy_world := legacy_restored.get_node("World") as SliceWorld
 	_check(legacy_world.fluid_authority.cells.is_empty(), "v15 migration initializes fluid authority without inventing persisted liquid")
 	legacy_restored.free()

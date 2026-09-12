@@ -71,6 +71,7 @@ var primary_prev := false
 var attack_buffer := 0.0
 var mine_grace := 0.0
 var stock: Dictionary = {}
+var forge_marks := 0
 var hunger := HUNGER_START
 var starvation_tick := 0.0
 var equipped_pick_id := ""
@@ -379,6 +380,9 @@ func context_label() -> String:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return "食"
+	var market_id := nearby_market_id()
+	if not market_id.is_empty():
+		return "售" if item_count("raw_meat") > 0 else "市"
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return "台"
@@ -410,6 +414,15 @@ func context_action() -> bool:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return eat_item(food)
+	var market_id := nearby_market_id()
+	if not market_id.is_empty():
+		if item_count("raw_meat") <= 0:
+			return false
+		var trade: Dictionary = world.settlement_authority.sell_from_player(self, market_id, "raw_meat", 1)
+		if bool(trade.get("ok", false)):
+			world.feedback_burst(global_position + Vector2(0, -24), Color("dfc36f"), 6, 55.0)
+			return true
+		return false
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return place_workbench_once()
@@ -439,6 +452,11 @@ func context_action() -> bool:
 		return eat_item(food)
 	place_once()
 	return true
+
+func nearby_market_id() -> String:
+	if world == null or world.settlement_authority == null:
+		return ""
+	return world.settlement_authority.nearby_market(global_position)
 
 func _reset_mining() -> void:
 	mine_progress = 0.0

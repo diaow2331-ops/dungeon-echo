@@ -21,7 +21,8 @@ func _run() -> void:
 	var world := main.get_node("World") as SliceWorld
 	var structures := world.structure_authority as SliceStructureAuthority
 
-	_check(structures.structure_ids().size() == 3, "deterministic world registers two ruin chambers and one deep gate as structures")
+	var baseline_ids := structures.structure_ids()
+	_check("ruin_chamber_west" in baseline_ids and "ruin_chamber_east" in baseline_ids and "ruin_deep_gate_east" in baseline_ids, "deterministic world retains both ruin chambers and the deep gate alongside settlement structures")
 	_check(absf(structures.integrity("ruin_chamber_west") - 1.0) < 0.001, "structure integrity derives from real baseline tiles")
 	var ruin_cells := structures.cells_for("ruin_chamber_west")
 	var damaged_cell: Vector2i = ruin_cells[0]
