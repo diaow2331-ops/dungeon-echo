@@ -26,7 +26,7 @@ func _ready() -> void:
 	status_label.modulate = Color(0.92, 0.96, 0.94, 0.88)
 	add_child(status_label)
 	hint_label = Label.new()
-	hint_label.text = "左侧移动/上推跳跃 · 右侧瞄准采/战 · 中央键按情境制作/放置"
+	hint_label.text = "左侧移动/上推跳跃 · 右侧瞄准战斗 · 中央键按情境互动"
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	hint_label.position = Vector2(0, 10)
@@ -38,7 +38,10 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if player != null and is_instance_valid(player):
 		var relic := " · 芯%d 铜%d" % [player.item_count("ancient_core"), player.item_count("copper_ore")] if player.item_count("ancient_core") + player.item_count("copper_ore") > 0 else ""
-		status_label.text = "HP %d · 饱食 %d · 木%d 石%d · 镐%s 刃%s%s · v0.15" % [int(ceil(player.health)), int(ceil(player.hunger)), player.item_count("wood"), player.item_count("stone"), "遗" if player.equipped_pick_id == "delver_pick" else ("Ⅲ" if player.equipped_pick_id == "copper_pick" else ("Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ")), "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic]
+		var pick_label := "无" if player.equipped_pick_id.is_empty() else ("遗" if player.equipped_pick_id == "delver_pick" else ("Ⅲ" if player.equipped_pick_id == "copper_pick" else ("Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ")))
+		var day := player.world.clock.day_index + 1 if player.world != null else 1
+		var hour := int(floor(player.world.clock.hour_24())) if player.world != null else 0
+		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · 镐%s 刃%s%s · v0.16" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic]
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
