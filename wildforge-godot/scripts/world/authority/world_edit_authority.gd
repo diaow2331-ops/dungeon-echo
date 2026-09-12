@@ -20,8 +20,8 @@ func evaluate(world: Node, request: Dictionary) -> Dictionary:
 	var cell = request.get("cell", Vector2i(99999, 99999))
 	if not cell is Vector2i:
 		return _deny(action, Vector2i(99999, 99999), "invalid_cell")
-	var owner_id := String(world.owner_at(cell)) if world.has_method("owner_at") else "wilderness"
-	var result := _base(action, cell, owner_id, request)
+	var ownership: Dictionary = world.ownership_at(cell) if world.has_method("ownership_at") else {"owner_id": "wilderness", "zone_type": "wilderness", "structure_id": ""}
+	var result := _base(action, cell, ownership, request)
 	match action:
 		ACTION_MINE:
 			return _evaluate_mine(world, result, request)
@@ -78,20 +78,28 @@ func _evaluate_station(world: Node, result: Dictionary, request: Dictionary) -> 
 		return _deny_result(result, "unsupported")
 	return _allow_result(result)
 
-func _base(action: String, cell: Vector2i, owner_id: String, request: Dictionary) -> Dictionary:
+func _base(action: String, cell: Vector2i, ownership: Dictionary, request: Dictionary) -> Dictionary:
+	var owner_id := String(ownership.get("owner_id", "wilderness"))
+	var zone_type := String(ownership.get("zone_type", "wilderness"))
+	var actor_id := String(request.get("actor_id", "system"))
+	var legal := _classify_legality(action, actor_id, owner_id, zone_type, request)
 	return {
 		"allowed": false,
 		"changed": false,
 		"action": action,
 		"cell": cell,
-		"actor_id": String(request.get("actor_id", "system")),
+		"actor_id": actor_id,
 		"owner_id": owner_id,
-		"legal_status": "allowed" if owner_id == "wilderness" else "unresolved",
+		"zone_type": zone_type,
+		"structure_id": String(ownership.get("structure_id", "")),
+		"legal_status": legal["status"],
+		"violation": legal["violation"],
+		"crime_class": legal["crime_class"],
 		"reason": "",
 	}
 
 func _deny(action: String, cell: Vector2i, reason: String) -> Dictionary:
-	return _deny_result(_base(action, cell, "wilderness", {}), reason)
+	return _deny_result(_base(action, cell, {"owner_id": "wilderness", "zone_type": "wilderness", "structure_id": ""}, {}), reason)
 func _allow_result(result: Dictionary) -> Dictionary:
 	result["allowed"] = true
 	result["reason"] = "ok"
@@ -105,3 +113,25 @@ func _deny_result(result: Dictionary, reason: String) -> Dictionary:
 	denied_decisions += 1
 	last_decision = result.duplicate(true)
 	return result
+
+func _classify_legality(action: String, actor_id: String, owner_id: String, zone_type: String, request: Dictionary) -> Dictionary:
+	if owner_id == "wilderness" or actor_id.begins_with("system"):
+		return {"status": "legal", "violation": false, "crime_class": "none"}
+	var actor_faction := String(request.get("actor_faction", ""))
+	if actor_faction == owner_id:
+		return {"status": "legal", "violation": false, "crime_class": "none"}
+	var permits := _string_values(request.get("permits", []))
+	if "*" in permits or "edit:%s" % owner_id in permits or "%s:%s" % [action, owner_id] in permits:
+		return {"status": "legal", "violation": false, "crime_class": "none"}
+	var war_targets := _string_values(request.get("war_targets", []))
+	if owner_id in war_targets:
+		return {"status": "wartime", "violation": false, "crime_class": "wartime_action"}
+	var crime := "major_property_damage" if zone_type in ["structure", "protected_structure"] else ("unlicensed_extraction" if action == ACTION_MINE else "unauthorized_construction")
+	return {"status": "illegal", "violation": true, "crime_class": crime}
+
+func _string_values(raw) -> Array[String]:
+	var values: Array[String] = []
+	if raw is Array:
+		for value in raw:
+			values.append(String(value))
+	return values

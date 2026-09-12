@@ -1,10 +1,12 @@
 extends RefCounted
 class_name SliceSaveSystem
 
-const SAVE_VERSION := 14
-const SAVE_PATH := "user://wildforge-godot-v014.json"
-const LEGACY_SAVE_VERSION := 13
-const LEGACY_SAVE_PATH := "user://wildforge-godot-v013.json"
+const SAVE_VERSION := 15
+const SAVE_PATH := "user://wildforge-godot-v015.json"
+const LEGACY_DELTA_SAVE_VERSION := 14
+const LEGACY_DELTA_SAVE_PATH := "user://wildforge-godot-v014.json"
+const LEGACY_FULL_SAVE_VERSION := 13
+const LEGACY_FULL_SAVE_PATH := "user://wildforge-godot-v013.json"
 
 static func is_test_run() -> bool:
 	for arg in OS.get_cmdline_args():
@@ -19,6 +21,7 @@ static func snapshot(main: Node) -> Dictionary:
 		"version": SAVE_VERSION,
 		"world_generation": SliceWorld.WORLD_GENERATION_VERSION,
 		"world_overrides": world.export_cell_overrides(),
+		"ownership_claims": world.ownership_authority.export_claims(),
 		"player": {
 			"x": player.global_position.x,
 			"y": player.global_position.y,
@@ -37,13 +40,13 @@ static func snapshot(main: Node) -> Dictionary:
 
 static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
-	if version != SAVE_VERSION and version != LEGACY_SAVE_VERSION:
+	if version not in [SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION, LEGACY_FULL_SAVE_VERSION]:
 		return false
 	var world := main.get_node_or_null("World") as SliceWorld
 	var player := main.get_node_or_null("Player") as SlicePlayer
 	if world == null or player == null:
 		return false
-	if version == SAVE_VERSION:
+	if version in [SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION]:
 		if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
 			return false
 		var overrides = data.get("world_overrides", [])
@@ -53,6 +56,12 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 		var legacy_rows = data.get("world_cells", [])
 		if not legacy_rows is Array or not world.restore_legacy_v13_cells(legacy_rows):
 			return false
+	if version == SAVE_VERSION:
+		var claims = data.get("ownership_claims", {})
+		if not claims is Dictionary or not world.ownership_authority.restore_claims(claims):
+			return false
+	else:
+		world.ownership_authority.clear()
 	var p = data.get("player", {})
 	if not p is Dictionary:
 		return false
@@ -123,10 +132,10 @@ static func load_from_path(main: Node, path := SAVE_PATH) -> bool:
 		if _is_supported_snapshot(candidate) and apply_snapshot(main, candidate):
 			return true
 	if path == SAVE_PATH:
-		for legacy_path in [LEGACY_SAVE_PATH, LEGACY_SAVE_PATH + ".bak"]:
+		for legacy_path in [LEGACY_DELTA_SAVE_PATH, LEGACY_DELTA_SAVE_PATH + ".bak", LEGACY_FULL_SAVE_PATH, LEGACY_FULL_SAVE_PATH + ".bak"]:
 			var legacy := _read_snapshot(String(legacy_path))
-			if validate_legacy_snapshot(legacy) and apply_snapshot(main, legacy):
-				# Promote a successfully migrated legacy save into the current delta schema.
+			if _is_supported_snapshot(legacy) and apply_snapshot(main, legacy):
+				# Promote any supported legacy save into the current ownership-aware schema.
 				save_to_path(main, SAVE_PATH)
 				return true
 	return false
@@ -142,10 +151,25 @@ static func validate_snapshot(data: Dictionary) -> bool:
 	for row in rows:
 		if not _valid_world_row(row, true):
 			return false
+	if not _valid_claim_payload(data.get("ownership_claims", {})):
+		return false
 	return _validate_common(data)
 
-static func validate_legacy_snapshot(data: Dictionary) -> bool:
-	if int(data.get("version", 0)) != LEGACY_SAVE_VERSION:
+static func validate_legacy_delta_snapshot(data: Dictionary) -> bool:
+	if int(data.get("version", 0)) != LEGACY_DELTA_SAVE_VERSION:
+		return false
+	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+		return false
+	var rows = data.get("world_overrides", [])
+	if not rows is Array or rows.size() > 250000:
+		return false
+	for row in rows:
+		if not _valid_world_row(row, true):
+			return false
+	return _validate_common(data)
+
+static func validate_legacy_full_snapshot(data: Dictionary) -> bool:
+	if int(data.get("version", 0)) != LEGACY_FULL_SAVE_VERSION:
 		return false
 	var rows = data.get("world_cells", [])
 	if not rows is Array or rows.is_empty() or rows.size() > 1000000:
@@ -179,7 +203,26 @@ static func _valid_world_row(row, allow_air: bool) -> bool:
 
 static func _is_supported_snapshot(data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
-	return validate_snapshot(data) if version == SAVE_VERSION else validate_legacy_snapshot(data)
+	match version:
+		SAVE_VERSION: return validate_snapshot(data)
+		LEGACY_DELTA_SAVE_VERSION: return validate_legacy_delta_snapshot(data)
+		LEGACY_FULL_SAVE_VERSION: return validate_legacy_full_snapshot(data)
+		_: return false
+
+static func _valid_claim_payload(raw) -> bool:
+	if not raw is Dictionary:
+		return false
+	var regions = raw.get("regions", [])
+	var cells = raw.get("cells", [])
+	if not regions is Array or not cells is Array or regions.size() > 10000 or cells.size() > 250000:
+		return false
+	for row in regions:
+		if not row is Array or row.size() < 7 or String(row[0]).is_empty() or int(row[3]) <= 0 or int(row[4]) <= 0:
+			return false
+	for row in cells:
+		if not row is Array or row.size() < 5 or String(row[2]).is_empty():
+			return false
+	return true
 
 static func _read_snapshot(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):

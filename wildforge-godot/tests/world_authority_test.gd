@@ -32,7 +32,7 @@ func _run() -> void:
 	var mined := world.request_world_edit({"action": "mine", "cell": cell, "tool_power": 1.0, "actor_id": "traveler_test"})
 	_check(bool(mined["changed"]), "authorized mining mutates the world once")
 	_check(mined["drop_item"] == "stone", "authorized decision carries registry-derived drop metadata")
-	_check(mined["owner_id"] == "wilderness" and mined["legal_status"] == "allowed", "authority already carries ownership/legal metadata")
+	_check(mined["owner_id"] == "wilderness" and mined["legal_status"] == "legal", "authority already carries ownership/legal metadata")
 	_check(mined["actor_id"] == "traveler_test", "authority records the editing actor")
 
 	var bad_place := world.request_world_edit({"action": "place", "cell": cell, "tile": SliceWorld.GRASS, "actor_id": "traveler_test"})

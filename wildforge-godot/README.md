@@ -121,3 +121,7 @@ The production-world refactor begins by reducing mutation entry points before ad
 All runtime player terrain edits and station placements route through `SliceWorldEditAuthority`. Decisions already carry actor, owner and legal-status metadata even though Foundation 0.1 still treats generated land as wilderness. World generation and save restoration remain internal baseline writers; gameplay actors are not allowed to mutate the cell dictionary directly.
 
 This structure was informed by inspection of mature MIT Godot sandbox projects such as Coheronia's data-driven block registry, but the Wildforge implementation is independently written around its existing world/save contracts. `tests/world_authority_test.gd` validates runtime decisions and `tests/world_authority_contract.mjs` fails if gameplay scripts regress to direct world-cell access.
+
+## WF-Foundation 0.2 ownership authority
+
+World ownership is persistent authority, not a visual label. Region claims and cell/structure claims resolve independently of terrain tiles, and structure claims override broader territorial claims. Runtime edits now classify legality as `legal`, `illegal`, or `wartime` without making claimed terrain magically indestructible. Permits, owner-faction work and declared war all pass through the same edit decision path. Save schema 15 persists ownership claims while remaining compatible with schema-14 delta saves and schema-13 full-map saves.
