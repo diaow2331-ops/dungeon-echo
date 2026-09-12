@@ -20,8 +20,10 @@ func _new_main() -> Node:
 	return main
 
 func _run() -> void:
-	if FileAccess.file_exists(TEMP_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEMP_PATH))
+	for suffix in ["", ".tmp", ".bak"]:
+		var cleanup_path: String = TEMP_PATH + String(suffix)
+		if FileAccess.file_exists(cleanup_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(cleanup_path))
 	var main := _new_main()
 	await process_frame
 	await process_frame
@@ -97,7 +99,28 @@ func _run() -> void:
 	await process_frame
 	var disk_player := disk_restored.get_node("Player") as SlicePlayer
 	_check(disk_player.equipped_pick_id == "delver_pick" and disk_player.item_count("copper_bar") == 3, "disk round-trip preserves progression state")
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEMP_PATH))
+
+	# A second successful write rotates the previous valid primary into a recovery backup.
+	_check(SliceSaveSystem.save_to_path(disk_restored, TEMP_PATH), "atomic rewrite succeeds with an existing primary")
+	_check(FileAccess.file_exists(TEMP_PATH + ".bak"), "atomic rewrite retains one previous valid backup")
+	_check(not FileAccess.file_exists(TEMP_PATH + ".tmp"), "atomic rewrite never leaves a temporary save behind")
+	var broken := FileAccess.open(TEMP_PATH, FileAccess.WRITE)
+	broken.store_string("{broken-json")
+	broken.flush()
+	broken = null
+	var recovered := _new_main()
+	await process_frame
+	await process_frame
+	_check(SliceSaveSystem.load_from_path(recovered, TEMP_PATH), "corrupt primary automatically falls back to the previous valid backup")
+	var recovered_player := recovered.get_node("Player") as SlicePlayer
+	_check(recovered_player.equipped_pick_id == "delver_pick" and recovered_player.item_count("ancient_core") >= 1, "backup recovery preserves real progression authority")
+	recovered.free()
+	disk_restored.free()
+	await process_frame
+	for suffix in ["", ".tmp", ".bak"]:
+		var cleanup_path: String = TEMP_PATH + String(suffix)
+		if FileAccess.file_exists(cleanup_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(cleanup_path))
 
 	print("wildforge_godot_save=", "FAIL" if failed else "PASS")
 	quit(1 if failed else 0)

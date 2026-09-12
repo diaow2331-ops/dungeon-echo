@@ -77,23 +77,79 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	return true
 
 static func save_to_path(main: Node, path := SAVE_PATH) -> bool:
-	var file := FileAccess.open(path, FileAccess.WRITE)
+	var data := snapshot(main)
+	if not validate_snapshot(data):
+		return false
+	var temp_path := path + ".tmp"
+	var backup_path := path + ".bak"
+	if FileAccess.file_exists(temp_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify(snapshot(main)))
+	file.store_string(JSON.stringify(data))
 	file.flush()
-	return true
+	file = null
+	if not _read_snapshot(temp_path).is_empty():
+		if FileAccess.file_exists(path):
+			if FileAccess.file_exists(backup_path):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+			if DirAccess.rename_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(backup_path)) != OK:
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+				return false
+		if DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(path)) == OK:
+			return true
+		# Best-effort rollback if the final atomic rename fails.
+		if FileAccess.file_exists(backup_path) and not FileAccess.file_exists(path):
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+	return false
 
 static func load_from_path(main: Node, path := SAVE_PATH) -> bool:
-	if not FileAccess.file_exists(path):
+	var primary := _read_snapshot(path)
+	if not primary.is_empty() and apply_snapshot(main, primary):
+		return true
+	var backup := _read_snapshot(path + ".bak")
+	return not backup.is_empty() and apply_snapshot(main, backup)
+
+static func validate_snapshot(data: Dictionary) -> bool:
+	if int(data.get("version", 0)) != SAVE_VERSION:
 		return false
+	var rows = data.get("world_cells", [])
+	if not rows is Array or rows.is_empty() or rows.size() > 1000000:
+		return false
+	for row in rows:
+		if not row is Array or row.size() < 3:
+			return false
+		var tile := int(row[2])
+		if tile <= SliceWorld.AIR or tile > SliceWorld.SEALED_RUIN:
+			return false
+	var player = data.get("player", {})
+	if not player is Dictionary:
+		return false
+	for key in ["x", "y", "health", "hunger"]:
+		if not player.has(key) or not is_finite(float(player[key])):
+			return false
+	if not player.get("stock", {}) is Dictionary:
+		return false
+	for key in ["workbenches", "campfires", "trees", "caches", "guards"]:
+		if not data.get(key, []) is Array:
+			return false
+	return true
+
+static func _read_snapshot(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		return false
-	var parsed = JSON.parse_string(file.get_as_text())
-	if not parsed is Dictionary:
-		return false
-	return apply_snapshot(main, parsed)
+		return {}
+	var parser := JSON.new()
+	if parser.parse(file.get_as_text()) != OK:
+		return {}
+	var parsed = parser.data
+	if not parsed is Dictionary or not validate_snapshot(parsed):
+		return {}
+	return parsed
 
 static func _sanitized_stock(raw) -> Dictionary:
 	var clean: Dictionary = {}
