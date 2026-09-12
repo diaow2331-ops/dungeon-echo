@@ -19,6 +19,24 @@ func _flat_fixture(world: SliceWorld) -> Vector2i:
 			return Vector2i(x, surface - 1)
 	return Vector2i(0, world.surface_y_at(0) - 1)
 
+
+func _cross_chunk_fixture(world: SliceWorld) -> Array[Vector2i]:
+	for x in range(-48, 48):
+		var source_key := world.chunk_key_for(Vector2i(x, world.surface_y_at(x) - 1))
+		var target_key := world.chunk_key_for(Vector2i(x + 1, world.surface_y_at(x) - 1))
+		if source_key == target_key:
+			continue
+		if not world.chunk_streamer.is_active(source_key) or not world.chunk_streamer.is_active(target_key):
+			continue
+		var source := Vector2i(x, world.surface_y_at(x) - 1)
+		var target := source + Vector2i.RIGHT
+		if world.has_cell(source) or world.has_cell(target):
+			continue
+		if not world.has_cell(source + Vector2i.DOWN):
+			continue
+		return [source, target]
+	return []
+
 func _run() -> void:
 	var packed := load("res://scenes/main/main.tscn") as PackedScene
 	var main := packed.instantiate()
@@ -51,8 +69,10 @@ func _run() -> void:
 	_check(absf(fluid.total_amount("water") - 1.0) < 0.001, "lateral equalization also conserves amount")
 
 	fluid.clear_all()
-	var boundary_source := Vector2i(15, world.surface_y_at(15) - 1)
-	var boundary_target := Vector2i(16, boundary_source.y)
+	var boundary_fixture := _cross_chunk_fixture(world)
+	_check(boundary_fixture.size() == 2, "procedural terrain exposes a valid cross-chunk blocked-flow fixture")
+	var boundary_source: Vector2i = boundary_fixture[0]
+	var boundary_target: Vector2i = boundary_fixture[1]
 	_check(world.chunk_key_for(boundary_source) != world.chunk_key_for(boundary_target), "fluid boundary fixture straddles two chunks")
 	_check(world.set_fluid(boundary_source, "water", 1.0), "cross-chunk fluid fixture is valid")
 	world.step_fluids_now(1)

@@ -93,3 +93,7 @@ Vegetation is deterministic world data plus sparse actor projection, not authore
 A durable building is defined by stable structure identity plus a blueprint of expected world cells. The terrain dictionary remains the only physical truth: missing or replaced blueprint tiles are damage, and repair demand is derived from that difference. Do not store a second structure HP value.
 
 Structure ownership must resolve through the existing ownership authority. A structure blueprint never owns a second faction field that can drift during annexation. Construction and repair must use `WorldEditAuthority`; deterministic baseline blueprints need no duplicate save payload because terrain deltas and ownership claims already reconstruct condition and sovereignty.
+
+## Seeded generation authority
+
+World seed and generation version are part of persistence authority. Natural terrain channels must be deterministic for a given `(generation_version, seed)` pair. Gameplay code must not hard-code remote ore/forest coordinates to simulate a world generator; authored ruins and settlements belong to the structure overlay layer. A save delta is invalid without the seed/generation contract that produced its baseline. Legacy pre-seed saves are treated only as the historical default seed and must use explicit migration logic.

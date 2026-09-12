@@ -1,8 +1,10 @@
 extends RefCounted
 class_name SliceSaveSystem
 
-const SAVE_VERSION := 17
-const SAVE_PATH := "user://wildforge-godot-v017.json"
+const SAVE_VERSION := 18
+const SAVE_PATH := "user://wildforge-godot-v018.json"
+const LEGACY_VEGETATION_SAVE_VERSION := 17
+const LEGACY_VEGETATION_SAVE_PATH := "user://wildforge-godot-v017.json"
 const LEGACY_FLUID_SAVE_VERSION := 16
 const LEGACY_FLUID_SAVE_PATH := "user://wildforge-godot-v016.json"
 const LEGACY_OWNERSHIP_SAVE_VERSION := 15
@@ -24,6 +26,7 @@ static func snapshot(main: Node) -> Dictionary:
 	return {
 		"version": SAVE_VERSION,
 		"world_generation": SliceWorld.WORLD_GENERATION_VERSION,
+		"world_seed": world.world_seed,
 		"world_overrides": world.export_cell_overrides(),
 		"ownership_claims": world.ownership_authority.export_claims(),
 		"fluid_cells": world.fluid_authority.export_state(),
@@ -45,15 +48,32 @@ static func snapshot(main: Node) -> Dictionary:
 
 static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
-	if version not in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION, LEGACY_FULL_SAVE_VERSION]:
+	if version not in [SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION, LEGACY_FULL_SAVE_VERSION]:
 		return false
 	var world := main.get_node_or_null("World") as SliceWorld
 	var player := main.get_node_or_null("Player") as SlicePlayer
 	if world == null or player == null:
 		return false
-	if version in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION]:
-		if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+	var source_seed := SliceWorld.DEFAULT_WORLD_SEED
+	if version == SAVE_VERSION:
+		if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION or not data.has("world_seed"):
 			return false
+		source_seed = int(data["world_seed"])
+		if not _valid_world_seed(source_seed):
+			return false
+	elif version in [LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION]:
+		# Pre-v18 saves had one implicit world: generation v1 at the historical default seed.
+		if int(data.get("world_generation", 0)) != SliceWorld.LEGACY_WORLD_GENERATION_VERSION:
+			return false
+		if data.has("world_seed") and int(data["world_seed"]) != SliceWorld.DEFAULT_WORLD_SEED:
+			return false
+	if not main.has_method("reconfigure_world_seed") or not bool(main.reconfigure_world_seed(source_seed)):
+		return false
+	world = main.get_node_or_null("World") as SliceWorld
+	player = main.get_node_or_null("Player") as SlicePlayer
+	if world == null or player == null:
+		return false
+	if version != LEGACY_FULL_SAVE_VERSION:
 		var overrides = data.get("world_overrides", [])
 		if not overrides is Array or not world.restore_cell_overrides(overrides):
 			return false
@@ -61,13 +81,13 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 		var legacy_rows = data.get("world_cells", [])
 		if not legacy_rows is Array or not world.restore_legacy_v13_cells(legacy_rows):
 			return false
-	if version in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION]:
 		var claims = data.get("ownership_claims", {})
 		if not claims is Dictionary or not world.ownership_authority.restore_claims(claims):
 			return false
 	else:
 		world.ownership_authority.clear()
-	if version in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION]:
 		var fluids = data.get("fluid_cells", [])
 		if not fluids is Array or not world.fluid_authority.restore_state(fluids):
 			return false
@@ -77,7 +97,6 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	if not p is Dictionary:
 		return false
 	player.global_position = Vector2(float(p.get("x", 0.0)), float(p.get("y", 0.0)))
-	# A save resumes from authoritative persistent state, never from transient input/physics momentum.
 	player.velocity = Vector2.ZERO
 	player.touch_move = Vector2.ZERO
 	player.touch_aim = Vector2.RIGHT
@@ -107,6 +126,9 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 		return false
 	if version == SAVE_VERSION:
 		if not actor_authority.restore_vegetation_delta(data.get("vegetation", {})):
+			return false
+	elif version == LEGACY_VEGETATION_SAVE_VERSION:
+		if not actor_authority.restore_legacy_v17_vegetation_delta(data.get("vegetation", {})):
 			return false
 	else:
 		if not actor_authority.restore_legacy_tree_xs(data.get("trees", []), SliceWorld.LEGACY_TREE_XS):
@@ -151,7 +173,7 @@ static func load_from_path(main: Node, path := SAVE_PATH) -> bool:
 		if _is_supported_snapshot(candidate) and apply_snapshot(main, candidate):
 			return true
 	if path == SAVE_PATH:
-		for legacy_path in [LEGACY_FLUID_SAVE_PATH, LEGACY_FLUID_SAVE_PATH + ".bak", LEGACY_OWNERSHIP_SAVE_PATH, LEGACY_OWNERSHIP_SAVE_PATH + ".bak", LEGACY_DELTA_SAVE_PATH, LEGACY_DELTA_SAVE_PATH + ".bak", LEGACY_FULL_SAVE_PATH, LEGACY_FULL_SAVE_PATH + ".bak"]:
+		for legacy_path in [LEGACY_VEGETATION_SAVE_PATH, LEGACY_VEGETATION_SAVE_PATH + ".bak", LEGACY_FLUID_SAVE_PATH, LEGACY_FLUID_SAVE_PATH + ".bak", LEGACY_OWNERSHIP_SAVE_PATH, LEGACY_OWNERSHIP_SAVE_PATH + ".bak", LEGACY_DELTA_SAVE_PATH, LEGACY_DELTA_SAVE_PATH + ".bak", LEGACY_FULL_SAVE_PATH, LEGACY_FULL_SAVE_PATH + ".bak"]:
 			var legacy := _read_snapshot(String(legacy_path))
 			if _is_supported_snapshot(legacy) and apply_snapshot(main, legacy):
 				# Promote any supported legacy save into the current authoritative schema.
@@ -163,6 +185,29 @@ static func validate_snapshot(data: Dictionary) -> bool:
 	if int(data.get("version", 0)) != SAVE_VERSION:
 		return false
 	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+		return false
+	if not data.has("world_seed") or not _valid_world_seed(int(data["world_seed"])):
+		return false
+	var rows = data.get("world_overrides", [])
+	if not rows is Array or rows.size() > 250000:
+		return false
+	for row in rows:
+		if not _valid_world_row(row, true):
+			return false
+	if not _valid_claim_payload(data.get("ownership_claims", {})):
+		return false
+	if not _valid_fluid_payload(data.get("fluid_cells", [])):
+		return false
+	if not _valid_vegetation_payload(data.get("vegetation", {})):
+		return false
+	return _validate_common(data, false)
+
+static func validate_legacy_vegetation_snapshot(data: Dictionary) -> bool:
+	if int(data.get("version", 0)) != LEGACY_VEGETATION_SAVE_VERSION:
+		return false
+	if int(data.get("world_generation", 0)) != SliceWorld.LEGACY_WORLD_GENERATION_VERSION:
+		return false
+	if data.has("world_seed") and int(data["world_seed"]) != SliceWorld.DEFAULT_WORLD_SEED:
 		return false
 	var rows = data.get("world_overrides", [])
 	if not rows is Array or rows.size() > 250000:
@@ -181,7 +226,9 @@ static func validate_snapshot(data: Dictionary) -> bool:
 static func validate_legacy_fluid_snapshot(data: Dictionary) -> bool:
 	if int(data.get("version", 0)) != LEGACY_FLUID_SAVE_VERSION:
 		return false
-	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+	if int(data.get("world_generation", 0)) != SliceWorld.LEGACY_WORLD_GENERATION_VERSION:
+		return false
+	if data.has("world_seed") and int(data["world_seed"]) != SliceWorld.DEFAULT_WORLD_SEED:
 		return false
 	var rows = data.get("world_overrides", [])
 	if not rows is Array or rows.size() > 250000:
@@ -198,7 +245,9 @@ static func validate_legacy_fluid_snapshot(data: Dictionary) -> bool:
 static func validate_legacy_ownership_snapshot(data: Dictionary) -> bool:
 	if int(data.get("version", 0)) != LEGACY_OWNERSHIP_SAVE_VERSION:
 		return false
-	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+	if int(data.get("world_generation", 0)) != SliceWorld.LEGACY_WORLD_GENERATION_VERSION:
+		return false
+	if data.has("world_seed") and int(data["world_seed"]) != SliceWorld.DEFAULT_WORLD_SEED:
 		return false
 	var rows = data.get("world_overrides", [])
 	if not rows is Array or rows.size() > 250000:
@@ -213,7 +262,9 @@ static func validate_legacy_ownership_snapshot(data: Dictionary) -> bool:
 static func validate_legacy_delta_snapshot(data: Dictionary) -> bool:
 	if int(data.get("version", 0)) != LEGACY_DELTA_SAVE_VERSION:
 		return false
-	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+	if int(data.get("world_generation", 0)) != SliceWorld.LEGACY_WORLD_GENERATION_VERSION:
+		return false
+	if data.has("world_seed") and int(data["world_seed"]) != SliceWorld.DEFAULT_WORLD_SEED:
 		return false
 	var rows = data.get("world_overrides", [])
 	if not rows is Array or rows.size() > 250000:
@@ -262,6 +313,7 @@ static func _is_supported_snapshot(data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
 	match version:
 		SAVE_VERSION: return validate_snapshot(data)
+		LEGACY_VEGETATION_SAVE_VERSION: return validate_legacy_vegetation_snapshot(data)
 		LEGACY_FLUID_SAVE_VERSION: return validate_legacy_fluid_snapshot(data)
 		LEGACY_OWNERSHIP_SAVE_VERSION: return validate_legacy_ownership_snapshot(data)
 		LEGACY_DELTA_SAVE_VERSION: return validate_legacy_delta_snapshot(data)
@@ -286,6 +338,9 @@ static func _valid_vegetation_payload(raw) -> bool:
 		if int(row[0]) < SliceWorld.MIN_X or int(row[0]) > SliceWorld.MAX_X:
 			return false
 	return true
+
+static func _valid_world_seed(value: int) -> bool:
+	return value >= -2147483648 and value <= 2147483647
 
 static func _valid_fluid_payload(raw) -> bool:
 	if not raw is Array or raw.size() > 250000:
