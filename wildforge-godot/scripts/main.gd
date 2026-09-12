@@ -54,6 +54,26 @@ func _ready() -> void:
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
 
+func reconfigure_world_seed(new_seed: int) -> bool:
+	if world == null or player == null or actor_authority == null:
+		return false
+	if world.world_seed == new_seed:
+		return true
+	actor_authority.clear_world_baseline()
+	for group_name in ["enemies", "workbenches", "campfires", "pickups"]:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if is_instance_valid(node):
+				node.free()
+	if not world.rebuild_for_seed(new_seed):
+		return false
+	actor_authority.register_exploration_sites(world.exploration_sites)
+	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
+	actor_authority.sync_active(world.chunk_streamer.active_keys)
+	_spawn_enemy(-10)
+	_spawn_enemy(8)
+	_spawn_boar(17)
+	return true
+
 func _process(delta: float) -> void:
 	if SaveScript.is_test_run() or world == null or player == null:
 		return

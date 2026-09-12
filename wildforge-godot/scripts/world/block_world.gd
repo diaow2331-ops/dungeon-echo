@@ -17,12 +17,15 @@ const LightingAuthorityScript = preload("res://scripts/world/lighting/lighting_a
 const FluidRegistryScript = preload("res://scripts/world/fluid/fluid_registry.gd")
 const FluidAuthorityScript = preload("res://scripts/world/fluid/fluid_authority.gd")
 const StructureAuthorityScript = preload("res://scripts/world/structures/structure_authority.gd")
+const WorldGeneratorScript = preload("res://scripts/world/generation/world_generator.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
-const WORLD_GENERATION_VERSION := 1
-const MIN_X := -128
-const MAX_X := 128
-const MAX_Y := 47
+const WORLD_GENERATION_VERSION := 2
+const LEGACY_WORLD_GENERATION_VERSION := 1
+const DEFAULT_WORLD_SEED := 730241
+const MIN_X := -512
+const MAX_X := 512
+const MAX_Y := 79
 const AIR := 0
 const DIRT := 1
 const GRASS := 2
@@ -34,6 +37,8 @@ const SEALED_RUIN := 7
 const NO_CELL := Vector2i(99999, 99999)
 const LEGACY_TREE_XS: Array[int] = [-5, 3, 14]
 
+var world_seed := DEFAULT_WORLD_SEED
+var generator := WorldGeneratorScript.new(world_seed) as SliceWorldGenerator
 var block_registry := BlockRegistryScript.new() as SliceBlockRegistry
 var ownership_authority := OwnershipAuthorityScript.new() as SliceWorldOwnershipAuthority
 var edit_authority := WorldEditAuthorityScript.new(block_registry) as SliceWorldEditAuthority
@@ -78,6 +83,27 @@ func _ready() -> void:
 	_sync_lighting()
 	queue_redraw()
 
+func rebuild_for_seed(new_seed: int) -> bool:
+	if new_seed == world_seed:
+		return true
+	world_seed = new_seed
+	generator = WorldGeneratorScript.new(world_seed) as SliceWorldGenerator
+	_generate()
+	ownership_authority.clear()
+	fluid_tick_accumulator = 0.0
+	mining_cell = NO_CELL
+	mining_progress = 0.0
+	if fluid_authority != null:
+		fluid_authority.clear_all()
+	if structure_authority != null:
+		structure_authority = StructureAuthorityScript.new(self) as SliceStructureAuthority
+		structure_authority.register_baseline(baseline_structures)
+	if lighting_authority != null:
+		lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
+	_rebuild_world_views()
+	_sync_lighting()
+	return true
+
 func _process(delta: float) -> void:
 	if chunk_streamer != null:
 		chunk_streamer.refresh()
@@ -92,18 +118,22 @@ func _generate() -> void:
 	exploration_sites.clear()
 	deep_sites.clear()
 	baseline_structures.clear()
+	remote_vein_cells.clear()
 	for x in range(MIN_X, MAX_X + 1):
 		var surface := surface_y_at(x)
 		for y in range(surface, MAX_Y + 1):
-			var depth := y - surface
-			cells[Vector2i(x, y)] = GRASS if depth == 0 else (DIRT if depth < 4 else STONE)
+			var cell := Vector2i(x, y)
+			var tile := generator.base_tile_at(cell)
+			if tile != AIR:
+				cells[cell] = tile
+				if abs(x) > 42 and tile in [COAL, COPPER]:
+					remote_vein_cells.append(cell)
 	for x in range(9, 14):
 		cells[Vector2i(x, surface_y_at(x) - 1)] = STONE
 	for y in range(surface_y_at(13) - 4, surface_y_at(13) - 1):
 		cells[Vector2i(13, y)] = STONE
 	_carve_ruin_pocket(-1)
 	_carve_ruin_pocket(1)
-	_seed_remote_veins()
 	baseline_cells = cells.duplicate(true)
 	cell_overrides.clear()
 
@@ -111,15 +141,12 @@ func vegetation_baseline() -> Array:
 	var sites: Array = []
 	for x in LEGACY_TREE_XS:
 		sites.append(_tree_site(int(x)))
-	# Distant forest belts are deterministic world-generation data, not authored scene nodes.
-	for raw_side in [-1, 1]:
-		var side: int = int(raw_side)
-		var distance := 66
-		while distance <= 120:
-			var x: int = side * distance
+	# Distant vegetation is a deterministic world-generation channel.
+	for x in range(MIN_X + 8, MAX_X - 7):
+		if abs(x) <= 50 or x in LEGACY_TREE_XS:
+			continue
+		if generator.should_spawn_tree(x):
 			sites.append(_tree_site(x))
-			var hash_step := absi((x * 1103515245 + 12345) >> 8)
-			distance += 7 + hash_step % 6
 	return sites
 
 func _tree_site(x: int) -> Dictionary:
@@ -128,19 +155,6 @@ func _tree_site(x: int) -> Dictionary:
 		"species": "wild_tree",
 		"source": "wild",
 	}
-
-func _seed_remote_veins() -> void:
-	remote_vein_cells.clear()
-	for anchor_x in [-112, -88, -64, 64, 88, 112]:
-		var surface := surface_y_at(anchor_x)
-		var depth := 9 + (absi(anchor_x) / 24) % 4
-		var ore := COPPER if absi(anchor_x) in [64, 112] else COAL
-		for dx in range(-1, 2):
-			for dy in range(0, 2):
-				var cell := Vector2i(anchor_x + dx, surface + depth + dy)
-				if cell.x >= MIN_X and cell.x <= MAX_X and cell.y <= MAX_Y:
-					cells[cell] = ore
-					remote_vein_cells.append(cell)
 
 func _carve_ruin_pocket(side: int) -> void:
 	var direction := -1 if side < 0 else 1
@@ -231,7 +245,10 @@ func depth_at(cell: Vector2i) -> int:
 	return cell.y - surface_y_at(cell.x)
 
 func surface_y_at(x: int) -> int:
-	return 13 + int(round(sin(float(x) * 0.19) * 1.4 + sin(float(x) * 0.057) * 1.1))
+	return generator.surface_y_at(x)
+
+func biome_at(x: int) -> String:
+	return generator.biome_at(x)
 
 func export_cells() -> Array:
 	var rows: Array = []

@@ -71,7 +71,12 @@ func _run() -> void:
 
 	var legacy14 := snapshot.duplicate(true)
 	legacy14["version"] = SliceSaveSystem.LEGACY_DELTA_SAVE_VERSION
+	legacy14["world_generation"] = SliceWorld.LEGACY_WORLD_GENERATION_VERSION
+	legacy14.erase("world_seed")
 	legacy14.erase("ownership_claims")
+	legacy14.erase("fluid_cells")
+	legacy14.erase("vegetation")
+	legacy14["trees"] = [-5, 3, 14]
 	var legacy_fresh := packed.instantiate()
 	root.add_child(legacy_fresh)
 	await process_frame

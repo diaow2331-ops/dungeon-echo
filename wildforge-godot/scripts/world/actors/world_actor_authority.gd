@@ -27,6 +27,15 @@ func _init(owner_host: Node, owner_world: SliceWorld, owner_player: SlicePlayer)
 	world.chunk_activated.connect(_on_chunk_activated)
 	world.chunk_deactivated.connect(_on_chunk_deactivated)
 
+func clear_world_baseline() -> void:
+	for raw_id in projections.keys():
+		var node: Node = projections[raw_id]
+		if is_instance_valid(node):
+			node.free()
+	projections.clear()
+	descriptors.clear()
+	ids_by_chunk.clear()
+
 func register_exploration_sites(sites: Array) -> void:
 	for site in sites:
 		var guard_cell: Vector2i = site.get("guard_cell", Vector2i.ZERO)
@@ -165,6 +174,49 @@ func ownership_for(actor_id: String) -> Dictionary:
 		return {"owner_id": owner_override, "zone_type": "vegetation", "structure_id": actor_id}
 	var cell: Vector2i = descriptor["cell"]
 	return world.ownership_at(cell)
+
+func restore_legacy_v17_vegetation_delta(raw) -> bool:
+	if not raw is Dictionary:
+		return false
+	var removed = raw.get("removed", [])
+	var planted = raw.get("planted", [])
+	if not removed is Array or not planted is Array:
+		return false
+	# v17 vegetation cells were generated against world-generation v1. Preserve intent by x-column.
+	for actor_id in actor_ids(KIND_TREE):
+		var descriptor: Dictionary = descriptors[actor_id]
+		var meta: Dictionary = descriptor.get("meta", {})
+		if bool(meta.get("baseline", false)):
+			descriptor["present"] = true
+			descriptors[actor_id] = descriptor
+		else:
+			_remove_descriptor(actor_id)
+	for row in removed:
+		if not row is Array or row.size() < 2:
+			return false
+		var old_x := int(row[0])
+		for actor_id in actor_ids(KIND_TREE):
+			var descriptor: Dictionary = descriptors[actor_id]
+			var cell: Vector2i = descriptor["cell"]
+			var meta: Dictionary = descriptor.get("meta", {})
+			if cell.x == old_x and bool(meta.get("baseline", false)):
+				descriptor["present"] = false
+				descriptors[actor_id] = descriptor
+				break
+	for row in planted:
+		if not row is Array or row.size() < 4:
+			return false
+		var old_cell := Vector2i(int(row[0]), int(row[1]))
+		var species_id := String(row[2])
+		if not vegetation_registry.has(species_id):
+			return false
+		var target := old_cell
+		if world.has_cell(target) or not world.has_cell(target + Vector2i.DOWN):
+			target = Vector2i(old_cell.x, world.surface_y_at(old_cell.x) - 1)
+		if plant_tree(target, species_id, String(row[3])).is_empty():
+			return false
+	_reconcile_current_stream()
+	return true
 
 func sync_active(active_keys: Dictionary) -> void:
 	for raw_id in descriptors.keys():

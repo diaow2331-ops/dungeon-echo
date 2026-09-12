@@ -23,8 +23,8 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
-	_check(SliceWorld.MAX_X - SliceWorld.MIN_X + 1 >= 257, "world width expands from proof strip to at least 257 columns")
-	_check(SliceWorld.MAX_Y >= 47, "world gains materially deeper vertical capacity")
+	_check(SliceWorld.MAX_X - SliceWorld.MIN_X + 1 >= 1025, "world generator expands the deterministic foundation to at least 1025 columns")
+	_check(SliceWorld.MAX_Y >= 79, "world generator provides materially deeper vertical capacity")
 	_check(world.remote_vein_cells.size() >= 30, "expanded frontier contains deterministic remote resource veins")
 	_check(world.export_cell_overrides().is_empty(), "fresh deterministic world needs zero persisted cell deltas")
 
