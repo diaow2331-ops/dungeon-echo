@@ -183,3 +183,10 @@ The first formal faction settlement is Verdant's Mossbridge, generated as determ
 `SliceSettlementAuthority` owns the settlement inventory and treasury. The first production trade loop is deliberately narrow: hunted raw meat can be sold only at the physical Mossbridge market, moving goods into settlement stock, debiting settlement treasury and crediting player Forge Marks. Prices respond to the settlement's current shortage, and batch sales are priced marginally so an initial shortage quote cannot be exploited across the whole stack.
 
 Save schema 20 persists settlement economy and player currency. Because Mossbridge changes the deterministic world baseline, world generation is version 3; schema-19/18 generation-2 saves migrate explicitly and cannot erase the newly introduced settlement with historical terrain deltas.
+
+### v0.18 — Android-first NPC dialogue
+- Mossbridge merchant and guard are streamed WorldActorAuthority projections, not permanent scene-only NPCs.
+- Mouse click and Android touch share one dialogue interaction path; dialogue locks world input and clears stale virtual-stick touches.
+- Android/Google Play is the primary shipping target. The project baseline is 1280×720 sensor-landscape with safe-area-aware UI.
+- Dialogue, HUD, and contextual actions use the shared MobileLayout contract; minimum primary touch targets are 56 px.
+- `npc_dialogue_test.gd` and `mobile_ui_test.gd` are release gates for NPC interaction and Android landscape usability.

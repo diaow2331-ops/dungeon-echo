@@ -72,6 +72,7 @@ var attack_buffer := 0.0
 var mine_grace := 0.0
 var stock: Dictionary = {}
 var forge_marks := 0
+var interaction_locked := false
 var hunger := HUNGER_START
 var starvation_tick := 0.0
 var equipped_pick_id := ""
@@ -108,6 +109,18 @@ func _physics_process(delta: float) -> void:
 	hitstop = maxf(0.0, hitstop - delta)
 	attack_buffer = maxf(0.0, attack_buffer - delta)
 	_update_camera()
+	if interaction_locked:
+		touch_move = Vector2.ZERO
+		touch_primary = false
+		primary_prev = false
+		attack_buffer = 0.0
+		velocity.x = move_toward(velocity.x, 0.0, FRICTION * delta)
+		if not is_on_floor():
+			velocity.y = minf(850.0, velocity.y + GRAVITY * delta)
+		move_and_slide()
+		_reset_mining()
+		queue_redraw()
+		return
 	_update_attack(delta)
 	if hitstop > 0.0:
 		velocity.x = move_toward(velocity.x, 0.0, 2800.0 * delta)

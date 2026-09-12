@@ -113,3 +113,9 @@ Faction settlements are physical world overlays plus pure data economy, never a 
 Trade must conserve both sides of the transaction: player goods/currency and settlement stock/treasury change together or not at all. Prices may derive from authoritative shortages but presentation code never owns price state.
 
 Any deterministic settlement added to the generated baseline requires a world-generation version bump and an explicit migration boundary. Legacy terrain deltas must not silently overwrite cells introduced by a newer settlement baseline.
+
+## Android-first product constraint
+- Wildforge is designed first for paid distribution on Google Play. Desktop remains a development and compatibility target; iOS is deferred.
+- New UI/input work must be evaluated on Android landscape first: sensor-landscape orientation, safe-area insets, thumb-sized controls, no touch-through, and correct app pause/resume behavior.
+- Settlement NPC interaction uses the existing streamed world-actor authority. Dialogue is presentation only and must not become a second NPC/gameplay state authority.
+- Mobile layout calculations are centralized in `scripts/ui/mobile_layout.gd`; new screens should reuse that contract instead of hardcoding device-specific insets.

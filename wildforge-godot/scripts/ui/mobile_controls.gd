@@ -1,6 +1,8 @@
 extends Control
 class_name SliceTouchControls
 
+const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
+
 var player: SlicePlayer
 var move_id := -1
 var aim_id := -1
@@ -9,6 +11,7 @@ var aim_origin := Vector2.ZERO
 var move_pos := Vector2.ZERO
 var aim_pos := Vector2.ZERO
 var touch_capable := false
+var interaction_blocked := false
 var status_label: Label
 var hint_label: Label
 const STICK_RADIUS := 58.0
@@ -33,7 +36,29 @@ func _ready() -> void:
 	hint_label.add_theme_font_size_override("font_size", 13)
 	hint_label.modulate = Color(0.88, 0.91, 0.88, 0.52)
 	add_child(hint_label)
+	_apply_safe_layout()
 	queue_redraw()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and status_label != null:
+		_apply_safe_layout()
+
+func _safe_content_rect() -> Rect2:
+	return SliceMobileLayout.content_rect(get_viewport_rect().size)
+
+func _context_center() -> Vector2:
+	var rect := _safe_content_rect()
+	return Vector2(rect.position.x + rect.size.x * 0.5, rect.end.y - PLACE_RADIUS - 4.0)
+
+func _apply_safe_layout() -> void:
+	var rect := _safe_content_rect()
+	if status_label != null:
+		status_label.position = rect.position
+	if hint_label != null:
+		hint_label.anchor_left = 0.0
+		hint_label.anchor_right = 0.0
+		hint_label.position = Vector2(rect.position.x, rect.position.y)
+		hint_label.size = Vector2(rect.size.x, 28.0)
 
 func _process(_delta: float) -> void:
 	if player != null and is_instance_valid(player):
@@ -46,11 +71,23 @@ func _process(_delta: float) -> void:
 		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s · v0.17" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
 	queue_redraw()
 
+func set_interaction_blocked(blocked: bool) -> void:
+	interaction_blocked = blocked
+	if blocked:
+		move_id = -1
+		aim_id = -1
+		if player != null:
+			player.set_touch_move(Vector2.ZERO)
+			player.set_touch_aim(Vector2.ZERO, false)
+	queue_redraw()
+
 func _input(event: InputEvent) -> void:
+	if interaction_blocked:
+		return
 	if not event is InputEventScreenTouch and not event is InputEventScreenDrag:
 		return
 	var size := get_viewport_rect().size
-	var place_center := Vector2(size.x * 0.5, size.y - 40.0)
+	var place_center := _context_center()
 	if event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
 		if t.pressed:
@@ -114,7 +151,7 @@ func _draw() -> void:
 	if not touch_capable:
 		return
 	var size := get_viewport_rect().size
-	var place_center := Vector2(size.x * 0.5, size.y - 40.0)
+	var place_center := _context_center()
 	draw_circle(place_center, PLACE_RADIUS, Color(0.08, 0.14, 0.15, 0.28))
 	draw_arc(place_center, PLACE_RADIUS, 0.0, TAU, 32, Color(0.68, 0.75, 0.66, 0.35), 2.0)
 	var label := player.context_label() if player != null and is_instance_valid(player) else "置"

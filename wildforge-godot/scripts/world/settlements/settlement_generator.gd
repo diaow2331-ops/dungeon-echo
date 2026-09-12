@@ -31,6 +31,30 @@ func generate(world) -> Dictionary:
 		"market_cell": [anchor_x + 5, ground_y - 1],
 		"territory": [anchor_x - HALF_WIDTH - 1, ground_y - 9, HALF_WIDTH * 2 + 3, 18],
 		"structures": structures.map(func(s): return String((s as Dictionary)["id"])),
+		"npcs": [
+			{
+				"id": SETTLEMENT_ID + ":merchant",
+				"kind": "merchant",
+				"cell": [anchor_x + 7, ground_y - 1],
+				"display_name": "米菈",
+				"role": "苔桥集市商人",
+				"dialogue": [
+					"第一次来苔桥？把猎到的棘鬃兽鲜肉带给我。缺货的时候，价钱会好一些。",
+					"这里的报价跟仓库库存走。大家都往城里塞同一种货，价钱自然会掉。",
+				],
+			},
+			{
+				"id": SETTLEMENT_ID + ":guard",
+				"kind": "guard",
+				"cell": [anchor_x - HALF_WIDTH + 2, ground_y - 1],
+				"display_name": "洛恩",
+				"role": "苔桥守卫",
+				"dialogue": [
+					"这里是翠庭的苔桥。做买卖欢迎，拆墙、盗采和砍标记林木可不欢迎。",
+					"想找活先去集市看看。许可、护送和正式差事以后会从这里发。",
+				],
+			},
+		],
 		"initial_inventory": {"raw_meat": 2},
 		"targets": {"raw_meat": 12},
 		"base_prices": {"raw_meat": 4},
