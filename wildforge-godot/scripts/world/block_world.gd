@@ -13,6 +13,7 @@ const BlockRegistryScript = preload("res://scripts/world/block_registry.gd")
 const WorldEditAuthorityScript = preload("res://scripts/world/authority/world_edit_authority.gd")
 const OwnershipAuthorityScript = preload("res://scripts/world/authority/world_ownership_authority.gd")
 const ChunkStreamerScript = preload("res://scripts/world/streaming/chunk_streamer.gd")
+const LightingAuthorityScript = preload("res://scripts/world/lighting/lighting_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 1
@@ -33,6 +34,7 @@ var block_registry := BlockRegistryScript.new() as SliceBlockRegistry
 var ownership_authority := OwnershipAuthorityScript.new() as SliceWorldOwnershipAuthority
 var edit_authority := WorldEditAuthorityScript.new(block_registry) as SliceWorldEditAuthority
 var chunk_streamer: SliceChunkStreamer
+var lighting_authority: SliceLightingAuthority
 var cells: Dictionary = {}
 var baseline_cells: Dictionary = {}
 var cell_overrides: Dictionary = {}
@@ -57,13 +59,16 @@ func _ready() -> void:
 	collision_root.name = "TerrainCollisionChunks"
 	add_child(collision_root)
 	_generate()
+	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
 	chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
 	chunk_streamer.refresh_at_cell(Vector2i(0, surface_y_at(0)), true)
+	_sync_lighting()
 	queue_redraw()
 
 func _process(delta: float) -> void:
 	if chunk_streamer != null:
 		chunk_streamer.refresh()
+	_sync_lighting()
 	if place_flash > 0.0:
 		place_flash = maxf(0.0, place_flash - delta)
 		queue_redraw()
@@ -430,6 +435,8 @@ func spawn_campfire(cell: Vector2i, actor_id := "system") -> SliceCampfire:
 	fire.global_position = cell_center(cell) + Vector2(0, 8)
 	fire.z_index = 21
 	add_child(fire)
+	if lighting_authority != null:
+		lighting_authority.mark_cell_changed(cell)
 	feedback_burst(fire.global_position, Color("e69a55"), 10, 92.0)
 	return fire
 
@@ -477,18 +484,40 @@ func set_streaming_focus(node: Node2D) -> void:
 	if chunk_streamer == null:
 		chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
 	chunk_streamer.set_focus(node)
+	_sync_lighting()
 
 func refresh_streaming(force := false) -> void:
 	if chunk_streamer != null:
 		chunk_streamer.refresh(force)
+	_sync_lighting()
+
+func light_level(cell: Vector2i) -> float:
+	return lighting_authority.light_level(cell) if lighting_authority != null else 1.0
+
+func rebuild_lighting_now() -> void:
+	if lighting_authority != null and chunk_streamer != null:
+		lighting_authority.dirty = true
+		_sync_lighting()
+
+func _sync_lighting() -> void:
+	if lighting_authority == null or chunk_streamer == null:
+		return
+	if lighting_authority.sync_active(chunk_streamer.active_keys):
+		for view in render_chunks.values():
+			if is_instance_valid(view):
+				(view as SliceBlockChunkView).queue_redraw()
 
 func activate_chunk(key: Vector2i) -> void:
 	_ensure_render_chunk(key)
 	_rebuild_collision_chunk(key)
+	if lighting_authority != null:
+		lighting_authority.mark_streaming_changed()
 	chunk_activated.emit(key)
 
 func deactivate_chunk(key: Vector2i) -> void:
 	dirty_collision_chunks.erase(key)
+	if lighting_authority != null:
+		lighting_authority.mark_streaming_changed()
 	chunk_deactivated.emit(key)
 	if render_chunks.has(key):
 		var view: Node = render_chunks[key]
@@ -531,6 +560,8 @@ func _ensure_collision_chunk(key: Vector2i) -> StaticBody2D:
 	return body
 
 func _mark_cell_changed(cell: Vector2i) -> void:
+	if lighting_authority != null:
+		lighting_authority.mark_cell_changed(cell)
 	var own := chunk_key_for(cell)
 	if render_chunks.has(own) and is_instance_valid(render_chunks[own]):
 		(render_chunks[own] as SliceBlockChunkView).queue_redraw()

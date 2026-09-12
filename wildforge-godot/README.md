@@ -130,3 +130,9 @@ World ownership is persistent authority, not a visual label. Region claims and c
 ## WF-Foundation 0.3 chunk streaming
 
 World data remains fully authoritative while render/collision chunks are streamed around the player with bounded load radii and a one-chunk hysteresis margin. Off-screen edits update terrain/delta state without instantiating presentation or physics; approaching that region rebuilds from the latest authority. Chunk activation/deactivation signals are the shared lifecycle hook for future vegetation, settlement workers, guards and other sparse local actors.
+
+## WF-Foundation 0.4 chunk lighting
+
+Block optical properties are data-driven in `data/blocks.json`; light absorption/emission no longer belongs in presentation code. `SliceLightingAuthority` computes sunlight and local-source propagation only for streamed chunks plus a one-chunk halo, and keeps the resulting scalar light field as derived cache rather than save authority.
+
+Terrain edits invalidate nearby lighting, local emitters propagate across chunk boundaries, and distant unloaded emitters do not allocate caches. Approaching a region rebuilds light from current terrain, while unloading releases its light cache. Lighting is intentionally absent from save payloads. Final colored lighting, shaders and art-directed grading remain presentation work layered above this foundation.
