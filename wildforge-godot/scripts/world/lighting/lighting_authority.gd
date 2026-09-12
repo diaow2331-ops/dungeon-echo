@@ -107,17 +107,21 @@ func _seed_sunlight(values: PackedFloat32Array, queue: Array[Vector2i], min_cell
 	for x in range(min_cell.x, max_cell.x + 1):
 		var first_solid := _first_solid_y(x)
 		var upper := mini(max_cell.y, first_solid - 1)
+		var intensity := SUNLIGHT
 		for y in range(min_cell.y, upper + 1):
 			var cell := Vector2i(x, y)
+			intensity = maxf(0.0, intensity - world.fluid_light_absorption(cell) * world.fluid_amount(cell))
+			if intensity < MIN_LIGHT:
+				break
 			var idx := _index(cell, min_cell, width)
-			values[idx] = SUNLIGHT
+			values[idx] = intensity
 			queue.append(cell)
 
 func _seed_block_emission(values: PackedFloat32Array, queue: Array[Vector2i], min_cell: Vector2i, max_cell: Vector2i, width: int) -> void:
 	for x in range(min_cell.x, max_cell.x + 1):
 		for y in range(min_cell.y, max_cell.y + 1):
 			var cell := Vector2i(x, y)
-			var emission: float = world.block_registry.light_emission(world.tile_at(cell))
+			var emission: float = maxf(world.block_registry.light_emission(world.tile_at(cell)), world.fluid_light_emission(cell))
 			if emission <= MIN_LIGHT:
 				continue
 			_set_seed(values, queue, cell, emission, min_cell, width)
@@ -148,10 +152,10 @@ func _propagate(values: PackedFloat32Array, queue: Array[Vector2i], min_cell: Ve
 			if not _inside(next, min_cell, max_cell):
 				continue
 			var tile: int = world.tile_at(next)
-			var attenuation := AIR_FALLOFF
+			var attenuation: float = AIR_FALLOFF + world.fluid_light_absorption(next) * world.fluid_amount(next)
 			if tile != 0:
 				attenuation = SOLID_BASE_FALLOFF + world.block_registry.light_absorption(tile) * SOLID_ABSORPTION_SCALE
-			var target := current - attenuation
+			var target: float = current - attenuation
 			if target < MIN_LIGHT:
 				continue
 			var idx := _index(next, min_cell, width)

@@ -14,6 +14,8 @@ const WorldEditAuthorityScript = preload("res://scripts/world/authority/world_ed
 const OwnershipAuthorityScript = preload("res://scripts/world/authority/world_ownership_authority.gd")
 const ChunkStreamerScript = preload("res://scripts/world/streaming/chunk_streamer.gd")
 const LightingAuthorityScript = preload("res://scripts/world/lighting/lighting_authority.gd")
+const FluidRegistryScript = preload("res://scripts/world/fluid/fluid_registry.gd")
+const FluidAuthorityScript = preload("res://scripts/world/fluid/fluid_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 1
@@ -35,6 +37,10 @@ var ownership_authority := OwnershipAuthorityScript.new() as SliceWorldOwnership
 var edit_authority := WorldEditAuthorityScript.new(block_registry) as SliceWorldEditAuthority
 var chunk_streamer: SliceChunkStreamer
 var lighting_authority: SliceLightingAuthority
+var fluid_registry := FluidRegistryScript.new() as SliceFluidRegistry
+var fluid_authority: SliceFluidAuthority
+var fluid_tick_accumulator := 0.0
+const FLUID_TICK_SECONDS := 0.10
 var cells: Dictionary = {}
 var baseline_cells: Dictionary = {}
 var cell_overrides: Dictionary = {}
@@ -59,6 +65,7 @@ func _ready() -> void:
 	collision_root.name = "TerrainCollisionChunks"
 	add_child(collision_root)
 	_generate()
+	fluid_authority = FluidAuthorityScript.new(self, fluid_registry) as SliceFluidAuthority
 	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
 	chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
 	chunk_streamer.refresh_at_cell(Vector2i(0, surface_y_at(0)), true)
@@ -68,6 +75,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if chunk_streamer != null:
 		chunk_streamer.refresh()
+	_sync_fluids(delta)
 	_sync_lighting()
 	if place_flash > 0.0:
 		place_flash = maxf(0.0, place_flash - delta)
@@ -377,6 +385,8 @@ func request_world_edit(request: Dictionary) -> Dictionary:
 		_mark_cell_changed(cell)
 	elif action == SliceWorldEditAuthority.ACTION_PLACE:
 		var tile := int(decision.get("tile", AIR))
+		if fluid_authority != null:
+			fluid_authority.clear_cell(cell)
 		cells[cell] = tile
 		_record_override(cell)
 		place_flash_cell = cell
@@ -494,10 +504,66 @@ func refresh_streaming(force := false) -> void:
 func light_level(cell: Vector2i) -> float:
 	return lighting_authority.light_level(cell) if lighting_authority != null else 1.0
 
+func fluid_at(cell: Vector2i) -> Dictionary:
+	return fluid_authority.fluid_at(cell) if fluid_authority != null else {}
+
+func fluid_amount(cell: Vector2i) -> float:
+	return fluid_authority.amount_at(cell) if fluid_authority != null else 0.0
+
+func fluid_kind(cell: Vector2i) -> String:
+	return fluid_authority.kind_at(cell) if fluid_authority != null else ""
+
+func fluid_light_absorption(cell: Vector2i) -> float:
+	var kind := fluid_kind(cell)
+	return fluid_registry.light_absorption(kind) if not kind.is_empty() else 0.0
+
+func fluid_light_emission(cell: Vector2i) -> float:
+	var kind := fluid_kind(cell)
+	return fluid_registry.light_emission(kind) * fluid_amount(cell) if not kind.is_empty() else 0.0
+
+func set_fluid(cell: Vector2i, kind: String, amount: float) -> bool:
+	return fluid_authority.set_fluid(cell, kind, amount) if fluid_authority != null else false
+
+func clear_fluid(cell: Vector2i) -> bool:
+	return fluid_authority.clear_cell(cell) if fluid_authority != null else false
+
 func rebuild_lighting_now() -> void:
 	if lighting_authority != null and chunk_streamer != null:
 		lighting_authority.dirty = true
 		_sync_lighting()
+
+func _sync_fluids(delta: float) -> void:
+	if fluid_authority == null or chunk_streamer == null:
+		return
+	fluid_tick_accumulator += maxf(delta, 0.0)
+	var steps := 0
+	while fluid_tick_accumulator >= FLUID_TICK_SECONDS and steps < 3:
+		fluid_tick_accumulator -= FLUID_TICK_SECONDS
+		fluid_authority.step(chunk_streamer.active_keys)
+		steps += 1
+	if steps == 3 and fluid_tick_accumulator > FLUID_TICK_SECONDS:
+		fluid_tick_accumulator = FLUID_TICK_SECONDS
+
+func step_fluids_now(steps := 1) -> void:
+	if fluid_authority == null or chunk_streamer == null:
+		return
+	for _i in range(maxi(0, steps)):
+		fluid_authority.step(chunk_streamer.active_keys)
+	_sync_lighting()
+
+func mark_fluid_changed(cell: Vector2i) -> void:
+	if lighting_authority != null:
+		lighting_authority.mark_cell_changed(cell)
+	var key := chunk_key_for(cell)
+	if render_chunks.has(key) and is_instance_valid(render_chunks[key]):
+		(render_chunks[key] as SliceBlockChunkView).queue_redraw()
+
+func mark_all_visible_fluid_changed() -> void:
+	if lighting_authority != null:
+		lighting_authority.dirty = true
+	for view in render_chunks.values():
+		if is_instance_valid(view):
+			(view as SliceBlockChunkView).queue_redraw()
 
 func _sync_lighting() -> void:
 	if lighting_authority == null or chunk_streamer == null:

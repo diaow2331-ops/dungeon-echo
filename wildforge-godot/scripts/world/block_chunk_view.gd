@@ -20,6 +20,17 @@ func _draw() -> void:
 			var tile := world.tile_at(cell)
 			if tile == SliceWorld.AIR:
 				var air_pos := Vector2(lx, ly) * SliceWorld.TILE_SIZE
+				var fluid := world.fluid_at(cell)
+				if not fluid.is_empty():
+					var amount := clampf(float(fluid.get("amount", 0.0)), 0.0, 1.0)
+					var kind := String(fluid.get("kind", ""))
+					var fluid_color := world.fluid_registry.color(kind)
+					fluid_color.a = 0.72 if kind == "water" else 0.84
+					var height := SliceWorld.TILE_SIZE * amount
+					var fluid_rect := Rect2(air_pos + Vector2(0, SliceWorld.TILE_SIZE - height), Vector2(SliceWorld.TILE_SIZE, height))
+					draw_rect(fluid_rect, fluid_color)
+					if amount > 0.12:
+						draw_line(fluid_rect.position + Vector2(2, 1), fluid_rect.position + Vector2(SliceWorld.TILE_SIZE - 2, 1), fluid_color.lightened(0.24), 1.5)
 				var air_darkness := clampf(1.0 - world.light_level(cell), 0.0, 1.0) * 0.82
 				if air_darkness > 0.01:
 					draw_rect(Rect2(air_pos, Vector2(SliceWorld.TILE_SIZE, SliceWorld.TILE_SIZE)), Color(0.015, 0.025, 0.035, air_darkness))
