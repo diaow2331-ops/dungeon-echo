@@ -8,6 +8,9 @@ const COPPER_REWARD := 3
 var world: SliceWorld
 var player: SlicePlayer
 var guard: Node2D
+var world_actor_id := ""
+var guard_actor_id := ""
+var world_actor_authority: RefCounted
 var opened := false
 var denied_flash := 0.0
 
@@ -21,6 +24,8 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func guard_alive() -> bool:
+	if not guard_actor_id.is_empty() and world_actor_authority != null and world_actor_authority.has_method("is_present"):
+		return bool(world_actor_authority.is_present(guard_actor_id))
 	return guard != null and is_instance_valid(guard) and not guard.is_queued_for_deletion()
 
 func apply_hit(_damage: float, _force := Vector2.ZERO) -> void:
@@ -32,6 +37,8 @@ func apply_hit(_damage: float, _force := Vector2.ZERO) -> void:
 			world.feedback_burst(global_position, Color("b46f72"), 4, 54.0)
 		return
 	opened = true
+	if not world_actor_id.is_empty() and world_actor_authority != null and world_actor_authority.has_method("mark_removed"):
+		world_actor_authority.mark_removed(world_actor_id)
 	if world != null and player != null:
 		world.feedback_burst(global_position, Color("d7b76d"), 12, 118.0)
 		world.spawn_item_pickup(global_position + Vector2(-12, -8), "ancient_core", player, CORE_REWARD)

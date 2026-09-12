@@ -37,8 +37,8 @@ static func snapshot(main: Node) -> Dictionary:
 		"workbenches": _station_cells(main, "workbenches"),
 		"campfires": _station_cells(main, "campfires"),
 		"trees": _group_xs(main, world, "resource_trees"),
-		"caches": _group_xs(main, world, "relic_caches"),
-		"guards": _group_xs(main, world, "ruin_guards"),
+		"caches": _actor_present_xs(main, SliceWorldActorAuthority.KIND_RELIC_CACHE, world, "relic_caches"),
+		"guards": _actor_present_xs(main, SliceWorldActorAuthority.KIND_RUIN_GUARD, world, "ruin_guards"),
 	}
 
 static func apply_snapshot(main: Node, data: Dictionary) -> bool:
@@ -101,8 +101,8 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	for raw in data.get("campfires", []):
 		world.spawn_campfire(_decode_cell(raw))
 	_restore_presence(main, world, "resource_trees", data.get("trees", []))
-	_restore_presence(main, world, "relic_caches", data.get("caches", []))
-	_restore_presence(main, world, "ruin_guards", data.get("guards", []))
+	_restore_actor_presence(main, SliceWorldActorAuthority.KIND_RELIC_CACHE, data.get("caches", []), world, "relic_caches")
+	_restore_actor_presence(main, SliceWorldActorAuthority.KIND_RUIN_GUARD, data.get("guards", []), world, "ruin_guards")
 	return true
 
 static func save_to_path(main: Node, path := SAVE_PATH) -> bool:
@@ -300,6 +300,23 @@ static func _station_cells(main: Node, group_name: String) -> Array:
 			var cell: Vector2i = node.get("cell")
 			rows.append([cell.x, cell.y])
 	return rows
+
+static func _actor_authority(main: Node) -> SliceWorldActorAuthority:
+	var authority = main.get("actor_authority")
+	return authority as SliceWorldActorAuthority if authority is SliceWorldActorAuthority else null
+
+static func _actor_present_xs(main: Node, kind: String, world: SliceWorld, fallback_group: String) -> Array:
+	var authority := _actor_authority(main)
+	if authority != null:
+		return authority.present_xs(kind)
+	return _group_xs(main, world, fallback_group)
+
+static func _restore_actor_presence(main: Node, kind: String, raw_xs, world: SliceWorld, fallback_group: String) -> void:
+	var authority := _actor_authority(main)
+	if authority != null:
+		authority.restore_presence_xs(kind, raw_xs)
+		return
+	_restore_presence(main, world, fallback_group, raw_xs)
 
 static func _group_xs(main: Node, world: SliceWorld, group_name: String) -> Array:
 	var xs: Array = []

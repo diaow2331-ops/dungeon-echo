@@ -143,3 +143,9 @@ Water and lava now live in a dedicated `SliceFluidAuthority` instead of overload
 Flow is bounded and conservative: unobstructed liquid falls first, blocked liquid equalizes laterally, capacity is clamped to one cell-volume, and propagation crosses chunk boundaries without waking the whole world. Water/lava contact uses one explicit reaction entry point with measured consumption. Placing solid terrain displaces fluid through the same world edit path.
 
 Fluid optical data is registry-driven in `data/fluids.json`; water attenuates light and lava contributes emission to the existing chunk-lighting authority. Save schema 16 persists fluid cells, while schema 15 ownership saves, schema 14 delta saves and schema 13 full-map saves remain migration sources. `tests/fluid_test.gd` locks conservation, cross-chunk flow, active/halo sleeping, reaction accounting, lighting integration and authoritative persistence.
+
+## WF-Foundation 0.6 sparse world actor projection
+
+Persistent world actors are no longer defined by whether a scene node happens to be loaded. `SliceWorldActorAuthority` owns stable identities, chunk location and presence for deterministic ruin guards/caches; active chunks project those records into local Godot nodes and unload them again through the existing chunk lifecycle. No second distance manager or parallel streamer is introduced.
+
+Save schema remains 16 because the external payload shape is unchanged. Guard/cache presence is now read from actor authority instead of scanning loaded groups, so autosaving while a region is unloaded cannot silently record living actors as dead. Defeat/open actions update the same authority before their projection disappears, and streaming the chunk back in cannot resurrect removed actors or duplicate surviving ones. `tests/actor_streaming_test.gd` locks unload/save/reproject/removal behavior.
