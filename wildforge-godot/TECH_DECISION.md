@@ -71,3 +71,7 @@ New regions should open from capabilities already earned through the same world 
 ## Persistence authority
 
 Godot saves data, not the scene tree. World cells, player progression and durable world interactions are serialized; render chunks, effects, camera state, live input buffers and ordinary regenerative enemies are reconstructed. This keeps future art/node refactors independent from save compatibility. Save payloads are explicitly versioned and must pass a full memory + disk round-trip gate before a schema becomes authoritative.
+
+## Transactional save writes
+
+Never overwrite the only good save in place. Write + validate a temporary candidate, rotate the previous primary to one backup, then atomically rename the candidate to primary. Load must reject malformed/out-of-schema data before mutating game authority and may recover from the backup. A gameplay milestone does not force a save-schema bump when the serialized shape is unchanged.

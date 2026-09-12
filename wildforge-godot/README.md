@@ -101,3 +101,9 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 The Godot client now owns a versioned save schema (`SAVE_VERSION = 13`) instead of behaving like a disposable proof scene. Persistent authority includes world-cell mutations, player transform/health/hunger, the single stock wallet, equipped tools, placed Craft Tables/Ember Pits, felled resource trees, opened relic caches, and defeated relic guards. Ordinary ambient enemies remain regenerative local actors and are intentionally excluded.
 
 Saves are written every ~20 seconds and on application pause/close. Loading rebuilds scene presentation from persistent authority and explicitly clears transient movement, touch, mining and attack state so a resumed session cannot inherit stale momentum/input. `tests/save_test.gd` performs in-memory and disk round trips; tests never auto-load the user's normal save path.
+
+## v0.14 save-safety milestone
+
+Persistence now uses transactional writes: a candidate save is written and validated at a temporary path, the previous valid primary is rotated to a single backup, and only then is the candidate atomically promoted. Loading tries the primary first and automatically falls back to the previous valid backup if the primary is missing, malformed or fails schema validation. No successful save leaves a `.tmp` file behind.
+
+This milestone intentionally keeps save schema 13 because the payload shape did not change; gameplay milestone numbers and persistence-schema versions are governed independently.
