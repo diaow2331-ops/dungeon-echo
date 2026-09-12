@@ -39,6 +39,7 @@ run_gate res://tests/copper_test.gd 'wildforge_godot_copper=PASS'
 run_gate res://tests/deepgate_test.gd 'wildforge_godot_deepgate=PASS'
 run_gate res://tests/save_test.gd 'wildforge_godot_save=PASS'
 run_gate res://tests/worldscale_test.gd 'wildforge_godot_worldscale=PASS'
+run_gate res://tests/world_authority_test.gd 'wildforge_world_authority=PASS'
 node "$ROOT/tests/recipe_parity.mjs" | tee /tmp/wildforge-recipe-parity.log
 grep -Fq 'wildforge_godot_recipe_parity=PASS' /tmp/wildforge-recipe-parity.log
 node "$ROOT/tests/survival_parity.mjs" | tee /tmp/wildforge-survival-parity.log
@@ -49,3 +50,4 @@ grep -Fq 'wildforge_godot_progression_parity=PASS' /tmp/wildforge-progression-pa
 (cd "$ROOT" && node tests/exploration_parity.mjs)
 (cd "$ROOT" && node tests/copper_parity.mjs)
 (cd "$ROOT" && node tests/deepgate_parity.mjs)
+(cd "$ROOT" && node tests/world_authority_contract.mjs)
