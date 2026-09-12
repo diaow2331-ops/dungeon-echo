@@ -1,14 +1,19 @@
 class_name SliceWorldActorAuthority
 extends RefCounted
 
+signal dialogue_requested(payload: Dictionary)
+
 const CrawlerScript = preload("res://scripts/enemies/crawler.gd")
 const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
+const SettlementNpcScript = preload("res://scripts/world/actors/settlement_npc.gd")
 const VegetationRegistryScript = preload("res://scripts/world/vegetation/vegetation_registry.gd")
 
 const KIND_RUIN_GUARD := "ruin_guard"
 const KIND_RELIC_CACHE := "relic_cache"
 const KIND_TREE := "tree"
+const KIND_MERCHANT := "merchant"
+const KIND_SETTLEMENT_GUARD := "settlement_guard"
 
 var host: Node
 var world: SliceWorld
@@ -44,6 +49,36 @@ func register_exploration_sites(sites: Array) -> void:
 		var cache_id := "relic_cache:%d:%d" % [cache_cell.x, cache_cell.y]
 		_register_actor(guard_id, KIND_RUIN_GUARD, guard_cell, {})
 		_register_actor(cache_id, KIND_RELIC_CACHE, cache_cell, {"guard_id": guard_id})
+
+func register_settlement_npcs(raw_settlements: Array) -> void:
+	for raw_settlement in raw_settlements:
+		if not raw_settlement is Dictionary:
+			continue
+		var settlement: Dictionary = raw_settlement
+		var settlement_id := String(settlement.get("id", ""))
+		var faction_id := String(settlement.get("founding_faction", ""))
+		var raw_npcs = settlement.get("npcs", [])
+		if not raw_npcs is Array:
+			continue
+		for raw_npc in raw_npcs:
+			if not raw_npc is Dictionary:
+				continue
+			var npc: Dictionary = raw_npc
+			var actor_id := String(npc.get("id", ""))
+			var declared_kind := String(npc.get("kind", ""))
+			var raw_cell = npc.get("cell", [])
+			if actor_id.is_empty() or not raw_cell is Array or raw_cell.size() < 2:
+				continue
+			var kind := KIND_MERCHANT if declared_kind == "merchant" else KIND_SETTLEMENT_GUARD if declared_kind == "guard" else ""
+			if kind.is_empty():
+				continue
+			_register_actor(actor_id, kind, Vector2i(int(raw_cell[0]), int(raw_cell[1])), {
+				"settlement_id": settlement_id,
+				"faction_id": faction_id,
+				"display_name": String(npc.get("display_name", actor_id)),
+				"role": String(npc.get("role", "")),
+				"dialogue": (npc.get("dialogue", []) as Array).duplicate(),
+			})
 
 func register_vegetation_baseline(sites: Array) -> void:
 	for raw_site in sites:
@@ -372,6 +407,22 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		tree.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE)
 		tree.z_index = 5
 		node = tree
+	elif kind in [KIND_MERCHANT, KIND_SETTLEMENT_GUARD]:
+		var npc := SettlementNpcScript.new() as SliceSettlementNpc
+		var meta: Dictionary = descriptor.get("meta", {})
+		npc.name = _node_name("SettlementNpc", actor_id)
+		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else "guard", {
+			"actor_id": actor_id,
+			"settlement_id": String(meta.get("settlement_id", "")),
+			"faction_id": String(meta.get("faction_id", "")),
+			"display_name": String(meta.get("display_name", actor_id)),
+			"role": String(meta.get("role", "")),
+			"dialogue": (meta.get("dialogue", []) as Array).duplicate(),
+		})
+		npc.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE - 2.0)
+		npc.z_index = 18
+		npc.dialogue_requested.connect(_forward_dialogue)
+		node = npc
 	elif kind == KIND_RELIC_CACHE:
 		var cache := RelicCacheScript.new() as SliceRelicCache
 		cache.name = _node_name("RelicCache", actor_id)
@@ -389,6 +440,9 @@ func _ensure_projection(actor_id: String) -> Node2D:
 	projections[actor_id] = node
 	activation_count += 1
 	return node
+
+func _forward_dialogue(payload: Dictionary) -> void:
+	dialogue_requested.emit(payload)
 
 func _unload_projection(actor_id: String) -> void:
 	if not projections.has(actor_id):

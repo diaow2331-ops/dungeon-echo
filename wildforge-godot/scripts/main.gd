@@ -7,10 +7,13 @@ const BoarScript = preload("res://scripts/enemies/bramble_boar.gd")
 const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
 const WorldActorAuthorityScript = preload("res://scripts/world/actors/world_actor_authority.gd")
 const SaveScript = preload("res://scripts/save/slice_save_system.gd")
+const DialogueScript = preload("res://scripts/ui/dialogue_overlay.gd")
 
 var world: SliceWorld
 var player: SlicePlayer
 var actor_authority: SliceWorldActorAuthority
+var dialogue_overlay: SliceDialogueOverlay
+var touch_controls: SliceTouchControls
 var defeats := 0
 var autosave_elapsed := 0.0
 const AUTOSAVE_INTERVAL := 20.0
@@ -42,21 +45,29 @@ func _ready() -> void:
 	actor_authority = WorldActorAuthorityScript.new(self, world, player) as SliceWorldActorAuthority
 	actor_authority.register_exploration_sites(world.exploration_sites)
 	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
+	actor_authority.register_settlement_npcs(world.baseline_settlements)
+	actor_authority.dialogue_requested.connect(_open_dialogue)
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
 	add_child(ui_layer)
-	var touch := TouchScript.new()
-	touch.name = "TouchControls"
-	touch.player = player
-	ui_layer.add_child(touch)
+	touch_controls = TouchScript.new() as SliceTouchControls
+	touch_controls.name = "TouchControls"
+	touch_controls.player = player
+	ui_layer.add_child(touch_controls)
+	dialogue_overlay = DialogueScript.new() as SliceDialogueOverlay
+	dialogue_overlay.name = "DialogueOverlay"
+	dialogue_overlay.closed.connect(_close_dialogue)
+	ui_layer.add_child(dialogue_overlay)
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
 
 func reconfigure_world_seed(new_seed: int) -> bool:
 	if world == null or player == null or actor_authority == null:
 		return false
+	if dialogue_overlay != null and dialogue_overlay.visible:
+		dialogue_overlay.close_dialogue()
 	if world.world_seed == new_seed:
 		return true
 	actor_authority.clear_world_baseline()
@@ -68,11 +79,26 @@ func reconfigure_world_seed(new_seed: int) -> bool:
 		return false
 	actor_authority.register_exploration_sites(world.exploration_sites)
 	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
+	actor_authority.register_settlement_npcs(world.baseline_settlements)
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
 	_spawn_enemy(-10)
 	_spawn_enemy(8)
 	_spawn_boar(-18)
 	return true
+
+func _open_dialogue(payload: Dictionary) -> void:
+	if dialogue_overlay == null or player == null:
+		return
+	player.interaction_locked = true
+	if touch_controls != null:
+		touch_controls.set_interaction_blocked(true)
+	dialogue_overlay.open_dialogue(payload)
+
+func _close_dialogue() -> void:
+	if player != null:
+		player.interaction_locked = false
+	if touch_controls != null:
+		touch_controls.set_interaction_blocked(false)
 
 func _process(delta: float) -> void:
 	if SaveScript.is_test_run() or world == null or player == null:
