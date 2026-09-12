@@ -72,7 +72,7 @@ var equipped_pick_id := "starter_pick"
 var equipped_weapon_id := "starter_blade"
 
 func _ready() -> void:
-	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0}
+	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()

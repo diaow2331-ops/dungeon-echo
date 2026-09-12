@@ -20,7 +20,7 @@ func _run() -> void:
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
 	var player := main.get_node("Player") as SlicePlayer
-	var trees := main.get_tree().get_nodes_in_group("harvestables")
+	var trees: Array = main.get_tree().get_nodes_in_group("harvestables").filter(func(node): return node is SliceTreeResource)
 
 	var plank_recipe: Dictionary = SliceCrafting.RECIPES["plank"]
 	var bench_recipe: Dictionary = SliceCrafting.RECIPES["workbench"]

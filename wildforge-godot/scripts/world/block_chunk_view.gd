@@ -25,9 +25,22 @@ func _draw() -> void:
 				color = Color("5e7841")
 			elif tile == SliceWorld.STONE:
 				color = Color("59636b")
+			elif tile == SliceWorld.COAL:
+				color = Color("333a3e")
+			elif tile == SliceWorld.COPPER:
+				color = Color("9f6047")
+			elif tile == SliceWorld.RUIN_BRICK:
+				color = Color("655c70")
 			var pos := Vector2(lx, ly) * SliceWorld.TILE_SIZE
 			draw_rect(Rect2(pos + Vector2.ONE, Vector2(SliceWorld.TILE_SIZE - 2, SliceWorld.TILE_SIZE - 2)), color)
 			if tile == SliceWorld.GRASS:
 				draw_rect(Rect2(pos + Vector2(1, 1), Vector2(SliceWorld.TILE_SIZE - 2, 6)), Color("9aad5b"))
 			elif tile == SliceWorld.STONE:
 				draw_line(pos + Vector2(7, 9), pos + Vector2(20, 15), Color(0.72, 0.76, 0.78, 0.28), 2.0)
+			elif tile == SliceWorld.COAL:
+				draw_circle(pos + Vector2(11, 12), 4.0, Color("171b1e"))
+				draw_circle(pos + Vector2(23, 21), 3.0, Color("1d2225"))
+			elif tile == SliceWorld.COPPER:
+				draw_line(pos + Vector2(7, 22), pos + Vector2(24, 8), Color("d18661"), 4.0)
+			elif tile == SliceWorld.RUIN_BRICK:
+				draw_line(pos + Vector2(2, 16), pos + Vector2(30, 16), Color(0.78, 0.72, 0.84, 0.25), 2.0)

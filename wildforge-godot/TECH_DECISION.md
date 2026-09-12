@@ -55,3 +55,7 @@ Hunger, nourishment, starvation cadence and survival recipes are migration data,
 ## Early enemy-role rule
 
 Different survival rewards must come from meaningfully different combat roles, not recolored or loot-tagged copies of one enemy. Early hunt targets require readable commitment, counterplay, and a reward identity distinct from ambient harassment enemies.
+
+## Exploration authority rule
+
+Exploration sites are deterministic world-generation data plus sparse local actors. Ore remains authoritative block data; relic caches and guards are local projections. Cache rewards must feed the same player stock and must not introduce a parallel loot wallet.
