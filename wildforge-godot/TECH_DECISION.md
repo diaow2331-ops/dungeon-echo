@@ -87,3 +87,9 @@ A durable world actor and its Godot node are different things. Stable world iden
 ## Vegetation authority
 
 Vegetation is deterministic world data plus sparse actor projection, not authored scene decoration. Baseline trees are regenerated from the versioned world contract; saves record only removals and planted additions. Ownership is resolved through the same territorial authority used by terrain so conquest can transfer forest rights without rewriting tree records. Planting, felling and future NPC forestry must mutate this authority rather than infer durable state from loaded tree nodes.
+
+## Structure authority
+
+A durable building is defined by stable structure identity plus a blueprint of expected world cells. The terrain dictionary remains the only physical truth: missing or replaced blueprint tiles are damage, and repair demand is derived from that difference. Do not store a second structure HP value.
+
+Structure ownership must resolve through the existing ownership authority. A structure blueprint never owns a second faction field that can drift during annexation. Construction and repair must use `WorldEditAuthority`; deterministic baseline blueprints need no duplicate save payload because terrain deltas and ownership claims already reconstruct condition and sovereignty.

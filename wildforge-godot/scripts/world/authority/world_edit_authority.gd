@@ -4,6 +4,7 @@ extends RefCounted
 const ACTION_MINE := "mine"
 const ACTION_PLACE := "place"
 const ACTION_STATION := "station"
+const ACTION_REPAIR := "repair"
 
 var registry: SliceBlockRegistry
 var decisions := 0
@@ -29,6 +30,8 @@ func evaluate(world: Node, request: Dictionary) -> Dictionary:
 			return _evaluate_place(world, result, request)
 		ACTION_STATION:
 			return _evaluate_station(world, result, request)
+		ACTION_REPAIR:
+			return _evaluate_repair(world, result, request)
 		_:
 			return _deny_result(result, "unknown_action")
 func _evaluate_mine(world: Node, result: Dictionary, request: Dictionary) -> Dictionary:
@@ -75,6 +78,22 @@ func _evaluate_station(world: Node, result: Dictionary, request: Dictionary) -> 
 	if world.has_cell(cell) or world.station_cell_occupied(cell):
 		return _deny_result(result, "occupied")
 	if not world.has_cell(cell + Vector2i.DOWN):
+		return _deny_result(result, "unsupported")
+	return _allow_result(result)
+
+func _evaluate_repair(world: Node, result: Dictionary, request: Dictionary) -> Dictionary:
+	var cell: Vector2i = result["cell"]
+	var tile := int(request.get("tile", -1))
+	var structure_id := String(request.get("structure_id", ""))
+	result["tile"] = tile
+	result["structure_id"] = structure_id
+	if structure_id.is_empty() or world.structure_authority == null or not world.structure_authority.has(structure_id):
+		return _deny_result(result, "unknown_structure")
+	if world.structure_authority.expected_tile(structure_id, cell) != tile:
+		return _deny_result(result, "blueprint_mismatch")
+	if world.has_cell(cell) or world.station_cell_occupied(cell):
+		return _deny_result(result, "occupied")
+	if not world.has_support_neighbor(cell):
 		return _deny_result(result, "unsupported")
 	return _allow_result(result)
 
