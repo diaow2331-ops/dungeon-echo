@@ -7,10 +7,13 @@ const BoarScript = preload("res://scripts/enemies/bramble_boar.gd")
 const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
 const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
+const SaveScript = preload("res://scripts/save/slice_save_system.gd")
 
 var world: SliceWorld
 var player: SlicePlayer
 var defeats := 0
+var autosave_elapsed := 0.0
+const AUTOSAVE_INTERVAL := 20.0
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(Color("0b171d"))
@@ -47,6 +50,31 @@ func _ready() -> void:
 	touch.name = "TouchControls"
 	touch.player = player
 	ui_layer.add_child(touch)
+	if not SaveScript.is_test_run():
+		call_deferred("_load_persistent_state")
+
+func _process(delta: float) -> void:
+	if SaveScript.is_test_run() or world == null or player == null:
+		return
+	autosave_elapsed += delta
+	if autosave_elapsed >= AUTOSAVE_INTERVAL:
+		autosave_elapsed = 0.0
+		SaveScript.save_to_path(self)
+
+func _load_persistent_state() -> void:
+	SaveScript.load_from_path(self)
+	autosave_elapsed = 0.0
+
+func save_now() -> bool:
+	if world == null or player == null:
+		return false
+	autosave_elapsed = 0.0
+	return SaveScript.save_to_path(self)
+
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST]:
+		if not SaveScript.is_test_run() and world != null and player != null:
+			SaveScript.save_to_path(self)
 
 func _spawn_tree(x: int) -> void:
 	var tree := TreeScript.new() as SliceTreeResource

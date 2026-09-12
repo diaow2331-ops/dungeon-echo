@@ -37,6 +37,7 @@ run_gate res://tests/boar_test.gd 'wildforge_godot_boar=PASS'
 run_gate res://tests/exploration_test.gd 'wildforge_godot_exploration=PASS'
 run_gate res://tests/copper_test.gd 'wildforge_godot_copper=PASS'
 run_gate res://tests/deepgate_test.gd 'wildforge_godot_deepgate=PASS'
+run_gate res://tests/save_test.gd 'wildforge_godot_save=PASS'
 node "$ROOT/tests/recipe_parity.mjs" | tee /tmp/wildforge-recipe-parity.log
 grep -Fq 'wildforge_godot_recipe_parity=PASS' /tmp/wildforge-recipe-parity.log
 node "$ROOT/tests/survival_parity.mjs" | tee /tmp/wildforge-survival-parity.log
