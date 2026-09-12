@@ -87,3 +87,11 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - Red Copper Pick is crafted only beside a Craft Table: 5 bars + 2 wood -> 1 unique pick.
 - The upgrade auto-equips and raises real mining power from the stone tier's 1.75 to the canonical 2.30.
 - This is the first complete leave-camp -> recover resource -> return -> convert to capability loop.
+
+## v0.12 deep-gate milestone
+
+- One deeper relic annex sits behind a two-block sealed ruin barrier.
+- Sealed ruin tiles require 2.30 mining power, so the stone pick cannot bypass the copper-return loop.
+- The annex contains exactly 6 copper ore + 3 coal, enough for three additional canonical copper bars.
+- One Ancient Core + 3 copper bars + 2 wood at a Craft Table creates the canonical Relic Delver Pick.
+- Relic Delver Pick auto-equips at canonical 2.70 mining power.

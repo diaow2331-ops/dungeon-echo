@@ -18,6 +18,7 @@ const STONE := 3
 const COAL := 4
 const COPPER := 5
 const RUIN_BRICK := 6
+const SEALED_RUIN := 7
 const NO_CELL := Vector2i(99999, 99999)
 
 var cells: Dictionary = {}
@@ -34,6 +35,7 @@ var mining_progress := 0.0
 var place_flash_cell := NO_CELL
 var place_flash := 0.0
 var exploration_sites: Array = []
+var deep_sites: Array = []
 
 func _ready() -> void:
 	collision_root = Node2D.new()
@@ -51,6 +53,7 @@ func _process(delta: float) -> void:
 func _generate() -> void:
 	cells.clear()
 	exploration_sites.clear()
+	deep_sites.clear()
 	for x in range(MIN_X, MAX_X + 1):
 		var surface := surface_y_at(x)
 		for y in range(surface, MAX_Y + 1):
@@ -91,6 +94,48 @@ func _carve_ruin_pocket(side: int) -> void:
 		"guard_cell": Vector2i(anchor_x + direction * 2, chamber_floor - 1),
 		"side": direction,
 	})
+	if direction > 0:
+		_carve_deep_annex(anchor_x, chamber_floor)
+
+func _carve_deep_annex(anchor_x: int, chamber_floor: int) -> void:
+	var gate_cells: Array[Vector2i] = []
+	for i in range(4, 10):
+		var x := anchor_x + i
+		var floor_y := chamber_floor + 1 + (i - 4) / 2
+		for y in range(floor_y - 3, floor_y):
+			cells.erase(Vector2i(x, y))
+		if i == 4:
+			gate_cells = [Vector2i(x, floor_y - 1), Vector2i(x, floor_y - 2)]
+			for gate_cell in gate_cells:
+				cells[gate_cell] = SEALED_RUIN
+	var deep_x := anchor_x + 8
+	var deep_floor := chamber_floor + 4
+	for x in range(deep_x - 2, deep_x + 3):
+		for y in range(deep_floor - 4, deep_floor):
+			cells.erase(Vector2i(x, y))
+	var copper_cells: Array[Vector2i] = []
+	var coal_cells: Array[Vector2i] = []
+	for dx in range(-2, 1):
+		for dy in range(0, 2):
+			var c := Vector2i(deep_x + dx, deep_floor + dy)
+			cells[c] = COPPER
+			copper_cells.append(c)
+	for dx in range(1, 4):
+		var c := Vector2i(deep_x + dx, deep_floor + 1)
+		cells[c] = COAL
+		coal_cells.append(c)
+	deep_sites.append({
+		"gate_cells": gate_cells,
+		"copper_cells": copper_cells,
+		"coal_cells": coal_cells,
+		"depth": deep_floor - surface_y_at(deep_x),
+	})
+
+func deep_site_count() -> int:
+	return deep_sites.size()
+
+func required_pick_power(cell: Vector2i) -> float:
+	return 2.30 if tile_at(cell) == SEALED_RUIN else 1.0
 
 func exploration_site_count() -> int:
 	return exploration_sites.size()
@@ -121,6 +166,7 @@ func mine_time(cell: Vector2i) -> float:
 		COAL: return 0.54
 		COPPER: return 0.72
 		RUIN_BRICK: return 0.82
+		SEALED_RUIN: return 1.15
 		_: return 0.0
 
 func set_mining_feedback(cell: Vector2i, progress: float) -> void:

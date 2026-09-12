@@ -63,3 +63,7 @@ Exploration sites are deterministic world-generation data plus sparse local acto
 ## Return-loop rule
 
 Exploration rewards are not complete content until they convert into a measurable player capability. v0.11 therefore binds ruin copper to the existing campfire/workbench stations and preserves canonical crafting ratios while keeping the Godot feel-scale implementation.
+
+## Capability-gated exploration rule
+
+New regions should open from capabilities already earned through the same world loop, not from arbitrary level numbers. v0.12 uses authoritative sealed world tiles requiring copper-pick power, then converts the existing Ancient Core reward through the canonical Relic Delver Pick recipe.
