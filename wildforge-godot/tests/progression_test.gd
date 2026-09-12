@@ -23,7 +23,9 @@ func _run() -> void:
 
 	var stone_cell := Vector2i(0, world.surface_y_at(0) + 4)
 	var base_time := world.mine_time(stone_cell)
-	_check(absf(player.effective_mine_time(stone_cell) - base_time) < 0.001, "starter pick keeps baseline mining time")
+	_check(player.equipped_pick_id.is_empty() and player.effective_mine_time(stone_cell) <= 0.0, "formal traveler begins outside the mining profession")
+	player.equipped_pick_id = "starter_pick"
+	_check(absf(player.effective_mine_time(stone_cell) - base_time) < 0.001, "progression fixture historical starter pick keeps baseline mining time")
 	player.add_item("stone", 8)
 	player.add_item("wood", 2)
 	_check(not player.can_craft("stone_pick"), "stone pick recipe is blocked away from workbench")

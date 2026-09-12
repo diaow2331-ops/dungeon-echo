@@ -23,10 +23,10 @@ func _run() -> void:
 
 	_check(absf(SlicePlayer.HUNGER_MAX - 100.0) < 0.001, "hunger max preserves canonical 100")
 	_check(absf(SlicePlayer.HUNGER_START - 82.0) < 0.001, "spawn hunger preserves canonical 82")
-	_check(absf(SlicePlayer.HUNGER_DRAIN_PER_SEC - 100.0 / 720.0) < 0.0001, "hunger drain preserves canonical four-cycle rate")
+	_check(absf(SlicePlayer.HUNGER_DRAIN_PER_SEC - 100.0 / 1800.0) < 0.0001, "formal traveler hunger lasts about two and a half game days")
 	_check(player.hunger <= 82.0 and player.hunger > 81.9, "new slice player starts at canonical hunger before normal frame drain")
 	player.hunger = 50.0
-	player._update_survival(7.2)
+	player._update_survival(18.0)
 	_check(absf(player.hunger - 49.0) < 0.01, "survival tick drains hunger continuously")
 	player.hunger = 19.0
 	_check(absf(player.movement_speed_multiplier() - 0.88) < 0.001, "low hunger applies canonical movement penalty")
@@ -81,8 +81,12 @@ func _run() -> void:
 	player.health = 80.0
 	player.hunger = 50.0
 	player.invuln = 0.0
+	player.velocity = Vector2(80, 0)
 	player._update_survival(1.0)
-	_check(player.health > 82.3 and player.health < 82.5, "campfire rest gives bounded canonical daytime healing")
+	_check(absf(player.health - 80.0) < 0.001, "walking beside campfire does not passively regenerate health")
+	player.velocity = Vector2.ZERO
+	player._update_survival(1.0)
+	_check(player.health > 80.39 and player.health < 80.41, "stationary fed campfire rest heals slowly at the formal traveler rate")
 
 	print("wildforge_godot_survival=", "FAIL" if failed else "PASS")
 	quit(1 if failed else 0)

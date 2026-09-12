@@ -25,9 +25,12 @@ const MELEE_ACQUIRE_RANGE := 108.0
 const MELEE_HIT_RANGE := 94.0
 const HUNGER_MAX := 100.0
 const HUNGER_START := 82.0
-const HUNGER_DRAIN_PER_SEC := HUNGER_MAX / (180.0 * 4.0)
+const HUNGER_DRAIN_PER_SEC := HUNGER_MAX / 1800.0
 const STARVATION_DAMAGE_INTERVAL := 4.0
 const STARVATION_DAMAGE := 2.0
+const CAMP_REST_HEAL_PER_SEC := 0.4
+const CAMP_REST_MAX_SPEED := 8.0
+const CAMP_REST_MIN_HUNGER := 20.0
 const RAW_MEAT_NOURISH := 9.0
 const TRAIL_RATION_NOURISH := 38.0
 const STONE_PICK_POWER := 1.75
@@ -70,11 +73,12 @@ var mine_grace := 0.0
 var stock: Dictionary = {}
 var hunger := HUNGER_START
 var starvation_tick := 0.0
-var equipped_pick_id := "starter_pick"
+var equipped_pick_id := ""
+var equipped_axe_id := ""
 var equipped_weapon_id := "starter_blade"
 
 func _ready() -> void:
-	stock = {"soil": 4, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
+	stock = {"soil": 0, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -192,7 +196,7 @@ func _primary_action(delta: float, held: bool = true) -> void:
 			attack_buffer = 0.0
 		return
 	var harvestable := _harvestable_in_aim(aim)
-	if harvestable != null:
+	if harvestable != null and can_harvest_target(harvestable):
 		_reset_mining()
 		if attack_timer <= 0.0 and (held or attack_buffer > 0.0):
 			_start_attack(harvestable, aim)
@@ -286,7 +290,8 @@ func pick_power() -> float:
 		"delver_pick": return DELVER_PICK_POWER
 		"copper_pick": return COPPER_PICK_POWER
 		"stone_pick": return STONE_PICK_POWER
-		_: return 1.0
+		"starter_pick": return 1.0 # legacy proof-save compatibility only
+		_: return 0.0
 
 func effective_mine_time(cell: Vector2i) -> float:
 	if world == null:
@@ -322,8 +327,9 @@ func _update_survival(delta: float) -> void:
 				_respawn_after_death()
 	else:
 		starvation_tick = 0.0
-	if world != null and hunger > 0.0 and health < max_health and invuln <= 0.0 and world.near_campfire(global_position):
-		health = minf(max_health, health + 2.4 * delta)
+	var resting := velocity.length() <= CAMP_REST_MAX_SPEED and attack_timer <= 0.0 and invuln <= 0.0
+	if world != null and hunger >= CAMP_REST_MIN_HUNGER and health < max_health and resting and world.near_campfire(global_position):
+		health = minf(max_health, health + CAMP_REST_HEAL_PER_SEC * delta)
 
 func food_nourish(item_id: String) -> float:
 	match item_id:
@@ -495,6 +501,12 @@ func _enemy_in_aim(aim: Vector2) -> Node2D:
 		best = node
 		best_d = dist
 	return best
+
+
+func can_harvest_target(target: Node) -> bool:
+	if target is SliceTreeResource:
+		return not equipped_axe_id.is_empty()
+	return true
 
 func _harvestable_in_aim(aim: Vector2) -> Node2D:
 	var best: Node2D = null

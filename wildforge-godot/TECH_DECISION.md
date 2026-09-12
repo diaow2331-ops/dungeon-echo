@@ -97,3 +97,11 @@ Structure ownership must resolve through the existing ownership authority. A str
 ## Seeded generation authority
 
 World seed and generation version are part of persistence authority. Natural terrain channels must be deterministic for a given `(generation_version, seed)` pair. Gameplay code must not hard-code remote ore/forest coordinates to simulate a world generator; authored ruins and settlements belong to the structure overlay layer. A save delta is invalid without the seed/generation contract that produced its baseline. Legacy pre-seed saves are treated only as the historical default seed and must use explicit migration logic.
+
+## Traveler-role authority
+
+New-game capability must come from owned tools, contracts and permissions, not from hidden innate mining/logging powers. The traveler starts combat-capable but extraction-incompetent: blade only, no pick, no axe. Historical proof tools may remain migration-compatible, but tests that need them must grant them explicitly rather than redefining the formal start state.
+
+## World-time authority
+
+Day/night time belongs to world simulation and persistence, not HUD animation. One full day is 720 real seconds. Survival, future settlement schedules, markets and faction simulation must read the same world clock; save/load restores that clock exactly instead of reconstructing time from presentation state.

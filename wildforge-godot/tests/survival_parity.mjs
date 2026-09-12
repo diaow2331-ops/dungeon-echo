@@ -14,6 +14,8 @@ const checks = [
   ["canvas ration recipe", /\{id:'trail_ration',out:\{id:'trail_ration',n:1\},need:\{raw_meat:2,wood:1\},station:'campfire'\}/, data],
   ["godot hunger max", /const HUNGER_MAX := 100\.0/, player],
   ["godot hunger start", /const HUNGER_START := 82\.0/, player],
+  ["godot traveler hunger drain override", /const HUNGER_DRAIN_PER_SEC := HUNGER_MAX \/ 1800\.0/, player],
+  ["godot slow camp rest", /const CAMP_REST_HEAL_PER_SEC := 0\.4/, player],
   ["godot raw meat nourish", /const RAW_MEAT_NOURISH := 9\.0/, player],
   ["godot ration nourish", /const TRAIL_RATION_NOURISH := 38\.0/, player],
   ["godot campfire recipe", /"campfire": \{"out_id": "campfire", "out_n": 1, "need": \{"stone": 6, "wood": 2\}\}/, crafting],

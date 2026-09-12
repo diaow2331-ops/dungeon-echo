@@ -18,6 +18,7 @@ const FluidRegistryScript = preload("res://scripts/world/fluid/fluid_registry.gd
 const FluidAuthorityScript = preload("res://scripts/world/fluid/fluid_authority.gd")
 const StructureAuthorityScript = preload("res://scripts/world/structures/structure_authority.gd")
 const WorldGeneratorScript = preload("res://scripts/world/generation/world_generator.gd")
+const WorldClockScript = preload("res://scripts/world/time/world_clock.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 2
@@ -38,6 +39,7 @@ const NO_CELL := Vector2i(99999, 99999)
 const LEGACY_TREE_XS: Array[int] = [-5, 3, 14]
 
 var world_seed := DEFAULT_WORLD_SEED
+var clock := WorldClockScript.new() as SliceWorldClock
 var generator := WorldGeneratorScript.new(world_seed) as SliceWorldGenerator
 var block_registry := BlockRegistryScript.new() as SliceBlockRegistry
 var ownership_authority := OwnershipAuthorityScript.new() as SliceWorldOwnershipAuthority
@@ -87,6 +89,7 @@ func rebuild_for_seed(new_seed: int) -> bool:
 	if new_seed == world_seed:
 		return true
 	world_seed = new_seed
+	clock.reset()
 	generator = WorldGeneratorScript.new(world_seed) as SliceWorldGenerator
 	_generate()
 	ownership_authority.clear()
@@ -105,6 +108,7 @@ func rebuild_for_seed(new_seed: int) -> bool:
 	return true
 
 func _process(delta: float) -> void:
+	clock.advance(delta)
 	if chunk_streamer != null:
 		chunk_streamer.refresh()
 	_sync_fluids(delta)

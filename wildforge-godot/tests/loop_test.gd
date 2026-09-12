@@ -21,8 +21,11 @@ func _run() -> void:
 	var world := main.get_node("World") as SliceWorld
 	var player := main.get_node("Player") as SlicePlayer
 
-	_check(player.material_count(SliceWorld.DIRT) == 4, "slice starts with a bounded placement reserve")
+	_check(player.material_count(SliceWorld.DIRT) == 0, "formal traveler starts without free placement reserve")
 	_check(player.material_count(SliceWorld.STONE) == 0, "stone stock starts empty")
+	player.stock["soil"] = 4
+	player.equipped_pick_id = "stone_pick"
+	_check(player.material_count(SliceWorld.DIRT) == 4, "loop fixture explicitly grants a bounded placement reserve")
 
 	var pickup_count_before := main.get_tree().get_nodes_in_group("pickups").size()
 	var stone_cell := Vector2i(0, world.surface_y_at(0) + 4)
@@ -30,12 +33,13 @@ func _run() -> void:
 	_check(player.harvest_cell(stone_cell), "harvesting mutates the world through player authority")
 	var pickups := main.get_tree().get_nodes_in_group("pickups")
 	_check(pickups.size() == pickup_count_before + 1, "harvest creates one physical material pickup")
-	var pickup := pickups[-1] as SliceItemPickup
-	_check(pickup.item_id == "stone", "pickup preserves harvested material identity")
-	pickup.collect_now()
-	_check(player.material_count(SliceWorld.STONE) == 1, "pickup collection increments the player's single material wallet")
-	pickup.collect_now()
-	_check(player.material_count(SliceWorld.STONE) == 1, "pickup collection is idempotent within the queue-free frame")
+	if pickups.size() > pickup_count_before:
+		var pickup := pickups[-1] as SliceItemPickup
+		_check(pickup.item_id == "stone", "pickup preserves harvested material identity")
+		pickup.collect_now()
+		_check(player.material_count(SliceWorld.STONE) == 1, "pickup collection increments the player's single material wallet")
+		pickup.collect_now()
+		_check(player.material_count(SliceWorld.STONE) == 1, "pickup collection is idempotent within the queue-free frame")
 
 	var dirt_before := player.material_count(SliceWorld.DIRT)
 	var surface := Vector2i(2, world.surface_y_at(2))
