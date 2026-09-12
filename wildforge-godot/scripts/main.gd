@@ -26,6 +26,7 @@ func _ready() -> void:
 	player.world = world
 	player.global_position = Vector2(0, world.surface_y_at(0) * SliceWorld.TILE_SIZE - 62.0)
 	add_child(player)
+	world.set_streaming_focus(player)
 	var camera := Camera2D.new()
 	camera.name = "Camera2D"
 	camera.position_smoothing_enabled = true

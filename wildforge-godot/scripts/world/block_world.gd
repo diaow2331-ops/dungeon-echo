@@ -1,6 +1,9 @@
 extends Node2D
 class_name SliceWorld
 
+signal chunk_activated(key: Vector2i)
+signal chunk_deactivated(key: Vector2i)
+
 const BurstScript = preload("res://scripts/fx/feedback_burst.gd")
 const PickupScript = preload("res://scripts/items/item_pickup.gd")
 const WorkbenchScript = preload("res://scripts/world/workbench.gd")
@@ -9,6 +12,7 @@ const ChunkViewScript = preload("res://scripts/world/block_chunk_view.gd")
 const BlockRegistryScript = preload("res://scripts/world/block_registry.gd")
 const WorldEditAuthorityScript = preload("res://scripts/world/authority/world_edit_authority.gd")
 const OwnershipAuthorityScript = preload("res://scripts/world/authority/world_ownership_authority.gd")
+const ChunkStreamerScript = preload("res://scripts/world/streaming/chunk_streamer.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 1
@@ -28,6 +32,7 @@ const NO_CELL := Vector2i(99999, 99999)
 var block_registry := BlockRegistryScript.new() as SliceBlockRegistry
 var ownership_authority := OwnershipAuthorityScript.new() as SliceWorldOwnershipAuthority
 var edit_authority := WorldEditAuthorityScript.new(block_registry) as SliceWorldEditAuthority
+var chunk_streamer: SliceChunkStreamer
 var cells: Dictionary = {}
 var baseline_cells: Dictionary = {}
 var cell_overrides: Dictionary = {}
@@ -52,10 +57,13 @@ func _ready() -> void:
 	collision_root.name = "TerrainCollisionChunks"
 	add_child(collision_root)
 	_generate()
-	_build_initial_chunks()
+	chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
+	chunk_streamer.refresh_at_cell(Vector2i(0, surface_y_at(0)), true)
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	if chunk_streamer != null:
+		chunk_streamer.refresh()
 	if place_flash > 0.0:
 		place_flash = maxf(0.0, place_flash - delta)
 		queue_redraw()
@@ -294,7 +302,12 @@ func _rebuild_world_views() -> void:
 	collision_chunks.clear()
 	dirty_collision_chunks.clear()
 	collision_flush_scheduled = false
-	_build_initial_chunks()
+	var anchor := Vector2i(0, surface_y_at(0))
+	if chunk_streamer != null:
+		if chunk_streamer.has_focus():
+			anchor = world_to_cell(chunk_streamer.focus.global_position)
+		chunk_streamer.clear_tracking()
+		chunk_streamer.refresh_at_cell(anchor, true)
 	queue_redraw()
 
 func world_to_cell(p: Vector2) -> Vector2i:
@@ -460,16 +473,39 @@ func _is_exposed(cell: Vector2i) -> bool:
 func chunk_key_for(cell: Vector2i) -> Vector2i:
 	return Vector2i(floori(float(cell.x) / float(CHUNK_SIZE)), floori(float(cell.y) / float(CHUNK_SIZE)))
 
-func _build_initial_chunks() -> void:
+func set_streaming_focus(node: Node2D) -> void:
+	if chunk_streamer == null:
+		chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
+	chunk_streamer.set_focus(node)
+
+func refresh_streaming(force := false) -> void:
+	if chunk_streamer != null:
+		chunk_streamer.refresh(force)
+
+func activate_chunk(key: Vector2i) -> void:
+	_ensure_render_chunk(key)
+	_rebuild_collision_chunk(key)
+	chunk_activated.emit(key)
+
+func deactivate_chunk(key: Vector2i) -> void:
+	dirty_collision_chunks.erase(key)
+	chunk_deactivated.emit(key)
+	if render_chunks.has(key):
+		var view: Node = render_chunks[key]
+		render_chunks.erase(key)
+		if is_instance_valid(view):
+			view.queue_free()
+	if collision_chunks.has(key):
+		var body: Node = collision_chunks[key]
+		collision_chunks.erase(key)
+		if is_instance_valid(body):
+			body.queue_free()
+
+func data_chunk_count() -> int:
 	var keys: Dictionary = {}
 	for raw in cells.keys():
-		var cell: Vector2i = raw
-		keys[chunk_key_for(cell)] = true
-	for key in keys.keys():
-		_ensure_render_chunk(key)
-		_rebuild_collision_chunk(key)
-	last_collision_chunks_rebuilt = keys.size()
-	last_collision_cells_scanned = keys.size() * CHUNK_SIZE * CHUNK_SIZE
+		keys[chunk_key_for(raw)] = true
+	return keys.size()
 
 func _ensure_render_chunk(key: Vector2i) -> SliceBlockChunkView:
 	if render_chunks.has(key) and is_instance_valid(render_chunks[key]):
@@ -496,7 +532,8 @@ func _ensure_collision_chunk(key: Vector2i) -> StaticBody2D:
 
 func _mark_cell_changed(cell: Vector2i) -> void:
 	var own := chunk_key_for(cell)
-	_ensure_render_chunk(own).queue_redraw()
+	if render_chunks.has(own) and is_instance_valid(render_chunks[own]):
+		(render_chunks[own] as SliceBlockChunkView).queue_redraw()
 	_mark_collision_chunk(own)
 	var local := cell - own * CHUNK_SIZE
 	if local.x == 0:
@@ -507,12 +544,14 @@ func _mark_cell_changed(cell: Vector2i) -> void:
 		_mark_collision_chunk(own + Vector2i.UP)
 	elif local.y == CHUNK_SIZE - 1:
 		_mark_collision_chunk(own + Vector2i.DOWN)
-	if not collision_flush_scheduled:
+	if not dirty_collision_chunks.is_empty() and not collision_flush_scheduled:
 		collision_flush_scheduled = true
 		call_deferred("_flush_collision_rebuilds")
 
 func _mark_collision_chunk(key: Vector2i) -> void:
-	dirty_collision_chunks[key] = true
+	# Off-screen mutations change authoritative data only. Collision is rebuilt when streamed in.
+	if collision_chunks.has(key):
+		dirty_collision_chunks[key] = true
 
 func _flush_collision_rebuilds() -> void:
 	collision_flush_scheduled = false
@@ -522,6 +561,8 @@ func _flush_collision_rebuilds() -> void:
 	last_collision_cells_scanned = 0
 	for raw in keys:
 		var key: Vector2i = raw
+		if not collision_chunks.has(key):
+			continue
 		_rebuild_collision_chunk(key)
 		last_collision_chunks_rebuilt += 1
 		last_collision_cells_scanned += CHUNK_SIZE * CHUNK_SIZE
