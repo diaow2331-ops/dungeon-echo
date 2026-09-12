@@ -59,3 +59,7 @@ Different survival rewards must come from meaningfully different combat roles, n
 ## Exploration authority rule
 
 Exploration sites are deterministic world-generation data plus sparse local actors. Ore remains authoritative block data; relic caches and guards are local projections. Cache rewards must feed the same player stock and must not introduce a parallel loot wallet.
+
+## Return-loop rule
+
+Exploration rewards are not complete content until they convert into a measurable player capability. v0.11 therefore binds ruin copper to the existing campfire/workbench stations and preserves canonical crafting ratios while keeping the Godot feel-scale implementation.

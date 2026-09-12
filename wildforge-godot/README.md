@@ -79,3 +79,11 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - Cache rewards preserve the Canvas shallow-ruin contract: one Ancient Core, bounded coal, bounded copper ore.
 - Relic caches reuse the primary-action/harvestable path; no new permanent mobile button is introduced.
 - Exploration rewards enter the same proof stock authority used by mining, crafting and survival.
+
+## v0.11 copper-return milestone
+
+- The two shallow ruin expeditions together contain enough copper/fuel for exactly one canonical Red Copper Pick upgrade path.
+- Copper ore is smelted only beside an Ember Pit: 2 ore + 1 coal -> 1 bar.
+- Red Copper Pick is crafted only beside a Craft Table: 5 bars + 2 wood -> 1 unique pick.
+- The upgrade auto-equips and raises real mining power from the stone tier's 1.75 to the canonical 2.30.
+- This is the first complete leave-camp -> recover resource -> return -> convert to capability loop.

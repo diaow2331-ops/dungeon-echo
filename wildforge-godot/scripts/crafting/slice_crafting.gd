@@ -8,6 +8,8 @@ const RECIPES := {
 	"stone_blade": {"out_id": "stone_blade", "out_n": 1, "need": {"stone": 6, "wood": 2}, "station": "workbench", "unique": true},
 	"campfire": {"out_id": "campfire", "out_n": 1, "need": {"stone": 6, "wood": 2}},
 	"trail_ration": {"out_id": "trail_ration", "out_n": 1, "need": {"raw_meat": 2, "wood": 1}, "station": "campfire"},
+	"copper_bar": {"out_id": "copper_bar", "out_n": 1, "need": {"copper_ore": 2, "coal": 1}, "station": "campfire"},
+	"copper_pick": {"out_id": "copper_pick", "out_n": 1, "need": {"copper_bar": 5, "wood": 2}, "station": "workbench", "unique": true},
 }
 
 static func can_craft(player: SlicePlayer, recipe_id: String) -> bool:
