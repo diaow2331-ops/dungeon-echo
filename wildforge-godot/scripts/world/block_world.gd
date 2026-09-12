@@ -8,9 +8,10 @@ const CampfireScript = preload("res://scripts/world/campfire.gd")
 const ChunkViewScript = preload("res://scripts/world/block_chunk_view.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
-const MIN_X := -42
-const MAX_X := 42
-const MAX_Y := 27
+const WORLD_GENERATION_VERSION := 1
+const MIN_X := -128
+const MAX_X := 128
+const MAX_Y := 47
 const AIR := 0
 const DIRT := 1
 const GRASS := 2
@@ -22,6 +23,9 @@ const SEALED_RUIN := 7
 const NO_CELL := Vector2i(99999, 99999)
 
 var cells: Dictionary = {}
+var baseline_cells: Dictionary = {}
+var cell_overrides: Dictionary = {}
+var remote_vein_cells: Array[Vector2i] = []
 var collision_root: Node2D
 var collision_chunks: Dictionary = {}
 var render_chunks: Dictionary = {}
@@ -65,6 +69,22 @@ func _generate() -> void:
 		cells[Vector2i(13, y)] = STONE
 	_carve_ruin_pocket(-1)
 	_carve_ruin_pocket(1)
+	_seed_remote_veins()
+	baseline_cells = cells.duplicate(true)
+	cell_overrides.clear()
+
+func _seed_remote_veins() -> void:
+	remote_vein_cells.clear()
+	for anchor_x in [-112, -88, -64, 64, 88, 112]:
+		var surface := surface_y_at(anchor_x)
+		var depth := 9 + (absi(anchor_x) / 24) % 4
+		var ore := COPPER if absi(anchor_x) in [64, 112] else COAL
+		for dx in range(-1, 2):
+			for dy in range(0, 2):
+				var cell := Vector2i(anchor_x + dx, surface + depth + dy)
+				if cell.x >= MIN_X and cell.x <= MAX_X and cell.y <= MAX_Y:
+					cells[cell] = ore
+					remote_vein_cells.append(cell)
 
 func _carve_ruin_pocket(side: int) -> void:
 	var direction := -1 if side < 0 else 1
@@ -154,6 +174,60 @@ func export_cells() -> Array:
 	rows.sort_custom(func(a, b): return int(a[0]) < int(b[0]) or (int(a[0]) == int(b[0]) and int(a[1]) < int(b[1])))
 	return rows
 
+func export_cell_overrides() -> Array:
+	var rows: Array = []
+	for raw in cell_overrides.keys():
+		var cell: Vector2i = raw
+		rows.append([cell.x, cell.y, int(cell_overrides[cell])])
+	rows.sort_custom(func(a, b): return int(a[0]) < int(b[0]) or (int(a[0]) == int(b[0]) and int(a[1]) < int(b[1])))
+	return rows
+
+func restore_cell_overrides(rows: Array) -> bool:
+	var restored_overrides: Dictionary = {}
+	for row in rows:
+		if not row is Array or row.size() < 3:
+			return false
+		var cell := Vector2i(int(row[0]), int(row[1]))
+		var tile := int(row[2])
+		if cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y or tile < AIR or tile > SEALED_RUIN:
+			return false
+		var base_tile := int(baseline_cells.get(cell, AIR))
+		if tile != base_tile:
+			restored_overrides[cell] = tile
+	_apply_overrides(restored_overrides)
+	return true
+
+func restore_legacy_v13_cells(rows: Array, legacy_min_x := -42, legacy_max_x := 42, legacy_max_y := 27) -> bool:
+	if rows.is_empty():
+		return false
+	var legacy: Dictionary = {}
+	for row in rows:
+		if not row is Array or row.size() < 3:
+			return false
+		var cell := Vector2i(int(row[0]), int(row[1]))
+		var tile := int(row[2])
+		if tile > AIR:
+			legacy[cell] = tile
+	var migrated: Dictionary = {}
+	for raw in baseline_cells.keys():
+		var cell: Vector2i = raw
+		if cell.x < legacy_min_x or cell.x > legacy_max_x or cell.y > legacy_max_y:
+			continue
+		var saved_tile := int(legacy.get(cell, AIR))
+		var base_tile := int(baseline_cells.get(cell, AIR))
+		if saved_tile != base_tile:
+			migrated[cell] = saved_tile
+	for raw in legacy.keys():
+		var cell: Vector2i = raw
+		if cell.x < legacy_min_x or cell.x > legacy_max_x or cell.y > legacy_max_y:
+			continue
+		var saved_tile := int(legacy[cell])
+		var base_tile := int(baseline_cells.get(cell, AIR))
+		if saved_tile != base_tile:
+			migrated[cell] = saved_tile
+	_apply_overrides(migrated)
+	return true
+
 func restore_cells(rows: Array) -> bool:
 	if rows.is_empty():
 		return false
@@ -163,12 +237,47 @@ func restore_cells(rows: Array) -> bool:
 			return false
 		var cell := Vector2i(int(row[0]), int(row[1]))
 		var tile := int(row[2])
-		if tile <= AIR:
-			continue
-		restored[cell] = tile
+		if tile > AIR:
+			restored[cell] = tile
 	if restored.is_empty():
 		return false
 	cells = restored
+	_rebuild_overrides_from_current()
+	_rebuild_world_views()
+	return true
+
+func _record_override(cell: Vector2i) -> void:
+	var current_tile := int(cells.get(cell, AIR))
+	var base_tile := int(baseline_cells.get(cell, AIR))
+	if current_tile == base_tile:
+		cell_overrides.erase(cell)
+	else:
+		cell_overrides[cell] = current_tile
+
+func _rebuild_overrides_from_current() -> void:
+	cell_overrides.clear()
+	var candidates: Dictionary = {}
+	for cell in baseline_cells.keys():
+		candidates[cell] = true
+	for cell in cells.keys():
+		candidates[cell] = true
+	for raw in candidates.keys():
+		_record_override(raw)
+
+func _apply_overrides(overrides: Dictionary) -> void:
+	cells = baseline_cells.duplicate(true)
+	cell_overrides.clear()
+	for raw in overrides.keys():
+		var cell: Vector2i = raw
+		var tile := int(overrides[cell])
+		if tile == AIR:
+			cells.erase(cell)
+		else:
+			cells[cell] = tile
+		_record_override(cell)
+	_rebuild_world_views()
+
+func _rebuild_world_views() -> void:
 	for view in render_chunks.values():
 		if is_instance_valid(view):
 			view.free()
@@ -181,7 +290,6 @@ func restore_cells(rows: Array) -> bool:
 	collision_flush_scheduled = false
 	_build_initial_chunks()
 	queue_redraw()
-	return true
 
 func world_to_cell(p: Vector2) -> Vector2i:
 	return Vector2i(floori(p.x / TILE_SIZE), floori(p.y / TILE_SIZE))
@@ -222,6 +330,7 @@ func mine_at(cell: Vector2i) -> bool:
 	if not cells.has(cell):
 		return false
 	cells.erase(cell)
+	_record_override(cell)
 	if mining_cell == cell:
 		clear_mining_feedback()
 	_mark_cell_changed(cell)
@@ -239,6 +348,7 @@ func place_at(cell: Vector2i, tile: int = DIRT) -> bool:
 	if not attached:
 		return false
 	cells[cell] = tile
+	_record_override(cell)
 	place_flash_cell = cell
 	place_flash = 0.16
 	_mark_cell_changed(cell)

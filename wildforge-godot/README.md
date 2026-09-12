@@ -14,7 +14,7 @@ The Godot client only becomes authoritative if this slice is materially better o
 - Camera smoothing and lightweight hit feedback
 - Low-obstruction touch input: floating left/right sticks, one contextual place button
 
-Explicitly excluded: factions, trade, caravans, annexation, inventory depth, boss content and save migration. Those stay in the Canvas reference until the feel gate passes.
+Explicitly excluded for now: factions, trade, caravans, annexation, inventory depth and boss content. Persistence and migration are now part of the Godot client; the Canvas build remains the gameplay/reference source for systems not yet migrated.
 
 ## v0.02 Feel Gate
 
@@ -107,3 +107,9 @@ Saves are written every ~20 seconds and on application pause/close. Loading rebu
 Persistence now uses transactional writes: a candidate save is written and validated at a temporary path, the previous valid primary is rotated to a single backup, and only then is the candidate atomically promoted. Loading tries the primary first and automatically falls back to the previous valid backup if the primary is missing, malformed or fails schema validation. No successful save leaves a `.tmp` file behind.
 
 This milestone intentionally keeps save schema 13 because the payload shape did not change; gameplay milestone numbers and persistence-schema versions are governed independently.
+
+## v0.15 world-scale milestone
+
+The deterministic proof world expands from 85 to 257 columns (`-128..128`) and from depth 27 to 47, while retaining 16x16 chunk presentation/collision. Remote deterministic copper/coal veins create room for later travel content without turning every distant tile into authored state.
+
+Persistence schema 14 stores `WORLD_GENERATION_VERSION` plus only player-authored cell overrides. A fresh generated world stores zero terrain deltas; mining one baseline tile stores one AIR delta; restoring the original tile removes that delta again. v0.13/schema-13 full-map saves migrate only their old `-42..42`, depth-27 authority over the current deterministic baseline, so newly expanded frontier remains intact.
