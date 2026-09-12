@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "blocks": {
+    "0": {
+      "key": "air",
+      "display_name": "Air",
+      "hardness": 0.0,
+      "required_pick_power": 0.0,
+      "drop_item": "",
+      "placeable": false,
+      "solid": false,
+      "resource_class": "none"
+    },
+    "1": {
+      "key": "dirt",
+      "display_name": "Dirt",
+      "hardness": 0.20,
+      "required_pick_power": 1.0,
+      "drop_item": "soil",
+      "placeable": true,
+      "solid": true,
+      "resource_class": "terrain"
+    },
+    "2": {
+      "key": "grass",
+      "display_name": "Grass",
+      "hardness": 0.16,
+      "required_pick_power": 1.0,
+      "drop_item": "soil",
+      "placeable": false,
+      "solid": true,
+      "resource_class": "terrain"
+    },
+    "3": {
+      "key": "stone",
+      "display_name": "Stone",
+      "hardness": 0.42,
+      "required_pick_power": 1.0,
+      "drop_item": "stone",
+      "placeable": true,
+      "solid": true,
+      "resource_class": "terrain"
+    },
+    "4": {
+      "key": "coal",
+      "display_name": "Coal Seam",
+      "hardness": 0.54,
+      "required_pick_power": 1.0,
+      "drop_item": "coal",
+      "placeable": false,
+      "solid": true,
+      "resource_class": "ore"
+    },
+    "5": {
+      "key": "copper_ore",
+      "display_name": "Copper Ore",
+      "hardness": 0.72,
+      "required_pick_power": 1.0,
+      "drop_item": "copper_ore",
+      "placeable": false,
+      "solid": true,
+      "resource_class": "ore"
+    },
+    "6": {
+      "key": "ruin_brick",
+      "display_name": "Ruin Brick",
+      "hardness": 0.82,
+      "required_pick_power": 1.0,
+      "drop_item": "stone",
+      "placeable": false,
+      "solid": true,
+      "resource_class": "structure"
+    },
+    "7": {
+      "key": "sealed_ruin",
+      "display_name": "Sealed Ruin",
+      "hardness": 1.15,
+      "required_pick_power": 2.30,
+      "drop_item": "stone",
+      "placeable": false,
+      "solid": true,
+      "resource_class": "protected_structure"
+    }
+  }
+}

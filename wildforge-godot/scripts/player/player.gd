@@ -232,7 +232,7 @@ func harvest_cell(cell: Vector2i) -> bool:
 		return false
 	var tile := world.tile_at(cell)
 	var center := world.cell_center(cell)
-	if not world.mine_at(cell):
+	if not world.mine_at(cell, pick_power(), "player"):
 		return false
 	camera_trauma = maxf(camera_trauma, 0.075)
 	hitstop = maxf(hitstop, 0.018)
@@ -273,7 +273,7 @@ func place_material_at(cell: Vector2i, tile := SliceWorld.DIRT) -> bool:
 	var item_id := tile_item_id(tile)
 	if world == null or item_count(item_id) <= 0:
 		return false
-	if not world.place_at(cell, tile):
+	if not world.place_at(cell, tile, "player"):
 		return false
 	spend_item(item_id, 1)
 	var center := world.cell_center(cell)
@@ -546,7 +546,7 @@ func place_once() -> void:
 func place_workbench_at(cell: Vector2i) -> bool:
 	if world == null or item_count("workbench") <= 0:
 		return false
-	var bench := world.spawn_workbench(cell)
+	var bench := world.spawn_workbench(cell, "player")
 	if bench == null:
 		return false
 	spend_item("workbench", 1)
@@ -562,7 +562,7 @@ func place_workbench_once() -> bool:
 func place_campfire_at(cell: Vector2i) -> bool:
 	if world == null or item_count("campfire") <= 0:
 		return false
-	var fire := world.spawn_campfire(cell)
+	var fire := world.spawn_campfire(cell, "player")
 	if fire == null:
 		return false
 	spend_item("campfire", 1)

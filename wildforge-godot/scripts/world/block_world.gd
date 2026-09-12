@@ -6,6 +6,8 @@ const PickupScript = preload("res://scripts/items/item_pickup.gd")
 const WorkbenchScript = preload("res://scripts/world/workbench.gd")
 const CampfireScript = preload("res://scripts/world/campfire.gd")
 const ChunkViewScript = preload("res://scripts/world/block_chunk_view.gd")
+const BlockRegistryScript = preload("res://scripts/world/block_registry.gd")
+const WorldEditAuthorityScript = preload("res://scripts/world/authority/world_edit_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 1
@@ -22,6 +24,8 @@ const RUIN_BRICK := 6
 const SEALED_RUIN := 7
 const NO_CELL := Vector2i(99999, 99999)
 
+var block_registry := BlockRegistryScript.new() as SliceBlockRegistry
+var edit_authority := WorldEditAuthorityScript.new(block_registry) as SliceWorldEditAuthority
 var cells: Dictionary = {}
 var baseline_cells: Dictionary = {}
 var cell_overrides: Dictionary = {}
@@ -155,7 +159,7 @@ func deep_site_count() -> int:
 	return deep_sites.size()
 
 func required_pick_power(cell: Vector2i) -> float:
-	return 2.30 if tile_at(cell) == SEALED_RUIN else 1.0
+	return block_registry.required_pick_power(tile_at(cell))
 
 func exploration_site_count() -> int:
 	return exploration_sites.size()
@@ -303,16 +307,21 @@ func has_cell(cell: Vector2i) -> bool:
 func tile_at(cell: Vector2i) -> int:
 	return int(cells.get(cell, AIR))
 
+func is_cell_in_bounds(cell: Vector2i) -> bool:
+	return cell.x >= MIN_X and cell.x <= MAX_X and cell.y <= MAX_Y
+
+func has_support_neighbor(cell: Vector2i) -> bool:
+	for direction in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		if has_cell(cell + direction):
+			return true
+	return false
+
+func owner_at(_cell: Vector2i) -> String:
+	# Foundation 0.1: all generated land is wilderness until territorial claims land.
+	return "wilderness"
+
 func mine_time(cell: Vector2i) -> float:
-	match tile_at(cell):
-		GRASS: return 0.16
-		DIRT: return 0.20
-		STONE: return 0.42
-		COAL: return 0.54
-		COPPER: return 0.72
-		RUIN_BRICK: return 0.82
-		SEALED_RUIN: return 1.15
-		_: return 0.0
+	return block_registry.hardness(tile_at(cell))
 
 func set_mining_feedback(cell: Vector2i, progress: float) -> void:
 	mining_cell = cell
@@ -326,34 +335,36 @@ func clear_mining_feedback() -> void:
 	mining_progress = 0.0
 	queue_redraw()
 
-func mine_at(cell: Vector2i) -> bool:
-	if not cells.has(cell):
-		return false
-	cells.erase(cell)
-	_record_override(cell)
-	if mining_cell == cell:
-		clear_mining_feedback()
-	_mark_cell_changed(cell)
+func request_world_edit(request: Dictionary) -> Dictionary:
+	var decision := edit_authority.evaluate(self, request)
+	if not bool(decision.get("allowed", false)):
+		return decision
+	var action := String(decision.get("action", ""))
+	var cell: Vector2i = decision.get("cell", NO_CELL)
+	if action == SliceWorldEditAuthority.ACTION_MINE:
+		cells.erase(cell)
+		_record_override(cell)
+		if mining_cell == cell:
+			clear_mining_feedback()
+		_mark_cell_changed(cell)
+	elif action == SliceWorldEditAuthority.ACTION_PLACE:
+		var tile := int(decision.get("tile", AIR))
+		cells[cell] = tile
+		_record_override(cell)
+		place_flash_cell = cell
+		place_flash = 0.16
+		_mark_cell_changed(cell)
+	decision["changed"] = true
 	queue_redraw()
-	return true
+	return decision
 
-func place_at(cell: Vector2i, tile: int = DIRT) -> bool:
-	if cells.has(cell) or station_cell_occupied(cell) or cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y:
-		return false
-	var attached := false
-	for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-		if cells.has(cell + d):
-			attached = true
-			break
-	if not attached:
-		return false
-	cells[cell] = tile
-	_record_override(cell)
-	place_flash_cell = cell
-	place_flash = 0.16
-	_mark_cell_changed(cell)
-	queue_redraw()
-	return true
+func mine_at(cell: Vector2i, tool_power := 1.0, actor_id := "system") -> bool:
+	var decision := request_world_edit({"action": "mine", "cell": cell, "tool_power": tool_power, "actor_id": actor_id})
+	return bool(decision.get("changed", false))
+
+func place_at(cell: Vector2i, tile: int = DIRT, actor_id := "system") -> bool:
+	var decision := request_world_edit({"action": "place", "cell": cell, "tile": tile, "actor_id": actor_id})
+	return bool(decision.get("changed", false))
 
 func spawn_item_pickup(at: Vector2, item_id: String, collector: SlicePlayer, amount := 1) -> SliceItemPickup:
 	var pickup := PickupScript.new() as SliceItemPickup
@@ -365,12 +376,9 @@ func spawn_item_pickup(at: Vector2, item_id: String, collector: SlicePlayer, amo
 	return pickup
 
 func spawn_material_pickup(at: Vector2, tile: int, collector: SlicePlayer, amount := 1) -> SliceItemPickup:
-	var item_id := "soil"
-	match tile:
-		STONE, RUIN_BRICK: item_id = "stone"
-		COAL: item_id = "coal"
-		COPPER: item_id = "copper_ore"
-		_: item_id = "soil"
+	var item_id := block_registry.drop_item(tile)
+	if item_id.is_empty():
+		return null
 	return spawn_item_pickup(at, item_id, collector, amount)
 
 
@@ -390,8 +398,9 @@ func near_campfire(at: Vector2, radius := TILE_SIZE * 4.1) -> bool:
 			return true
 	return false
 
-func spawn_campfire(cell: Vector2i) -> SliceCampfire:
-	if cells.has(cell) or station_cell_occupied(cell) or not cells.has(cell + Vector2i.DOWN):
+func spawn_campfire(cell: Vector2i, actor_id := "system") -> SliceCampfire:
+	var decision := edit_authority.evaluate(self, {"action": "station", "cell": cell, "station_kind": "campfire", "actor_id": actor_id})
+	if not bool(decision.get("allowed", false)):
 		return null
 	var fire := CampfireScript.new() as SliceCampfire
 	fire.cell = cell
@@ -410,8 +419,9 @@ func near_workbench(at: Vector2, radius := TILE_SIZE * 4.1) -> bool:
 			return true
 	return false
 
-func spawn_workbench(cell: Vector2i) -> SliceWorkbench:
-	if cells.has(cell) or station_cell_occupied(cell) or not cells.has(cell + Vector2i.DOWN):
+func spawn_workbench(cell: Vector2i, actor_id := "system") -> SliceWorkbench:
+	var decision := edit_authority.evaluate(self, {"action": "station", "cell": cell, "station_kind": "workbench", "actor_id": actor_id})
+	if not bool(decision.get("allowed", false)):
 		return null
 	for node in get_tree().get_nodes_in_group("workbenches"):
 		if is_instance_valid(node) and node is SliceWorkbench and node.cell == cell:

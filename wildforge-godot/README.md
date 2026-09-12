@@ -113,3 +113,11 @@ This milestone intentionally keeps save schema 13 because the payload shape did 
 The deterministic proof world expands from 85 to 257 columns (`-128..128`) and from depth 27 to 47, while retaining 16x16 chunk presentation/collision. Remote deterministic copper/coal veins create room for later travel content without turning every distant tile into authored state.
 
 Persistence schema 14 stores `WORLD_GENERATION_VERSION` plus only player-authored cell overrides. A fresh generated world stores zero terrain deltas; mining one baseline tile stores one AIR delta; restoring the original tile removes that delta again. v0.13/schema-13 full-map saves migrate only their old `-42..42`, depth-27 authority over the current deterministic baseline, so newly expanded frontier remains intact.
+
+## WF-Foundation 0.1 — block and edit authority
+
+The production-world refactor begins by reducing mutation entry points before adding more simulation. Block hardness, mining threshold, drop identity, solidity and placeability now come from `data/blocks.json` through `SliceBlockRegistry`; they are no longer scattered across mining/drop match statements.
+
+All runtime player terrain edits and station placements route through `SliceWorldEditAuthority`. Decisions already carry actor, owner and legal-status metadata even though Foundation 0.1 still treats generated land as wilderness. World generation and save restoration remain internal baseline writers; gameplay actors are not allowed to mutate the cell dictionary directly.
+
+This structure was informed by inspection of mature MIT Godot sandbox projects such as Coheronia's data-driven block registry, but the Wildforge implementation is independently written around its existing world/save contracts. `tests/world_authority_test.gd` validates runtime decisions and `tests/world_authority_contract.mjs` fails if gameplay scripts regress to direct world-cell access.
