@@ -31,6 +31,7 @@ const COPPER := 5
 const RUIN_BRICK := 6
 const SEALED_RUIN := 7
 const NO_CELL := Vector2i(99999, 99999)
+const LEGACY_TREE_XS: Array[int] = [-5, 3, 14]
 
 var block_registry := BlockRegistryScript.new() as SliceBlockRegistry
 var ownership_authority := OwnershipAuthorityScript.new() as SliceWorldOwnershipAuthority
@@ -99,6 +100,28 @@ func _generate() -> void:
 	_seed_remote_veins()
 	baseline_cells = cells.duplicate(true)
 	cell_overrides.clear()
+
+func vegetation_baseline() -> Array:
+	var sites: Array = []
+	for x in LEGACY_TREE_XS:
+		sites.append(_tree_site(int(x)))
+	# Distant forest belts are deterministic world-generation data, not authored scene nodes.
+	for raw_side in [-1, 1]:
+		var side: int = int(raw_side)
+		var distance := 66
+		while distance <= 120:
+			var x: int = side * distance
+			sites.append(_tree_site(x))
+			var hash_step := absi((x * 1103515245 + 12345) >> 8)
+			distance += 7 + hash_step % 6
+	return sites
+
+func _tree_site(x: int) -> Dictionary:
+	return {
+		"cell": Vector2i(x, surface_y_at(x) - 1),
+		"species": "wild_tree",
+		"source": "wild",
+	}
 
 func _seed_remote_veins() -> void:
 	remote_vein_cells.clear()

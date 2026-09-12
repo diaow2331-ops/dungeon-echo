@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "species": {
+    "wild_tree": {
+      "harvest_hits": 3,
+      "drop_item": "wood",
+      "drop_count": 2,
+      "pass_through": true
+    }
+  }
+}

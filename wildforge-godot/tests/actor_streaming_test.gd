@@ -24,9 +24,9 @@ func _run() -> void:
 	var guard_ids := authority.actor_ids(SliceWorldActorAuthority.KIND_RUIN_GUARD)
 	var cache_ids := authority.actor_ids(SliceWorldActorAuthority.KIND_RELIC_CACHE)
 
-	_check(authority.descriptor_count() == 4, "two ruin sites create four persistent world actor descriptors")
+	_check(authority.descriptor_count(SliceWorldActorAuthority.KIND_RUIN_GUARD) == 2 and authority.descriptor_count(SliceWorldActorAuthority.KIND_RELIC_CACHE) == 2, "two ruin sites create four persistent ruin actor descriptors")
 	_check(guard_ids.size() == 2 and cache_ids.size() == 2, "guard/cache identities live in one actor authority")
-	_check(authority.projected_count() == 4, "spawn streams nearby ruin actors as local projections")
+	_check(authority.projected_count(SliceWorldActorAuthority.KIND_RUIN_GUARD) == 2 and authority.projected_count(SliceWorldActorAuthority.KIND_RELIC_CACHE) == 2, "spawn streams nearby ruin actors as local projections")
 	_check(main.get_tree().get_nodes_in_group("ruin_guards").size() == 2, "nearby guard projections exist exactly once")
 	_check(main.get_tree().get_nodes_in_group("relic_caches").size() == 2, "nearby cache projections exist exactly once")
 
@@ -37,7 +37,7 @@ func _run() -> void:
 	player.global_position = world.cell_center(far_cell) + Vector2(0, -48)
 	world.refresh_streaming(true)
 	await process_frame
-	_check(authority.projected_count() == 0, "leaving ruin chunks unloads local actor projections")
+	_check(authority.projected_count(SliceWorldActorAuthority.KIND_RUIN_GUARD) == 0 and authority.projected_count(SliceWorldActorAuthority.KIND_RELIC_CACHE) == 0, "leaving ruin chunks unloads local ruin projections")
 	_check(main.get_tree().get_nodes_in_group("ruin_guards").is_empty() and main.get_tree().get_nodes_in_group("relic_caches").is_empty(), "unloaded actors leave no hidden scene nodes")
 	for actor_id in guard_ids + cache_ids:
 		_check(authority.is_present(actor_id), "unloading projection preserves persistent actor " + actor_id)
@@ -47,7 +47,7 @@ func _run() -> void:
 	player.global_position = world.cell_center(Vector2i(0, world.surface_y_at(0) - 2))
 	world.refresh_streaming(true)
 	await process_frame
-	_check(authority.projected_count() == 4, "returning to active chunks reprojects persistent actors")
+	_check(authority.projected_count(SliceWorldActorAuthority.KIND_RUIN_GUARD) == 2 and authority.projected_count(SliceWorldActorAuthority.KIND_RELIC_CACHE) == 2, "returning to active chunks reprojects persistent ruin actors")
 	_check(main.get_tree().get_nodes_in_group("ruin_guards").size() == 2 and main.get_tree().get_nodes_in_group("relic_caches").size() == 2, "reprojection creates no duplicate local actors")
 
 	var guard_id := guard_ids[0]
@@ -74,7 +74,7 @@ func _run() -> void:
 	world.refresh_streaming(true)
 	await process_frame
 	_check(not authority.is_projected(guard_id) and not authority.is_projected(cache_id), "removed actors do not resurrect when their chunk streams back in")
-	_check(authority.projected_count() == 2, "only the surviving ruin pair is reprojected after return")
+	_check(authority.projected_count(SliceWorldActorAuthority.KIND_RUIN_GUARD) == 1 and authority.projected_count(SliceWorldActorAuthority.KIND_RELIC_CACHE) == 1, "only the surviving ruin pair is reprojected after return")
 
 	print("wildforge_actor_streaming=", "FAIL" if failed else "PASS")
 	quit(1 if failed else 0)

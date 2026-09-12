@@ -3,8 +3,13 @@ class_name SliceTreeResource
 
 var world: SliceWorld
 var player: SlicePlayer
+var species_id := "wild_tree"
 var hp := 3
 var felled := false
+var drop_item_id := "wood"
+var drop_count := 2
+var world_actor_id := ""
+var world_actor_authority: RefCounted
 
 func _ready() -> void:
 	add_to_group("harvestables")
@@ -19,8 +24,10 @@ func apply_hit(_damage: float, _force := Vector2.ZERO) -> void:
 		world.feedback_burst(global_position + Vector2(0, -18), Color("b98757"), 5, 82.0)
 	if hp <= 0:
 		felled = true
-		if world != null and player != null:
-			world.spawn_item_pickup(global_position + Vector2(0, -18), "wood", player, 2)
+		if not world_actor_id.is_empty() and world_actor_authority != null and world_actor_authority.has_method("mark_removed"):
+			world_actor_authority.mark_removed(world_actor_id)
+		if world != null and player != null and not drop_item_id.is_empty() and drop_count > 0:
+			world.spawn_item_pickup(global_position + Vector2(0, -18), drop_item_id, player, drop_count)
 		queue_free()
 	else:
 		queue_redraw()

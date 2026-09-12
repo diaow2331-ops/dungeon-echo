@@ -3,9 +3,12 @@ extends RefCounted
 
 const CrawlerScript = preload("res://scripts/enemies/crawler.gd")
 const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
+const TreeScript = preload("res://scripts/world/tree_resource.gd")
+const VegetationRegistryScript = preload("res://scripts/world/vegetation/vegetation_registry.gd")
 
 const KIND_RUIN_GUARD := "ruin_guard"
 const KIND_RELIC_CACHE := "relic_cache"
+const KIND_TREE := "tree"
 
 var host: Node
 var world: SliceWorld
@@ -15,6 +18,7 @@ var ids_by_chunk: Dictionary = {}
 var projections: Dictionary = {}
 var activation_count := 0
 var deactivation_count := 0
+var vegetation_registry := VegetationRegistryScript.new() as SliceVegetationRegistry
 
 func _init(owner_host: Node, owner_world: SliceWorld, owner_player: SlicePlayer) -> void:
 	host = owner_host
@@ -31,6 +35,136 @@ func register_exploration_sites(sites: Array) -> void:
 		var cache_id := "relic_cache:%d:%d" % [cache_cell.x, cache_cell.y]
 		_register_actor(guard_id, KIND_RUIN_GUARD, guard_cell, {})
 		_register_actor(cache_id, KIND_RELIC_CACHE, cache_cell, {"guard_id": guard_id})
+
+func register_vegetation_baseline(sites: Array) -> void:
+	for raw_site in sites:
+		if not raw_site is Dictionary:
+			continue
+		var site: Dictionary = raw_site
+		var cell = site.get("cell", Vector2i(99999, 99999))
+		var species_id := String(site.get("species", "wild_tree"))
+		if not cell is Vector2i or not vegetation_registry.has(species_id):
+			continue
+		var actor_id := _tree_actor_id(cell)
+		_register_actor(actor_id, KIND_TREE, cell, {
+			"species": species_id,
+			"baseline": true,
+			"source": String(site.get("source", "wild")),
+			"owner_override": "",
+		})
+
+func vegetation_delta() -> Dictionary:
+	var removed: Array = []
+	var planted: Array = []
+	for actor_id in actor_ids(KIND_TREE):
+		var descriptor: Dictionary = descriptors[actor_id]
+		var cell: Vector2i = descriptor["cell"]
+		var meta: Dictionary = descriptor.get("meta", {})
+		var baseline := bool(meta.get("baseline", false))
+		var present := bool(descriptor.get("present", false))
+		if baseline and not present:
+			removed.append([cell.x, cell.y])
+		elif not baseline and present:
+			planted.append([cell.x, cell.y, String(meta.get("species", "wild_tree")), String(meta.get("owner_override", ""))])
+	removed.sort_custom(func(a, b): return int(a[0]) < int(b[0]) or (int(a[0]) == int(b[0]) and int(a[1]) < int(b[1])))
+	planted.sort_custom(func(a, b): return int(a[0]) < int(b[0]) or (int(a[0]) == int(b[0]) and int(a[1]) < int(b[1])))
+	return {"removed": removed, "planted": planted}
+
+func restore_vegetation_delta(raw) -> bool:
+	if not raw is Dictionary:
+		return false
+	var removed = raw.get("removed", [])
+	var planted = raw.get("planted", [])
+	if not removed is Array or not planted is Array:
+		return false
+	# Reset deterministic baseline and discard previous planted descriptors.
+	for actor_id in actor_ids(KIND_TREE):
+		var descriptor: Dictionary = descriptors[actor_id]
+		var meta: Dictionary = descriptor.get("meta", {})
+		if bool(meta.get("baseline", false)):
+			descriptor["present"] = true
+			descriptors[actor_id] = descriptor
+		else:
+			if projections.has(actor_id):
+				_unload_projection(actor_id)
+			_remove_descriptor(actor_id)
+	for row in removed:
+		if not row is Array or row.size() < 2:
+			return false
+		var id := _tree_actor_id(Vector2i(int(row[0]), int(row[1])))
+		if descriptors.has(id):
+			var descriptor: Dictionary = descriptors[id]
+			descriptor["present"] = false
+			descriptors[id] = descriptor
+	for row in planted:
+		if not row is Array or row.size() < 4:
+			return false
+		var cell := Vector2i(int(row[0]), int(row[1]))
+		var species_id := String(row[2])
+		if not vegetation_registry.has(species_id):
+			return false
+		_register_actor(_planted_tree_actor_id(cell), KIND_TREE, cell, {
+			"species": species_id,
+			"baseline": false,
+			"source": "planted",
+			"owner_override": String(row[3]),
+		})
+	_reconcile_current_stream()
+	return true
+
+func restore_legacy_tree_xs(raw_xs, historical_xs: Array[int]) -> bool:
+	if not raw_xs is Array:
+		return false
+	var allowed: Dictionary = {}
+	for value in raw_xs:
+		allowed[int(value)] = true
+	for x in historical_xs:
+		for actor_id in actor_ids(KIND_TREE):
+			var descriptor: Dictionary = descriptors[actor_id]
+			var cell: Vector2i = descriptor["cell"]
+			if cell.x != x:
+				continue
+			descriptor["present"] = allowed.has(x)
+			descriptors[actor_id] = descriptor
+	_reconcile_current_stream()
+	return true
+
+func plant_tree(cell: Vector2i, species_id := "wild_tree", owner_override := "") -> String:
+	if not vegetation_registry.has(species_id) or world.has_cell(cell) or not world.has_cell(cell + Vector2i.DOWN):
+		return ""
+	var baseline_id := _tree_actor_id(cell)
+	if descriptors.has(baseline_id):
+		var descriptor: Dictionary = descriptors[baseline_id]
+		if bool(descriptor.get("present", false)):
+			return ""
+		descriptor["present"] = true
+		descriptors[baseline_id] = descriptor
+		_reconcile_current_stream()
+		return baseline_id
+	for actor_id in actor_ids(KIND_TREE):
+		var descriptor: Dictionary = descriptors[actor_id]
+		if bool(descriptor.get("present", false)) and (descriptor["cell"] as Vector2i) == cell:
+			return ""
+	var actor_id := _planted_tree_actor_id(cell)
+	_register_actor(actor_id, KIND_TREE, cell, {
+		"species": species_id,
+		"baseline": false,
+		"source": "planted",
+		"owner_override": owner_override,
+	})
+	_reconcile_current_stream()
+	return actor_id
+
+func ownership_for(actor_id: String) -> Dictionary:
+	if not descriptors.has(actor_id):
+		return {}
+	var descriptor: Dictionary = descriptors[actor_id]
+	var meta: Dictionary = descriptor.get("meta", {})
+	var owner_override := String(meta.get("owner_override", ""))
+	if not owner_override.is_empty():
+		return {"owner_id": owner_override, "zone_type": "vegetation", "structure_id": actor_id}
+	var cell: Vector2i = descriptor["cell"]
+	return world.ownership_at(cell)
 
 func sync_active(active_keys: Dictionary) -> void:
 	for raw_id in descriptors.keys():
@@ -53,12 +187,19 @@ func is_projected(actor_id: String) -> bool:
 func projection_for(actor_id: String) -> Node2D:
 	return projections.get(actor_id, null) as Node2D
 
-func descriptor_count() -> int:
-	return descriptors.size()
+func descriptor_count(kind := "") -> int:
+	return descriptors.size() if String(kind).is_empty() else actor_ids(String(kind)).size()
 
-func projected_count() -> int:
+func projected_count(kind := "") -> int:
 	_prune_invalid_projections()
-	return projections.size()
+	if String(kind).is_empty():
+		return projections.size()
+	var count := 0
+	for raw_id in projections.keys():
+		var actor_id := String(raw_id)
+		if descriptors.has(actor_id) and String((descriptors[actor_id] as Dictionary).get("kind", "")) == String(kind):
+			count += 1
+	return count
 
 func actor_ids(kind := "") -> Array[String]:
 	var ids: Array[String] = []
@@ -100,9 +241,13 @@ func mark_removed(actor_id: String) -> bool:
 	var descriptor: Dictionary = descriptors[actor_id]
 	if not bool(descriptor.get("present", false)):
 		return false
-	descriptor["present"] = false
-	descriptors[actor_id] = descriptor
-	projections.erase(actor_id)
+	var meta: Dictionary = descriptor.get("meta", {})
+	if String(descriptor.get("kind", "")) == KIND_TREE and not bool(meta.get("baseline", false)):
+		_remove_descriptor(actor_id)
+	else:
+		descriptor["present"] = false
+		descriptors[actor_id] = descriptor
+		projections.erase(actor_id)
 	_refresh_links()
 	return true
 
@@ -159,6 +304,22 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		guard.global_position = world.cell_center(cell) + Vector2(0, -16)
 		guard.add_to_group("ruin_guards")
 		node = guard
+	elif kind == KIND_TREE:
+		var tree := TreeScript.new() as SliceTreeResource
+		var meta: Dictionary = descriptor.get("meta", {})
+		var species_id := String(meta.get("species", "wild_tree"))
+		tree.name = _node_name("Tree", actor_id)
+		tree.world = world
+		tree.player = player
+		tree.species_id = species_id
+		tree.hp = vegetation_registry.harvest_hits(species_id)
+		tree.drop_item_id = vegetation_registry.drop_item(species_id)
+		tree.drop_count = vegetation_registry.drop_count(species_id)
+		tree.world_actor_id = actor_id
+		tree.world_actor_authority = self
+		tree.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE)
+		tree.z_index = 5
+		node = tree
 	elif kind == KIND_RELIC_CACHE:
 		var cache := RelicCacheScript.new() as SliceRelicCache
 		cache.name = _node_name("RelicCache", actor_id)
@@ -202,6 +363,24 @@ func _prune_invalid_projections() -> void:
 	for raw_id in projections.keys():
 		if not is_instance_valid(projections[raw_id]):
 			projections.erase(raw_id)
+
+func _remove_descriptor(actor_id: String) -> void:
+	if not descriptors.has(actor_id):
+		return
+	var descriptor: Dictionary = descriptors[actor_id]
+	var key: Vector2i = descriptor["chunk"]
+	descriptors.erase(actor_id)
+	projections.erase(actor_id)
+	if ids_by_chunk.has(key):
+		(ids_by_chunk[key] as Dictionary).erase(actor_id)
+		if (ids_by_chunk[key] as Dictionary).is_empty():
+			ids_by_chunk.erase(key)
+
+func _tree_actor_id(cell: Vector2i) -> String:
+	return "tree:baseline:%d:%d" % [cell.x, cell.y]
+
+func _planted_tree_actor_id(cell: Vector2i) -> String:
+	return "tree:planted:%d:%d" % [cell.x, cell.y]
 
 func _node_name(prefix: String, actor_id: String) -> String:
 	return "%s_%s" % [prefix, actor_id.replace(":", "_")]

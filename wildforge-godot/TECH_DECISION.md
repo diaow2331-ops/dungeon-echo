@@ -83,3 +83,7 @@ World generation is deterministic and versioned. Persistent terrain authority re
 ## Sparse local actor projection
 
 A durable world actor and its Godot node are different things. Stable world identity/presence must live in data authority; nodes are short-lived projections created only for active chunks. Chunk activation/deactivation is the single lifecycle hook for these projections. Never infer death, collection, annexation or other durable state from a node disappearing because its chunk unloaded, and never add a second proximity/streaming state machine for NPCs.
+
+## Vegetation authority
+
+Vegetation is deterministic world data plus sparse actor projection, not authored scene decoration. Baseline trees are regenerated from the versioned world contract; saves record only removals and planted additions. Ownership is resolved through the same territorial authority used by terrain so conquest can transfer forest rights without rewriting tree records. Planting, felling and future NPC forestry must mutate this authority rather than infer durable state from loaded tree nodes.

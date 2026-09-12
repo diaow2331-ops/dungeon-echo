@@ -1,8 +1,10 @@
 extends RefCounted
 class_name SliceSaveSystem
 
-const SAVE_VERSION := 16
-const SAVE_PATH := "user://wildforge-godot-v016.json"
+const SAVE_VERSION := 17
+const SAVE_PATH := "user://wildforge-godot-v017.json"
+const LEGACY_FLUID_SAVE_VERSION := 16
+const LEGACY_FLUID_SAVE_PATH := "user://wildforge-godot-v016.json"
 const LEGACY_OWNERSHIP_SAVE_VERSION := 15
 const LEGACY_OWNERSHIP_SAVE_PATH := "user://wildforge-godot-v015.json"
 const LEGACY_DELTA_SAVE_VERSION := 14
@@ -36,20 +38,20 @@ static func snapshot(main: Node) -> Dictionary:
 		},
 		"workbenches": _station_cells(main, "workbenches"),
 		"campfires": _station_cells(main, "campfires"),
-		"trees": _group_xs(main, world, "resource_trees"),
+		"vegetation": _actor_authority(main).vegetation_delta(),
 		"caches": _actor_present_xs(main, SliceWorldActorAuthority.KIND_RELIC_CACHE, world, "relic_caches"),
 		"guards": _actor_present_xs(main, SliceWorldActorAuthority.KIND_RUIN_GUARD, world, "ruin_guards"),
 	}
 
 static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
-	if version not in [SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION, LEGACY_FULL_SAVE_VERSION]:
+	if version not in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION, LEGACY_FULL_SAVE_VERSION]:
 		return false
 	var world := main.get_node_or_null("World") as SliceWorld
 	var player := main.get_node_or_null("Player") as SlicePlayer
 	if world == null or player == null:
 		return false
-	if version in [SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION]:
 		if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
 			return false
 		var overrides = data.get("world_overrides", [])
@@ -59,13 +61,13 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 		var legacy_rows = data.get("world_cells", [])
 		if not legacy_rows is Array or not world.restore_legacy_v13_cells(legacy_rows):
 			return false
-	if version in [SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION]:
 		var claims = data.get("ownership_claims", {})
 		if not claims is Dictionary or not world.ownership_authority.restore_claims(claims):
 			return false
 	else:
 		world.ownership_authority.clear()
-	if version == SAVE_VERSION:
+	if version in [SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION]:
 		var fluids = data.get("fluid_cells", [])
 		if not fluids is Array or not world.fluid_authority.restore_state(fluids):
 			return false
@@ -100,7 +102,15 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 		world.spawn_workbench(_decode_cell(raw))
 	for raw in data.get("campfires", []):
 		world.spawn_campfire(_decode_cell(raw))
-	_restore_presence(main, world, "resource_trees", data.get("trees", []))
+	var actor_authority := _actor_authority(main)
+	if actor_authority == null:
+		return false
+	if version == SAVE_VERSION:
+		if not actor_authority.restore_vegetation_delta(data.get("vegetation", {})):
+			return false
+	else:
+		if not actor_authority.restore_legacy_tree_xs(data.get("trees", []), SliceWorld.LEGACY_TREE_XS):
+			return false
 	_restore_actor_presence(main, SliceWorldActorAuthority.KIND_RELIC_CACHE, data.get("caches", []), world, "relic_caches")
 	_restore_actor_presence(main, SliceWorldActorAuthority.KIND_RUIN_GUARD, data.get("guards", []), world, "ruin_guards")
 	return true
@@ -141,7 +151,7 @@ static func load_from_path(main: Node, path := SAVE_PATH) -> bool:
 		if _is_supported_snapshot(candidate) and apply_snapshot(main, candidate):
 			return true
 	if path == SAVE_PATH:
-		for legacy_path in [LEGACY_OWNERSHIP_SAVE_PATH, LEGACY_OWNERSHIP_SAVE_PATH + ".bak", LEGACY_DELTA_SAVE_PATH, LEGACY_DELTA_SAVE_PATH + ".bak", LEGACY_FULL_SAVE_PATH, LEGACY_FULL_SAVE_PATH + ".bak"]:
+		for legacy_path in [LEGACY_FLUID_SAVE_PATH, LEGACY_FLUID_SAVE_PATH + ".bak", LEGACY_OWNERSHIP_SAVE_PATH, LEGACY_OWNERSHIP_SAVE_PATH + ".bak", LEGACY_DELTA_SAVE_PATH, LEGACY_DELTA_SAVE_PATH + ".bak", LEGACY_FULL_SAVE_PATH, LEGACY_FULL_SAVE_PATH + ".bak"]:
 			var legacy := _read_snapshot(String(legacy_path))
 			if _is_supported_snapshot(legacy) and apply_snapshot(main, legacy):
 				# Promote any supported legacy save into the current authoritative schema.
@@ -151,6 +161,25 @@ static func load_from_path(main: Node, path := SAVE_PATH) -> bool:
 
 static func validate_snapshot(data: Dictionary) -> bool:
 	if int(data.get("version", 0)) != SAVE_VERSION:
+		return false
+	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
+		return false
+	var rows = data.get("world_overrides", [])
+	if not rows is Array or rows.size() > 250000:
+		return false
+	for row in rows:
+		if not _valid_world_row(row, true):
+			return false
+	if not _valid_claim_payload(data.get("ownership_claims", {})):
+		return false
+	if not _valid_fluid_payload(data.get("fluid_cells", [])):
+		return false
+	if not _valid_vegetation_payload(data.get("vegetation", {})):
+		return false
+	return _validate_common(data, false)
+
+static func validate_legacy_fluid_snapshot(data: Dictionary) -> bool:
+	if int(data.get("version", 0)) != LEGACY_FLUID_SAVE_VERSION:
 		return false
 	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
 		return false
@@ -205,7 +234,7 @@ static func validate_legacy_full_snapshot(data: Dictionary) -> bool:
 			return false
 	return _validate_common(data)
 
-static func _validate_common(data: Dictionary) -> bool:
+static func _validate_common(data: Dictionary, require_legacy_trees := true) -> bool:
 	var player = data.get("player", {})
 	if not player is Dictionary:
 		return false
@@ -214,9 +243,11 @@ static func _validate_common(data: Dictionary) -> bool:
 			return false
 	if not player.get("stock", {}) is Dictionary:
 		return false
-	for key in ["workbenches", "campfires", "trees", "caches", "guards"]:
+	for key in ["workbenches", "campfires", "caches", "guards"]:
 		if not data.get(key, []) is Array:
 			return false
+	if require_legacy_trees and not data.get("trees", []) is Array:
+		return false
 	return true
 
 static func _valid_world_row(row, allow_air: bool) -> bool:
@@ -231,10 +262,30 @@ static func _is_supported_snapshot(data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
 	match version:
 		SAVE_VERSION: return validate_snapshot(data)
+		LEGACY_FLUID_SAVE_VERSION: return validate_legacy_fluid_snapshot(data)
 		LEGACY_OWNERSHIP_SAVE_VERSION: return validate_legacy_ownership_snapshot(data)
 		LEGACY_DELTA_SAVE_VERSION: return validate_legacy_delta_snapshot(data)
 		LEGACY_FULL_SAVE_VERSION: return validate_legacy_full_snapshot(data)
 		_: return false
+
+static func _valid_vegetation_payload(raw) -> bool:
+	if not raw is Dictionary:
+		return false
+	var removed = raw.get("removed", [])
+	var planted = raw.get("planted", [])
+	if not removed is Array or not planted is Array or removed.size() > 250000 or planted.size() > 250000:
+		return false
+	for row in removed:
+		if not row is Array or row.size() < 2:
+			return false
+		if int(row[0]) < SliceWorld.MIN_X or int(row[0]) > SliceWorld.MAX_X:
+			return false
+	for row in planted:
+		if not row is Array or row.size() < 4 or String(row[2]).is_empty():
+			return false
+		if int(row[0]) < SliceWorld.MIN_X or int(row[0]) > SliceWorld.MAX_X:
+			return false
+	return true
 
 static func _valid_fluid_payload(raw) -> bool:
 	if not raw is Array or raw.size() > 250000:
