@@ -93,13 +93,9 @@ func _buy_price_at_stock(settlement_id: String, item_id: String, stock: int) -> 
 	var factor := 1.0 + clampf(1.0 - ratio, 0.0, 1.0) * 0.5 if ratio <= 1.0 else maxf(0.6, 1.0 - minf(ratio - 1.0, 1.0) * 0.4)
 	return maxi(1, int(round(float(base) * factor)))
 
-func sell_from_player(player, settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
-	if player == null or not settlements.has(settlement_id) or quantity <= 0:
+func sale_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
+	if not settlements.has(settlement_id) or quantity <= 0:
 		return {"ok": false, "reason": "invalid_trade"}
-	if nearby_market(player.global_position) != settlement_id:
-		return {"ok": false, "reason": "not_at_market"}
-	if player.item_count(item_id) < quantity:
-		return {"ok": false, "reason": "insufficient_goods"}
 	var starting_stock := item_count(settlement_id, item_id)
 	var unit_price := buy_price(settlement_id, item_id)
 	if unit_price <= 0:
@@ -108,8 +104,36 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 	for offset in range(quantity):
 		total += _buy_price_at_stock(settlement_id, item_id, starting_stock + offset)
 	var row: Dictionary = settlements[settlement_id]
-	if int(row["treasury"]) < total:
+	var target := maxi(0, int((row["targets"] as Dictionary).get(item_id, 0)))
+	var available_treasury := maxi(0, int(row["treasury"]))
+	return {
+		"ok": true,
+		"settlement_id": settlement_id,
+		"item_id": item_id,
+		"quantity": quantity,
+		"unit_price": unit_price,
+		"total": total,
+		"stock": starting_stock,
+		"target": target,
+		"treasury": available_treasury,
+		"affordable": available_treasury >= total,
+	}
+
+func sell_from_player(player, settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
+	if player == null or not settlements.has(settlement_id) or quantity <= 0:
+		return {"ok": false, "reason": "invalid_trade"}
+	if nearby_market(player.global_position) != settlement_id:
+		return {"ok": false, "reason": "not_at_market"}
+	if player.item_count(item_id) < quantity:
+		return {"ok": false, "reason": "insufficient_goods"}
+	var quote := sale_quote(settlement_id, item_id, quantity)
+	if not bool(quote.get("ok", false)):
+		return quote
+	var unit_price := int(quote.get("unit_price", 0))
+	var total := int(quote.get("total", 0))
+	if not bool(quote.get("affordable", false)):
 		return {"ok": false, "reason": "treasury_short"}
+	var row: Dictionary = settlements[settlement_id]
 	if not player.spend_item(item_id, quantity):
 		return {"ok": false, "reason": "insufficient_goods"}
 	var inventory: Dictionary = row["inventory"]

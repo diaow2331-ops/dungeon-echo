@@ -4,7 +4,7 @@
 Godot 4.7.2 stable, Standard/GDScript, GL Compatibility renderer for the first mobile-focused slice.
 
 ## Authority rule
-`wildforge/` v0.43.1 remains the gameplay/reference authority until the Godot feel gate passes. `wildforge-godot/` is a parallel commercial-client proof, not a rewrite mandate.
+`wildforge/` v0.43.1 remains the reference authority only for systems not yet migrated. Godot is authoritative for migrated subsystems once their explicit migration/parity gates pass. A gameplay subsystem must never be live-authoritative in both clients at once.
 
 ## Feel gate
 Godot is promoted only if a touch-device build is materially better than the Canvas reference in all five areas:
@@ -14,7 +14,7 @@ Godot is promoted only if a touch-device build is materially better than the Can
 4. melee hit/knockback response;
 5. unobtrusive landscape touch controls.
 
-If the advantage is not obvious, stop migration and retain Canvas. No faction/economy migration happens before this gate.
+If the advantage is not obvious, stop further migration and retain the last proven authority boundary. The feel gate has already allowed the narrow traveler/settlement economy slice to migrate; broader faction simulation remains deferred until its own authority gates exist.
 
 ## Architecture rules
 - World data is authoritative; visual/physics nodes are projections of nearby data.
@@ -119,3 +119,6 @@ Any deterministic settlement added to the generated baseline requires a world-ge
 - New UI/input work must be evaluated on Android landscape first: sensor-landscape orientation, safe-area insets, thumb-sized controls, no touch-through, and correct app pause/resume behavior.
 - Settlement NPC interaction uses the existing streamed world-actor authority. Dialogue is presentation only and must not become a second NPC/gameplay state authority.
 - Mobile layout calculations are centralized in `scripts/ui/mobile_layout.gd`; new screens should reuse that contract instead of hardcoding device-specific insets.
+## Physical merchant interaction rule
+
+A market UI is a projection, not an economy. Merchant interaction must begin from a streamed settlement NPC at bounded physical range, while all quotes, stock, treasury and settlement identity come from `SliceSettlementAuthority`. UI buttons may request a transaction but may not mutate player goods, currency, settlement inventory or prices directly. The provisional near-market context-button sale path is retired once v0.19 is active.

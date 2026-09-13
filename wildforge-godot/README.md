@@ -1,6 +1,6 @@
 # Wildforge Godot Vertical Slice
 
-This directory is an isolated technical proof for the future commercial client. The existing `wildforge/` HTML/Canvas build remains the reference implementation and is not replaced yet.
+This directory is an isolated technical proof for the future commercial client. The existing `wildforge/` HTML/Canvas build remains the reference for systems that have not yet migrated. Godot is authoritative for each subsystem explicitly migrated and covered by its current tests; no subsystem may have two live gameplay authorities.
 
 ## Gate
 The Godot client only becomes authoritative if this slice is materially better on touch devices for movement, jump, mining, placement and melee combat.
@@ -14,7 +14,7 @@ The Godot client only becomes authoritative if this slice is materially better o
 - Camera smoothing and lightweight hit feedback
 - Low-obstruction touch input: floating left/right sticks, one contextual place button
 
-Explicitly excluded for now: factions, trade, caravans, annexation, inventory depth and boss content. Persistence and migration are now part of the Godot client; the Canvas build remains the gameplay/reference source for systems not yet migrated.
+Still deferred: full three-faction simulation, caravans, annexation, inventory depth and boss content. Persistence, the first physical settlement and its narrow economy have migrated to Godot; Canvas remains reference-only for systems not yet migrated.
 
 ## v0.02 Feel Gate
 
@@ -190,3 +190,8 @@ Save schema 20 persists settlement economy and player currency. Because Mossbrid
 - Android/Google Play is the primary shipping target. The project baseline is 1280×720 sensor-landscape with safe-area-aware UI.
 - Dialogue, HUD, and contextual actions use the shared MobileLayout contract; minimum primary touch targets are 56 px.
 - `npc_dialogue_test.gd` and `mobile_ui_test.gd` are release gates for NPC interaction and Android landscape usability.
+## v0.19 physical market interaction
+
+Mossbridge trade is now a real in-world merchant interaction rather than a provisional context-button shortcut. The streamed merchant projection is interactable only at bounded physical range; opening that NPC reuses the existing dialogue overlay and projects a live quote from `SliceSettlementAuthority`. Selling one raw meat routes back through the same `sell_from_player` mutation, so player goods/currency and settlement stock/treasury still change atomically in one authority.
+
+The UI never owns price or inventory state. After every sale it rereads the settlement quote, so shortage relief is reflected immediately. Guards cannot expose the market surface, and mobile trade actions obey the shared safe-area/minimum-touch-target contract.

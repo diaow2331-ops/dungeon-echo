@@ -411,6 +411,7 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		var npc := SettlementNpcScript.new() as SliceSettlementNpc
 		var meta: Dictionary = descriptor.get("meta", {})
 		npc.name = _node_name("SettlementNpc", actor_id)
+		npc.player = player
 		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else "guard", {
 			"actor_id": actor_id,
 			"settlement_id": String(meta.get("settlement_id", "")),

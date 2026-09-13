@@ -4,12 +4,18 @@ extends Control
 const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
 
 signal closed
+signal market_sell_requested(settlement_id: String, item_id: String, quantity: int)
 
 var speaker_label: Label
 var role_label: Label
 var body_label: Label
 var next_button: Button
 var dialogue_panel: PanelContainer
+var market_box: VBoxContainer
+var market_label: Label
+var market_feedback: Label
+var market_sell_button: Button
+var active_market: Dictionary = {}
 var lines: Array[String] = []
 var line_index := 0
 
@@ -43,6 +49,23 @@ func _ready() -> void:
 	body_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body_label.add_theme_font_size_override("font_size", 17)
 	box.add_child(body_label)
+	market_box = VBoxContainer.new()
+	market_box.add_theme_constant_override("separation", 5)
+	market_box.visible = false
+	box.add_child(market_box)
+	market_label = Label.new()
+	market_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	market_label.add_theme_font_size_override("font_size", 16)
+	market_box.add_child(market_label)
+	market_feedback = Label.new()
+	market_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	market_feedback.modulate = Color(0.88, 0.82, 0.58, 0.92)
+	market_box.add_child(market_feedback)
+	market_sell_button = Button.new()
+	market_sell_button.custom_minimum_size = Vector2(220, SliceMobileLayout.MIN_TOUCH_TARGET)
+	market_sell_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	market_sell_button.pressed.connect(_sell_market_item)
+	market_box.add_child(market_sell_button)
 	next_button = Button.new()
 	next_button.custom_minimum_size = Vector2(148, SliceMobileLayout.MIN_TOUCH_TARGET)
 	next_button.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -77,6 +100,7 @@ func open_dialogue(payload: Dictionary) -> void:
 	if lines.is_empty():
 		lines.append("……")
 	line_index = 0
+	update_market(payload.get("market", {}) if payload.get("market", {}) is Dictionary else {})
 	visible = true
 	_render_line()
 	next_button.grab_focus()
@@ -97,3 +121,31 @@ func _advance() -> void:
 func _render_line() -> void:
 	body_label.text = lines[line_index]
 	next_button.text = "关闭" if line_index + 1 >= lines.size() else "继续"
+func update_market(market: Dictionary, feedback := "") -> void:
+	active_market = market.duplicate(true)
+	if market_box == null:
+		return
+	var enabled := bool(active_market.get("enabled", false))
+	market_box.visible = enabled
+	if not enabled:
+		return
+	var player_count := maxi(0, int(active_market.get("player_count", 0)))
+	var stock := maxi(0, int(active_market.get("stock", 0)))
+	var target := maxi(0, int(active_market.get("target", 0)))
+	var unit_price := maxi(0, int(active_market.get("unit_price", 0)))
+	var total := maxi(0, int(active_market.get("total", 0)))
+	var treasury := maxi(0, int(active_market.get("treasury", 0)))
+	market_label.text = "鲜肉：你有 %d · 仓库 %d/%d · 当前收购 %d◆ · 城库 %d◆" % [player_count, stock, target, unit_price, treasury]
+	market_feedback.text = feedback
+	var can_sell := bool(active_market.get("ok", false)) and bool(active_market.get("affordable", false)) and player_count > 0 and total > 0
+	market_sell_button.disabled = not can_sell
+	market_sell_button.text = "出售 1 份鲜肉 · +%d◆" % total if can_sell else ("暂无鲜肉可售" if player_count <= 0 else "城库暂不足")
+
+func _sell_market_item() -> void:
+	if not bool(active_market.get("enabled", false)) or market_sell_button.disabled:
+		return
+	market_sell_requested.emit(
+		String(active_market.get("settlement_id", "")),
+		String(active_market.get("item_id", "")),
+		maxi(1, int(active_market.get("quantity", 1)))
+	)
