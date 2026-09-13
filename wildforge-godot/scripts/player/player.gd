@@ -76,11 +76,11 @@ var interaction_locked := false
 var hunger := HUNGER_START
 var starvation_tick := 0.0
 var equipped_pick_id := ""
-var equipped_axe_id := ""
+var equipped_axe_id := "traveler_hatchet"
 var equipped_weapon_id := "starter_blade"
 
 func _ready() -> void:
-	stock = {"soil": 0, "stone": 0, "ash": 0, "sandstone": 0, "basalt": 0, "snow": 0, "ice": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
+	stock = {"soil": 0, "stone": 0, "ash": 0, "sandstone": 0, "basalt": 0, "snow": 0, "ice": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "wood_pick": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -311,6 +311,7 @@ func pick_power() -> float:
 		"delver_pick": return DELVER_PICK_POWER
 		"copper_pick": return COPPER_PICK_POWER
 		"stone_pick": return STONE_PICK_POWER
+		"wood_pick": return 1.0
 		"starter_pick": return 1.0 # legacy proof-save compatibility only
 		_: return 0.0
 
@@ -383,7 +384,9 @@ func can_craft(recipe_id: String) -> bool:
 func craft(recipe_id: String) -> bool:
 	if not CraftingScript.craft(self, recipe_id):
 		return false
-	if recipe_id == "stone_pick":
+	if recipe_id == "wood_pick":
+		equipped_pick_id = "wood_pick"
+	elif recipe_id == "stone_pick":
 		equipped_pick_id = "stone_pick"
 	elif recipe_id == "copper_pick":
 		equipped_pick_id = "copper_pick"
@@ -412,8 +415,12 @@ func context_label() -> String:
 			return "铜"
 		if can_craft("stone_pick"):
 			return "镐"
+		if can_craft("wood_pick"):
+			return "镐"
 		if can_craft("stone_blade"):
 			return "刃"
+	if can_craft("plank"):
+		return "制"
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return "火"
@@ -445,8 +452,12 @@ func context_action() -> bool:
 			return craft("copper_pick")
 		if can_craft("stone_pick"):
 			return craft("stone_pick")
+		if can_craft("wood_pick"):
+			return craft("wood_pick")
 		if can_craft("stone_blade"):
 			return craft("stone_blade")
+	if can_craft("plank"):
+		return craft("plank")
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return place_campfire_once()

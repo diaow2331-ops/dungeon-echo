@@ -155,3 +155,8 @@ Changing deterministic substrate requires an explicit generation/schema boundary
 Natural geography is the source of local supply; settlement identity is the source of demand/consumption; faction ownership is political only. These deterministic rules may mutate only `SliceSettlementAuthority` inventory/treasury through the authoritative world heartbeat. Annexation must never rewrite a region into the conqueror's resource profile, and no parallel production ledger, caravan inventory, biome economy cache, or scene-node-owned stock is allowed.
 
 Persistent saves store economic facts only. Biome supply, settlement targets, base prices and consumption profiles remain deterministic code/data baseline and are re-derived after restore. A future caravan must therefore move goods between the same settlement inventories rather than synchronize duplicate inventories.
+## First-five-minute survival authority rule
+
+Onboarding must use the same resource, crafting, station, combat and save authorities as the rest of the game. A new traveler may own baseline role equipment, but must not receive injected wood, stone, currency or fabricated tutorial goods. The current baseline is one ordinary travel hatchet, no pick, and zero building resources.
+
+The first mining tool is the wood pick crafted at a real workbench from harvested wood. It grants exactly the minimum 1.0 pick power needed to enter normal terrain mining; stone, campfire construction and later tools then continue through the existing block registry and crafting authority. Tutorial-only resource nodes, tutorial inventories, or a second starter progression state are forbidden.

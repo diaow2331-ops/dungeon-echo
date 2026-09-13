@@ -4,6 +4,7 @@ class_name SliceCrafting
 const RECIPES := {
 	"plank": {"out_id": "plank", "out_n": 4, "need": {"wood": 1}},
 	"workbench": {"out_id": "workbench", "out_n": 1, "need": {"plank": 8}},
+	"wood_pick": {"out_id": "wood_pick", "out_n": 1, "need": {"plank": 4}, "station": "workbench", "unique": true},
 	"stone_pick": {"out_id": "stone_pick", "out_n": 1, "need": {"stone": 8, "wood": 2}, "station": "workbench", "unique": true},
 	"stone_blade": {"out_id": "stone_blade", "out_n": 1, "need": {"stone": 6, "wood": 2}, "station": "workbench", "unique": true},
 	"campfire": {"out_id": "campfire", "out_n": 1, "need": {"stone": 6, "wood": 2}},

@@ -23,13 +23,13 @@ func _run() -> void:
 
 	_check(player.equipped_weapon_id == "starter_blade", "traveler starts with one ordinary blade")
 	_check(player.equipped_pick_id.is_empty() and absf(player.pick_power()) < 0.001, "traveler starts without mining capability")
-	_check(player.equipped_axe_id.is_empty(), "traveler starts without an axe")
+	_check(player.equipped_axe_id == "traveler_hatchet", "traveler starts with one ordinary travel hatchet")
 	_check(player.item_count("soil") == 0 and player.item_count("stone") == 0 and player.item_count("wood") == 0, "traveler starts without free building resources")
 	var stone := Vector2i(0, world.surface_y_at(0) + 5)
 	var before := world.tile_at(stone)
 	_check(not player.harvest_cell(stone) and world.tile_at(stone) == before, "bare-handed traveler cannot mine the world foundation")
 	var trees := main.get_tree().get_nodes_in_group("resource_trees")
-	_check(not trees.is_empty() and not player.can_harvest_target(trees[0]), "ordinary blade cannot substitute for an axe")
+	_check(not trees.is_empty() and player.can_harvest_target(trees[0]), "travel hatchet unlocks the first real wood source without granting mining power")
 	_check(absf(SliceWorldClock.DAY_SECONDS - 720.0) < 0.001, "one game day equals twelve real minutes")
 	var day_before := world.clock.day_index
 	var time_before := world.clock.time_of_day

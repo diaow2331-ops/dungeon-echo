@@ -110,7 +110,7 @@ func _run() -> void:
 	var saved_hunger := float(snap["player"]["hunger"])
 	_check(absf(player2.health - saved_health) < 0.01 and absf(player2.hunger - saved_hunger) < 0.01, "health and hunger persist from the actual snapshot")
 	_check(player2.item_count("copper_bar") == 3 and player2.item_count("ancient_core") >= 1, "single stock authority persists")
-	_check(player2.equipped_pick_id == "delver_pick" and player2.equipped_axe_id == "" and player2.equipped_weapon_id == "stone_blade", "equipment selection persists")
+	_check(player2.equipped_pick_id == "delver_pick" and player2.equipped_axe_id == "traveler_hatchet" and player2.equipped_weapon_id == "stone_blade", "equipment selection persists")
 	_check(absf(world2.clock.time_of_day - float(snap["world_clock"]["time"])) < 0.0001 and world2.clock.day_index == int(snap["world_clock"]["day"]), "world clock persists from the exact snapshot")
 	_check(restored.get_tree().get_nodes_in_group("workbenches").size() == 1 and restored.get_tree().get_nodes_in_group("campfires").size() == 1, "placed stations persist exactly once")
 	_check(restored.get_tree().get_nodes_in_group("resource_trees").size() == 2, "felled resource tree does not respawn on load")
@@ -152,8 +152,9 @@ func _run() -> void:
 	var legacy_v22 := snap.duplicate(true)
 	legacy_v22["version"] = SliceSaveSystem.LEGACY_THREE_SETTLEMENT_SAVE_VERSION
 	legacy_v22["world_generation"] = SliceWorld.THREE_SETTLEMENT_WORLD_GENERATION_VERSION
-	var frost_mined := Vector2i(-250, world2.surface_y_at(-250))
-	var ember_placed := Vector2i(250, world2.surface_y_at(250) + 6)
+	var migration_fixture_world := disk_restored.get_node("World") as SliceWorld
+	var frost_mined := Vector2i(-250, migration_fixture_world.surface_y_at(-250))
+	var ember_placed := Vector2i(250, migration_fixture_world.surface_y_at(250) + 6)
 	var v22_overrides: Array = (legacy_v22["world_overrides"] as Array).duplicate(true)
 	v22_overrides.append([frost_mined.x, frost_mined.y, SliceWorld.AIR])
 	v22_overrides.append([ember_placed.x, ember_placed.y, SliceWorld.DIRT])
@@ -252,7 +253,7 @@ func _run() -> void:
 	var legacy18_player := legacy18_restored.get_node("Player") as SlicePlayer
 	_check(legacy18_world.clock.day_index == 0 and absf(legacy18_world.clock.time_of_day - SliceWorldClock.DEFAULT_TIME_OF_DAY) < 0.0001, "v18 migration initializes the world clock at its deterministic default")
 	_check(legacy18_world.settlement_authority.ids().size() == 3, "v18 migration installs the deterministic three-settlement baseline")
-	_check(legacy18_player.equipped_axe_id.is_empty(), "v18 migration never invents an axe")
+	_check(legacy18_player.equipped_axe_id == "traveler_hatchet", "v18 migration adopts the current traveler baseline hatchet")
 	_check(legacy18_player.forge_marks == 0, "v18 migration never invents settlement currency")
 	legacy18_restored.free()
 
