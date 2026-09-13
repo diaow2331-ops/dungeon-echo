@@ -56,6 +56,8 @@ var fluid_authority: SliceFluidAuthority
 var structure_authority: SliceStructureAuthority
 var settlement_authority: SliceSettlementAuthority
 var fluid_tick_accumulator := 0.0
+var simulation_hour_cursor := -1
+var simulation_event_count := 0
 const FLUID_TICK_SECONDS := 0.10
 var cells: Dictionary = {}
 var baseline_cells: Dictionary = {}
@@ -89,6 +91,7 @@ func _ready() -> void:
 	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
 	settlement_authority.register_baseline(baseline_settlements)
 	apply_baseline_ownership()
+	reset_simulation_cursor()
 	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
 	chunk_streamer = ChunkStreamerScript.new(self) as SliceChunkStreamer
 	chunk_streamer.refresh_at_cell(Vector2i(0, surface_y_at(0)), true)
@@ -114,6 +117,7 @@ func rebuild_for_seed(new_seed: int) -> bool:
 	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
 	settlement_authority.register_baseline(baseline_settlements)
 	apply_baseline_ownership()
+	reset_simulation_cursor()
 	if lighting_authority != null:
 		lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
 	_rebuild_world_views()
@@ -121,7 +125,7 @@ func rebuild_for_seed(new_seed: int) -> bool:
 	return true
 
 func _process(delta: float) -> void:
-	clock.advance(delta)
+	advance_world_time(delta)
 	if chunk_streamer != null:
 		chunk_streamer.refresh()
 	_sync_fluids(delta)
@@ -129,6 +133,36 @@ func _process(delta: float) -> void:
 	if place_flash > 0.0:
 		place_flash = maxf(0.0, place_flash - delta)
 		queue_redraw()
+
+func absolute_world_hour() -> int:
+	return clock.day_index * 24 + floori(clock.time_of_day * 24.0)
+
+func reset_simulation_cursor() -> void:
+	simulation_hour_cursor = absolute_world_hour()
+
+func advance_world_time(delta_seconds: float) -> int:
+	if delta_seconds <= 0.0:
+		return 0
+	clock.advance(delta_seconds)
+	return _sync_world_simulation()
+
+func _sync_world_simulation() -> int:
+	if settlement_authority == null:
+		reset_simulation_cursor()
+		return 0
+	var current_hour := absolute_world_hour()
+	if simulation_hour_cursor < 0 or current_hour < simulation_hour_cursor:
+		simulation_hour_cursor = current_hour
+		return 0
+	var emitted := 0
+	while simulation_hour_cursor < current_hour:
+		simulation_hour_cursor += 1
+		var result := settlement_authority.simulate_hour(simulation_hour_cursor)
+		var events = result.get("events", [])
+		if events is Array:
+			emitted += events.size()
+	simulation_event_count += emitted
+	return emitted
 
 func _generate() -> void:
 	cells.clear()

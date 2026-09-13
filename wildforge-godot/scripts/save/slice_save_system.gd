@@ -166,6 +166,7 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 			return false
 	else:
 		world.clock.reset()
+	world.reset_simulation_cursor()
 	return true
 
 static func save_to_path(main: Node, path := SAVE_PATH) -> bool:

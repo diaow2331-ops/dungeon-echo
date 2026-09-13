@@ -122,3 +122,8 @@ Any deterministic settlement added to the generated baseline requires a world-ge
 ## Physical merchant interaction rule
 
 A market UI is a projection, not an economy. Merchant interaction must begin from a streamed settlement NPC at bounded physical range, while all quotes, stock, treasury and settlement identity come from `SliceSettlementAuthority`. UI buttons may request a transaction but may not mutate player goods, currency, settlement inventory or prices directly. The provisional near-market context-button sale path is retired once v0.19 is active.
+## Macro simulation heartbeat rule
+
+World-scale simulation advances from the existing authoritative world clock, not from NPC nodes, chunk activity or a second scheduler. The runtime may keep a transient derived cursor for crossed world-hour boundaries, but durable simulation truth remains in the authorities being mutated (for example settlement inventory/treasury). Save restore must re-derive that cursor from the restored clock and must never replay historical ticks already represented by persisted authority state.
+
+A macro tick must remain valid while the corresponding settlement, caravan or faction has zero projected scene nodes. Projection load/unload therefore cannot start, stop or own economic simulation.
