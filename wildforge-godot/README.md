@@ -234,3 +234,10 @@ Local supply now derives from the settlement biome rather than faction or settle
 Settlement demand is intentionally asymmetric: Frostmirror and Cinder Ridge value imported food/wood, Mossbridge values remote ice/basalt, and Cinder Ridge values imported ice. These price/target rules feed the same `SliceSettlementAuthority`; geography supplies goods, settlements demand goods, and factions do not own either table.
 
 Save schema remains 23. Durable economy state is still only settlement inventory and treasury; biome supply, settlement demand, consumption profiles, targets, and base prices are deterministic baseline rules re-derived on load. This keeps future player trade and caravans on one inventory authority.
+## v0.25 first-five-minute survival loop
+
+A fresh traveler can now complete the opening survival chain from real world resources without injected starter stock. The role begins with one ordinary travel hatchet and no pick: a real tree supplies wood, wood becomes planks and a workbench, the workbench unlocks a 1.0-power wood pick, and that pick opens real stone for the first campfire and later stone-tool progression. The travel hatchet is baseline role equipment rather than loot or a second inventory item.
+
+The compact/mobile context path now remains usable after the first workbench exists: generic plank crafting stays available, while workbench-local tool recipes still require physical proximity. Existing saves adopt the same traveler-hatchet baseline on restore; save schema remains 23 because no new durable authority is introduced.
+
+`tests/first30_start_loop_test.gd` is the release gate for the no-injected-resource opening chain. It obtains wood from deterministic trees, stone through `WorldEditAuthority`, food from a real Bramble Boar, and places the first authoritative workbench/campfire. Tests may no longer prove onboarding solely by injecting wood or stone into player stock.

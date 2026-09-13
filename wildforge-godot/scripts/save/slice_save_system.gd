@@ -670,10 +670,11 @@ static func _sanitized_stock(raw) -> Dictionary:
 	return clean
 
 static func _valid_pick(value: String) -> String:
-	return value if value in ["", "starter_pick", "stone_pick", "copper_pick", "delver_pick"] else ""
+	return value if value in ["", "starter_pick", "wood_pick", "stone_pick", "copper_pick", "delver_pick"] else ""
 
-static func _valid_axe(value: String) -> String:
-	return value if value in [""] else ""
+static func _valid_axe(_value: String) -> String:
+	# The travel hatchet is baseline role equipment, not progression loot.
+	return "traveler_hatchet"
 
 static func _valid_weapon(value: String) -> String:
 	return value if value in ["starter_blade", "stone_blade"] else "starter_blade"
