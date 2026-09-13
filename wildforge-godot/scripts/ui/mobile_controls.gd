@@ -68,7 +68,7 @@ func _process(_delta: float) -> void:
 		var hour := int(floor(player.world.clock.hour_24())) if player.world != null else 0
 		var market := player.nearby_market_id()
 		var market_note := " · 市场" if not market.is_empty() else ""
-		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s · v0.17" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
+		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s · v0.19" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
 	queue_redraw()
 
 func set_interaction_blocked(blocked: bool) -> void:

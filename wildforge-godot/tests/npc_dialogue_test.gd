@@ -47,6 +47,7 @@ func _run() -> void:
 	main.touch_controls.move_id = 7
 	main.touch_controls.aim_id = 8
 	player.set_touch_move(Vector2(0.8, 0.0))
+	player.add_item("raw_meat", 2)
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
@@ -57,6 +58,24 @@ func _run() -> void:
 	_check(overlay.speaker_label.text == "米菈" and "商人" in overlay.role_label.text, "merchant dialogue renders descriptor identity")
 	_check(player.interaction_locked, "opening dialogue locks player world controls")
 	_check(main.touch_controls.interaction_blocked and main.touch_controls.move_id == -1 and main.touch_controls.aim_id == -1 and player.touch_move == Vector2.ZERO, "dialogue opening clears active mobile sticks instead of leaving stale touch ids")
+	var settlement_id := "verdant_mossbridge"
+	var settlement_authority := world.settlement_authority as SliceSettlementAuthority
+	var goods_before := player.item_count("raw_meat")
+	var marks_before := player.forge_marks
+	var stock_before := settlement_authority.item_count(settlement_id, "raw_meat")
+	var treasury_before := settlement_authority.treasury(settlement_id)
+	var quote_before := settlement_authority.sale_quote(settlement_id, "raw_meat", 1)
+	var sale_total := int(quote_before.get("total", 0))
+	_check(overlay.market_box.visible and not overlay.market_sell_button.disabled, "merchant dialogue exposes the physical market action when the player has accepted goods")
+	_check(str(int(quote_before.get("unit_price", 0))) in overlay.market_label.text, "merchant dialogue reads its displayed quote from settlement authority")
+	overlay.market_sell_button.emit_signal("pressed")
+	await process_frame
+	_check(player.item_count("raw_meat") == goods_before - 1, "merchant sale removes one real item from player authority")
+	_check(player.forge_marks == marks_before + sale_total, "merchant sale credits the exact authoritative Forge Mark quote")
+	_check(settlement_authority.item_count(settlement_id, "raw_meat") == stock_before + 1, "merchant sale moves the real item into settlement stock")
+	_check(settlement_authority.treasury(settlement_id) == treasury_before - sale_total, "merchant sale debits the same amount from settlement treasury")
+	_check("成交" in overlay.market_feedback.text, "merchant dialogue confirms the completed authoritative transaction")
+	_check(str(settlement_authority.buy_price(settlement_id, "raw_meat")) in overlay.market_label.text, "merchant dialogue refreshes the quote immediately after stock changes")
 	var first_line := overlay.body_label.text
 	overlay.next_button.emit_signal("pressed")
 	_check(overlay.visible and overlay.body_label.text != first_line, "dialogue button advances to the next test line")
@@ -78,6 +97,7 @@ func _run() -> void:
 	await process_frame
 	_check(overlay.visible, "touching the guard opens the same dialogue overlay")
 	_check(overlay.speaker_label.text == "洛恩" and "守卫" in overlay.role_label.text, "guard dialogue renders its own descriptor identity")
+	_check(not overlay.market_box.visible, "guard dialogue cannot project a second market surface")
 	overlay.close_dialogue()
 	await process_frame
 	var far_cell: Vector2i = world.remote_vein_cells[-1]

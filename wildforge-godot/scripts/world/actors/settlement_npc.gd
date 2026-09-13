@@ -6,6 +6,7 @@ signal dialogue_requested(payload: Dictionary)
 var actor_id := ""
 var npc_kind := "merchant"
 var payload: Dictionary = {}
+var player: SlicePlayer
 var body_tint := Color("6f9c72")
 
 func setup(id: String, kind: String, data: Dictionary) -> void:
@@ -37,8 +38,12 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 		activate = (event as InputEventScreenTouch).pressed
 	if not activate:
 		return
+	if player == null or not is_instance_valid(player) or player.global_position.distance_to(global_position) > 118.0:
+		return
 	viewport.set_input_as_handled()
-	dialogue_requested.emit(payload.duplicate(true))
+	var request := payload.duplicate(true)
+	request["npc_kind"] = npc_kind
+	dialogue_requested.emit(request)
 
 func _draw() -> void:
 	draw_circle(Vector2(0, -39), 8.5, Color("d7bf91"))

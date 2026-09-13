@@ -28,6 +28,7 @@ func _run() -> void:
 	root.add_child(overlay)
 	await process_frame
 	_check(overlay.next_button.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET, "dialogue advance/close button meets the mobile touch target floor")
+	_check(overlay.market_sell_button.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET, "merchant sale button meets the same mobile touch target floor")
 	var content_rect := SliceMobileLayout.content_rect(overlay.get_viewport_rect().size)
 	var panel_rect := Rect2(overlay.dialogue_panel.position, overlay.dialogue_panel.size)
 	_check(content_rect.encloses(panel_rect), "dialogue panel stays inside the safe interactive content rect")
