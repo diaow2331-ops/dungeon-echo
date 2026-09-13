@@ -1,7 +1,7 @@
 extends SceneTree
 
 var failed := false
-const TEMP_PATH := "user://wildforge-godot-v021-test.json"
+const TEMP_PATH := "user://wildforge-godot-v022-test.json"
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -18,6 +18,25 @@ func _new_main() -> Node:
 	var main := packed.instantiate()
 	root.add_child(main)
 	return main
+
+func _generation3_claims(raw: Dictionary) -> Dictionary:
+	var regions: Array = []
+	var cells: Array = []
+	for row in raw.get("regions", []):
+		if row is Array and String(row[6]) not in SliceWorld.GENERATION4_NEW_SETTLEMENT_IDS:
+			regions.append((row as Array).duplicate())
+	for row in raw.get("cells", []):
+		if not row is Array:
+			continue
+		var structure_id := String(row[4])
+		var is_new := false
+		for sid in SliceWorld.GENERATION4_NEW_SETTLEMENT_IDS:
+			if structure_id.begins_with(String(sid) + ":"):
+				is_new = true
+		if not is_new:
+			cells.append((row as Array).duplicate())
+	return {"regions": regions, "cells": cells}
+
 
 func _run() -> void:
 	for suffix in ["", ".tmp", ".bak"]:
@@ -130,14 +149,43 @@ func _run() -> void:
 	var recovered_player := recovered.get_node("Player") as SlicePlayer
 	_check(recovered_player.equipped_pick_id == "delver_pick" and recovered_player.item_count("ancient_core") >= 1, "backup recovery preserves real progression authority")
 
-	var legacy_v20 := snap.duplicate(true)
+	var legacy_v21 := snap.duplicate(true)
+	legacy_v21["version"] = SliceSaveSystem.LEGACY_FACTION_SAVE_VERSION
+	legacy_v21["world_generation"] = SliceWorld.SETTLEMENT_WORLD_GENERATION_VERSION
+	legacy_v21["settlements"] = [
+		(legacy_v21["settlements"] as Array).filter(func(row): return String((row as Dictionary).get("id", "")) == "verdant_mossbridge")[0]
+	]
+	legacy_v21["ownership_claims"] = _generation3_claims(legacy_v21["ownership_claims"] as Dictionary)
+	var mossbridge_damage_cell: Vector2i = (recovered.get_node("World") as SliceWorld).structure_authority.cells_for("verdant_mossbridge:warehouse")[0]
+	var legacy_overrides: Array = (legacy_v21["world_overrides"] as Array).duplicate(true)
+	legacy_overrides.append([mossbridge_damage_cell.x, mossbridge_damage_cell.y, SliceWorld.AIR])
+	legacy_v21["world_overrides"] = legacy_overrides
+	_check(SliceSaveSystem.validate_legacy_faction_snapshot(legacy_v21), "v21 faction snapshot remains a recognized generation-3 migration source")
+	var legacy21_restored := _new_main()
+	await process_frame
+	await process_frame
+	_check(SliceSaveSystem.apply_snapshot(legacy21_restored, legacy_v21), "v21 faction snapshot migrates into schema 22 generation 4")
+	var legacy21_world := legacy21_restored.get_node("World") as SliceWorld
+	var legacy21_player := legacy21_restored.get_node("Player") as SlicePlayer
+	var saved_mossbridge: Dictionary = (legacy_v21["settlements"] as Array)[0]
+	_check(legacy21_world.settlement_authority.ids().size() == 3, "v21 migration adds the two new physical settlements")
+	_check(legacy21_player.forge_marks == int(legacy_v21["player"]["marks"]), "v21 migration preserves player Forge Marks exactly")
+	_check(legacy21_world.settlement_authority.treasury("verdant_mossbridge") == int(saved_mossbridge["treasury"]), "v21 migration preserves Mossbridge treasury exactly")
+	_check(legacy21_world.settlement_authority.item_count("verdant_mossbridge", "raw_meat") == int((saved_mossbridge["inventory"] as Dictionary).get("raw_meat", 0)), "v21 migration preserves Mossbridge inventory exactly")
+	_check(legacy21_world.clock.snapshot() == legacy_v21["world_clock"], "v21 migration preserves the authoritative world clock exactly")
+	_check(legacy21_world.faction_authority.export_state() == legacy_v21["factions"], "v21 migration preserves political authority exactly")
+	_check(legacy21_world.tile_at(mossbridge_damage_cell) == SliceWorld.AIR, "v21 migration preserves player-authored Mossbridge structure damage")
+	_check(legacy21_world.settlement_authority.owner_id("frost_frostmirror") == "frost" and legacy21_world.settlement_authority.owner_id("ember_cinder_ridge") == "ember", "v21 migration installs ownership only for the two new settlements")
+	legacy21_restored.free()
+
+	var legacy_v20 := legacy_v21.duplicate(true)
 	legacy_v20["version"] = SliceSaveSystem.LEGACY_SETTLEMENT_SAVE_VERSION
 	legacy_v20.erase("factions")
 	_check(SliceSaveSystem.validate_legacy_settlement_snapshot(legacy_v20), "v20 settlement snapshot remains a recognized current-generation migration source")
 	var legacy20_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy20_restored, legacy_v20), "v20 settlement snapshot migrates into the v21 faction runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy20_restored, legacy_v20), "v20 settlement snapshot migrates into the v22 three-settlement runtime")
 	var legacy20_world := legacy20_restored.get_node("World") as SliceWorld
 	var legacy20_player := legacy20_restored.get_node("Player") as SlicePlayer
 	var legacy20_settlement_id := legacy20_world.settlement_authority.ids()[0]
@@ -159,11 +207,11 @@ func _run() -> void:
 	var legacy19_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy19_restored, legacy_v19), "v19 traveler snapshot migrates into the v21 faction runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy19_restored, legacy_v19), "v19 traveler snapshot migrates into the v22 three-settlement runtime")
 	var legacy19_world := legacy19_restored.get_node("World") as SliceWorld
 	var legacy19_player := legacy19_restored.get_node("Player") as SlicePlayer
 	_check(legacy19_world.clock.day_index == int(legacy_v19["world_clock"]["day"]), "v19 migration preserves the authoritative traveler clock")
-	_check(legacy19_world.settlement_authority.ids().size() == 1, "v19 migration installs the deterministic first settlement")
+	_check(legacy19_world.settlement_authority.ids().size() == 3, "v19 migration installs the deterministic three-settlement baseline")
 	_check(legacy19_player.forge_marks == 0, "v19 migration never invents settlement currency")
 	legacy19_restored.free()
 
@@ -175,11 +223,11 @@ func _run() -> void:
 	var legacy18_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy18_restored, legacy_v18), "v18 seeded snapshot migrates into the v21 faction runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy18_restored, legacy_v18), "v18 seeded snapshot migrates into the v22 three-settlement runtime")
 	var legacy18_world := legacy18_restored.get_node("World") as SliceWorld
 	var legacy18_player := legacy18_restored.get_node("Player") as SlicePlayer
 	_check(legacy18_world.clock.day_index == 0 and absf(legacy18_world.clock.time_of_day - SliceWorldClock.DEFAULT_TIME_OF_DAY) < 0.0001, "v18 migration initializes the world clock at its deterministic default")
-	_check(legacy18_world.settlement_authority.ids().size() == 1, "v18 migration installs the deterministic first settlement")
+	_check(legacy18_world.settlement_authority.ids().size() == 3, "v18 migration installs the deterministic three-settlement baseline")
 	_check(legacy18_player.equipped_axe_id.is_empty(), "v18 migration never invents an axe")
 	_check(legacy18_player.forge_marks == 0, "v18 migration never invents settlement currency")
 	legacy18_restored.free()
@@ -192,7 +240,7 @@ func _run() -> void:
 	var legacy17_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy17_restored, legacy_v17), "v17 snapshot migrates explicitly into the v21 faction runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy17_restored, legacy_v17), "v17 snapshot migrates explicitly into the v22 three-settlement runtime")
 	var legacy17_world := legacy17_restored.get_node("World") as SliceWorld
 	var legacy17_authority := legacy17_restored.actor_authority as SliceWorldActorAuthority
 	_check(legacy17_world.world_seed == SliceWorld.DEFAULT_WORLD_SEED, "v17 migration assigns only the historical default seed")
@@ -207,7 +255,7 @@ func _run() -> void:
 	var legacy16_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy16_restored, legacy_v16), "v16 snapshot migrates into the v21 runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy16_restored, legacy_v16), "v16 snapshot migrates into the v22 runtime")
 	var legacy16_authority := legacy16_restored.actor_authority as SliceWorldActorAuthority
 	_check((legacy16_authority.vegetation_delta()["removed"] as Array).size() == 1, "v16 migration applies only the historical three-tree presence contract")
 	_check(legacy16_authority.descriptor_count(SliceWorldActorAuthority.KIND_TREE) > 3, "v16 migration preserves newly generated distant forest baseline")
@@ -220,7 +268,7 @@ func _run() -> void:
 	var legacy_restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(legacy_restored, legacy_snap), "v15 snapshot migrates into the v21 runtime")
+	_check(SliceSaveSystem.apply_snapshot(legacy_restored, legacy_snap), "v15 snapshot migrates into the v22 runtime")
 	var legacy_world := legacy_restored.get_node("World") as SliceWorld
 	_check(legacy_world.fluid_authority.cells.is_empty(), "v15 migration initializes fluid authority without inventing persisted liquid")
 	legacy_restored.free()

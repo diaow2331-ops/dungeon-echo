@@ -5,6 +5,8 @@ const DEFAULT_SEED := 730241
 const SURFACE_BASE := 17
 const SURFACE_AMPLITUDE := 5
 const CAVE_MIN_DEPTH := 11
+const BIOME_BOUNDARY := 170.0
+const BIOME_WARP := 32.0
 
 var seed: int
 var surface_noise := FastNoiseLite.new()
@@ -33,10 +35,10 @@ func surface_y_at(x: int) -> int:
 	return SURFACE_BASE + roundi(broad * float(SURFACE_AMPLITUDE) + ridge * 1.6)
 
 func biome_at(x: int) -> String:
-	var value := biome_noise.get_noise_1d(float(x))
-	if value < -0.24:
+	var warped_x := float(x) + biome_noise.get_noise_1d(float(x)) * BIOME_WARP
+	if warped_x < -BIOME_BOUNDARY:
 		return "frostglass"
-	if value > 0.28:
+	if warped_x > BIOME_BOUNDARY:
 		return "ember_wastes"
 	return "verdant_reach"
 

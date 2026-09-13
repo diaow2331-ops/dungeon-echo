@@ -26,7 +26,7 @@ func _run() -> void:
 	var player := main.get_node("Player") as SlicePlayer
 	var settlement := world.settlement_authority as SliceSettlementAuthority
 	var actors := main.actor_authority as SliceWorldActorAuthority
-	var settlement_id := settlement.ids()[0]
+	var settlement_id := "verdant_mossbridge"
 	var market_cell := settlement.market_cell(settlement_id)
 	player.global_position = world.cell_center(market_cell) + Vector2(0, -48)
 	player.add_item("raw_meat", 1)
@@ -45,8 +45,8 @@ func _run() -> void:
 
 	var four_game_hours := SliceWorldClock.DAY_SECONDS / 6.0
 	var emitted := world.advance_world_time(four_game_hours)
-	_check(emitted == 1, "crossing four world hours emits one bounded settlement simulation event")
-	_check(world.simulation_event_count == events_before + 1, "world owns one monotonic simulation event count")
+	_check(emitted == 3, "crossing four world hours advances all three settlement authorities once")
+	_check(world.simulation_event_count == events_before + 3, "world owns one monotonic event count across the three-settlement heartbeat")
 	_check(settlement.item_count(settlement_id, "raw_meat") == stock_after_sale - 1, "unloaded settlement consumes real authoritative food stock")
 	_check(settlement.treasury(settlement_id) == mini(120, treasury_after_sale + SliceSettlementAuthority.LOCAL_MEAT_REVENUE), "local food consumption returns bounded revenue to the same treasury")
 	_check(settlement.buy_price(settlement_id, "raw_meat") >= price_after_sale, "background consumption restores shortage pressure instead of owning a second price")

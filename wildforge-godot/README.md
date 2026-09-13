@@ -209,3 +209,12 @@ The heartbeat cursor is transient and re-derived from the persisted world clock 
 Diplomacy is stored once per canonical faction pair. If a faction is annexed, reads and writes resolve through its sovereign controller, preventing hidden "vassal relation" records from drifting behind the active political relation. Controller cycles are rejected both at mutation time and at save validation. Political control of a settlement is derived from the settlement's physical owner plus this controller chain rather than copied onto the settlement.
 
 Save schema 21 persists only political facts. Schema 20 is a first-class migration source from the same world-generation version: terrain deltas, ownership claims, fluids, vegetation, settlement stock/treasury, player Forge Marks and world clock restore exactly, while the deterministic three-faction baseline is added. `tests/faction_authority_test.gd` and the schema migration gates prevent a second economy or diplomacy authority from appearing.
+## v0.22 three physical settlements
+
+World generation version 4 establishes one deterministic physical settlement for each canonical faction: Frostmirror in `frostglass`, Mossbridge in `verdant_reach`, and Cinder Ridge in `ember_wastes`. The three settlements reuse one parameterized generator; each contributes a real warehouse, market, two gates, one merchant and one guard rather than a parallel town scene or duplicated settlement codepath.
+
+The biome contract is now macro-stable: frost occupies the western frontier, verdant the central frontier, and ember the eastern frontier, with bounded noise warp at the borders. Mossbridge keeps its generation-3 anchor at x=-65 so existing physical edits remain spatially compatible. Frostmirror and Cinder Ridge are new generation-4 baseline overlays.
+
+Save schema 22 binds to world generation 4. Schema 21/20 migration preserves Mossbridge terrain deltas, economy, player Forge Marks, world clock and political facts exactly, while filtering only terrain deltas that would collide with the two newly introduced settlement footprints and adding ownership claims for those new settlements. Existing Mossbridge damage is explicitly regression-tested and must not be healed by migration.
+
+All three settlements share `SliceSettlementAuthority` and the existing world heartbeat. Their NPC identities live in `SliceWorldActorAuthority`, but chunk streaming still projects only nearby actors; adding three towns does not make six settlement NPC nodes permanent.
