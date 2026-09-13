@@ -212,7 +212,7 @@ func _run() -> void:
 	_check(SliceSaveSystem.apply_snapshot(legacy20_restored, legacy_v20), "v20 settlement snapshot migrates into the v23 biome-material runtime")
 	var legacy20_world := legacy20_restored.get_node("World") as SliceWorld
 	var legacy20_player := legacy20_restored.get_node("Player") as SlicePlayer
-	var legacy20_settlement_id := legacy20_world.settlement_authority.ids()[0]
+	var legacy20_settlement_id := "verdant_mossbridge"
 	var legacy20_saved_settlement: Dictionary = (legacy_v20["settlements"] as Array)[0]
 	_check(legacy20_player.forge_marks == int(legacy_v20["player"]["marks"]), "v20 migration preserves player settlement currency exactly")
 	_check(legacy20_world.settlement_authority.treasury(legacy20_settlement_id) == int(legacy20_saved_settlement["treasury"]), "v20 migration preserves settlement treasury exactly")
