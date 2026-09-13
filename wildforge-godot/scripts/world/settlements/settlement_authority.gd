@@ -5,7 +5,6 @@ var world
 var settlements: Dictionary = {}
 
 const LOCAL_CONSUMPTION_INTERVAL_HOURS := 4
-const LOCAL_MEAT_CONSUMPTION := 1
 const LOCAL_MEAT_REVENUE := 2
 
 func _init(owner_world) -> void:
@@ -31,6 +30,8 @@ func register_baseline(raw_settlements: Array) -> int:
 			"inventory": _clean_counts(spec.get("initial_inventory", {})),
 			"targets": _clean_counts(spec.get("targets", {})),
 			"base_prices": _clean_counts(spec.get("base_prices", {})),
+			"local_production": _clean_counts(spec.get("local_production", {})),
+			"local_consumption": _clean_counts(spec.get("local_consumption", {})),
 			"treasury": maxi(0, int(spec.get("initial_treasury", 0))),
 			"treasury_target": maxi(0, int(spec.get("initial_treasury", 0))),
 		}
@@ -80,6 +81,21 @@ func item_count(settlement_id: String, item_id: String) -> int:
 
 func treasury(settlement_id: String) -> int:
 	return maxi(0, int((settlements.get(settlement_id, {}) as Dictionary).get("treasury", 0)))
+
+func production_profile(settlement_id: String) -> Dictionary:
+	return ((settlements.get(settlement_id, {}) as Dictionary).get("local_production", {}) as Dictionary).duplicate(true)
+
+func consumption_profile(settlement_id: String) -> Dictionary:
+	return ((settlements.get(settlement_id, {}) as Dictionary).get("local_consumption", {}) as Dictionary).duplicate(true)
+
+func accepted_goods(settlement_id: String) -> Array[String]:
+	var goods: Array[String] = []
+	var row: Dictionary = settlements.get(settlement_id, {})
+	var prices: Dictionary = row.get("base_prices", {})
+	for raw_id in prices.keys():
+		goods.append(String(raw_id))
+	goods.sort()
+	return goods
 
 func buy_price(settlement_id: String, item_id: String) -> int:
 	return _buy_price_at_stock(settlement_id, item_id, item_count(settlement_id, item_id))
@@ -156,24 +172,44 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 	for settlement_id in ids():
 		var row: Dictionary = settlements[settlement_id]
 		var inventory: Dictionary = row["inventory"]
-		var available := maxi(0, int(inventory.get("raw_meat", 0)))
-		if available <= 0:
-			continue
-		var consumed := mini(LOCAL_MEAT_CONSUMPTION, available)
-		inventory["raw_meat"] = available - consumed
+		var targets: Dictionary = row["targets"]
+		var consumed: Dictionary = {}
+		var produced: Dictionary = {}
+		var total_consumed := 0
+		var consumption: Dictionary = row.get("local_consumption", {})
+		var consumption_ids: Array = consumption.keys()
+		consumption_ids.sort()
+		for raw_id in consumption_ids:
+			var item_id := String(raw_id)
+			var available := maxi(0, int(inventory.get(item_id, 0)))
+			var amount := mini(maxi(0, int(consumption[item_id])), available)
+			if amount <= 0:
+				continue
+			inventory[item_id] = available - amount
+			consumed[item_id] = amount
+			total_consumed += amount
+		var production: Dictionary = row.get("local_production", {})
+		var production_ids: Array = production.keys()
+		production_ids.sort()
+		for raw_id in production_ids:
+			var item_id := String(raw_id)
+			var current := maxi(0, int(inventory.get(item_id, 0)))
+			var target := maxi(current, int(targets.get(item_id, current)))
+			var amount := mini(maxi(0, int(production[item_id])), maxi(0, target - current))
+			if amount <= 0:
+				continue
+			inventory[item_id] = current + amount
+			produced[item_id] = amount
 		row["inventory"] = inventory
 		var treasury_before := maxi(0, int(row["treasury"]))
 		var treasury_target := maxi(treasury_before, int(row.get("treasury_target", treasury_before)))
-		var revenue := mini(LOCAL_MEAT_REVENUE * consumed, maxi(0, treasury_target - treasury_before))
+		var revenue := mini(LOCAL_MEAT_REVENUE * total_consumed, maxi(0, treasury_target - treasury_before))
 		row["treasury"] = treasury_before + revenue
 		settlements[settlement_id] = row
-		events.append({
-			"settlement_id": settlement_id,
-			"kind": "local_food_consumption",
-			"item_id": "raw_meat",
-			"quantity": consumed,
-			"treasury_revenue": revenue,
-		})
+		if not consumed.is_empty():
+			events.append({"settlement_id": settlement_id, "kind": "local_consumption", "items": consumed, "treasury_revenue": revenue})
+		if not produced.is_empty():
+			events.append({"settlement_id": settlement_id, "kind": "local_production", "items": produced})
 	return {"hour": absolute_hour, "events": events}
 
 func export_state() -> Array:

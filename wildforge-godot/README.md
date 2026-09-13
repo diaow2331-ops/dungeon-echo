@@ -226,3 +226,11 @@ World generation version 5 gives the three macro biomes distinct physical substr
 Ash, sandstone, basalt, snow and ice are formal block-registry entries with hardness, drops, placement legality and optical properties. Mining, pickups, placement, lighting and persistence therefore use the same existing world/edit authorities. The current procedural colors are placeholders only; future atlases may replace their rendering but cannot redefine their gameplay state.
 
 Save schema 23 binds to generation 5. Schema 22 is an explicit generation-4 migration source: player-authored terrain deltas are replayed over the new biome baseline, while three-settlement economy, ownership, faction politics, Forge Marks and world clock remain unchanged. Legacy schemas reject block ids that did not exist in their generation.
+
+## v0.24 geography-derived economy baseline
+
+Local supply now derives from the settlement biome rather than faction or settlement ownership: Verdant Reach replenishes wood, Frostglass replenishes snow/ice, and Ember Wastes replenishes ash/sandstone/basalt. Settlement demand remains a separate deterministic market profile. Political annexation can change sovereignty without changing geography-derived production. All production is bounded by settlement target stock and advances only through the existing world-clock heartbeat.
+
+Settlement demand is intentionally asymmetric: Frostmirror and Cinder Ridge value imported food/wood, Mossbridge values remote ice/basalt, and Cinder Ridge values imported ice. These price/target rules feed the same `SliceSettlementAuthority`; geography supplies goods, settlements demand goods, and factions do not own either table.
+
+Save schema remains 23. Durable economy state is still only settlement inventory and treasury; biome supply, settlement demand, consumption profiles, targets, and base prices are deterministic baseline rules re-derived on load. This keeps future player trade and caravans on one inventory authority.

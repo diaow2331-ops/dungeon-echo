@@ -45,8 +45,8 @@ func _run() -> void:
 
 	var four_game_hours := SliceWorldClock.DAY_SECONDS / 6.0
 	var emitted := world.advance_world_time(four_game_hours)
-	_check(emitted == 3, "crossing four world hours advances all three settlement authorities once")
-	_check(world.simulation_event_count == events_before + 3, "world owns one monotonic event count across the three-settlement heartbeat")
+	_check(emitted == 6, "crossing four world hours emits one consumption and one geography-derived production event per settlement")
+	_check(world.simulation_event_count == events_before + 6, "world owns one monotonic event count across settlement consumption and geography-derived production")
 	_check(settlement.item_count(settlement_id, "raw_meat") == stock_after_sale - 1, "unloaded settlement consumes real authoritative food stock")
 	_check(settlement.treasury(settlement_id) == mini(120, treasury_after_sale + SliceSettlementAuthority.LOCAL_MEAT_REVENUE), "local food consumption returns bounded revenue to the same treasury")
 	_check(settlement.buy_price(settlement_id, "raw_meat") >= price_after_sale, "background consumption restores shortage pressure instead of owning a second price")
