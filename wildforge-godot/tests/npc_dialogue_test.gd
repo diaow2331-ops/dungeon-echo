@@ -31,9 +31,10 @@ func _run() -> void:
 	var authority := main.actor_authority as SliceWorldActorAuthority
 	var merchant_ids := authority.actor_ids(SliceWorldActorAuthority.KIND_MERCHANT)
 	var guard_ids := authority.actor_ids(SliceWorldActorAuthority.KIND_SETTLEMENT_GUARD)
-	_check(merchant_ids.size() == 1 and guard_ids.size() == 1, "Mossbridge registers exactly one merchant and one settlement guard")
-	var merchant_id := merchant_ids[0] if not merchant_ids.is_empty() else ""
-	var guard_id := guard_ids[0] if not guard_ids.is_empty() else ""
+	_check(merchant_ids.size() == 3 and guard_ids.size() == 3, "three physical settlements register one merchant and one guard each")
+	var merchant_id := "verdant_mossbridge:merchant"
+	var guard_id := "verdant_mossbridge:guard"
+	_check(merchant_id in merchant_ids and guard_id in guard_ids, "Mossbridge keeps stable NPC identities inside the shared actor authority")
 	_check(authority.is_present(merchant_id) and authority.is_present(guard_id), "settlement NPC identities live in world actor authority")
 
 	var merchant_cell := _actor_cell(authority, merchant_id)

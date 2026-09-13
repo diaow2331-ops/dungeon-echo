@@ -214,6 +214,22 @@ func restore_state(raw) -> bool:
 		settlements[id] = row
 	return true
 
+func restore_generation3_state(raw) -> bool:
+	if not raw is Array or raw.size() != 1:
+		return false
+	var entry = raw[0]
+	if not entry is Dictionary or String(entry.get("id", "")) != "verdant_mossbridge":
+		return false
+	var treasury_value := int(entry.get("treasury", -1))
+	var inventory_raw = entry.get("inventory", {})
+	if treasury_value < 0 or not inventory_raw is Dictionary or not settlements.has("verdant_mossbridge"):
+		return false
+	var row: Dictionary = settlements["verdant_mossbridge"]
+	row["inventory"] = _clean_counts(inventory_raw)
+	row["treasury"] = treasury_value
+	settlements["verdant_mossbridge"] = row
+	return true
+
 func _clean_counts(raw) -> Dictionary:
 	var clean: Dictionary = {}
 	if not raw is Dictionary:

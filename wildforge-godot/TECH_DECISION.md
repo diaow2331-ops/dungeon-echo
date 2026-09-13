@@ -134,3 +134,10 @@ There are at most three major faction identities in one world. `SliceFactionAuth
 A diplomatic pair is stored once. Reads and writes involving an annexed faction resolve through its current sovereign controller so no shadow relation can exist behind a vassal. Annexation status may change political control without rewriting physical terrain or structure data; settlement control is derived from existing ownership plus the controller chain. Cyclic controller graphs are invalid.
 
 Political facts are persistent and therefore require schema 21. Schema-20 migration must preserve every already-authoritative physical/economic field exactly and add only the deterministic faction baseline. Future war, raid and caravan systems must mutate these same authorities rather than introduce a parallel frontier state object in Godot.
+## Three-settlement world baseline rule
+
+Each canonical faction owns one deterministic physical settlement baseline. Settlement buildings remain real world cells and structure blueprints; economy remains in `SliceSettlementAuthority`; political control remains in `SliceFactionAuthority`; physical sovereignty remains in `SliceWorldOwnershipAuthority`. A town scene, shop-local inventory or faction-owned copy of settlement state is forbidden.
+
+A world-generation change that introduces a new settlement footprint must protect the new baseline from legacy terrain deltas without erasing edits to settlements that already existed in the prior generation. For generation 3 -> 4, only Frostmirror and Cinder Ridge footprints are protected; Mossbridge deltas remain authoritative. Ownership migration follows the same rule: restore existing claims first, then add claims only for newly introduced settlements.
+
+Macro biomes are stable strategic geography, not a presentation-only random label. The west/center/east frost-verdant-ember ordering is part of generation version 4 so settlement identity, future logistics distance and faction geography share one deterministic world contract.

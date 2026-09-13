@@ -26,22 +26,31 @@ func _run() -> void:
 	var player := main.get_node("Player") as SlicePlayer
 	var authority := world.settlement_authority as SliceSettlementAuthority
 	var ids := authority.ids()
-	_check(ids.size() == 1, "golden slice generates exactly one formal settlement")
-	var settlement_id := ids[0] if not ids.is_empty() else ""
+	_check(ids.size() == 3, "world baseline contains exactly the three canonical faction settlements")
+	var settlement_id := "verdant_mossbridge"
 	var state := authority.state(settlement_id)
 	var anchor: Vector2i = state.get("anchor_cell", Vector2i.ZERO)
-	_check(anchor.x >= -72 and anchor.x <= -48, "first settlement occupies the bounded near-spawn travel band")
+	_check(anchor.x == -65, "Mossbridge keeps the generation-3 anchor for save compatibility")
 	_check(String(state.get("name", "")) == "Mossbridge", "golden settlement has stable identity")
 	_check(authority.owner_id(settlement_id) == "verdant", "settlement sovereignty resolves through ownership authority")
-	var territory: Array = (world.baseline_settlements[0] as Dictionary).get("territory", [])
-	var territory_left := int(territory[0])
-	var territory_right := territory_left + int(territory[2])
+	var expected_factions := {"verdant_mossbridge":"verdant", "frost_frostmirror":"frost", "ember_cinder_ridge":"ember"}
+	var expected_biomes := {"verdant_mossbridge":"verdant_reach", "frost_frostmirror":"frostglass", "ember_cinder_ridge":"ember_wastes"}
+	for sid in expected_factions.keys():
+		var row := authority.state(String(sid))
+		var row_anchor: Vector2i = row.get("anchor_cell", Vector2i.ZERO)
+		_check(authority.owner_id(String(sid)) == String(expected_factions[sid]), "settlement sovereignty matches founding faction: " + String(sid))
+		_check(world.biome_at(row_anchor.x) == String(expected_biomes[sid]), "settlement occupies its intended macro biome: " + String(sid))
+		_check((row.get("structures", []) as Array).size() == 4, "settlement owns one warehouse market and two gates: " + String(sid))
 	var trees_inside := 0
 	for tree_site in world.vegetation_baseline():
 		var tree_cell: Vector2i = (tree_site as Dictionary).get("cell", Vector2i.ZERO)
-		if tree_cell.x >= territory_left and tree_cell.x < territory_right:
-			trees_inside += 1
-	_check(trees_inside == 0, "natural vegetation never projects through the settlement footprint")
+		for raw_settlement in world.baseline_settlements:
+			var territory = (raw_settlement as Dictionary).get("territory", [])
+			if territory is Array and territory.size() >= 4:
+				var rect := Rect2i(int(territory[0]), int(territory[1]), int(territory[2]), int(territory[3]))
+				if rect.has_point(tree_cell):
+					trees_inside += 1
+	_check(trees_inside == 0, "natural vegetation never projects through any settlement footprint")
 	var stale_veins := 0
 	for vein_cell in world.remote_vein_cells:
 		if world.tile_at(vein_cell) not in [SliceWorld.COAL, SliceWorld.COPPER]:
@@ -88,16 +97,16 @@ func _run() -> void:
 	_check(authority.buy_price(settlement_id, "raw_meat") <= price_before, "market price responds downward as the shortage is relieved")
 
 	var snap := SliceSaveSystem.snapshot(main)
-	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "settlement economy uses current schema 21")
-	_check(int(snap.get("world_generation", 0)) == SliceWorld.WORLD_GENERATION_VERSION, "schema 21 keeps settlement generation version 3")
-	_check((snap.get("settlements", []) as Array).size() == 1, "save stores settlement economic state once")
+	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "settlement economy uses current schema 22")
+	_check(int(snap.get("world_generation", 0)) == SliceWorld.WORLD_GENERATION_VERSION, "schema 22 binds to three-settlement generation version 4")
+	_check((snap.get("settlements", []) as Array).size() == 3, "save stores one economic row for each physical settlement")
 	main.free()
 	await process_frame
 
 	var restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 21 settlement snapshot restores into a fresh world")
+	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 22 three-settlement snapshot restores into a fresh world")
 	var world2 := restored.get_node("World") as SliceWorld
 	var player2 := restored.get_node("Player") as SlicePlayer
 	var authority2 := world2.settlement_authority as SliceSettlementAuthority
@@ -117,7 +126,7 @@ func _run() -> void:
 	var migrated := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(migrated, legacy19), "v19 traveler save migrates explicitly into settlement generation 3")
+	_check(SliceSaveSystem.apply_snapshot(migrated, legacy19), "v19 traveler save migrates explicitly into generation 4")
 	var world3 := migrated.get_node("World") as SliceWorld
 	var player3 := migrated.get_node("Player") as SlicePlayer
 	var authority3 := world3.settlement_authority as SliceSettlementAuthority
@@ -128,5 +137,5 @@ func _run() -> void:
 
 	restored.free()
 	migrated.free()
-	print("wildforge_first_settlement=", "FAIL" if failed else "PASS")
+	print("wildforge_three_settlements=", "FAIL" if failed else "PASS")
 	quit(1 if failed else 0)

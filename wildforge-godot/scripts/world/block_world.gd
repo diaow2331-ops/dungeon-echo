@@ -24,7 +24,8 @@ const SettlementAuthorityScript = preload("res://scripts/world/settlements/settl
 const FactionAuthorityScript = preload("res://scripts/world/factions/faction_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
-const WORLD_GENERATION_VERSION := 3
+const WORLD_GENERATION_VERSION := 4
+const SETTLEMENT_WORLD_GENERATION_VERSION := 3
 const SEEDED_WORLD_GENERATION_VERSION := 2
 const LEGACY_WORLD_GENERATION_VERSION := 1
 const DEFAULT_WORLD_SEED := 730241
@@ -43,6 +44,7 @@ const SETTLEMENT_TIMBER := 8
 const SETTLEMENT_STONE := 9
 const NO_CELL := Vector2i(99999, 99999)
 const LEGACY_TREE_XS: Array[int] = [-5, 3, 14]
+const GENERATION4_NEW_SETTLEMENT_IDS := ["ember_cinder_ridge", "frost_frostmirror"]
 
 var world_seed := DEFAULT_WORLD_SEED
 var clock := WorldClockScript.new() as SliceWorldClock
@@ -184,8 +186,8 @@ func _generate() -> void:
 				cells[cell] = tile
 				if abs(x) > 42 and tile in [COAL, COPPER]:
 					remote_vein_cells.append(cell)
-	var first_settlement := SettlementGeneratorScript.new().generate(self)
-	baseline_settlements.append(first_settlement)
+	for settlement in SettlementGeneratorScript.new().generate_all(self):
+		baseline_settlements.append(settlement)
 	remote_vein_cells = remote_vein_cells.filter(func(cell: Vector2i): return tile_at(cell) in [COAL, COPPER])
 	for x in range(9, 14):
 		cells[Vector2i(x, surface_y_at(x) - 1)] = STONE
@@ -196,18 +198,21 @@ func _generate() -> void:
 	baseline_cells = cells.duplicate(true)
 	cell_overrides.clear()
 
-func apply_baseline_ownership() -> void:
+func apply_baseline_ownership(only_settlement_ids: Array = []) -> void:
 	if structure_authority == null:
 		return
 	for raw in baseline_settlements:
 		if not raw is Dictionary:
 			continue
 		var settlement: Dictionary = raw
+		var settlement_id := String(settlement.get("id", ""))
+		if not only_settlement_ids.is_empty() and settlement_id not in only_settlement_ids:
+			continue
 		var faction := String(settlement.get("founding_faction", ""))
 		var territory = settlement.get("territory", [])
 		if faction.is_empty() or not territory is Array or territory.size() < 4:
 			continue
-		claim_region(faction, Rect2i(int(territory[0]), int(territory[1]), int(territory[2]), int(territory[3])), "settlement_territory", String(settlement.get("id", "")))
+		claim_region(faction, Rect2i(int(territory[0]), int(territory[1]), int(territory[2]), int(territory[3])), "settlement_territory", settlement_id)
 		for structure_id in settlement.get("structures", []):
 			structure_authority.claim_structure(String(structure_id), faction, "protected_structure")
 
@@ -377,12 +382,22 @@ func restore_cell_overrides(rows: Array) -> bool:
 	_apply_overrides(restored_overrides)
 	return true
 
+func restore_generation3_overrides(rows: Array) -> bool:
+	return _restore_overrides_excluding_settlements(rows, GENERATION4_NEW_SETTLEMENT_IDS)
+
 func restore_generation2_overrides(rows: Array) -> bool:
+	return _restore_overrides_excluding_settlements(rows, [])
+
+func _restore_overrides_excluding_settlements(rows: Array, only_ids: Array) -> bool:
 	var protected_rects: Array[Rect2i] = []
 	for raw in baseline_settlements:
 		if not raw is Dictionary:
 			continue
-		var territory = (raw as Dictionary).get("territory", [])
+		var settlement: Dictionary = raw
+		var settlement_id := String(settlement.get("id", ""))
+		if not only_ids.is_empty() and settlement_id not in only_ids:
+			continue
+		var territory = settlement.get("territory", [])
 		if territory is Array and territory.size() >= 4:
 			protected_rects.append(Rect2i(int(territory[0]), int(territory[1]), int(territory[2]), int(territory[3])))
 	var migrated: Array = []
