@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "blocks": {
     "0": {
       "key": "air",
@@ -119,6 +119,66 @@
       "solid": true,
       "resource_class": "protected_structure",
       "light_absorption": 0.93,
+      "light_emission": 0.0
+    },
+    "10": {
+      "key": "ash",
+      "display_name": "Ash",
+      "hardness": 0.18,
+      "required_pick_power": 1.0,
+      "drop_item": "ash",
+      "placeable": true,
+      "solid": true,
+      "resource_class": "terrain",
+      "light_absorption": 0.84,
+      "light_emission": 0.0
+    },
+    "11": {
+      "key": "sandstone",
+      "display_name": "Sandstone",
+      "hardness": 0.36,
+      "required_pick_power": 1.0,
+      "drop_item": "sandstone",
+      "placeable": true,
+      "solid": true,
+      "resource_class": "terrain",
+      "light_absorption": 0.9,
+      "light_emission": 0.0
+    },
+    "12": {
+      "key": "basalt",
+      "display_name": "Basalt",
+      "hardness": 0.58,
+      "required_pick_power": 1.0,
+      "drop_item": "basalt",
+      "placeable": true,
+      "solid": true,
+      "resource_class": "terrain",
+      "light_absorption": 0.97,
+      "light_emission": 0.0
+    },
+    "13": {
+      "key": "snow",
+      "display_name": "Snow",
+      "hardness": 0.12,
+      "required_pick_power": 1.0,
+      "drop_item": "snow",
+      "placeable": true,
+      "solid": true,
+      "resource_class": "terrain",
+      "light_absorption": 0.7,
+      "light_emission": 0.0
+    },
+    "14": {
+      "key": "ice",
+      "display_name": "Ice",
+      "hardness": 0.3,
+      "required_pick_power": 1.0,
+      "drop_item": "ice",
+      "placeable": true,
+      "solid": true,
+      "resource_class": "terrain",
+      "light_absorption": 0.44,
       "light_emission": 0.0
     }
   }

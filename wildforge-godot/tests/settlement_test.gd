@@ -97,8 +97,8 @@ func _run() -> void:
 	_check(authority.buy_price(settlement_id, "raw_meat") <= price_before, "market price responds downward as the shortage is relieved")
 
 	var snap := SliceSaveSystem.snapshot(main)
-	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "settlement economy uses current schema 22")
-	_check(int(snap.get("world_generation", 0)) == SliceWorld.WORLD_GENERATION_VERSION, "schema 22 binds to three-settlement generation version 4")
+	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "settlement economy uses current schema 23")
+	_check(int(snap.get("world_generation", 0)) == SliceWorld.WORLD_GENERATION_VERSION, "schema 23 binds to biome-material generation version 5")
 	_check((snap.get("settlements", []) as Array).size() == 3, "save stores one economic row for each physical settlement")
 	main.free()
 	await process_frame
@@ -106,7 +106,7 @@ func _run() -> void:
 	var restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 22 three-settlement snapshot restores into a fresh world")
+	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 23 biome-material snapshot restores into a fresh world")
 	var world2 := restored.get_node("World") as SliceWorld
 	var player2 := restored.get_node("Player") as SlicePlayer
 	var authority2 := world2.settlement_authority as SliceSettlementAuthority
@@ -126,7 +126,7 @@ func _run() -> void:
 	var migrated := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(migrated, legacy19), "v19 traveler save migrates explicitly into generation 4")
+	_check(SliceSaveSystem.apply_snapshot(migrated, legacy19), "v19 traveler save migrates explicitly into generation 5")
 	var world3 := migrated.get_node("World") as SliceWorld
 	var player3 := migrated.get_node("Player") as SlicePlayer
 	var authority3 := world3.settlement_authority as SliceSettlementAuthority

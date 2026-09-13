@@ -47,17 +47,35 @@ func base_tile_at(cell: Vector2i) -> int:
 	if cell.y < surface:
 		return SliceWorld.AIR
 	var depth := cell.y - surface
+	var biome := biome_at(cell.x)
 	if depth == 0:
-		return SliceWorld.GRASS
+		return _surface_tile(biome)
 	if depth < 4:
-		return SliceWorld.DIRT
+		return _shallow_tile(biome)
 	if depth >= CAVE_MIN_DEPTH and _is_cave(cell, depth):
 		return SliceWorld.AIR
 	if depth >= 8 and copper_noise.get_noise_2d(float(cell.x), float(cell.y)) > 0.56:
 		return SliceWorld.COPPER
 	if depth >= 5 and coal_noise.get_noise_2d(float(cell.x), float(cell.y)) > 0.50:
 		return SliceWorld.COAL
-	return SliceWorld.STONE
+	return _deep_tile(biome)
+
+func _surface_tile(biome: String) -> int:
+	if biome == "frostglass":
+		return SliceWorld.SNOW
+	if biome == "ember_wastes":
+		return SliceWorld.ASH
+	return SliceWorld.GRASS
+
+func _shallow_tile(biome: String) -> int:
+	if biome == "frostglass":
+		return SliceWorld.ICE
+	if biome == "ember_wastes":
+		return SliceWorld.SANDSTONE
+	return SliceWorld.DIRT
+
+func _deep_tile(biome: String) -> int:
+	return SliceWorld.BASALT if biome == "ember_wastes" else SliceWorld.STONE
 
 func should_spawn_tree(x: int) -> bool:
 	var biome := biome_at(x)
