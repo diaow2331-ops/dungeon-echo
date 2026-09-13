@@ -14,7 +14,7 @@ Godot is promoted only if a touch-device build is materially better than the Can
 4. melee hit/knockback response;
 5. unobtrusive landscape touch controls.
 
-If the advantage is not obvious, stop further migration and retain the last proven authority boundary. The feel gate has already allowed the narrow traveler/settlement economy slice to migrate; broader faction simulation remains deferred until its own authority gates exist.
+If the advantage is not obvious, stop further migration and retain the last proven authority boundary. The feel gate has already allowed the narrow traveler/settlement economy slice to migrate. v0.21 establishes the faction political authority boundary; autonomous diplomacy drift, war, raids, caravans and annexation execution remain deferred until their own causal simulation gates exist.
 
 ## Architecture rules
 - World data is authoritative; visual/physics nodes are projections of nearby data.
@@ -127,3 +127,10 @@ A market UI is a projection, not an economy. Merchant interaction must begin fro
 World-scale simulation advances from the existing authoritative world clock, not from NPC nodes, chunk activity or a second scheduler. The runtime may keep a transient derived cursor for crossed world-hour boundaries, but durable simulation truth remains in the authorities being mutated (for example settlement inventory/treasury). Save restore must re-derive that cursor from the restored clock and must never replay historical ticks already represented by persisted authority state.
 
 A macro tick must remain valid while the corresponding settlement, caravan or faction has zero projected scene nodes. Projection load/unload therefore cannot start, stop or own economic simulation.
+## Faction political authority rule
+
+There are at most three major faction identities in one world. `SliceFactionAuthority` owns only political identity, pairwise diplomacy, lifecycle status and sovereign controller chains. It must not own settlement inventory/treasury, terrain claims, structure condition, NPC presence or duplicate settlement records.
+
+A diplomatic pair is stored once. Reads and writes involving an annexed faction resolve through its current sovereign controller so no shadow relation can exist behind a vassal. Annexation status may change political control without rewriting physical terrain or structure data; settlement control is derived from existing ownership plus the controller chain. Cyclic controller graphs are invalid.
+
+Political facts are persistent and therefore require schema 21. Schema-20 migration must preserve every already-authoritative physical/economic field exactly and add only the deterministic faction baseline. Future war, raid and caravan systems must mutate these same authorities rather than introduce a parallel frontier state object in Godot.
