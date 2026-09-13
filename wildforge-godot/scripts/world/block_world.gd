@@ -24,7 +24,8 @@ const SettlementAuthorityScript = preload("res://scripts/world/settlements/settl
 const FactionAuthorityScript = preload("res://scripts/world/factions/faction_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
-const WORLD_GENERATION_VERSION := 4
+const WORLD_GENERATION_VERSION := 5
+const THREE_SETTLEMENT_WORLD_GENERATION_VERSION := 4
 const SETTLEMENT_WORLD_GENERATION_VERSION := 3
 const SEEDED_WORLD_GENERATION_VERSION := 2
 const LEGACY_WORLD_GENERATION_VERSION := 1
@@ -42,6 +43,12 @@ const RUIN_BRICK := 6
 const SEALED_RUIN := 7
 const SETTLEMENT_TIMBER := 8
 const SETTLEMENT_STONE := 9
+const ASH := 10
+const SANDSTONE := 11
+const BASALT := 12
+const SNOW := 13
+const ICE := 14
+const MAX_BLOCK_ID := ICE
 const NO_CELL := Vector2i(99999, 99999)
 const LEGACY_TREE_XS: Array[int] = [-5, 3, 14]
 const GENERATION4_NEW_SETTLEMENT_IDS := ["ember_cinder_ridge", "frost_frostmirror"]
@@ -374,7 +381,7 @@ func restore_cell_overrides(rows: Array) -> bool:
 			return false
 		var cell := Vector2i(int(row[0]), int(row[1]))
 		var tile := int(row[2])
-		if cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y or tile < AIR or tile > SETTLEMENT_STONE:
+		if cell.x < MIN_X or cell.x > MAX_X or cell.y > MAX_Y or tile < AIR or tile > MAX_BLOCK_ID:
 			return false
 		var base_tile := int(baseline_cells.get(cell, AIR))
 		if tile != base_tile:

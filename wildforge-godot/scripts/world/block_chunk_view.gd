@@ -44,6 +44,16 @@ func _draw() -> void:
 				color = Color("333a3e")
 			elif tile == SliceWorld.COPPER:
 				color = Color("9f6047")
+			elif tile == SliceWorld.ASH:
+				color = Color("655b58")
+			elif tile == SliceWorld.SANDSTONE:
+				color = Color("a9774f")
+			elif tile == SliceWorld.BASALT:
+				color = Color("42464b")
+			elif tile == SliceWorld.SNOW:
+				color = Color("d9e4e7")
+			elif tile == SliceWorld.ICE:
+				color = Color("86b4c8")
 			elif tile == SliceWorld.RUIN_BRICK:
 				color = Color("655c70")
 			elif tile == SliceWorld.SEALED_RUIN:
@@ -63,6 +73,17 @@ func _draw() -> void:
 				draw_circle(pos + Vector2(23, 21), 3.0, Color("1d2225"))
 			elif tile == SliceWorld.COPPER:
 				draw_line(pos + Vector2(7, 22), pos + Vector2(24, 8), Color("d18661"), 4.0)
+			elif tile == SliceWorld.ASH:
+				draw_line(pos + Vector2(4, 9), pos + Vector2(27, 13), Color(0.82, 0.72, 0.68, 0.18), 1.5)
+			elif tile == SliceWorld.SANDSTONE:
+				draw_line(pos + Vector2(3, 10), pos + Vector2(29, 10), Color(0.90, 0.72, 0.52, 0.26), 1.5)
+				draw_line(pos + Vector2(3, 22), pos + Vector2(29, 22), Color(0.46, 0.30, 0.22, 0.22), 1.5)
+			elif tile == SliceWorld.BASALT:
+				draw_line(pos + Vector2(6, 25), pos + Vector2(16, 8), Color(0.75, 0.78, 0.82, 0.18), 2.0)
+			elif tile == SliceWorld.SNOW:
+				draw_rect(Rect2(pos + Vector2(1, 1), Vector2(SliceWorld.TILE_SIZE - 2, 5)), Color("f1f7f8"))
+			elif tile == SliceWorld.ICE:
+				draw_line(pos + Vector2(6, 24), pos + Vector2(25, 7), Color(0.88, 0.96, 1.0, 0.38), 2.0)
 			elif tile == SliceWorld.RUIN_BRICK:
 				draw_line(pos + Vector2(2, 16), pos + Vector2(30, 16), Color(0.78, 0.72, 0.84, 0.25), 2.0)
 			elif tile == SliceWorld.SEALED_RUIN:

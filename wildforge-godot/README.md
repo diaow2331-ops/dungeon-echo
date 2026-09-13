@@ -218,3 +218,11 @@ The biome contract is now macro-stable: frost occupies the western frontier, ver
 Save schema 22 binds to world generation 4. Schema 21/20 migration preserves Mossbridge terrain deltas, economy, player Forge Marks, world clock and political facts exactly, while filtering only terrain deltas that would collide with the two newly introduced settlement footprints and adding ownership claims for those new settlements. Existing Mossbridge damage is explicitly regression-tested and must not be healed by migration.
 
 All three settlements share `SliceSettlementAuthority` and the existing world heartbeat. Their NPC identities live in `SliceWorldActorAuthority`, but chunk streaming still projects only nearby actors; adding three towns does not make six settlement NPC nodes permanent.
+
+## v0.23 biome material authority
+
+World generation version 5 gives the three macro biomes distinct physical substrate rather than presentation-only labels. Verdant Reach keeps grass/dirt/stone; Frostglass generates snow/ice/stone; Ember Wastes generates ash/sandstone/basalt. Coal and copper remain resource overlays on those real substrates.
+
+Ash, sandstone, basalt, snow and ice are formal block-registry entries with hardness, drops, placement legality and optical properties. Mining, pickups, placement, lighting and persistence therefore use the same existing world/edit authorities. The current procedural colors are placeholders only; future atlases may replace their rendering but cannot redefine their gameplay state.
+
+Save schema 23 binds to generation 5. Schema 22 is an explicit generation-4 migration source: player-authored terrain deltas are replayed over the new biome baseline, while three-settlement economy, ownership, faction politics, Forge Marks and world clock remain unchanged. Legacy schemas reject block ids that did not exist in their generation.

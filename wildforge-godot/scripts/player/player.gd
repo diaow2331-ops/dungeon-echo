@@ -80,7 +80,7 @@ var equipped_axe_id := ""
 var equipped_weapon_id := "starter_blade"
 
 func _ready() -> void:
-	stock = {"soil": 0, "stone": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
+	stock = {"soil": 0, "stone": 0, "ash": 0, "sandstone": 0, "basalt": 0, "snow": 0, "ice": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
 	collision_layer = 2
 	collision_mask = 1
 	var shape := CapsuleShape2D.new()
@@ -259,7 +259,14 @@ func harvest_cell(cell: Vector2i) -> bool:
 	return true
 
 func tile_item_id(tile: int) -> String:
-	return "stone" if tile == SliceWorld.STONE else "soil"
+	match tile:
+		SliceWorld.STONE: return "stone"
+		SliceWorld.ASH: return "ash"
+		SliceWorld.SANDSTONE: return "sandstone"
+		SliceWorld.BASALT: return "basalt"
+		SliceWorld.SNOW: return "snow"
+		SliceWorld.ICE: return "ice"
+		_: return "soil"
 
 func add_item(item_id: String, amount := 1) -> void:
 	if amount <= 0:

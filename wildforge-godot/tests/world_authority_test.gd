@@ -20,8 +20,8 @@ func _run() -> void:
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
 	var registry := world.block_registry as SliceBlockRegistry
-	var formal_ids := [SliceWorld.AIR, SliceWorld.DIRT, SliceWorld.GRASS, SliceWorld.STONE, SliceWorld.COAL, SliceWorld.COPPER, SliceWorld.RUIN_BRICK, SliceWorld.SEALED_RUIN, SliceWorld.SETTLEMENT_TIMBER, SliceWorld.SETTLEMENT_STONE]
-	_check(registry.schema_version == 2 and formal_ids.all(func(tile: int): return registry.has(tile)), "block registry is data-driven and complete for every formal world block")
+	var formal_ids := [SliceWorld.AIR, SliceWorld.DIRT, SliceWorld.GRASS, SliceWorld.STONE, SliceWorld.COAL, SliceWorld.COPPER, SliceWorld.RUIN_BRICK, SliceWorld.SEALED_RUIN, SliceWorld.SETTLEMENT_TIMBER, SliceWorld.SETTLEMENT_STONE, SliceWorld.ASH, SliceWorld.SANDSTONE, SliceWorld.BASALT, SliceWorld.SNOW, SliceWorld.ICE]
+	_check(registry.schema_version == 3 and formal_ids.all(func(tile: int): return registry.has(tile)), "block registry is data-driven and complete for every formal world block")
 	_check(absf(registry.hardness(SliceWorld.COPPER) - 0.72) < 0.001, "registry owns canonical copper hardness")
 	_check(registry.drop_item(SliceWorld.COAL) == "coal", "registry owns block drop identity")
 	_check(not registry.is_placeable(SliceWorld.COPPER), "registry distinguishes resources from player-placeable terrain")
