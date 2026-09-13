@@ -4,6 +4,10 @@ extends RefCounted
 var world
 var settlements: Dictionary = {}
 
+const LOCAL_CONSUMPTION_INTERVAL_HOURS := 4
+const LOCAL_MEAT_CONSUMPTION := 1
+const LOCAL_MEAT_REVENUE := 2
+
 func _init(owner_world) -> void:
 	world = owner_world
 
@@ -28,6 +32,7 @@ func register_baseline(raw_settlements: Array) -> int:
 			"targets": _clean_counts(spec.get("targets", {})),
 			"base_prices": _clean_counts(spec.get("base_prices", {})),
 			"treasury": maxi(0, int(spec.get("initial_treasury", 0))),
+			"treasury_target": maxi(0, int(spec.get("initial_treasury", 0))),
 		}
 		count += 1
 	return count
@@ -143,6 +148,33 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 	settlements[settlement_id] = row
 	player.forge_marks += total
 	return {"ok": true, "item_id": item_id, "quantity": quantity, "unit_price": unit_price, "total": total}
+
+func simulate_hour(absolute_hour: int) -> Dictionary:
+	var events: Array = []
+	if absolute_hour < 0 or absolute_hour % LOCAL_CONSUMPTION_INTERVAL_HOURS != 0:
+		return {"hour": absolute_hour, "events": events}
+	for settlement_id in ids():
+		var row: Dictionary = settlements[settlement_id]
+		var inventory: Dictionary = row["inventory"]
+		var available := maxi(0, int(inventory.get("raw_meat", 0)))
+		if available <= 0:
+			continue
+		var consumed := mini(LOCAL_MEAT_CONSUMPTION, available)
+		inventory["raw_meat"] = available - consumed
+		row["inventory"] = inventory
+		var treasury_before := maxi(0, int(row["treasury"]))
+		var treasury_target := maxi(treasury_before, int(row.get("treasury_target", treasury_before)))
+		var revenue := mini(LOCAL_MEAT_REVENUE * consumed, maxi(0, treasury_target - treasury_before))
+		row["treasury"] = treasury_before + revenue
+		settlements[settlement_id] = row
+		events.append({
+			"settlement_id": settlement_id,
+			"kind": "local_food_consumption",
+			"item_id": "raw_meat",
+			"quantity": consumed,
+			"treasury_revenue": revenue,
+		})
+	return {"hour": absolute_hour, "events": events}
 
 func export_state() -> Array:
 	var rows: Array = []

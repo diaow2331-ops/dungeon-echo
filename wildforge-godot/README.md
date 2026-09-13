@@ -195,3 +195,10 @@ Save schema 20 persists settlement economy and player currency. Because Mossbrid
 Mossbridge trade is now a real in-world merchant interaction rather than a provisional context-button shortcut. The streamed merchant projection is interactable only at bounded physical range; opening that NPC reuses the existing dialogue overlay and projects a live quote from `SliceSettlementAuthority`. Selling one raw meat routes back through the same `sell_from_player` mutation, so player goods/currency and settlement stock/treasury still change atomically in one authority.
 
 The UI never owns price or inventory state. After every sale it rereads the settlement quote, so shortage relief is reflected immediately. Guards cannot expose the market surface, and mobile trade actions obey the shared safe-area/minimum-touch-target contract.
+## v0.20 world simulation heartbeat
+
+The first macro-world heartbeat is driven only by the authoritative `SliceWorldClock`. Crossing world-hour boundaries advances pure settlement data even when Mossbridge and all of its NPC projections are unloaded. No scene node, proximity manager or second timer owns settlement simulation.
+
+The initial rule is intentionally narrow: every four world hours, local residents consume one stored raw meat if available. That real stock reduction recreates shortage pressure and therefore raises the existing market quote naturally. A bounded amount of local sale revenue returns to the same settlement treasury, capped at its deterministic baseline target. The simulation mutates only `SliceSettlementAuthority`; market UI, streamed merchant nodes and chunk state remain projections.
+
+The heartbeat cursor is transient and re-derived from the persisted world clock after load, so restoring a save never replays already-applied economic ticks. Existing settlement inventory/treasury persistence remains the sole durable economy state; no save-schema bump or parallel simulation journal is introduced.
