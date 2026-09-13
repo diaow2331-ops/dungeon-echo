@@ -88,8 +88,8 @@ func _run() -> void:
 	_check(authority.buy_price(settlement_id, "raw_meat") <= price_before, "market price responds downward as the shortage is relieved")
 
 	var snap := SliceSaveSystem.snapshot(main)
-	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "settlement economy uses current schema 20")
-	_check(int(snap.get("world_generation", 0)) == SliceWorld.WORLD_GENERATION_VERSION, "schema 20 binds to settlement generation version 3")
+	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "settlement economy uses current schema 21")
+	_check(int(snap.get("world_generation", 0)) == SliceWorld.WORLD_GENERATION_VERSION, "schema 21 keeps settlement generation version 3")
 	_check((snap.get("settlements", []) as Array).size() == 1, "save stores settlement economic state once")
 	main.free()
 	await process_frame
@@ -97,7 +97,7 @@ func _run() -> void:
 	var restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 20 settlement snapshot restores into a fresh world")
+	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 21 settlement snapshot restores into a fresh world")
 	var world2 := restored.get_node("World") as SliceWorld
 	var player2 := restored.get_node("Player") as SlicePlayer
 	var authority2 := world2.settlement_authority as SliceSettlementAuthority
@@ -106,6 +106,7 @@ func _run() -> void:
 	_check(authority2.treasury(settlement_id) == treasury_before - total, "settlement treasury survives save round-trip")
 	_check(world2.structure_authority.integrity(warehouse_id) > 0.999, "repaired physical settlement remains intact after reload")
 	var legacy19 := snap.duplicate(true)
+	legacy19.erase("factions")
 	legacy19["version"] = SliceSaveSystem.LEGACY_TRAVELER_SAVE_VERSION
 	legacy19["world_generation"] = SliceWorld.SEEDED_WORLD_GENERATION_VERSION
 	legacy19.erase("settlements")

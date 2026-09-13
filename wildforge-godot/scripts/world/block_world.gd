@@ -21,6 +21,7 @@ const WorldGeneratorScript = preload("res://scripts/world/generation/world_gener
 const WorldClockScript = preload("res://scripts/world/time/world_clock.gd")
 const SettlementGeneratorScript = preload("res://scripts/world/settlements/settlement_generator.gd")
 const SettlementAuthorityScript = preload("res://scripts/world/settlements/settlement_authority.gd")
+const FactionAuthorityScript = preload("res://scripts/world/factions/faction_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 3
@@ -55,6 +56,7 @@ var fluid_registry := FluidRegistryScript.new() as SliceFluidRegistry
 var fluid_authority: SliceFluidAuthority
 var structure_authority: SliceStructureAuthority
 var settlement_authority: SliceSettlementAuthority
+var faction_authority: SliceFactionAuthority
 var fluid_tick_accumulator := 0.0
 var simulation_hour_cursor := -1
 var simulation_event_count := 0
@@ -90,6 +92,7 @@ func _ready() -> void:
 	structure_authority.register_baseline(baseline_structures)
 	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
 	settlement_authority.register_baseline(baseline_settlements)
+	faction_authority = FactionAuthorityScript.new(self) as SliceFactionAuthority
 	apply_baseline_ownership()
 	reset_simulation_cursor()
 	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
@@ -116,6 +119,7 @@ func rebuild_for_seed(new_seed: int) -> bool:
 		structure_authority.register_baseline(baseline_structures)
 	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
 	settlement_authority.register_baseline(baseline_settlements)
+	faction_authority = FactionAuthorityScript.new(self) as SliceFactionAuthority
 	apply_baseline_ownership()
 	reset_simulation_cursor()
 	if lighting_authority != null:

@@ -14,7 +14,7 @@ The Godot client only becomes authoritative if this slice is materially better o
 - Camera smoothing and lightweight hit feedback
 - Low-obstruction touch input: floating left/right sticks, one contextual place button
 
-Still deferred: full three-faction simulation, caravans, annexation, inventory depth and boss content. Persistence, the first physical settlement and its narrow economy have migrated to Godot; Canvas remains reference-only for systems not yet migrated.
+Still deferred: autonomous faction evolution, caravans, war/annexation execution, inventory depth and boss content. Persistence, the first physical settlement/economy, world heartbeat and the three-faction political authority skeleton have migrated to Godot; Canvas remains reference-only for systems not yet migrated.
 
 ## v0.02 Feel Gate
 
@@ -202,3 +202,10 @@ The first macro-world heartbeat is driven only by the authoritative `SliceWorldC
 The initial rule is intentionally narrow: every four world hours, local residents consume one stored raw meat if available. That real stock reduction recreates shortage pressure and therefore raises the existing market quote naturally. A bounded amount of local sale revenue returns to the same settlement treasury, capped at its deterministic baseline target. The simulation mutates only `SliceSettlementAuthority`; market UI, streamed merchant nodes and chunk state remain projections.
 
 The heartbeat cursor is transient and re-derived from the persisted world clock after load, so restoring a save never replays already-applied economic ticks. Existing settlement inventory/treasury persistence remains the sole durable economy state; no save-schema bump or parallel simulation journal is introduced.
+## v0.21 three-faction political authority
+
+`SliceFactionAuthority` is now the single durable authority for the world's three canonical political identities (`verdant`, `ember`, `frost`), their pairwise diplomatic relations, faction lifecycle status and annexation controller chain. The authority is hard-capped to three factions and owns no inventory, treasury, terrain, structure or NPC state. Mossbridge economy remains solely in `SliceSettlementAuthority`; physical sovereignty remains solely in `SliceWorldOwnershipAuthority`.
+
+Diplomacy is stored once per canonical faction pair. If a faction is annexed, reads and writes resolve through its sovereign controller, preventing hidden "vassal relation" records from drifting behind the active political relation. Controller cycles are rejected both at mutation time and at save validation. Political control of a settlement is derived from the settlement's physical owner plus this controller chain rather than copied onto the settlement.
+
+Save schema 21 persists only political facts. Schema 20 is a first-class migration source from the same world-generation version: terrain deltas, ownership claims, fluids, vegetation, settlement stock/treasury, player Forge Marks and world clock restore exactly, while the deterministic three-faction baseline is added. `tests/faction_authority_test.gd` and the schema migration gates prevent a second economy or diplomacy authority from appearing.
