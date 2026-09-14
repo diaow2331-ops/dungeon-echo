@@ -241,3 +241,7 @@ A fresh traveler can now complete the opening survival chain from real world res
 The compact/mobile context path now remains usable after the first workbench exists: generic plank crafting stays available, while workbench-local tool recipes still require physical proximity. Existing saves adopt the same traveler-hatchet baseline on restore; save schema remains 23 because no new durable authority is introduced.
 
 `tests/first30_start_loop_test.gd` is the release gate for the no-injected-resource opening chain. It obtains wood from deterministic trees, stone through `WorldEditAuthority`, food from a real Bramble Boar, and places the first authoritative workbench/campfire. Tests may no longer prove onboarding solely by injecting wood or stone into player stock.
+
+## v0.26 regional goods at physical markets
+
+All three merchants now expose their settlement authority's accepted goods through one thumb-sized goods selector and the existing sale action. Wood, ice, basalt and other accepted materials transfer from the same player stock into the same settlement inventory, using a fresh authoritative quote at execution time. Shortage feedback explains local demand, selection survives a sale, and unsupported goods, insufficient stock/treasury and remote transactions remain rejected. No new inventory, pricing state or save schema is introduced (schema 23).

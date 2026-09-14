@@ -160,3 +160,7 @@ Persistent saves store economic facts only. Biome supply, settlement targets, ba
 Onboarding must use the same resource, crafting, station, combat and save authorities as the rest of the game. A new traveler may own baseline role equipment, but must not receive injected wood, stone, currency or fabricated tutorial goods. The current baseline is one ordinary travel hatchet, no pick, and zero building resources.
 
 The first mining tool is the wood pick crafted at a real workbench from harvested wood. It grants exactly the minimum 1.0 pick power needed to enter normal terrain mining; stone, campfire construction and later tools then continue through the existing block registry and crafting authority. Tutorial-only resource nodes, tutorial inventories, or a second starter progression state are forbidden.
+
+## Multi-good market presentation rule
+
+The merchant selector lists only SettlementAuthority.accepted_goods. UI quotes are projections, never transaction authority: each sale revalidates physical range, item, quantity, player stock and treasury through sell_from_player. Selected goods are ephemeral presentation state and never enter saves. Regional resource art remains a future renderer over the existing item/world identities.
