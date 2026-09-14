@@ -419,8 +419,6 @@ func context_label() -> String:
 			return "镐"
 		if can_craft("stone_blade"):
 			return "刃"
-	if can_craft("plank"):
-		return "制"
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return "火"
@@ -432,6 +430,8 @@ func context_label() -> String:
 		return "烤"
 	if hunger < 65.0 and not food.is_empty():
 		return "食"
+	if can_craft("plank"):
+		return "制"
 	return "置"
 
 func context_action() -> bool:
@@ -456,8 +456,6 @@ func context_action() -> bool:
 			return craft("wood_pick")
 		if can_craft("stone_blade"):
 			return craft("stone_blade")
-	if can_craft("plank"):
-		return craft("plank")
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return place_campfire_once()
@@ -469,6 +467,8 @@ func context_action() -> bool:
 		return craft("trail_ration")
 	if hunger < 65.0 and not food.is_empty():
 		return eat_item(food)
+	if can_craft("plank"):
+		return craft("plank")
 	place_once()
 	return true
 

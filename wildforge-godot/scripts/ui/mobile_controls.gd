@@ -3,6 +3,10 @@ class_name SliceTouchControls
 
 const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
 
+const TOWN_LABELS := {"verdant_mossbridge": "苔桥镇", "frost_frostmirror": "霜镜站", "ember_cinder_ridge": "烬脊营"}
+
+# One optional UI waypoint; never a delivery quest or durable world fact.
+var travel_destination_id := ""
 var player: SlicePlayer
 var move_id := -1
 var aim_id := -1
@@ -57,7 +61,7 @@ func _apply_safe_layout() -> void:
 	if hint_label != null:
 		hint_label.anchor_left = 0.0
 		hint_label.anchor_right = 0.0
-		hint_label.position = Vector2(rect.position.x, rect.position.y)
+		hint_label.position = Vector2(rect.position.x, rect.position.y + 28.0)
 		hint_label.size = Vector2(rect.size.x, 28.0)
 
 func _process(_delta: float) -> void:
@@ -69,7 +73,49 @@ func _process(_delta: float) -> void:
 		var market := player.nearby_market_id()
 		var market_note := " · 市场" if not market.is_empty() else ""
 		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s · v0.26" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
+		hint_label.text = _journey_hint()
 	queue_redraw()
+
+func _journey_hint() -> String:
+	if player == null or player.world == null:
+		return "左侧移动/上推跳跃 · 右侧瞄准战斗"
+	if player.hunger <= 25.0:
+		return "先补充食物，再赶路 · 中央互动键可进食" if not player.preferred_food_id().is_empty() else "饥饿了：猎取食物，带回营火烹饪"
+	var economy := player.world.settlement_authority as SliceSettlementAuthority
+	if not travel_destination_id.is_empty() and economy != null and economy.has(travel_destination_id):
+		if player.nearby_market_id() == travel_destination_id:
+			travel_destination_id = ""
+			return "已到集市 · 靠近商人，出售货物前查看最新报价"
+		return _destination_hint(economy, travel_destination_id)
+	if player.equipped_pick_id.is_empty():
+		if player.world.near_workbench(player.global_position):
+			return "在工作台旁制作木镐 · 中央互动键"
+		if player.item_count("workbench") > 0:
+			return "找一块平地放下工作台 · 中央互动键"
+		return "砍树取得木材 → 制作木板和工作台 · 中央互动键"
+	if not player.world.has_campfire():
+		return "先建营火：采集 6 块石头和 2 份木材 · 中央互动键制作与放置"
+	if not player.nearby_market_id().is_empty():
+		return "靠近商人交易 · 买当地货物，查看远方短缺与商路线索"
+	if economy != null:
+		var nearest := ""
+		var distance := INF
+		for town in economy.ids():
+			var candidate: float = player.global_position.distance_squared_to(player.world.cell_center(economy.market_cell(town)))
+			if candidate < distance:
+				distance = candidate
+				nearest = town
+		if not nearest.is_empty():
+			return _destination_hint(economy, nearest)
+	return "出发前准备食物 · 探索不同地区的资源和集市"
+
+func _destination_hint(economy: SliceSettlementAuthority, town: String) -> String:
+	var center: Vector2 = player.world.cell_center(economy.market_cell(town))
+	var dx := center.x - player.global_position.x
+	var cells := int(ceil(absf(dx) / float(SliceWorld.TILE_SIZE)))
+	if cells <= 3:
+		return "%s就在附近 · 找到集市商人" % String(TOWN_LABELS.get(town, "集市"))
+	return "%s %s · 约 %d 格 · 留足返程食物" % ["→" if dx > 0 else "←", String(TOWN_LABELS.get(town, "集市")), cells]
 
 func set_interaction_blocked(blocked: bool) -> void:
 	interaction_blocked = blocked

@@ -245,3 +245,13 @@ The compact/mobile context path now remains usable after the first workbench exi
 ## v0.26 regional goods at physical markets
 
 All three merchants now expose their settlement authority's accepted goods through one thumb-sized goods selector and the existing sale action. Wood, ice, basalt and other accepted materials transfer from the same player stock into the same settlement inventory, using a fresh authoritative quote at execution time. Shortage feedback explains local demand, selection survives a sale, and unsupported goods, insufficient stock/treasury and remote transactions remain rejected. No new inventory, pricing state or save schema is introduced (schema 23).
+
+### v0.26 continued implementation — integration handoff
+
+- Two-way stock-backed trade: player purchases debit settlement stock and player money, crediting the same settlement treasury. Retail quotes price each withdrawal with a 25% spread above marginal buyback price; 1/5-unit UI batches use fresh execution quotes. No task cargo or additional durable inventory.
+- Read-only export leads compare current source cost with other towns' funded sale quotes. Optional destination marking feeds a transient HUD waypoint with direction/distance; arrival and world reset clear it. Prices are explicitly provisional.
+- Opening/travel hints derive from equipment, stock, station presence, hunger and actual market coordinates. Hint text occupies a separate HUD row.
+- Context action priority now reserves available wood for campfire, cooking and smelting before generic plank crafting. Label and action order match.
+- Regional merchant dialogue describes local goods and imports. NPC touch areas are 56x64; nearby interaction prompts and bounded stall crates project live inventory only.
+
+Validation boundary: the earlier sell-only commit passed 40 gates. The subsequent purchase/navigation/context/NPC work has editor compilation checks only; integration owner should run the full suite, exercise buy/sell conservation and same-market round trips, check bulk boundaries/save reload, and review mobile layout before merging. PR/merge/release are intentionally delegated per the user's instruction. Current branch: `feat/wildforge-multi-good-market-v026`.

@@ -62,6 +62,9 @@ func _ready() -> void:
 	dialogue_overlay.closed.connect(_close_dialogue)
 	dialogue_overlay.market_sell_requested.connect(_sell_to_active_merchant)
 	dialogue_overlay.market_item_selected.connect(_select_market_item)
+	dialogue_overlay.market_quantity_selected.connect(_select_market_quantity)
+	dialogue_overlay.market_buy_requested.connect(_buy_from_active_merchant)
+	dialogue_overlay.market_route_requested.connect(_mark_market_route)
 	ui_layer.add_child(dialogue_overlay)
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
@@ -73,6 +76,8 @@ func reconfigure_world_seed(new_seed: int) -> bool:
 		dialogue_overlay.close_dialogue()
 	if world.world_seed == new_seed:
 		return true
+	if touch_controls != null:
+		touch_controls.travel_destination_id = ""
 	actor_authority.clear_world_baseline()
 	for group_name in ["enemies", "workbenches", "campfires", "pickups"]:
 		for node in get_tree().get_nodes_in_group(group_name):
@@ -109,37 +114,74 @@ func _close_dialogue() -> void:
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(false)
 
-func _market_view(settlement_id: String, selected_item := "raw_meat") -> Dictionary:
+func _market_view(settlement_id: String, selected_item := "raw_meat", quantity := 1) -> Dictionary:
 	if settlement_id.is_empty() or world == null or player == null or world.settlement_authority == null:
 		return {}
 	var goods: Array[String] = world.settlement_authority.accepted_goods(settlement_id)
 	if goods.is_empty():
 		return {}
 	var item_id: String = selected_item if selected_item in goods else goods[0]
-	var quote: Dictionary = world.settlement_authority.sale_quote(settlement_id, item_id, 1)
+	var quote: Dictionary = world.settlement_authority.sale_quote(settlement_id, item_id, quantity)
 	quote["enabled"] = true
 	quote["goods"] = goods
 	quote["player_count"] = player.item_count(item_id)
+	quote["player_marks"] = player.forge_marks
+	quote["purchase"] = world.settlement_authority.purchase_quote(settlement_id, item_id, quantity)
+	quote["opportunity"] = world.settlement_authority.export_opportunity(settlement_id, item_id, quantity)
 	return quote
 
 func _select_market_item(item_id: String) -> void:
 	if dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty():
 		return
-	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id))
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, int(dialogue_overlay.active_market.get("quantity", 1))))
+
+func _mark_market_route() -> void:
+	if dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty() or touch_controls == null:
+		return
+	var item_id := String(dialogue_overlay.active_market.get("item_id", ""))
+	var quantity := int(dialogue_overlay.active_market.get("quantity", 1))
+	var lead: Dictionary = world.settlement_authority.export_opportunity(active_merchant_settlement, item_id, quantity)
+	if lead.is_empty():
+		dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity), "行情已变化，请重新查看。")
+		return
+	touch_controls.travel_destination_id = String(lead["destination_id"])
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity), "目的地已标记，离开集市后可查看方向。")
+
+func _select_market_quantity(quantity: int) -> void:
+	if quantity not in [1, 5] or dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty():
+		return
+	var item_id := String(dialogue_overlay.active_market.get("item_id", "raw_meat"))
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity))
+
+func _buy_from_active_merchant(settlement_id: String, item_id: String, quantity: int) -> void:
+	if dialogue_overlay == null or not dialogue_overlay.visible or player == null or world == null:
+		return
+	if settlement_id.is_empty() or settlement_id != active_merchant_settlement or item_id not in world.settlement_authority.accepted_goods(settlement_id) or quantity not in [1, 5]:
+		dialogue_overlay.update_market(_market_view(active_merchant_settlement), "这笔交易无效。")
+		return
+	var trade: Dictionary = world.settlement_authority.buy_to_player(player, settlement_id, item_id, quantity)
+	var feedback := ""
+	if bool(trade.get("ok", false)):
+		world.feedback_burst(player.global_position + Vector2(0, -24), Color("dfc36f"), 6, 55.0)
+		feedback = "购入 %d 份 · -%d◆" % [quantity, int(trade.get("total", 0))]
+	else:
+		var messages := {"not_at_market": "请靠近商人后再交易。", "stock_short": "这批货已不足，请减少数量或稍后再来。", "marks_short": "钱币不足，可以先出售手头的货物。"}
+		feedback = String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。"))
+	dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), feedback)
 
 func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: int) -> void:
 	if dialogue_overlay == null or not dialogue_overlay.visible or player == null or world == null:
 		return
-	if settlement_id.is_empty() or settlement_id != active_merchant_settlement or item_id not in world.settlement_authority.accepted_goods(settlement_id) or quantity != 1:
+	if settlement_id.is_empty() or settlement_id != active_merchant_settlement or item_id not in world.settlement_authority.accepted_goods(settlement_id) or quantity not in [1, 5]:
 		dialogue_overlay.update_market(_market_view(active_merchant_settlement), "这笔交易无效。")
 		return
 	var trade: Dictionary = world.settlement_authority.sell_from_player(player, settlement_id, item_id, quantity)
 	if bool(trade.get("ok", false)):
 		world.feedback_burst(player.global_position + Vector2(0, -24), Color("dfc36f"), 6, 55.0)
-		dialogue_overlay.update_market(_market_view(settlement_id, item_id), "成交：+%d◆" % int(trade.get("total", 0)))
+		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), "成交：+%d◆" % int(trade.get("total", 0)))
 	else:
 		var messages := {"not_at_market": "请靠近商人后再交易。", "insufficient_goods": "携带的货物不足。", "treasury_short": "城库暂不足，请稍后再来。", "not_bought_here": "这里不收购这种货物。"}
-		dialogue_overlay.update_market(_market_view(settlement_id, item_id), String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。")))
+		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。")))
 
 func _process(delta: float) -> void:
 	if SaveScript.is_test_run() or world == null or player == null:

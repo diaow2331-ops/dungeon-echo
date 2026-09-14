@@ -115,7 +115,7 @@ func _buy_price_at_stock(settlement_id: String, item_id: String, stock: int) -> 
 	return maxi(1, int(round(float(base) * factor)))
 
 func sale_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
-	if not settlements.has(settlement_id) or quantity <= 0:
+	if not settlements.has(settlement_id) or quantity <= 0 or quantity > 99:
 		return {"ok": false, "reason": "invalid_trade"}
 	var starting_stock := item_count(settlement_id, item_id)
 	var unit_price := buy_price(settlement_id, item_id)
@@ -164,6 +164,66 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 	settlements[settlement_id] = row
 	player.forge_marks += total
 	return {"ok": true, "item_id": item_id, "quantity": quantity, "unit_price": unit_price, "total": total}
+
+# Retail is priced after each withdrawal. Buying then selling to the same
+# stock level therefore always loses the spread, including bulk trades.
+func purchase_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
+	if not settlements.has(settlement_id) or quantity <= 0 or quantity > 99:
+		return {"ok": false, "reason": "invalid_trade"}
+	if item_id not in accepted_goods(settlement_id):
+		return {"ok": false, "reason": "not_sold_here"}
+	var stock := item_count(settlement_id, item_id)
+	var total := 0
+	for offset in range(quantity):
+		total += maxi(1, int(ceil(float(_buy_price_at_stock(settlement_id, item_id, maxi(0, stock - offset - 1))) * 1.25)))
+	return {"ok": true, "settlement_id": settlement_id, "item_id": item_id,
+		"quantity": quantity, "stock": stock, "available": stock >= quantity,
+		"total": total}
+
+func buy_to_player(player, settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
+	if player == null or not settlements.has(settlement_id):
+		return {"ok": false, "reason": "invalid_trade"}
+	if nearby_market(player.global_position) != settlement_id:
+		return {"ok": false, "reason": "not_at_market"}
+	var quote := purchase_quote(settlement_id, item_id, quantity)
+	if not bool(quote.get("ok", false)):
+		return quote
+	if not bool(quote.get("available", false)):
+		return {"ok": false, "reason": "stock_short"}
+	var total := int(quote["total"])
+	if player.forge_marks < total:
+		return {"ok": false, "reason": "marks_short"}
+	var row: Dictionary = settlements[settlement_id]
+	var inventory: Dictionary = row["inventory"]
+	inventory[item_id] = int(inventory[item_id]) - quantity
+	row["inventory"] = inventory
+	row["treasury"] = int(row["treasury"]) + total
+	settlements[settlement_id] = row
+	player.forge_marks -= total
+	player.add_item(item_id, quantity)
+	return {"ok": true, "item_id": item_id, "quantity": quantity, "total": total}
+
+# A read-only market lead, not a delivery contract or guaranteed reward.
+func export_opportunity(origin_id: String, item_id: String, quantity := 1) -> Dictionary:
+	var purchase := purchase_quote(origin_id, item_id, quantity)
+	if not bool(purchase.get("ok", false)) or not bool(purchase.get("available", false)):
+		return {}
+	var best: Dictionary = {}
+	var best_profit := 0
+	for destination_id in ids():
+		if destination_id == origin_id:
+			continue
+		var sale := sale_quote(destination_id, item_id, quantity)
+		if not bool(sale.get("ok", false)) or not bool(sale.get("affordable", false)):
+			continue
+		var profit := int(sale["total"]) - int(purchase["total"])
+		if profit > best_profit:
+			best_profit = profit
+			best = {"destination_id": destination_id, "profit": profit,
+				"sale_total": int(sale["total"]), "quantity": quantity,
+				"distance_cells": absi(market_cell(destination_id).x - market_cell(origin_id).x),
+				"east": market_cell(destination_id).x > market_cell(origin_id).x}
+	return best
 
 func simulate_hour(absolute_hour: int) -> Dictionary:
 	var events: Array = []

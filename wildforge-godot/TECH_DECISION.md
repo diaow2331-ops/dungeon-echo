@@ -164,3 +164,5 @@ The first mining tool is the wood pick crafted at a real workbench from harveste
 ## Multi-good market presentation rule
 
 The merchant selector lists only SettlementAuthority.accepted_goods. UI quotes are projections, never transaction authority: each sale revalidates physical range, item, quantity, player stock and treasury through sell_from_player. Selected goods are ephemeral presentation state and never enter saves. Regional resource art remains a future renderer over the existing item/world identities.
+
+Retail purchase and route hints follow the same ownership rule: purchase_quote/buy_to_player mutate only existing player stock/currency and settlement inventory/treasury. The spread is calculated from post-withdrawal stock to prevent profitable same-town immediate reversal. Route leads are live reads, not contracts or guaranteed rewards; the UI waypoint stores only a destination id and does not enter persistence. NPC crates and HUD hints are read-only projections. Save schema remains 23.
