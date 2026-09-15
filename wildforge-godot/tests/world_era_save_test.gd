@@ -29,6 +29,13 @@ func _run() -> void:
 	var snap := SliceSaveSystem.snapshot(main)
 	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "world era introduces the current save schema")
 	_check(SliceSaveSystem.validate_snapshot(snap), "current save validates explicit world progression authority")
+	var impossible_war := snap.duplicate(true)
+	impossible_war["world_progression"] = {"era": 2, "era_entered_hour": 10, "milestones": ["survival_ready", "settlement:verdant_mossbridge", "settlement:frost_frostmirror", "cross_region_delivery"], "last_transition": {"from": 1, "to": 2, "cause": "open_roads", "hour": 10}}
+	var impossible_factions: Dictionary = impossible_war["factions"]
+	var impossible_relations: Array = impossible_factions["relations"]
+	(impossible_relations[0] as Array)[1] = -80
+	(impossible_relations[0] as Array)[2] = "war"
+	_check(not SliceSaveSystem.validate_snapshot(impossible_war), "schema rejects a pre-Warfront save containing canonical war state")
 	main.free()
 	await process_frame
 	var restored := _new_main()

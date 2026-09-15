@@ -335,7 +335,7 @@ func adjust_relation(a: String, b: String, delta: int, reason := "world_pressure
 	if world != null and world.progression_authority != null:
 		if delta < 0 and requested_score <= -35:
 			world.progression_authority.record_milestone("tension_catalyst")
-		if delta < 0 and requested_score <= RELATION_WAR_ENTER:
+		if delta < 0 and requested_score <= RELATION_WAR_ENTER and world.progression_authority.allows_tension():
 			world.progression_authority.record_milestone("war_ready_pressure")
 		if not world.progression_authority.allows_tension():
 			after_score = maxi(after_score, -34)

@@ -326,8 +326,11 @@ static func validate_snapshot(data: Dictionary) -> bool:
 		return false
 	if not _valid_faction_payload(data.get("factions", {})):
 		return false
-	if int(data.get("version", 0)) == SAVE_VERSION and not _valid_progression_payload(data.get("world_progression", null)):
-		return false
+	if int(data.get("version", 0)) == SAVE_VERSION:
+		if not _valid_progression_payload(data.get("world_progression", null)):
+			return false
+		if not _valid_progression_consistency(data):
+			return false
 	return _validate_common(data, false)
 
 static func validate_legacy_three_settlement_snapshot(data: Dictionary) -> bool:
@@ -556,6 +559,46 @@ static func _valid_progression_payload(raw) -> bool:
 	var from_era := int(transition.get("from", -1))
 	var to_era := int(transition.get("to", -1))
 	return from_era >= 0 and from_era <= to_era and to_era == era and int(transition.get("hour", -1)) >= 0 and not String(transition.get("cause", "")).is_empty()
+
+static func _valid_progression_consistency(data: Dictionary) -> bool:
+	var progression = data.get("world_progression", {})
+	if not progression is Dictionary:
+		return false
+	var era := int(progression.get("era", -1))
+	var caravans = data.get("caravans", {})
+	var displacements = data.get("displacements", {})
+	var factions = data.get("factions", {})
+	if not caravans is Dictionary or not displacements is Dictionary or not factions is Dictionary:
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_OPEN_ROADS and not (caravans.get("active", []) as Array).is_empty():
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_FRACTURE and not (caravans.get("incident_cooldowns", {}) as Dictionary).is_empty():
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_WARFRONT and not (displacements.get("active", []) as Array).is_empty():
+		return false
+	var relation_rows = factions.get("relations", [])
+	var raid_rows = factions.get("raids", [])
+	var faction_rows = factions.get("factions", [])
+	if not relation_rows is Array or not raid_rows is Array or not faction_rows is Array:
+		return false
+	for row in relation_rows:
+		if not row is Array or row.size() < 3:
+			return false
+		var score := int(row[1])
+		var stance := String(row[2])
+		if era < SliceWorldProgressionAuthority.ERA_OPEN_ROADS and stance == "trade":
+			return false
+		if era < SliceWorldProgressionAuthority.ERA_FRACTURE and score <= -35:
+			return false
+		if era < SliceWorldProgressionAuthority.ERA_WARFRONT and stance == "war":
+			return false
+	if era < SliceWorldProgressionAuthority.ERA_WARFRONT and not raid_rows.is_empty():
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_REFORGING:
+		for row in faction_rows:
+			if row is Dictionary and String((row as Dictionary).get("status", "active")) == "annexed":
+				return false
+	return true
 
 static func _validate_common(data: Dictionary, require_legacy_trees := true) -> bool:
 	var player = data.get("player", {})
