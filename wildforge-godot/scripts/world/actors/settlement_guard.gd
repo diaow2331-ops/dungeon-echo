@@ -68,6 +68,14 @@ func _guard_dialogue() -> Array:
 	var status := "peace"
 	if player != null and player.world != null and player.world.faction_authority != null:
 		status = player.world.faction_authority.conflict_status(String(payload.get("settlement_id", "")))
+	if status == "peace" and player != null and player.world != null and player.world.progression_authority != null:
+		match player.world.progression_authority.era:
+			SliceWorldProgressionAuthority.ERA_WANDERER: lines.append("这里暂时平静。你若只是路过，先学会在荒野里活下来，再谈更远的事。")
+			SliceWorldProgressionAuthority.ERA_FOOTHOLD: lines.append("镇里认得你了，但外面的路还只是路。三方之间还没到互相牵动的地步。")
+			SliceWorldProgressionAuthority.ERA_OPEN_ROADS: lines.append("商路开始把几片地方连在一起。货物走得越远，各地之间的关系也会越难彼此撇清。")
+			SliceWorldProgressionAuthority.ERA_FRACTURE: lines.append("边境上已经有人开始多看彼此一眼。现在还没开战，但路上的异常不会是无缘无故。")
+			SliceWorldProgressionAuthority.ERA_WARFRONT: lines.append("如今和平只是当前状态，不再是世界的保证。守卫、补给和商路都得为最坏的情况做准备。")
+			SliceWorldProgressionAuthority.ERA_REFORGING: lines.append("现在连一面旗帜归谁都不再是永远的。这里的土地没变，控制它的人却可能会变。")
 	match status:
 		"tense": lines.append("边境正在升温。守卫已经加强警戒，长途商路风险也在上升。")
 		"war": lines.append("战事已经开始。聚落会优先保留口粮与补给，外运物资受到限制。")
