@@ -1352,6 +1352,8 @@ func loot_warehouse(player, settlement_id: String, item_id: String, quantity: in
 		return {"ok": false, "reason": "stock_short"}
 	if not player.can_carry(item_id, quantity):
 		return {"ok": false, "reason": "overburdened"}
+	var shortage_before: String = shortage_severity(settlement_id, item_id)
+	var security_before: int = security(settlement_id)
 	var row: Dictionary = settlements[settlement_id]
 	var inventory: Dictionary = row["inventory"]
 	inventory[item_id] = int(inventory[item_id]) - quantity
@@ -1359,10 +1361,16 @@ func loot_warehouse(player, settlement_id: String, item_id: String, quantity: in
 	deficit[item_id] = int(deficit.get(item_id, 0)) + quantity
 	row["stolen_deficit"] = deficit
 	row["inventory"] = inventory
+	# Theft damages the same local security used by route risk, war pressure and
+	# displacement. Critical-stock theft hurts slightly more, but remains bounded.
+	var shortage_penalty := 2 if shortage_before == "critical" else (1 if shortage_before == "strained" else 0)
+	var security_loss := mini(6, quantity + shortage_penalty)
+	row["security"] = maxi(0, security_before - security_loss)
 	settlements[settlement_id] = row
 	player.add_item(item_id, quantity)
-	world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), quantity * 25)
-	return {"ok": true, "quantity": quantity}
+	var faction_id: String = world.faction_authority.controller_for_settlement(settlement_id)
+	var bounty: int = world.faction_authority.record_player_crime(faction_id, quantity * 25)
+	return {"ok": true, "quantity": quantity, "security_loss": security_before - security(settlement_id), "security": security(settlement_id), "bounty": bounty}
 
 func _relieve_stolen_deficit(settlement_id: String, item_id: String, amount: int) -> void:
 	var row: Dictionary = settlements[settlement_id]
