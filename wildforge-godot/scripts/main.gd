@@ -70,6 +70,7 @@ func _ready() -> void:
 	dialogue_overlay.market_buy_requested.connect(_buy_from_active_merchant)
 	dialogue_overlay.market_route_requested.connect(_mark_market_route)
 	dialogue_overlay.security_action_requested.connect(_security_action)
+	dialogue_overlay.storage_route_requested.connect(_mark_storage_route)
 	ui_layer.add_child(dialogue_overlay)
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
@@ -121,6 +122,7 @@ func _open_dialogue(payload: Dictionary) -> void:
 		presented["security_action"] = "收起空箱"
 	elif active_interaction_kind == "workbench":
 		presented["security_action"] = "制作储物箱 · 8木板 + 2石块"
+	presented["storage_routes"] = actor_authority.storage_destinations()
 	player.interaction_locked = true
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(true)
@@ -176,7 +178,7 @@ func _mark_market_route() -> void:
 	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity), "目的地已标记，离开集市后可查看方向。")
 
 func _select_market_quantity(quantity: int) -> void:
-	if quantity not in [1, 5] or dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty():
+	if quantity not in ([1, 5, 20] if active_interaction_kind == "player_storage" else [1, 5]) or dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty():
 		return
 	var item_id := String(dialogue_overlay.active_market.get("item_id", "raw_meat"))
 	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity))
@@ -340,7 +342,7 @@ func _security_action() -> void:
 		dialogue_overlay.update_market(_market_view(active_merchant_settlement), "门锁已打开，搬走物资将触发通缉。" if ok else "需要本仓库的钥匙，且必须靠近门锁。")
 
 func _start_warehouse_transfer(item_id: String, quantity: int, deposit := false) -> void:
-	if not warehouse_transfer.is_empty() or quantity not in [1, 5]:
+	if not warehouse_transfer.is_empty() or quantity not in ([1, 5, 20] if active_interaction_kind == "player_storage" else [1, 5]):
 		return
 	if not _at_storage(active_merchant_settlement) or (active_interaction_kind == "warehouse" and world.settlement_authority.warehouse_locked(active_merchant_settlement)):
 		return
@@ -393,3 +395,10 @@ func drop_death_cargo(at: Vector2) -> void:
 		dialogue_overlay.close_dialogue()
 	if actor_authority != null:
 		actor_authority.drop_player_cargo(at)
+
+
+func _mark_storage_route(actor_id: String) -> void:
+	if touch_controls == null or actor_authority.storage_position(actor_id) == Vector2.INF:
+		return
+	touch_controls.travel_destination_id = actor_id
+	dialogue_overlay.close_dialogue()

@@ -72,7 +72,7 @@ func _process(_delta: float) -> void:
 		var hour := int(floor(player.world.clock.hour_24())) if player.world != null else 0
 		var market := player.nearby_market_id()
 		var market_note := " · 市场" if not market.is_empty() else ""
-		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s · v0.27" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
+		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
 		hint_label.text = _journey_hint()
 	queue_redraw()
 
@@ -89,6 +89,22 @@ func _journey_hint() -> String:
 		return "通缉 · " + " / ".join(wanted) + " · 负重 %d/160 · 卫兵会追捕，商人拒绝交易" % int(player.carried_weight())
 	if player.hunger <= 25.0:
 		return "先补充食物，再赶路 · 中央互动键可进食" if not player.preferred_food_id().is_empty() else "饥饿了：猎取食物，带回营火烹饪"
+	var actors = player.get_parent().get("actor_authority")
+	if travel_destination_id.begins_with("player_storage:") and actors != null:
+		var target: Vector2 = actors.storage_position(travel_destination_id)
+		if target == Vector2.INF:
+			travel_destination_id = ""
+		else:
+			var offset := target - player.global_position
+			var horizontal := int(ceil(absf(offset.x) / SliceWorld.TILE_SIZE))
+			var vertical := int(ceil(absf(offset.y) / SliceWorld.TILE_SIZE))
+			if offset.length() <= 112.0:
+				return "货栈已到 · 靠近箱子存取物资，卸货后轻装出发"
+			return "货栈 %s %d格 · %s %d格 · 负重 %d/160" % ["→" if offset.x > 0 else "←", horizontal, "下方" if offset.y > 0 else "上方", vertical, int(player.carried_weight())]
+	if player.item_count("storage_box") > 0:
+		return "带着储物箱：离开营火/工作台，瞄准平地 · 中央键放置"
+	if player.carried_weight() > 80.0 and actors != null and not actors.storage_destinations().is_empty() and travel_destination_id.is_empty():
+		return "负重拖慢了脚步 · 在商人或储物箱面板选择返程货栈"
 	var economy := player.world.settlement_authority as SliceSettlementAuthority
 	if not travel_destination_id.is_empty() and economy != null and economy.has(travel_destination_id):
 		if player.nearby_market_id() == travel_destination_id:

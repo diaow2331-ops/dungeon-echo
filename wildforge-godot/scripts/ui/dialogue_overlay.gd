@@ -7,6 +7,7 @@ const GOODS_LABELS := {"storage_box": "储物箱", "raw_meat": "鲜肉", "wood":
 
 const TOWN_LABELS := {"verdant_mossbridge": "苔桥镇", "frost_frostmirror": "霜镜站", "ember_cinder_ridge": "烬脊营"}
 
+signal storage_route_requested(actor_id: String)
 signal security_action_requested
 signal market_route_requested
 signal market_buy_requested(settlement_id: String, item_id: String, quantity: int)
@@ -15,6 +16,7 @@ signal market_item_selected(item_id: String)
 signal closed
 signal market_sell_requested(settlement_id: String, item_id: String, quantity: int)
 
+var storage_route_picker: OptionButton
 var security_button: Button
 var speaker_label: Label
 var role_label: Label
@@ -120,6 +122,13 @@ func _ready() -> void:
 	security_button.visible = false
 	security_button.pressed.connect(func(): security_action_requested.emit())
 	box.add_child(security_button)
+	storage_route_picker = OptionButton.new()
+	storage_route_picker.custom_minimum_size = Vector2(240, SliceMobileLayout.MIN_TOUCH_TARGET)
+	storage_route_picker.get_popup().add_theme_constant_override("v_separation", 36)
+	storage_route_picker.item_selected.connect(func(index: int):
+		if index > 0:
+			storage_route_requested.emit(String(storage_route_picker.get_item_metadata(index))))
+	box.add_child(storage_route_picker)
 	next_button = Button.new()
 	next_button.custom_minimum_size = Vector2(148, SliceMobileLayout.MIN_TOUCH_TARGET)
 	next_button.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -142,6 +151,13 @@ func _apply_mobile_layout() -> void:
 	dialogue_panel.size = Vector2(rect.size.x, target_height)
 
 func open_dialogue(payload: Dictionary) -> void:
+	storage_route_picker.clear()
+	storage_route_picker.add_item("返回货栈 · 选择目的地")
+	for route in payload.get("storage_routes", []):
+		var index := storage_route_picker.item_count
+		storage_route_picker.add_item(String(route["label"]))
+		storage_route_picker.set_item_metadata(index, String(route["id"]))
+	storage_route_picker.visible = storage_route_picker.item_count > 1
 	security_button.text = String(payload.get("security_action", ""))
 	security_button.visible = not security_button.text.is_empty()
 	security_button.disabled = false
@@ -198,7 +214,11 @@ func update_market(market: Dictionary, feedback := "") -> void:
 		if String(good) == item_id:
 			market_item_picker.select(index)
 	var quantity := maxi(1, int(active_market.get("quantity", 1)))
-	market_quantity_picker.select(1 if quantity == 5 else 0)
+	market_quantity_picker.clear()
+	for batch in ([1, 5, 20] if bool(active_market.get("personal_storage", false)) else [1, 5]):
+		market_quantity_picker.add_item("%d 份" % int(batch), int(batch))
+		if int(batch) == quantity:
+			market_quantity_picker.select(market_quantity_picker.item_count - 1)
 	var player_count := maxi(0, int(active_market.get("player_count", 0)))
 	var stock := maxi(0, int(active_market.get("stock", 0)))
 	var target := maxi(0, int(active_market.get("target", 0)))

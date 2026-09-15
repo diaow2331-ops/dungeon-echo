@@ -280,3 +280,11 @@ Click the box nearby to deposit/withdraw 1 or 5 items. Each box holds 480 units 
 Save schema 25 persists each box's ID, position and inventory, and migrates schema 24/23 and older supported saves. Personal storage does not alter town stock, prices, crime or bounty. This is the foundation for later pack beasts and transport routes, not completion of Phase 2.
 
 Validation: Godot headless editor script compilation only. Full gameplay, mobile interaction and migration regression remain for integration; no PR merge or full test run performed.
+
+### Phase 2 continuation — return trips and bulk unloading
+
+Merchant, workbench and container panels now offer navigation back to any player-built storage box. Destinations read the existing actor inventory/location records, including unloaded chunks; packing a box invalidates its waypoint. The HUD shows horizontal and vertical direction and carrying weight, with an arrival hint. Navigation remains a temporary UI selection, not a delivery quest or additional saved world registry.
+
+Personal boxes support 1/5/20-item batches with the same real inventory and timed transfer rules. Markets, hostile warehouses and death bags retain 1/5 batches. Carried boxes only take over the context action when placement is valid and outside workbench/campfire range, preserving crafting and cooking access. Removed the stale internal version suffix from the player HUD.
+
+Editor compilation and diff whitespace check passed. No full gameplay tests or PR merges. Pack beasts and physical route risks remain the next Phase 2 implementation.

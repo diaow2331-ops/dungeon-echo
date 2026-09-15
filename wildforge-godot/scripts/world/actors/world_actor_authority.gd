@@ -711,7 +711,7 @@ func cargo_view(actor_id: String, selected_item: String, quantity: int) -> Dicti
 func recover_cargo(actor_id: String, item_id: String, quantity: int) -> Dictionary:
 	if not is_projected(actor_id) or player.global_position.distance_to(projection_for(actor_id).global_position) > 112.0:
 		return {"ok": false, "reason": "not_at_warehouse"}
-	if String(descriptors[actor_id]["kind"]) not in [KIND_LOST_CARGO, KIND_PLAYER_STORAGE] or quantity not in [1, 5]:
+	if String(descriptors[actor_id]["kind"]) not in [KIND_LOST_CARGO, KIND_PLAYER_STORAGE] or quantity not in ([1, 5, 20] if String(descriptors[actor_id]["kind"]) == KIND_PLAYER_STORAGE else [1, 5]):
 		return {"ok": false, "reason": "invalid_trade"}
 	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
 	if int(inventory.get(item_id, 0)) < quantity:
@@ -752,13 +752,18 @@ func has_container_at(cell: Vector2i) -> bool:
 			return true
 	return false
 
-func place_storage(cell: Vector2i) -> bool:
+func can_place_storage(cell: Vector2i) -> bool:
 	if player.item_count("storage_box") <= 0 or world.cell_center(cell).distance_to(player.global_position) > SlicePlayer.REACH:
 		return false
 	if world.owner_at(cell) not in ["wilderness", "player"] or has_container_at(cell):
 		return false
 	var decision: Dictionary = world.edit_authority.evaluate(world, {"action": "station", "cell": cell, "station_kind": "storage_box", "actor_id": "player"})
 	if not bool(decision.get("allowed", false)):
+		return false
+	return true
+
+func place_storage(cell: Vector2i) -> bool:
+	if not can_place_storage(cell):
 		return false
 	var serial := 0
 	while descriptors.has("player_storage:%d" % serial):
@@ -779,7 +784,7 @@ func storage_weight(actor_id: String) -> float:
 	return total
 
 func can_deposit(actor_id: String, item_id: String, quantity: int) -> bool:
-	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_PLAYER_STORAGE or quantity not in [1, 5]:
+	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_PLAYER_STORAGE or quantity not in [1, 5, 20]:
 		return false
 	# Equipped gear remains a player-owned capability; unequipped spares are storable.
 	var reserve := 1 if item_id in [player.equipped_pick_id, player.equipped_weapon_id, player.equipped_axe_id] else 0
@@ -826,3 +831,14 @@ func restore_storage(raw: Array) -> void:
 	for row in raw:
 		_register_actor(String(row["id"]), KIND_PLAYER_STORAGE, Vector2i(int(row["cell"][0]), int(row["cell"][1])), {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": "个人储物箱", "role": "营地仓储 · 容量480", "dialogue": ["存放补给、整理货物，再继续远行。"]})
 	_reconcile_current_stream()
+
+# Navigation reads durable container positions; it does not maintain a second registry.
+func storage_destinations() -> Array:
+	var entries: Array = []
+	for id in actor_ids(KIND_PLAYER_STORAGE):
+		var cell: Vector2i = descriptors[id]["cell"]
+		entries.append({"id": id, "label": "货栈 (%d, %d) · %d/480" % [cell.x, cell.y, int(storage_weight(id))]})
+	return entries
+
+func storage_position(id: String) -> Vector2:
+	return world.cell_center(descriptors[id]["cell"]) if descriptors.has(id) and String(descriptors[id]["kind"]) == KIND_PLAYER_STORAGE else Vector2.INF

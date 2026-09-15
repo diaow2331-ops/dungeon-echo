@@ -415,7 +415,7 @@ func context_label() -> String:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return "食"
-	if item_count("storage_box") > 0:
+	if _can_place_carried_storage():
 		return "箱"
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
@@ -452,7 +452,7 @@ func context_action() -> bool:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return eat_item(food)
-	if item_count("storage_box") > 0:
+	if _can_place_carried_storage():
 		var target := _placement_cell()
 		var actors = get_parent().get("actor_authority")
 		return actors != null and actors.place_storage(target)
@@ -697,3 +697,13 @@ func _draw() -> void:
 	var blade_end := hand + Vector2(facing * (22.0 + swing), 4.0 - swing * 0.42)
 	draw_line(hand, blade_end, Color("d8e2df"), 4.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _can_place_carried_storage() -> bool:
+	if world == null or item_count("storage_box") <= 0:
+		return false
+	# Camp facilities retain their crafting/food priority.
+	if world.near_workbench(global_position) or world.near_campfire(global_position):
+		return false
+	var actors = get_parent().get("actor_authority")
+	return actors != null and actors.can_place_storage(_placement_cell())
