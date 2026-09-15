@@ -22,6 +22,10 @@ const SHORTAGE_CRITICAL_RATIO := 0.25
 const SHORTAGE_LOGISTICS_SCORE := 420
 const ROUTE_REPAIR_INTERVAL_HOURS := 4
 const ROUTE_REPAIR_ACCEL_HOURS := 4
+const PLAYER_ROUTE_REPAIR_ACCEL_HOURS := 6
+const PLAYER_ROUTE_REPAIR_RADIUS := 132.0
+const PLAYER_RELIEF_SECURITY_CRITICAL := 2
+const PLAYER_RELIEF_SECURITY_STRAINED := 1
 const ROUTE_REPAIR_TREASURY_COST := 2
 const ROUTE_REPAIR_MATERIALS := ["wood", "sandstone", "basalt"]
 const RETURN_MIGRATION_INTERVAL_HOURS := 24
@@ -213,6 +217,43 @@ func urgent_shortages() -> Array:
 	)
 	return rows
 
+func relief_opportunities() -> Array:
+	# Read-only crisis leads derived from real shortages and local geography.
+	var rows: Array = []
+	for shortage_raw in urgent_shortages():
+		var shortage: Dictionary = shortage_raw
+		var settlement_id := String(shortage.get("settlement_id", ""))
+		var production := production_profile(settlement_id)
+		for good_raw in shortage.get("goods", []):
+			var good: Dictionary = good_raw
+			var item_id := String(good.get("item_id", ""))
+			if item_id.is_empty() or int(production.get(item_id, 0)) > 0:
+				continue
+			rows.append({
+				"settlement_id": settlement_id,
+				"item_id": item_id,
+				"severity": String(good.get("severity", "strained")),
+				"pressure": float(good.get("pressure", 0.0)),
+				"deficit": int(good.get("deficit", 0)),
+				"security": security(settlement_id),
+			})
+	rows.sort_custom(func(a, b):
+		var ad: Dictionary = a
+		var bd: Dictionary = b
+		var ac := 1 if String(ad.get("severity", "")) == "critical" else 0
+		var bc := 1 if String(bd.get("severity", "")) == "critical" else 0
+		if ac != bc:
+			return ac > bc
+		var ap := float(ad.get("pressure", 0.0))
+		var bp := float(bd.get("pressure", 0.0))
+		if not is_equal_approx(ap, bp):
+			return ap > bp
+		var at := String(ad.get("settlement_id", "")) + ":" + String(ad.get("item_id", ""))
+		var bt := String(bd.get("settlement_id", "")) + ":" + String(bd.get("item_id", ""))
+		return at < bt
+	)
+	return rows
+
 func buy_price(settlement_id: String, item_id: String) -> int:
 	return _buy_price_at_stock(settlement_id, item_id, item_count(settlement_id, item_id))
 
@@ -278,7 +319,10 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 		return {"ok": false, "reason": "wanted"}
 	if player.item_count(item_id) < quantity:
 		return {"ok": false, "reason": "insufficient_goods"}
-	var quote := sale_quote(settlement_id, item_id, quantity)
+	var shortage_before: String = shortage_severity(settlement_id, item_id)
+	var external_need: bool = int(production_profile(settlement_id).get(item_id, 0)) <= 0
+	var conflict_before: String = String(world.faction_authority.conflict_status(settlement_id)) if world.faction_authority != null else "peace"
+	var quote: Dictionary = sale_quote(settlement_id, item_id, quantity)
 	if not bool(quote.get("ok", false)):
 		return quote
 	if not bool(quote.get("demand_met", false)):
@@ -297,9 +341,19 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 	settlements[settlement_id] = row
 	player.forge_marks += total
 	_relieve_stolen_deficit(settlement_id, item_id, quantity)
-	if world.faction_authority != null and world.faction_authority.at_war(world.faction_authority.controller_for_settlement(settlement_id)):
-		recover_security(settlement_id, mini(quantity, 3))
-	return {"ok": true, "item_id": item_id, "quantity": quantity, "unit_price": unit_price, "total": total}
+	var security_recovered: int = 0
+	if conflict_before in ["war", "raid"]:
+		security_recovered = mini(quantity, 3)
+	elif world.progression_authority != null and world.progression_authority.allows_tension() and external_need:
+		if shortage_before == "critical":
+			security_recovered = mini(quantity, PLAYER_RELIEF_SECURITY_CRITICAL)
+		elif shortage_before == "strained":
+			security_recovered = mini(quantity, PLAYER_RELIEF_SECURITY_STRAINED)
+	if security_recovered > 0:
+		var before_security: int = security(settlement_id)
+		recover_security(settlement_id, security_recovered)
+		security_recovered = security(settlement_id) - before_security
+	return {"ok": true, "item_id": item_id, "quantity": quantity, "unit_price": unit_price, "total": total, "shortage_before": shortage_before, "external_need": external_need, "security_recovered": security_recovered}
 
 # Retail is priced after each withdrawal. Buying then selling to the same
 # stock level therefore always loses the spread, including bulk trades.
@@ -435,7 +489,7 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 		if not produced.is_empty():
 			events.append({"settlement_id": settlement_id, "kind": "local_production", "items": produced})
 		if world.faction_authority != null and not world.faction_authority.has_raid_targeting(settlement_id):
-			var before_security := security(settlement_id)
+			var before_security: int = security(settlement_id)
 			var conflict: String = world.faction_authority.conflict_status(settlement_id)
 			var recovery := 3 if conflict == "peace" else (2 if conflict == "occupied" else 1)
 			var after_security := recover_security(settlement_id, recovery)
@@ -782,6 +836,49 @@ func route_hazard_cell(pair_key: String) -> Vector2i:
 	var bx := market_cell(String(pair[1])).x
 	var x := clampi(roundi((float(ax) + float(bx)) * 0.5), SliceWorld.MIN_X + 2, SliceWorld.MAX_X - 2)
 	return Vector2i(x, world.surface_y_at(x) - 1)
+
+func nearby_route_hazard(at: Vector2, radius := PLAYER_ROUTE_REPAIR_RADIUS) -> Dictionary:
+	var best: Dictionary = {}
+	var best_distance := radius
+	for raw_hazard in active_route_hazards():
+		var hazard: Dictionary = raw_hazard
+		var cell: Vector2i = hazard.get("cell", Vector2i(99999, 99999))
+		var distance := at.distance_to(world.cell_center(cell))
+		if distance <= best_distance:
+			best_distance = distance
+			best = hazard.duplicate(true)
+	if not best.is_empty():
+		best["distance"] = best_distance
+	return best
+
+func player_route_repair(player, pair_key: String) -> Dictionary:
+	if world.progression_authority != null and not world.progression_authority.allows_route_incidents():
+		return {"ok": false, "reason": "era_locked"}
+	if player == null or not _valid_route_pair_key(pair_key):
+		return {"ok": false, "reason": "invalid_route"}
+	var now: int = int(world.absolute_world_hour())
+	var until_hour := int(caravan_incident_cooldowns.get(pair_key, 0))
+	if until_hour <= now:
+		return {"ok": false, "reason": "route_clear"}
+	var hazard_cell: Vector2i = route_hazard_cell(pair_key)
+	if player.global_position.distance_to(world.cell_center(hazard_cell)) > PLAYER_ROUTE_REPAIR_RADIUS:
+		return {"ok": false, "reason": "too_far"}
+	var material: String = ""
+	for item_id in ROUTE_REPAIR_MATERIALS:
+		if player.item_count(item_id) > 0:
+			material = item_id
+			break
+	if material.is_empty():
+		return {"ok": false, "reason": "material_short"}
+	if not player.spend_item(material, 1):
+		return {"ok": false, "reason": "material_short"}
+	var reduced: int = mini(PLAYER_ROUTE_REPAIR_ACCEL_HOURS, maxi(0, until_hour - now))
+	var after_until: int = maxi(now, until_hour - reduced)
+	if after_until <= now:
+		caravan_incident_cooldowns.erase(pair_key)
+	else:
+		caravan_incident_cooldowns[pair_key] = after_until
+	return {"ok": true, "pair_key": pair_key, "material": material, "hours_reduced": reduced, "until_hour": after_until, "cleared": after_until <= now}
 
 func _prune_route_hazards(absolute_hour: int) -> void:
 	for raw_key in caravan_incident_cooldowns.keys().duplicate():

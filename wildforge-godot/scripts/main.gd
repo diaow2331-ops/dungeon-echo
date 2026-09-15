@@ -207,6 +207,7 @@ func _market_view(settlement_id: String, selected_item := "raw_meat", quantity :
 	quote["conflict_status"] = world.faction_authority.conflict_status(settlement_id) if world.faction_authority != null else "peace"
 	quote["security"] = world.settlement_authority.security(settlement_id)
 	quote["controller"] = world.faction_authority.controller_for_settlement(settlement_id) if world.faction_authority != null else world.settlement_authority.owner_id(settlement_id)
+	quote["relief_relevant"] = world.progression_authority != null and world.progression_authority.allows_tension() and String(quote.get("shortage_severity", "stable")) != "stable" and int(world.settlement_authority.production_profile(settlement_id).get(item_id, 0)) <= 0
 	return quote
 
 func _select_market_item(item_id: String) -> void:
@@ -272,7 +273,11 @@ func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: 
 		world.feedback_burst(player.global_position + Vector2(0, -24), Color("dfc36f"), 6, 55.0)
 		if world.progression_authority != null:
 			world.progression_authority.record_player_delivery(settlement_id, item_id)
-		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), "成交：+%d◆" % int(trade.get("total", 0)))
+		var feedback := "成交：+%d◆" % int(trade.get("total", 0))
+		var security_recovered := int(trade.get("security_recovered", 0))
+		if security_recovered > 0:
+			feedback += " · 补给使当地安全 +%d" % security_recovered
+		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), feedback)
 	else:
 		var messages := {"wanted": "你已被本势力通缉，商人拒绝交易。", "demand_filled": "当前不需要这么多货物，请减少数量。", "overburdened": "负重已满，先卸下或出售部分货物。", "not_at_market": "请靠近商人后再交易。", "insufficient_goods": "携带的货物不足。", "treasury_short": "城库暂不足，请稍后再来。", "not_bought_here": "这里不收购这种货物。", "era_locked": "你刚刚抵达这里。先在聚落中站稳脚跟，市场会很快向你开放。"}
 		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。")))
