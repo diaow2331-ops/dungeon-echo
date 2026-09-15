@@ -47,6 +47,7 @@ func _run() -> void:
 	player.stock["raw_meat"] = 2
 	var locked_trade := world.settlement_authority.sell_from_player(player, "verdant_mossbridge", "raw_meat", 1)
 	_check(String(locked_trade.get("reason", "")) == "era_locked", "ordinary market transaction is gated until the player establishes a foothold")
+	_check(not world.settlement_authority.pay_for_pack_beast(player, "verdant_mossbridge"), "wealth alone cannot buy long-haul capability before Foothold")
 	progression.record_milestone("survival_ready")
 	progression.record_settlement_contact("verdant_mossbridge")
 	var first_transition := progression.simulate_hour_end(241, [])

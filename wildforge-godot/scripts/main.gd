@@ -131,7 +131,7 @@ func _open_dialogue(payload: Dictionary) -> void:
 		presented["security_action"] = "收起空箱"
 	elif active_interaction_kind == "workbench":
 		presented["security_action"] = "制作储物箱 · 8木板 + 2石块"
-	if active_interaction_kind == "merchant" and actor_authority.beast_state().is_empty() and not world.settlement_authority.market_closed_to_player(active_merchant_settlement):
+	if active_interaction_kind == "merchant" and actor_authority.beast_state().is_empty() and not world.settlement_authority.market_closed_to_player(active_merchant_settlement) and (world.progression_authority == null or world.progression_authority.allows_local_market()):
 		presented["security_action"] = "购置苔背驮兽 · 240◆"
 	if active_actor_id == SliceWorldActorAuthority.BEAST_ID:
 		presented["security_action"] = _beast_action_label()

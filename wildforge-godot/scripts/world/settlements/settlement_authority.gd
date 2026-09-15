@@ -1276,6 +1276,8 @@ func _relieve_stolen_deficit(settlement_id: String, item_id: String, amount: int
 
 # Purchase is paid into the same settlement treasury as ordinary retail.
 func pay_for_pack_beast(player, settlement_id: String) -> bool:
+	if world.progression_authority != null and not world.progression_authority.allows_local_market():
+		return false
 	if not settlements.has(settlement_id) or nearby_market(player.global_position) != settlement_id or market_closed_to_player(settlement_id) or player.forge_marks < 240:
 		return false
 	player.forge_marks -= 240
