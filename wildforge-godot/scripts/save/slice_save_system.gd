@@ -212,7 +212,7 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 		return false
 	if not _valid_lost_cargo(data.get("lost_cargo", [])) or not actor_authority.restore_lost_cargo(data.get("lost_cargo", [])):
 		return false
-	actor_authority.sync_war_raids()
+	actor_authority.sync_war_raids(true)
 	world.reset_simulation_cursor()
 	return true
 

@@ -35,6 +35,7 @@ var projections: Dictionary = {}
 var activation_count := 0
 var deactivation_count := 0
 var vegetation_registry := VegetationRegistryScript.new() as SliceVegetationRegistry
+var war_raid_signature := ""
 
 func _init(owner_host: Node, owner_world: SliceWorld, owner_player: SlicePlayer) -> void:
 	host = owner_host
@@ -49,6 +50,7 @@ func clear_world_baseline() -> void:
 		if is_instance_valid(node):
 			node.free()
 	projections.clear()
+	war_raid_signature = ""
 	descriptors.clear()
 	ids_by_chunk.clear()
 
@@ -652,11 +654,20 @@ func restore_security(raw) -> bool:
 	_reconcile_current_stream()
 	return true
 
-func sync_war_raids() -> void:
+func sync_war_raids(force := false) -> void:
 	if world == null or world.faction_authority == null or world.settlement_authority == null:
 		return
+	var active := world.faction_authority.active_raids()
+	var signature_parts: Array[String] = []
+	for raw_raid in active:
+		var raid: Dictionary = raw_raid
+		signature_parts.append("%s:%d:%s" % [String(raid.get("id", "")), int(raid.get("strength", 0)), ",".join((raid.get("defeated_slots", []) as Array).map(func(v): return str(v)))])
+	var signature := "|".join(signature_parts)
+	if not force and signature == war_raid_signature:
+		return
+	war_raid_signature = signature
 	var desired: Dictionary = {}
-	for raw_raid in world.faction_authority.active_raids():
+	for raw_raid in active:
 		var raid: Dictionary = raw_raid
 		var raid_id := String(raid.get("id", ""))
 		var target_id := String(raid.get("target_settlement", ""))
