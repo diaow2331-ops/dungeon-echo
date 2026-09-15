@@ -16,6 +16,8 @@ var move_pos := Vector2.ZERO
 var aim_pos := Vector2.ZERO
 var touch_capable := false
 var interaction_blocked := false
+var world_notice := ""
+var world_notice_remaining := 0.0
 var status_label: Label
 var hint_label: Label
 const STICK_RADIUS := 58.0
@@ -64,7 +66,10 @@ func _apply_safe_layout() -> void:
 		hint_label.position = Vector2(rect.position.x, rect.position.y + 28.0)
 		hint_label.size = Vector2(rect.size.x, 28.0)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	world_notice_remaining = maxf(0.0, world_notice_remaining - delta)
+	if world_notice_remaining <= 0.0:
+		world_notice = ""
 	if player != null and is_instance_valid(player):
 		var relic := " · 芯%d 铜%d" % [player.item_count("ancient_core"), player.item_count("copper_ore")] if player.item_count("ancient_core") + player.item_count("copper_ore") > 0 else ""
 		var pick_label := "无" if player.equipped_pick_id.is_empty() else ("遗" if player.equipped_pick_id == "delver_pick" else ("Ⅲ" if player.equipped_pick_id == "copper_pick" else ("Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ")))
@@ -73,8 +78,12 @@ func _process(_delta: float) -> void:
 		var market := player.nearby_market_id()
 		var market_note := " · 市场" if not market.is_empty() else ""
 		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
-		hint_label.text = _journey_hint()
+		hint_label.text = world_notice if world_notice_remaining > 0.0 and not world_notice.is_empty() else _journey_hint()
 	queue_redraw()
+
+func show_world_notice(text: String, duration := 7.0) -> void:
+	world_notice = text.strip_edges()
+	world_notice_remaining = maxf(0.0, duration) if not world_notice.is_empty() else 0.0
 
 func _journey_hint() -> String:
 	if player == null or player.world == null:
@@ -130,6 +139,9 @@ func _journey_hint() -> String:
 		return "砍树取得木材 → 制作木板和工作台 · 中央互动键"
 	if not player.world.has_campfire():
 		return "先建营火：采集 6 块石头和 2 份木材 · 中央互动键制作与放置"
+	var progression_hint := _progression_hint()
+	if not progression_hint.is_empty():
+		return progression_hint
 	if not player.nearby_market_id().is_empty():
 		return "靠近商人交易 · 买当地货物，查看远方短缺与商路线索"
 	if economy != null:
@@ -143,6 +155,67 @@ func _journey_hint() -> String:
 		if not nearest.is_empty():
 			return _destination_hint(economy, nearest)
 	return "出发前准备食物 · 探索不同地区的资源和集市"
+
+func _progression_hint() -> String:
+	if player == null or player.world == null or player.world.progression_authority == null:
+		return ""
+	var guide: Dictionary = player.world.progression_authority.guidance_snapshot()
+	var kind := String(guide.get("kind", ""))
+	var economy := player.world.settlement_authority as SliceSettlementAuthority
+	match kind:
+		"survival": return "先活下来：做基础工具、备好食物和营火 · 世界不会在你身后提前开战"
+		"first_foothold": return "找到最近的聚落并和当地人接触 · 先站稳脚跟，再谈远方"
+		"discover_second_region", "discover_all_regions":
+			var target := _closest_guidance_target(guide.get("unknown_settlements", []), economy)
+			return _rumor_hint(economy, target) if not target.is_empty() else "继续探索尚未接触的区域与聚落"
+		"prove_logistics": return "把一地真正出产的货带去另一处缺货集市，或购置驮兽建立长途运输能力"
+		"foothold_maturing": return "你已经有了远行能力 · 继续经营补给和货路，商路不会在一夜之间成熟"
+		"establish_exchange": return "三地已经在视野里 · 让真实货物流动起来，跨势力商队跑通后关系才会改变"
+		"watch_supply_pressure": return "观察各地库存与短缺 · 商路承压会留下真实的价格、货运和道路迹象"
+		"roads_maturing": return "商路正在形成稳定网络 · 继续贸易、探索和补给，不必刻意制造冲突"
+		"observe_tension":
+			var target := _closest_guidance_target(guide.get("target_settlements", []), economy)
+			return _conflict_rumor_hint(economy, target) if not target.is_empty() else "边境已有异样 · 去聚落、商路和守卫处亲自确认，而不是只看后台数字"
+		"watch_border_pressure": return "你已经见到裂痕 · 接下来观察商路、守卫和库存如何继续变化，战争仍不是必然"
+		"fracture_maturing": return "紧张已经被你亲眼确认 · 现在的选择是维持平衡、补给弱方，或任由局势继续恶化"
+		"maintain_balance": return "区域仍保持平衡 · 继续维持贸易与补给，也能把世界带入更成熟的阶段"
+		"active_conflict":
+			var target := _closest_guidance_target(guide.get("target_settlements", []), economy)
+			return _conflict_rumor_hint(economy, target) if not target.is_empty() else "战事正在改变库存、人口和道路 · 你可以参战、运补给，也可以远离前线"
+		"postwar_recovery": return "战争已经告一段落 · 返乡、修路和补货正在真实恢复地区，不必立刻进入下一轮冲突"
+		"shape_region": return "世界已允许战争，但没有强迫你开战 · 经商、结盟、劫掠或维持平衡都能塑造地区"
+		"open_sandbox": return "格局已经完全开放 · 贸易、犯罪、战争、吞并与长期建设都由你的行动和世界因果决定"
+	return ""
+
+func _closest_guidance_target(raw_ids, economy: SliceSettlementAuthority) -> String:
+	if economy == null or not raw_ids is Array:
+		return ""
+	var best := ""
+	var best_distance := INF
+	for raw_id in raw_ids:
+		var town := String(raw_id)
+		if not economy.has(town):
+			continue
+		var distance := player.global_position.distance_squared_to(player.world.cell_center(economy.market_cell(town)))
+		if distance < best_distance:
+			best_distance = distance
+			best = town
+	return best
+
+func _rumor_hint(economy: SliceSettlementAuthority, town: String) -> String:
+	if economy == null or town.is_empty():
+		return "继续探索尚未接触的地区"
+	var center: Vector2 = player.world.cell_center(economy.market_cell(town))
+	var dx: float = center.x - player.global_position.x
+	var rumor := String({"frost_frostmirror": "西方霜原有人烟", "ember_cinder_ridge": "东方烬土有营地", "verdant_mossbridge": "中部翠野有集市"}.get(town, "远方有人烟"))
+	return "%s · 向%s远行，备足食物再出发" % [String(rumor), "东" if dx > 0 else "西"]
+
+func _conflict_rumor_hint(economy: SliceSettlementAuthority, town: String) -> String:
+	if economy == null or town.is_empty():
+		return "边境出现异常 · 亲自去看商路、守卫和聚落的变化"
+	var center: Vector2 = player.world.cell_center(economy.market_cell(town))
+	var dx: float = center.x - player.global_position.x
+	return "听说%s一带不太平 · 往%s走，亲自确认局势" % [String(TOWN_LABELS.get(town, "边境")), "东" if dx > 0 else "西"]
 
 func _destination_hint(economy: SliceSettlementAuthority, town: String) -> String:
 	var center: Vector2 = player.world.cell_center(economy.market_cell(town))
