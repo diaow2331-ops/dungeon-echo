@@ -37,7 +37,10 @@ func _run() -> void:
 	_check(String(second_region.get("kind", "")) == "discover_second_region", "Foothold points toward another region before logistics complexity")
 	_check((second_region.get("unknown_settlements", []) as Array).size() == 2, "guidance derives undiscovered regions from contact milestones")
 
-	progression.record_settlement_contact("frost_frostmirror")
+	main._open_dialogue({"npc_kind": "merchant", "actor_id": "frost_frostmirror:merchant", "settlement_id": "frost_frostmirror", "display_name": "伊芙", "role": "霜镜站商人", "dialogue": ["路上小心。"]})
+	_check(progression.has_milestone("settlement:frost_frostmirror"), "speaking to a new merchant records the canonical regional contact")
+	_check(not main.dialogue_overlay.lines.is_empty() and "倒手不算商路" in String(main.dialogue_overlay.lines[-1]), "merchant immediately explains the next real logistics proof after contact")
+	main.dialogue_overlay.close_dialogue()
 	var logistics := progression.guidance_snapshot()
 	_check(String(logistics.get("kind", "")) == "prove_logistics", "two-region Foothold asks for real logistics proof")
 	progression.record_milestone("pack_beast_acquired")
@@ -63,6 +66,10 @@ func _run() -> void:
 	_check(progression.milestones == before_seen and not progression.has_milestone("tension_seen"), "reading a warning never fabricates player observation")
 	var ui_hint: String = main.touch_controls._progression_hint()
 	_check("不太平" in ui_hint or "亲自确认" in ui_hint, "mobile journey hint translates canonical tension into an in-world travel lead")
+	main._open_dialogue({"npc_kind": "guard", "actor_id": "verdant_mossbridge:guard", "settlement_id": "verdant_mossbridge", "display_name": "洛恩", "role": "苔桥守卫", "dialogue": ["边境有风声。"]})
+	_check(progression.has_milestone("tension_seen"), "speaking inside a truly tense settlement converts rumor into lived observation")
+	_check(not main.dialogue_overlay.lines.is_empty() and "裂痕" in String(main.dialogue_overlay.lines[-1]), "guard guidance updates from canonical observation instead of a fixed quest script")
+	_check(String(world.faction_authority.relation("verdant", "ember").get("stance", "")) == "neutral", "guidance and observation still do not fabricate formal war")
 
 	main.free()
 	print("wildforge_world_era_guidance=", "FAIL" if failed else "PASS")

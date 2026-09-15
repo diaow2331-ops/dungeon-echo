@@ -118,6 +118,11 @@ func _open_dialogue(payload: Dictionary) -> void:
 		world.progression_authority.record_settlement_contact(contacted_settlement)
 		if active_interaction_kind in ["merchant", "guard"]:
 			world.progression_authority.observe_settlement_tension(contacted_settlement)
+			var guidance_line := _progression_dialogue_line(active_interaction_kind, world.progression_authority.guidance_snapshot())
+			if not guidance_line.is_empty():
+				var guidance_lines: Array = (presented.get("dialogue", []) as Array).duplicate()
+				guidance_lines.append(guidance_line)
+				presented["dialogue"] = guidance_lines
 	dialogue_health = player.health
 	warehouse_transfer.clear()
 	if active_interaction_kind in ["merchant", "warehouse", "lost_cargo", "player_storage"]:
@@ -143,6 +148,28 @@ func _open_dialogue(payload: Dictionary) -> void:
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(true)
 	dialogue_overlay.open_dialogue(presented)
+
+func _progression_dialogue_line(speaker_kind: String, guide: Dictionary) -> String:
+	var kind := String(guide.get("kind", ""))
+	var merchant := speaker_kind == "merchant"
+	match kind:
+		"survival": return "钱以后再赚。先让自己有工具、有吃的、天黑后还能活着回来。" if merchant else "先把荒野活明白。连自己都护不住时，远方的纷争与你没有关系。"
+		"first_foothold": return "先认清这里卖什么、缺什么，也认清哪条路能把你安全带回来。" if merchant else "先让镇里的人认得你。站稳脚跟之后，外面的路才值得走。"
+		"discover_second_region", "discover_all_regions": return "只盯着一个集市，看不出货物真正的价值。去别的地区看看它们出什么、又缺什么。" if merchant else "别把一个聚落当成整个世界。远处还有别的旗帜、别的守卫，也有不同的规矩。"
+		"prove_logistics": return "同一个摊位上倒手不算商路。把一地真正出产的货送到另一地真正缺货的地方，才算跑通。" if merchant else "能走到第二个地方只是远行；能把物资安全送过去，才算真正有了长途能力。"
+		"foothold_maturing": return "货路刚有雏形，别急着把一次远行当成常态。多准备补给，让它经得住来回。" if merchant else "远行的本事有了，但路还没变成秩序。先把来回都走稳。"
+		"establish_exchange": return "三地都见过还不够。真正的跨势力商队得完整走完一程，关系才会被货物改变。" if merchant else "道路已经连上，但还要看不同旗帜之间能不能让商队真正通过。"
+		"watch_supply_pressure": return "不用刻意制造麻烦。盯着库存和缺货，哪里的供需绷紧，哪里的商路自然会先承压。" if merchant else "别为了看战争去挑战争。先看商队减少、仓库吃紧和道路异常，这些都会留下痕迹。"
+		"roads_maturing": return "让货再多走几轮。稳定商路靠持续供需，不靠一次暴利。" if merchant else "现在最重要的是看这些道路能不能长期维持，而不是催着世界往下走。"
+		"observe_tension": return "听说不等于看见。去警戒最重的聚落或受阻商路亲眼看看，再决定货还要不要往那里送。" if merchant else "边境有传闻，但传闻不是军情。去守卫加倍、道路受阻的地方亲自确认。"
+		"watch_border_pressure": return "你已经看到裂痕了。接下来每一次断货、绕路和补给都会让局势往不同方向走。" if merchant else "裂痕已经摆在眼前。是否继续恶化，要看之后的补给、贸易和冲突。"
+		"fracture_maturing": return "现在不必追着战争跑。你可以补给弱的一方，也可以让贸易把关系重新拉回来。" if merchant else "局势紧张，但还没有谁规定一定要开战。你做的每件事都可能改变下一步。"
+		"maintain_balance": return "三边还能做生意，就是一种力量。继续维持货路，和平本身也能把世界推向成熟。" if merchant else "没有战争不代表没有进展。能把三边稳住，同样是在改变格局。"
+		"active_conflict": return "前线最缺的不是口号，是能真正送到的补给。运货、断货、撤走，都有实际后果。" if merchant else "战事已经发生。参战、护送补给、撤离或者袖手旁观，都会留下真实结果。"
+		"postwar_recovery": return "先看人回不回来、路修不修得通、仓库能不能补满。战争结束不等于世界立刻复原。" if merchant else "仗停了，善后才刚开始。人口、道路和补给恢复之前，别把安静当成痊愈。"
+		"shape_region": return "现在没有一条唯一正确的路。做商人、做掠夺者、扶持一方，或者维持平衡，都由你。" if merchant else "世界已经容得下大战，但没有谁逼你拔剑。选择哪一边，甚至不选，都是选择。"
+		"open_sandbox": return "现在货物、旗帜和财富都可能重新流向别处。你做的不是任务，是在改这个地方的现实。" if merchant else "旧秩序已经可以被改写。守住、夺走、扶植或放弃，后果都由世界自己记住。"
+	return ""
 
 func _close_dialogue() -> void:
 	warehouse_transfer.clear()
