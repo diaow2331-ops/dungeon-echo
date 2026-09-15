@@ -48,6 +48,11 @@ func _run() -> void:
 	_check(actors.descriptor_count(SliceWorldActorAuthority.KIND_ROUTE_HAZARD) == 0, "cleared route removes its debris projection instead of leaving fake presentation state")
 
 	economy.caravan_incident_cooldowns[key] = now + 12
+	player.stock["wood"] = 0
+	player.global_position = world.cell_center(hazard_cell) + Vector2(0, -48)
+	_check(player.context_label() == "修", "blocked road keeps the contextual action even when repair material is missing")
+	_check(not player.context_action(), "repair without construction material changes nothing")
+	_check(int(economy.caravan_incident_cooldowns.get(key, 0)) == now + 12, "material shortage cannot advance route recovery")
 	player.global_position += Vector2(900, 0)
 	var stock_before_far := player.item_count("wood")
 	_check(not bool(economy.player_route_repair(player, key).get("ok", false)), "route repair cannot be performed remotely")

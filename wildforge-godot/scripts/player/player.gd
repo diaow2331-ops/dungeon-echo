@@ -419,7 +419,7 @@ func context_label() -> String:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return "食"
-	if _can_repair_nearby_route():
+	if not _nearby_route_hazard().is_empty():
 		return "修"
 	if _can_place_carried_storage():
 		return "箱"
@@ -458,7 +458,7 @@ func context_action() -> bool:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return eat_item(food)
-	if _can_repair_nearby_route():
+	if not _nearby_route_hazard().is_empty():
 		return _repair_nearby_route()
 	if _can_place_carried_storage():
 		var target := _placement_cell()

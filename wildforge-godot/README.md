@@ -386,3 +386,10 @@ Era progression is no longer only an internal gate. `WorldProgressionAuthority.g
 Mobile journey hints now translate that derived state into practical world language: survive first, find another region, prove real logistics, let cross-faction exchange mature, investigate an actually tense settlement or blocked road, or choose how to respond once war is real. Unknown-region hints are rumors and directions rather than exact checklist counters.
 
 Merchant and guard conversations append one current, authority-derived line after contact/observation has been recorded. This keeps advice synchronized with what just happened instead of presenting stale phase text. Era transitions also briefly replace the ordinary journey hint with an ambient world notice; peaceful maturity explicitly remains peaceful rather than being presented as a scripted war unlock.
+## v0.35 player agency inside world eras
+
+Fracture is no longer only something the player observes. A physically blocked caravan route can now be repaired directly at the debris site with carried wood, sandstone or basalt. Each contribution removes six world-hours from the same authoritative incident cooldown that blocks autonomous logistics. Enough real material reopens the route immediately and removes the streamed debris; remote repair and cosmetic progress are rejected.
+
+Scarce external deliveries now provide a bounded peaceful intervention path once tension-capable eras begin. If a settlement is genuinely strained or critical for a good it does not produce locally, delivering that real stock can restore a small amount of the same settlement security used by incidents, raids and displacement. Open Roads trade remains ordinary trade, and locally produced goods do not receive the external-relief effect.
+
+The existing progression guidance now derives live interventions from those same facts. Active route damage takes priority as a repair rumor; otherwise the deepest external shortage becomes a supply lead. These are read-only world opportunities rather than quests: no repair meter, aid ledger, reputation currency or guaranteed reward state is persisted.

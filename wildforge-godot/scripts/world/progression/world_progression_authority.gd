@@ -191,7 +191,38 @@ func guidance_snapshot() -> Dictionary:
 				guide["kind"] = "shape_region"
 		ERA_REFORGING:
 			guide["kind"] = "open_sandbox"
+	var intervention := _intervention_snapshot()
+	if not intervention.is_empty():
+		guide["intervention"] = intervention
 	return guide
+
+func _intervention_snapshot() -> Dictionary:
+	if era < ERA_FRACTURE or world == null or world.settlement_authority == null:
+		return {}
+	var hazards: Array = world.settlement_authority.active_route_hazards()
+	if not hazards.is_empty():
+		var hazard: Dictionary = hazards[0]
+		return {
+			"kind": "route_repair",
+			"pair_key": String(hazard.get("pair_key", "")),
+			"cell": hazard.get("cell", Vector2i(99999, 99999)),
+			"until_hour": int(hazard.get("until_hour", 0)),
+		}
+	# Before the player has witnessed tension, a generic shortage must not hide the
+	# more important requirement to go verify what is actually happening.
+	if era == ERA_FRACTURE and not has_milestone("tension_seen"):
+		return {}
+	var relief: Array = world.settlement_authority.relief_opportunities()
+	if not relief.is_empty():
+		var lead: Dictionary = relief[0]
+		return {
+			"kind": "relief_delivery",
+			"settlement_id": String(lead.get("settlement_id", "")),
+			"item_id": String(lead.get("item_id", "")),
+			"severity": String(lead.get("severity", "strained")),
+			"deficit": int(lead.get("deficit", 0)),
+		}
+	return {}
 
 func _settlements_with_conflict(statuses: Array) -> Array:
 	var result: Array = []

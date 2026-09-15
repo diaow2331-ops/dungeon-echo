@@ -170,6 +170,11 @@ func _progression_hint() -> String:
 	var guide: Dictionary = player.world.progression_authority.guidance_snapshot()
 	var kind := String(guide.get("kind", ""))
 	var economy := player.world.settlement_authority as SliceSettlementAuthority
+	var intervention: Dictionary = guide.get("intervention", {})
+	if kind != "active_conflict" and not intervention.is_empty():
+		var intervention_hint := _intervention_hint(intervention, economy)
+		if not intervention_hint.is_empty():
+			return intervention_hint
 	match kind:
 		"survival": return "先活下来：做基础工具、备好食物和营火 · 世界不会在你身后提前开战"
 		"first_foothold": return "找到最近的聚落并和当地人接触 · 先站稳脚跟，再谈远方"
@@ -193,6 +198,28 @@ func _progression_hint() -> String:
 		"postwar_recovery": return "战争已经告一段落 · 返乡、修路和补货正在真实恢复地区，不必立刻进入下一轮冲突"
 		"shape_region": return "世界已允许战争，但没有强迫你开战 · 经商、结盟、劫掠或维持平衡都能塑造地区"
 		"open_sandbox": return "格局已经完全开放 · 贸易、犯罪、战争、吞并与长期建设都由你的行动和世界因果决定"
+	return ""
+
+func _intervention_hint(intervention: Dictionary, economy: SliceSettlementAuthority) -> String:
+	var kind := String(intervention.get("kind", ""))
+	if kind == "route_repair":
+		var cell: Vector2i = intervention.get("cell", Vector2i(99999, 99999))
+		if cell.x < SliceWorld.MIN_X or cell.x > SliceWorld.MAX_X:
+			return ""
+		var center: Vector2 = player.world.cell_center(cell)
+		var dx: float = center.x - player.global_position.x
+		var cells := int(ceil(absf(dx) / float(SliceWorld.TILE_SIZE)))
+		return "听说%s约%d格的商路受阻 · 带木材、砂岩或玄武岩可亲自抢修" % ["东边" if dx > 0 else "西边", cells]
+	if kind == "relief_delivery" and economy != null:
+		var town := String(intervention.get("settlement_id", ""))
+		if not economy.has(town):
+			return ""
+		var item_id := String(intervention.get("item_id", ""))
+		var item_name := String({"raw_meat":"鲜肉", "wood":"木材", "ice":"冰块", "snow":"积雪", "ash":"灰烬", "sandstone":"砂岩", "basalt":"玄武岩"}.get(item_id, "物资"))
+		var center: Vector2 = player.world.cell_center(economy.market_cell(town))
+		var dx: float = center.x - player.global_position.x
+		var cells := int(ceil(absf(dx) / float(SliceWorld.TILE_SIZE)))
+		return "%s正缺%s · 运到当地能帮助稳定局势 · %s约%d格" % [String(TOWN_LABELS.get(town, "聚落")), item_name, "东" if dx > 0 else "西", cells]
 	return ""
 
 func _closest_guidance_target(raw_ids, economy: SliceSettlementAuthority) -> String:

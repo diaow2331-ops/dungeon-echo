@@ -217,6 +217,43 @@ func urgent_shortages() -> Array:
 	)
 	return rows
 
+func relief_opportunities() -> Array:
+	# Read-only crisis leads derived from real shortages and local geography.
+	var rows: Array = []
+	for shortage_raw in urgent_shortages():
+		var shortage: Dictionary = shortage_raw
+		var settlement_id := String(shortage.get("settlement_id", ""))
+		var production := production_profile(settlement_id)
+		for good_raw in shortage.get("goods", []):
+			var good: Dictionary = good_raw
+			var item_id := String(good.get("item_id", ""))
+			if item_id.is_empty() or int(production.get(item_id, 0)) > 0:
+				continue
+			rows.append({
+				"settlement_id": settlement_id,
+				"item_id": item_id,
+				"severity": String(good.get("severity", "strained")),
+				"pressure": float(good.get("pressure", 0.0)),
+				"deficit": int(good.get("deficit", 0)),
+				"security": security(settlement_id),
+			})
+	rows.sort_custom(func(a, b):
+		var ad: Dictionary = a
+		var bd: Dictionary = b
+		var ac := 1 if String(ad.get("severity", "")) == "critical" else 0
+		var bc := 1 if String(bd.get("severity", "")) == "critical" else 0
+		if ac != bc:
+			return ac > bc
+		var ap := float(ad.get("pressure", 0.0))
+		var bp := float(bd.get("pressure", 0.0))
+		if not is_equal_approx(ap, bp):
+			return ap > bp
+		var at := String(ad.get("settlement_id", "")) + ":" + String(ad.get("item_id", ""))
+		var bt := String(bd.get("settlement_id", "")) + ":" + String(bd.get("item_id", ""))
+		return at < bt
+	)
+	return rows
+
 func buy_price(settlement_id: String, item_id: String) -> int:
 	return _buy_price_at_stock(settlement_id, item_id, item_count(settlement_id, item_id))
 

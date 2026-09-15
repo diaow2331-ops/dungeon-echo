@@ -272,3 +272,10 @@ Era dwell constants are explicit production pacing floors. They compensate for t
 Progression guidance must never become another authority. `guidance_snapshot()` is a pure read of existing era milestones plus canonical faction/settlement facts; it is not saved, has no counters of its own, and calling it cannot satisfy a milestone. Presentation may turn that snapshot into dialogue or a travel hint, but only the existing authorities may change the world.
 
 Era transition feedback follows the same rule. `world_era_changed` may trigger a short-lived UI notice, but the notice owns no durable unlock flag and disappears automatically. It describes lived consequences such as markets opening, trade routes linking regions or sovereignty becoming mutable rather than exposing internal era numbers or an XP bar.
+## v0.35 player intervention mutates canonical facts only
+
+Player roadwork may consume carried construction material, but it cannot create a separate road-health or repair-contract state. The only durable route fact remains `SettlementAuthority.caravan_incident_cooldowns`; player action shortens that exact cooldown, so dispatch legality, remaining duration and debris projection still share one authority.
+
+Player crisis aid follows the same rule. A qualifying external-shortage delivery adds stock through the existing market transaction and may recover a bounded amount of canonical settlement security. The effect is unavailable before Fracture and does not apply to locally produced goods. No aid score, faction reputation meter or delivery ledger is introduced.
+
+Intervention hints are derived projection. `WorldProgressionAuthority` may expose the most urgent active route blockage or external shortage through `guidance_snapshot()`, but reading the hint cannot mutate world state. The player must still travel, carry real resources and complete the underlying action for anything to change.
