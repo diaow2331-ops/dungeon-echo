@@ -9,6 +9,7 @@ const TreeScript = preload("res://scripts/world/tree_resource.gd")
 const GuardScript = preload("res://scripts/world/actors/settlement_guard.gd")
 const BeastScript = preload("res://scripts/world/actors/mossback.gd")
 const BannerScript = preload("res://scripts/world/actors/settlement_banner.gd")
+const CaravanScript = preload("res://scripts/world/actors/trade_caravan.gd")
 const BEAST_ID := "player_storage:mossback"
 const KIND_PLAYER_STORAGE := "player_storage"
 const STORAGE_CAPACITY := 480.0
@@ -16,6 +17,7 @@ const KIND_LOST_CARGO := "lost_cargo"
 const KIND_WAREHOUSE := "warehouse"
 const KIND_BOUNTY_HUNTER := "bounty_hunter"
 const KIND_RAIDER := "war_raider"
+const KIND_CARAVAN := "trade_caravan"
 const SettlementNpcScript = preload("res://scripts/world/actors/settlement_npc.gd")
 const VegetationRegistryScript = preload("res://scripts/world/vegetation/vegetation_registry.gd")
 
@@ -36,6 +38,7 @@ var activation_count := 0
 var deactivation_count := 0
 var vegetation_registry := VegetationRegistryScript.new() as SliceVegetationRegistry
 var war_raid_signature := ""
+var caravan_signature := ""
 
 func _init(owner_host: Node, owner_world: SliceWorld, owner_player: SlicePlayer) -> void:
 	host = owner_host
@@ -51,6 +54,7 @@ func clear_world_baseline() -> void:
 			node.free()
 	projections.clear()
 	war_raid_signature = ""
+	caravan_signature = ""
 	descriptors.clear()
 	ids_by_chunk.clear()
 
@@ -429,6 +433,14 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		raider.global_position = world.cell_center(cell) + Vector2(0, -16)
 		raider.add_to_group("war_raiders")
 		node = raider
+	elif kind == KIND_CARAVAN:
+		var caravan := CaravanScript.new() as SliceTradeCaravan
+		var caravan_meta: Dictionary = descriptor.get("meta", {})
+		caravan.name = _node_name("TradeCaravan", actor_id)
+		caravan.setup(self, String(caravan_meta.get("caravan_id", "")))
+		caravan.global_position = world.cell_center(cell) + Vector2(0, -10)
+		caravan.z_index = 16
+		node = caravan
 	elif kind == KIND_TREE:
 		var tree := TreeScript.new() as SliceTreeResource
 		var meta: Dictionary = descriptor.get("meta", {})
@@ -695,6 +707,60 @@ func sync_war_raids(force := false) -> void:
 			var cell := Vector2i(x, world.surface_y_at(x) - 1)
 			_register_actor(actor_id, KIND_RAIDER, cell, {"raid_id": raid_id, "slot": slot, "attacker": attacker, "target_settlement": target_id})
 	for actor_id in actor_ids(KIND_RAIDER):
+		if desired.has(actor_id):
+			continue
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	_reconcile_current_stream()
+
+func sync_caravans(force := false) -> void:
+	if world == null or world.settlement_authority == null:
+		return
+	var active := world.settlement_authority.active_caravans()
+	var signature_parts: Array[String] = []
+	var cells: Dictionary = {}
+	for raw in active:
+		var caravan: Dictionary = raw
+		var caravan_id := String(caravan.get("id", ""))
+		var cell := world.settlement_authority.caravan_cell(caravan_id)
+		cells[caravan_id] = cell
+		signature_parts.append("%s:%d:%d:%d" % [caravan_id, cell.x, int(caravan.get("quantity", 0)), int(caravan.get("arrival_hour", 0))])
+	var signature := "|".join(signature_parts)
+	if not force and signature == caravan_signature:
+		return
+	caravan_signature = signature
+	var desired: Dictionary = {}
+	for raw in active:
+		var caravan: Dictionary = raw
+		var caravan_id := String(caravan.get("id", ""))
+		var actor_id := "world:" + caravan_id
+		var cell: Vector2i = cells.get(caravan_id, Vector2i(99999, 99999))
+		if cell.x < SliceWorld.MIN_X or cell.x > SliceWorld.MAX_X:
+			continue
+		desired[actor_id] = true
+		var meta := {"caravan_id": caravan_id, "origin": String(caravan.get("origin", "")), "destination": String(caravan.get("destination", "")), "item_id": String(caravan.get("item_id", "")), "quantity": int(caravan.get("quantity", 0))}
+		if not descriptors.has(actor_id):
+			_register_actor(actor_id, KIND_CARAVAN, cell, meta)
+		else:
+			var row: Dictionary = descriptors[actor_id]
+			var old_key: Vector2i = row["chunk"]
+			var new_key := world.chunk_key_for(cell)
+			if old_key != new_key:
+				if ids_by_chunk.has(old_key):
+					(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
+					if (ids_by_chunk[old_key] as Dictionary).is_empty():
+						ids_by_chunk.erase(old_key)
+				if not ids_by_chunk.has(new_key):
+					ids_by_chunk[new_key] = {}
+				(ids_by_chunk[new_key] as Dictionary)[actor_id] = true
+			row["cell"] = cell
+			row["chunk"] = new_key
+			row["meta"] = meta
+			descriptors[actor_id] = row
+			if is_projected(actor_id):
+				(projections[actor_id] as Node2D).global_position = world.cell_center(cell) + Vector2(0, -10)
+	for actor_id in actor_ids(KIND_CARAVAN):
 		if desired.has(actor_id):
 			continue
 		if is_projected(actor_id):

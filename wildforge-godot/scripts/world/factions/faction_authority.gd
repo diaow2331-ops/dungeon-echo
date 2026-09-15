@@ -10,6 +10,12 @@ const RAID_SPAWN_INTERVAL_HOURS := 12
 const RAID_DECISIVE_POWER_GAP := 24
 const RAID_CONTESTED_POWER_GAP := 12
 const RAID_STALEMATE_STRIKES := 2
+const DIPLOMACY_INTERVAL_HOURS := 48
+const RELATION_TRADE_ENTER := 30
+const RELATION_TRADE_EXIT := 10
+const RELATION_WAR_ENTER := -60
+const RELATION_WAR_EXIT := -20
+const STALEMATE_RELIEF := 6
 const BASELINE := [
 	{"id": "verdant", "biome": "verdant"},
 	{"id": "ember", "biome": "ember"},
@@ -302,6 +308,102 @@ func defer_pursuit(faction_id: String) -> void:
 		(factions[sovereign] as Dictionary)["pursuit_due_hour"] = world.absolute_world_hour() + 12
 
 
+func adjust_relation(a: String, b: String, delta: int, reason := "world_pressure") -> Dictionary:
+	var ca := controller_id(a)
+	var cb := controller_id(b)
+	if ca == cb or not factions.has(ca) or not factions.has(cb) or delta == 0:
+		return {}
+	var key := _relation_key(ca, cb)
+	if not relations.has(key):
+		return {}
+	var row: Dictionary = relations[key]
+	var before_score := int(row.get("score", 0))
+	var before_stance := String(row.get("stance", "neutral"))
+	var after_score := clampi(before_score + delta, -100, 100)
+	var after_stance := _stance_for_score(before_stance, after_score)
+	row["score"] = after_score
+	row["stance"] = after_stance
+	relations[key] = row
+	if after_stance != "war":
+		_remove_raids_for_pair(ca, cb)
+	return {"a": ca, "b": cb, "reason": reason, "before_score": before_score, "score": after_score, "before_stance": before_stance, "stance": after_stance, "delta": after_score - before_score}
+
+func record_caravan_arrival(origin_settlement: String, destination_settlement: String, payment: int) -> Dictionary:
+	if world == null or world.settlement_authority == null or payment <= 0:
+		return {}
+	var a := controller_for_settlement(origin_settlement)
+	var b := controller_for_settlement(destination_settlement)
+	if a == b or String(relation(a, b).get("stance", "neutral")) == "war":
+		return {}
+	return adjust_relation(a, b, 1, "caravan_arrival")
+
+func _stance_for_score(current: String, score: int) -> String:
+	if current == "war":
+		return "neutral" if score >= RELATION_WAR_EXIT else "war"
+	if score <= RELATION_WAR_ENTER:
+		return "war"
+	if current == "trade":
+		return "trade" if score >= RELATION_TRADE_EXIT else "neutral"
+	return "trade" if score >= RELATION_TRADE_ENTER else "neutral"
+
+func _simulate_diplomacy(absolute_hour: int) -> Array:
+	var events: Array = []
+	if absolute_hour <= 0 or absolute_hour % DIPLOMACY_INTERVAL_HOURS != 0 or world == null or world.settlement_authority == null:
+		return events
+	var keys := relations.keys()
+	keys.sort()
+	for raw_key in keys:
+		var key := String(raw_key)
+		var pair := key.split("|")
+		if pair.size() != 2:
+			continue
+		var a := controller_id(String(pair[0]))
+		var b := controller_id(String(pair[1]))
+		if a == b or String(relation(a, b).get("stance", "neutral")) == "war":
+			continue
+		var pressure := _resource_pressure(a, b)
+		if pressure <= 0:
+			continue
+		var shift := adjust_relation(a, b, -pressure, "unserved_resource_pressure")
+		if not shift.is_empty():
+			events.append({"kind": "diplomacy_shift", "hour": absolute_hour, "pressure": pressure, "relation": shift})
+	return events
+
+func _resource_pressure(a: String, b: String) -> int:
+	var settlement_a := _settlement_for_faction(a)
+	var settlement_b := _settlement_for_faction(b)
+	if settlement_a.is_empty() or settlement_b.is_empty():
+		return 0
+	var sa: Dictionary = world.settlement_authority.state(settlement_a)
+	var sb: Dictionary = world.settlement_authority.state(settlement_b)
+	var targets_a: Dictionary = sa.get("targets", {})
+	var targets_b: Dictionary = sb.get("targets", {})
+	var production_a: Dictionary = sa.get("local_production", {})
+	var production_b: Dictionary = sb.get("local_production", {})
+	var inventory_a: Dictionary = sa.get("inventory", {})
+	var inventory_b: Dictionary = sb.get("inventory", {})
+	var goods: Dictionary = {}
+	for item in targets_a.keys():
+		goods[String(item)] = true
+	for item in targets_b.keys():
+		goods[String(item)] = true
+	var pressure := 0
+	for raw_item in goods.keys():
+		var item_id := String(raw_item)
+		var target_a := maxi(0, int(targets_a.get(item_id, 0)))
+		var target_b := maxi(0, int(targets_b.get(item_id, 0)))
+		var critical_a := target_a > 0 and int(inventory_a.get(item_id, 0)) * 4 <= target_a
+		var critical_b := target_b > 0 and int(inventory_b.get(item_id, 0)) * 4 <= target_b
+		var produces_a := int(production_a.get(item_id, 0)) > 0
+		var produces_b := int(production_b.get(item_id, 0)) > 0
+		if critical_a and critical_b and not produces_a and not produces_b:
+			pressure += 2
+		elif critical_a and produces_b and not world.settlement_authority.has_caravan_route(settlement_b, settlement_a, item_id):
+			pressure += 1
+		elif critical_b and produces_a and not world.settlement_authority.has_caravan_route(settlement_a, settlement_b, item_id):
+			pressure += 1
+	return mini(6, pressure)
+
 func at_war(faction_id: String) -> bool:
 	var sovereign := controller_id(faction_id)
 	if not factions.has(sovereign):
@@ -346,6 +448,7 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 	var events: Array = []
 	_drop_invalid_raids()
 	_ensure_scheduled_raids(absolute_hour, events)
+	events.append_array(_simulate_diplomacy(absolute_hour))
 	var raid_ids := raids.keys()
 	raid_ids.sort()
 	for raw_id in raid_ids:
@@ -380,7 +483,8 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 		elif not decisive and int(raid.get("strikes", 0)) >= RAID_STALEMATE_STRIKES:
 			raids.erase(raid_id)
 			world.settlement_authority.recover_security(target, 18)
-			events.append({"kind": "raid_stalemate", "raid_id": raid_id, "attacker": attacker, "defender": defender, "target_settlement": target})
+			var relief := adjust_relation(attacker, defender, STALEMATE_RELIEF, "war_exhaustion")
+			events.append({"kind": "raid_stalemate", "raid_id": raid_id, "attacker": attacker, "defender": defender, "target_settlement": target, "diplomacy": relief})
 	_drop_invalid_raids()
 	return {"hour": absolute_hour, "events": events}
 

@@ -322,3 +322,19 @@ War also changes the real market loop. Settlements retain a larger reserve of lo
 Each canonical settlement now projects one lightweight live banner from `WorldActorAuthority`. The banner owns no political state: it reads `FactionAuthority.conflict_status()` and the current controller at draw time, so the same physical settlement visibly transitions through peace, tension, war, raid and occupation without rebuilding terrain or duplicating sovereignty. Settlement guards use the same live conflict read for their warning dialogue and a compact alert stripe. This is code-level presentation scaffolding for the later art pass, not a replacement art system.
 
 The visualization gate verifies that one banner per settlement follows war → raid → occupation in place, that guard dialogue reports the same state, and that occupation still leaves the founding physical ownership untouched.
+
+## v0.29 autonomous caravan logistics authority
+
+Regional supply now moves between the three physical settlements without inventing quest cargo. `SettlementAuthority` owns at most two active caravan records. Dispatch subtracts real geography-produced goods from the origin inventory and escrows real destination treasury value; arrival moves that exact cargo into the destination inventory and releases the exact payment to the origin treasury. If the two political controllers enter war before arrival, the caravan turns back and both cargo and escrow are restored instead of being deleted or duplicated.
+
+Caravan candidates are derived from actual producer surplus and destination shortage. Tension reduces shipment size, active war reduces it further, raid targets do not dispatch, and direct enemies cannot trade. Each active record also resolves to a deterministic world cell along the route, providing the physical position authority for later streamed caravan actors. Save schema 28 persists in-transit shipments and migrates schema 27 with an empty caravan set. `caravan_logistics_test.gd` verifies stock/money conservation, save round-trip, deterministic route position and wartime return.
+
+### v0.29 streamed caravan projection
+
+Active macro shipments now have one derived local projection when their route cell enters the streamed area. `WorldActorAuthority` derives the actor ID, cell and cargo label from the `SettlementAuthority` caravan record; the local node never owns goods or payment. Route movement advances by world hour, crosses chunk boundaries through the existing actor streamer, and disappears when the shipment arrives or returns. A compact state signature prevents unchanged caravans from reconciling the actor set every render frame.
+
+### v0.29 resource-grounded autonomous diplomacy
+
+Faction relations now evolve from durable world facts instead of random diplomacy rolls. Every 48 world hours, persistent severe shortages and unserved cross-region dependencies apply bounded pressure to the existing canonical relation score. Successful physical caravan arrivals move that same score in the opposite direction, while non-decisive raid stalemates create war-exhaustion relief. Trade and war use explicit hysteresis thresholds so a single inventory tick cannot flip diplomacy back and forth.
+
+The causal chain is therefore shared end to end: geography creates production differences → settlement inventory develops needs → autonomous caravans serve or fail to serve those needs → relations warm or deteriorate → sustained deterioration can cross the existing war boundary → bounded raids use the same relation authority. No random faction clock, diplomacy wallet or parallel political state was added.

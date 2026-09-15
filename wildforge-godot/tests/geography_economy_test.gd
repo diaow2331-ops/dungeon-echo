@@ -55,9 +55,9 @@ func _run() -> void:
 	_check(economy.item_count(ember, "ice") == imported_ice_before, "Ember cannot fabricate imported Frost ice")
 	for hour in range(8, 64, 4):
 		economy.simulate_hour(hour)
-	_check(economy.item_count(verdant, "wood") == 6, "local production caps at Verdant target stock")
-	_check(economy.item_count(frost, "ice") == 8 and economy.item_count(frost, "snow") == 8, "Frost production caps at deterministic target stock")
-	_check(economy.item_count(ember, "ash") == 8 and economy.item_count(ember, "sandstone") == 6 and economy.item_count(ember, "basalt") == 6, "Ember production caps at deterministic target stock")
+	_check(economy.item_count(verdant, "wood") <= 6, "Verdant local production never overfills target stock while autonomous logistics may export surplus")
+	_check(economy.item_count(frost, "ice") <= 8 and economy.item_count(frost, "snow") <= 8, "Frost local production never overfills deterministic target stock")
+	_check(economy.item_count(ember, "ash") <= 8 and economy.item_count(ember, "sandstone") <= 6 and economy.item_count(ember, "basalt") <= 6, "Ember local production never overfills target stock while shipments can draw real inventory down")
 
 	var persisted := economy.export_state()
 	var rules_leaked := false

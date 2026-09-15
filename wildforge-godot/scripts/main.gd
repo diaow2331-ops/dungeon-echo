@@ -54,6 +54,7 @@ func _ready() -> void:
 	actor_authority.dialogue_requested.connect(_open_dialogue)
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
 	actor_authority.sync_war_raids()
+	actor_authority.sync_caravans()
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
@@ -240,6 +241,7 @@ func _process(delta: float) -> void:
 	_update_warehouse_transfer(delta)
 	if actor_authority != null:
 		actor_authority.sync_war_raids()
+		actor_authority.sync_caravans()
 		if not SaveScript.is_test_run():
 			actor_authority.update_pursuit()
 	if SaveScript.is_test_run() or world == null or player == null:
