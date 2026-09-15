@@ -332,3 +332,9 @@ Caravan candidates are derived from actual producer surplus and destination shor
 ### v0.29 streamed caravan projection
 
 Active macro shipments now have one derived local projection when their route cell enters the streamed area. `WorldActorAuthority` derives the actor ID, cell and cargo label from the `SettlementAuthority` caravan record; the local node never owns goods or payment. Route movement advances by world hour, crosses chunk boundaries through the existing actor streamer, and disappears when the shipment arrives or returns. A compact state signature prevents unchanged caravans from reconciling the actor set every render frame.
+
+### v0.29 resource-grounded autonomous diplomacy
+
+Faction relations now evolve from durable world facts instead of random diplomacy rolls. Every 48 world hours, persistent severe shortages and unserved cross-region dependencies apply bounded pressure to the existing canonical relation score. Successful physical caravan arrivals move that same score in the opposite direction, while non-decisive raid stalemates create war-exhaustion relief. Trade and war use explicit hysteresis thresholds so a single inventory tick cannot flip diplomacy back and forth.
+
+The causal chain is therefore shared end to end: geography creates production differences → settlement inventory develops needs → autonomous caravans serve or fail to serve those needs → relations warm or deteriorate → sustained deterioration can cross the existing war boundary → bounded raids use the same relation authority. No random faction clock, diplomacy wallet or parallel political state was added.

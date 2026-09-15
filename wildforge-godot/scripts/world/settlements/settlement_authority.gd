@@ -380,11 +380,18 @@ func restore_caravans(raw) -> bool:
 	if serial < 0 or not active is Array or active.size() > CARAVAN_MAX_ACTIVE:
 		return false
 	var staged: Dictionary = {}
+	var max_active_serial := -1
 	for entry in active:
 		if not entry is Dictionary:
 			return false
 		var row: Dictionary = (entry as Dictionary).duplicate(true)
 		var id := String(row.get("id", ""))
+		if not id.begins_with("caravan:"):
+			return false
+		var id_suffix := id.trim_prefix("caravan:")
+		if not id_suffix.is_valid_int():
+			return false
+		max_active_serial = maxi(max_active_serial, int(id_suffix))
 		var origin := String(row.get("origin", ""))
 		var destination := String(row.get("destination", ""))
 		var item_id := String(row.get("item_id", ""))
@@ -398,6 +405,8 @@ func restore_caravans(raw) -> bool:
 		if depart < 0 or arrival <= depart or int(row.get("payment", -1)) < 0:
 			return false
 		staged[id] = row
+	if serial <= max_active_serial:
+		return false
 	caravans = staged
 	caravan_serial = serial
 	return true
@@ -432,8 +441,11 @@ func _advance_caravans(absolute_hour: int) -> Array:
 		var origin_row: Dictionary = settlements[origin]
 		origin_row["treasury"] = maxi(0, int(origin_row.get("treasury", 0))) + payment
 		settlements[origin] = origin_row
+		var diplomacy: Dictionary = {}
+		if world.faction_authority != null:
+			diplomacy = world.faction_authority.record_caravan_arrival(origin, destination, payment)
 		caravans.erase(caravan_id)
-		events.append({"kind": "caravan_arrived", "caravan_id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment})
+		events.append({"kind": "caravan_arrived", "caravan_id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment, "diplomacy": diplomacy})
 	return events
 
 func _dispatch_caravans(absolute_hour: int) -> Array:
@@ -548,6 +560,9 @@ func _route_blocked(origin: String, destination: String) -> bool:
 	if a == b:
 		return false
 	return String(world.faction_authority.relation(a, b).get("stance", "neutral")) == "war"
+
+func has_caravan_route(origin: String, destination: String, item_id: String) -> bool:
+	return _has_caravan_for_item(origin, destination, item_id)
 
 func _has_caravan_for_item(origin: String, destination: String, item_id: String) -> bool:
 	for raw in caravans.values():

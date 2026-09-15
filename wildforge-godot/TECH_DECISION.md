@@ -220,3 +220,9 @@ The scheduler is deliberately bounded to two active caravans and derives candida
 ### v0.29 caravan projection rule
 
 A visible trade caravan is a streamed projection, not a second simulation. `WorldActorAuthority` may cache only descriptor position and presentation metadata derived from the macro caravan ID. Cargo, payment, departure/arrival time and route outcome remain owned by `SettlementAuthority`. The projection signature changes only when the bounded caravan set or its authoritative world-hour route cell changes, avoiding whole-actor reconciliation each frame.
+
+### v0.29 diplomacy evolves from world facts
+
+Autonomous diplomacy may mutate only the canonical `FactionAuthority.relations` rows. Inputs are authoritative facts already owned elsewhere: successful caravan arrivals, settlement targets/current inventory/local production, and raid outcomes. The 48-hour cadence and capped shortage pressure prevent rapid oscillation; score hysteresis enters trade at +30, enters war at -60, leaves war only after recovery to -20, and leaves trade below +10. A diplomacy transition out of war removes obsolete raid records immediately.
+
+This is intentionally not a random diplomacy simulator. If the economy and logistics stabilize, relations stop degrading; if physical exchange succeeds repeatedly, relations improve; if a balanced war grinds into stalemate, exhaustion can cool it. The political layer therefore remains downstream of the same world state the player will eventually be free to influence.

@@ -698,10 +698,17 @@ static func _valid_caravan_payload(raw) -> bool:
 		return false
 	var allowed_settlements := {"verdant_mossbridge": true, "frost_frostmirror": true, "ember_cinder_ridge": true}
 	var seen: Dictionary = {}
+	var max_active_serial := -1
 	for entry in active:
 		if not entry is Dictionary:
 			return false
 		var id := String(entry.get("id", ""))
+		if not id.begins_with("caravan:"):
+			return false
+		var id_suffix := id.trim_prefix("caravan:")
+		if not id_suffix.is_valid_int():
+			return false
+		max_active_serial = maxi(max_active_serial, int(id_suffix))
 		var origin := String(entry.get("origin", ""))
 		var destination := String(entry.get("destination", ""))
 		var item_id := String(entry.get("item_id", ""))
@@ -713,7 +720,7 @@ static func _valid_caravan_payload(raw) -> bool:
 		if quantity <= 0 or quantity > SliceSettlementAuthority.CARAVAN_MAX_LOAD or int(entry.get("payment", -1)) < 0 or depart < 0 or arrival <= depart:
 			return false
 		seen[id] = true
-	return true
+	return serial > max_active_serial
 
 static func _valid_world_clock(raw) -> bool:
 	if not raw is Dictionary:

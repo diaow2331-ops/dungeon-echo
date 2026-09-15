@@ -56,6 +56,14 @@ func _run() -> void:
 
 	var snap := SliceSaveSystem.snapshot(main)
 	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION and SliceSaveSystem.validate_snapshot(snap), "schema 28 validates in-transit caravan authority")
+	var stale_serial := snap.duplicate(true)
+	var caravan_payload: Dictionary = stale_serial.get("caravans", {})
+	var active_payload: Array = caravan_payload.get("active", [])
+	if not active_payload.is_empty():
+		var active_id := String((active_payload[0] as Dictionary).get("id", "caravan:0"))
+		caravan_payload["serial"] = int(active_id.trim_prefix("caravan:"))
+		stale_serial["caravans"] = caravan_payload
+		_check(not SliceSaveSystem.validate_snapshot(stale_serial), "save validator rejects a caravan serial that could reuse an active shipment id")
 	main.free()
 	await process_frame
 	var restored := _new_main()
