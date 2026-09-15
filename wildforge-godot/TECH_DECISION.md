@@ -210,3 +210,9 @@ A war relation is not sufficient evidence for annexation. Raid decisiveness is d
 ### v0.28 conflict presentation is projection-only
 
 Settlement banners and guard alert posture are read-only projections. They do not persist status, controller or raid flags and therefore cannot become a second state machine. A banner resolves its current state directly from `FactionAuthority` every time the authoritative political state changes; local actor streaming only decides whether that visualization is instantiated near the player.
+
+## v0.29 caravan logistics authority boundary
+
+Autonomous caravan logistics belongs to `SettlementAuthority` because the durable facts are settlement stock, treasury escrow, route endpoints and in-transit cargo. There is no parallel caravan economy: cargo leaves the same origin inventory at dispatch, destination money leaves the same treasury into the caravan record, and arrival or cancellation resolves those exact facts once. Later local caravan actors must be projections of these records and may not own a second cargo wallet.
+
+The scheduler is deliberately bounded to two active caravans and derives candidates only from geography-produced surplus and real destination shortage. Direct war blocks a route; broader tension/war reduces load size. Save schema 28 persists only the minimal in-transit records required to preserve conservation across process death.
