@@ -1234,6 +1234,15 @@ func recover_security(settlement_id: String, amount: int) -> int:
 	settlements[settlement_id] = row
 	return int(row["security"])
 
+func apply_player_crime_pressure(settlement_id: String, amount: int) -> int:
+	if not settlements.has(settlement_id) or amount <= 0:
+		return 0
+	var before: int = security(settlement_id)
+	var row: Dictionary = settlements[settlement_id]
+	row["security"] = maxi(0, before - amount)
+	settlements[settlement_id] = row
+	return before - int(row["security"])
+
 func apply_raid_pressure(settlement_id: String, pressure: int, attacker_faction: String) -> Dictionary:
 	if not settlements.has(settlement_id) or pressure <= 0:
 		return {"ok": false}
@@ -1364,13 +1373,13 @@ func loot_warehouse(player, settlement_id: String, item_id: String, quantity: in
 	# Theft damages the same local security used by route risk, war pressure and
 	# displacement. Critical-stock theft hurts slightly more, but remains bounded.
 	var shortage_penalty := 2 if shortage_before == "critical" else (1 if shortage_before == "strained" else 0)
-	var security_loss := mini(6, quantity + shortage_penalty)
-	row["security"] = maxi(0, security_before - security_loss)
+	var requested_security_loss := mini(6, quantity + shortage_penalty)
 	settlements[settlement_id] = row
+	var security_loss: int = apply_player_crime_pressure(settlement_id, requested_security_loss)
 	player.add_item(item_id, quantity)
 	var faction_id: String = world.faction_authority.controller_for_settlement(settlement_id)
 	var bounty: int = world.faction_authority.record_player_crime(faction_id, quantity * 25)
-	return {"ok": true, "quantity": quantity, "security_loss": security_before - security(settlement_id), "security": security(settlement_id), "bounty": bounty}
+	return {"ok": true, "quantity": quantity, "security_loss": security_loss, "security": security(settlement_id), "bounty": bounty}
 
 func _relieve_stolen_deficit(settlement_id: String, item_id: String, amount: int) -> void:
 	var row: Dictionary = settlements[settlement_id]

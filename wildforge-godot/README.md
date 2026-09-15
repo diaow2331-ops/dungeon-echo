@@ -393,3 +393,11 @@ Fracture is no longer only something the player observes. A physically blocked c
 Scarce external deliveries now provide a bounded peaceful intervention path once tension-capable eras begin. If a settlement is genuinely strained or critical for a good it does not produce locally, delivering that real stock can restore a small amount of the same settlement security used by incidents, raids and displacement. Open Roads trade remains ordinary trade, and locally produced goods do not receive the external-relief effect.
 
 The existing progression guidance now derives live interventions from those same facts. Active route damage takes priority as a repair rumor; otherwise the deepest external shortage becomes a supply lead. These are read-only world opportunities rather than quests: no repair meter, aid ledger, reputation currency or guaranteed reward state is persisted.
+
+## v0.36 crime is a real destabilization path
+
+Player crime now changes the same local stability facts used by the rest of the world. Stealing from an opened faction warehouse removes real stock, increases the existing stolen deficit and bounty, and applies bounded damage to that settlement's canonical security. Taking already scarce goods hurts slightly more than ordinary theft. Killing a settlement guard also applies one bounded security loss exactly once.
+
+High-impact crime can act as the `tension_catalyst` for Open Roads only after the regional trade layer exists. The existing 500-bounty pursuit threshold is reused as the trigger; ordinary crime below it does not advance macro progression, and even severe crime cannot bypass era dwell time, fabricate relation loss or declare war directly.
+
+Warehouse UI now exposes current local security and completed theft feedback reports the real security loss. This gives the criminal route visible consequences without adding a crime XP bar, destabilization meter or parallel political state.

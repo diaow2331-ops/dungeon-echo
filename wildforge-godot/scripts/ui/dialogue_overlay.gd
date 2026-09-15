@@ -259,7 +259,7 @@ func update_market(market: Dictionary, feedback := "") -> void:
 	var warehouse := bool(active_market.get("warehouse", false))
 	market_buy_button.visible = not warehouse
 	if warehouse:
-		market_label.text = "%s · 仓库剩余 %d · 携带 %d · 负重 %d/160" % [item_label, stock, player_count, int(active_market.get("weight", 0))]
+		market_label.text = "%s · 仓库剩余 %d · 携带 %d · 负重 %d/160 · 治安 %d/100" % [item_label, stock, player_count, int(active_market.get("weight", 0)), int(active_market.get("security", 100))]
 		market_sell_button.disabled = bool(active_market.get("locked", true)) or stock < quantity or not bool(active_market.get("can_carry", false))
 		market_sell_button.text = ("取回 %d 份" % quantity if bool(active_market.get("lost_cargo", false)) else "搬走 %d 份（犯罪）" % quantity) if not market_sell_button.disabled else ("先打开门锁" if bool(active_market.get("locked", true)) else "库存不足或背不动")
 		if bool(active_market.get("personal_storage", false)):
