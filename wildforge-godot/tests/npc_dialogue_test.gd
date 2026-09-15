@@ -35,8 +35,8 @@ func _run() -> void:
 	_check(merchant_ids.size() == 3 and guard_ids.size() == 3, "three physical settlements register one merchant and one guard each")
 	var merchant_id := "verdant_mossbridge:merchant"
 	var guard_id := "verdant_mossbridge:guard"
-	_check(merchant_id in merchant_ids and guard_id in guard_ids, "Mossbridge keeps stable NPC identities inside the shared actor authority")
-	_check(authority.is_present(merchant_id) and authority.is_present(guard_id), "settlement NPC identities live in world actor authority")
+	_check(merchant_id in merchant_ids and guard_id in guard_ids, "Mossbridge keeps stable NPC role slots inside the shared actor authority")
+	_check(authority.is_present(merchant_id) and authority.is_present(guard_id), "settlement NPC role projections live in world actor authority")
 
 	var merchant_cell := _actor_cell(authority, merchant_id)
 	player.global_position = world.cell_center(merchant_cell) + Vector2(0, -42)
@@ -57,7 +57,8 @@ func _run() -> void:
 	await process_frame
 	var overlay := main.dialogue_overlay as SliceDialogueOverlay
 	_check(overlay.visible, "mouse click on merchant opens the dialogue overlay")
-	_check(overlay.speaker_label.text == "米菈" and "商人" in overlay.role_label.text, "merchant dialogue renders descriptor identity")
+	var merchant_person: Dictionary = world.npc_roster_authority.person(merchant_id)
+	_check(overlay.speaker_label.text == String(merchant_person.get("display_name", "")) and "商人" in overlay.role_label.text, "merchant dialogue renders roster identity")
 	_check(player.interaction_locked, "opening dialogue locks player world controls")
 	_check(main.touch_controls.interaction_blocked and main.touch_controls.move_id == -1 and main.touch_controls.aim_id == -1 and player.touch_move == Vector2.ZERO, "dialogue opening clears active mobile sticks instead of leaving stale touch ids")
 	var settlement_id := "verdant_mossbridge"
@@ -101,7 +102,8 @@ func _run() -> void:
 	guard._input_event(root, touch, 0)
 	await process_frame
 	_check(overlay.visible, "touching the guard opens the same dialogue overlay")
-	_check(overlay.speaker_label.text == "洛恩" and "守卫" in overlay.role_label.text, "guard dialogue renders its own descriptor identity")
+	var guard_person: Dictionary = world.npc_roster_authority.person(guard_id)
+	_check(overlay.speaker_label.text == String(guard_person.get("display_name", "")) and "守卫" in overlay.role_label.text, "guard dialogue renders its roster identity")
 	_check(not overlay.market_box.visible, "guard dialogue cannot project a second market surface")
 	overlay.close_dialogue()
 	await process_frame

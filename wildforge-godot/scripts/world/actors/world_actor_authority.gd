@@ -108,12 +108,20 @@ func register_settlement_npcs(raw_settlements: Array) -> void:
 			var kind := KIND_MERCHANT if declared_kind == "merchant" else KIND_SETTLEMENT_GUARD if declared_kind == "guard" else ""
 			if kind.is_empty():
 				continue
+			var person: Dictionary = world.npc_roster_authority.person(actor_id) if world.npc_roster_authority != null else {}
+			var dialogue: Array = (npc.get("dialogue", []) as Array).duplicate()
+			if world.npc_roster_authority != null:
+				var voice_line := world.npc_roster_authority.voice_line(actor_id)
+				if not voice_line.is_empty():
+					dialogue.append(voice_line)
 			_register_actor(actor_id, kind, Vector2i(int(raw_cell[0]), int(raw_cell[1])), {
 				"settlement_id": settlement_id,
 				"faction_id": faction_id,
-				"display_name": String(npc.get("display_name", actor_id)),
-				"role": String(npc.get("role", "")),
-				"dialogue": (npc.get("dialogue", []) as Array).duplicate(),
+				"person_id": String(person.get("person_id", actor_id)),
+				"personality": String(person.get("personality", "")),
+				"display_name": String(person.get("display_name", npc.get("display_name", actor_id))),
+				"role": String(person.get("role_title", npc.get("role", ""))),
+				"dialogue": dialogue,
 			})
 
 func register_vegetation_baseline(sites: Array) -> void:
