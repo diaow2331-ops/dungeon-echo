@@ -580,10 +580,15 @@ func attack_phase() -> float:
 	return 0.0 if ATTACK_TOTAL <= 0.0 else 1.0 - attack_timer / ATTACK_TOTAL
 
 func _enemy_in_aim(aim: Vector2) -> Node2D:
+	# Active threats win target priority, but a deliberate swing can still hit a neutral NPC.
+	var hostile := _target_in_group("enemies", aim)
+	return hostile if hostile != null else _target_in_group("damageable_npcs", aim)
+
+func _target_in_group(group_name: String, aim: Vector2) -> Node2D:
 	var best: Node2D = null
 	var best_d := MELEE_ACQUIRE_RANGE
-	for node in get_tree().get_nodes_in_group("enemies"):
-		if not is_instance_valid(node):
+	for node in get_tree().get_nodes_in_group(group_name):
+		if not is_instance_valid(node) or not node is Node2D:
 			continue
 		var offset: Vector2 = node.global_position - global_position
 		var dist := offset.length()

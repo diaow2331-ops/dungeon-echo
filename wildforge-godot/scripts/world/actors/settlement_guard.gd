@@ -22,6 +22,8 @@ func _ready() -> void:
 	collision_layer = 4
 	collision_mask = 1
 	add_to_group("settlement_guard")
+	if not bool(payload.get("hunter", false)):
+		add_to_group("damageable_npcs")
 	var shape := CapsuleShape2D.new()
 	shape.radius = 12.0
 	shape.height = 46.0

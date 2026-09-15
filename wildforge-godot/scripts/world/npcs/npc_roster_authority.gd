@@ -5,6 +5,12 @@ const ROLE_MERCHANT := "merchant"
 const ROLE_GUARD := "guard"
 const VALID_ROLES := [ROLE_MERCHANT, ROLE_GUARD]
 const PERSONALITIES := ["cautious", "warm", "blunt", "greedy", "stern", "fatalistic"]
+const MERCHANT_MAX_HEALTH := 180.0
+const GUARD_MAX_HEALTH := 420.0
+const MERCHANT_REPLACEMENT_HOURS := 72
+const GUARD_REPLACEMENT_HOURS := 48
+const REPLACEMENT_SECURITY_FLOOR := 20
+const REPLACEMENT_POPULATION_FLOOR := 6
 
 const REGION_NAMES := {
 	"verdant": {
@@ -61,6 +67,9 @@ func _new_person(slot_id: String, settlement_id: String, faction_id: String, rol
 		"display_name": _name_for(faction_id, slot_id, generation),
 		"personality": _personality_for(slot_id, generation),
 		"alive": true,
+		"health": GUARD_MAX_HEALTH if role_kind == ROLE_GUARD else MERCHANT_MAX_HEALTH,
+		"death_hour": -1,
+		"replacement_due_hour": -1,
 	}
 
 func has_slot(slot_id: String) -> bool:
@@ -82,12 +91,16 @@ func _name_for(faction_id: String, slot_id: String, generation: int) -> String:
 	var family: Array = region.get("family", [])
 	if given.is_empty() or family.is_empty():
 		return "无名者"
-	var given_index := _index_for("%s|given|%d" % [slot_id, generation], given.size())
-	var family_index := _index_for("%s|family|%d" % [slot_id, generation], family.size())
+	# Succession must visibly produce a different person, not only a different hidden id.
+	var given_base := _index_for("%s|given" % slot_id, given.size())
+	var family_base := _index_for("%s|family" % slot_id, family.size())
+	var given_index := (given_base + generation) % given.size()
+	var family_index := (family_base + generation * 2) % family.size()
 	return "%s·%s" % [String(given[given_index]), String(family[family_index])]
 
 func _personality_for(slot_id: String, generation: int) -> String:
-	return String(PERSONALITIES[_index_for("%s|personality|%d" % [slot_id, generation], PERSONALITIES.size())])
+	var base := _index_for("%s|personality" % slot_id, PERSONALITIES.size())
+	return String(PERSONALITIES[(base + generation) % PERSONALITIES.size()])
 
 func _index_for(label: String, size: int) -> int:
 	if size <= 0:
@@ -122,3 +135,121 @@ func _guard_voice(personality: String) -> String:
 		"stern": return "这里有这里的法。越线之前，先想清楚能不能承担后果。"
 		"fatalistic": return "今天守这面旗，明天也许换一面。但今晚的门，我还是得守。"
 	return ""
+
+func is_alive(slot_id: String) -> bool:
+	return bool((slots.get(slot_id, {}) as Dictionary).get("alive", false))
+
+func health(slot_id: String) -> float:
+	return float((slots.get(slot_id, {}) as Dictionary).get("health", 0.0))
+
+func max_health(slot_id: String) -> float:
+	var row: Dictionary = slots.get(slot_id, {})
+	return GUARD_MAX_HEALTH if String(row.get("role_kind", "")) == ROLE_GUARD else MERCHANT_MAX_HEALTH
+
+func damage(slot_id: String, amount: float, absolute_hour := -1) -> Dictionary:
+	if not slots.has(slot_id) or amount <= 0.0 or not is_alive(slot_id):
+		return {"ok": false}
+	var row: Dictionary = slots[slot_id]
+	var before := float(row.get("health", max_health(slot_id)))
+	var after := maxf(0.0, before - amount)
+	row["health"] = after
+	var died := after <= 0.0
+	if died:
+		var now: int = absolute_hour if absolute_hour >= 0 else (world.absolute_world_hour() if world != null else 0)
+		row["alive"] = false
+		row["death_hour"] = now
+		row["replacement_due_hour"] = now + _replacement_delay(row)
+	slots[slot_id] = row
+	return {"ok": true, "died": died, "health_before": before, "health": after, "person_id": String(row.get("person_id", ""))}
+
+func simulate_hour(absolute_hour: int) -> Array:
+	var events: Array = []
+	for slot_id in all_slots():
+		var row: Dictionary = slots[slot_id]
+		if bool(row.get("alive", true)):
+			continue
+		if absolute_hour < int(row.get("replacement_due_hour", 0)):
+			continue
+		var settlement_id := String(row.get("settlement_id", ""))
+		if not _replacement_possible(settlement_id, String(row.get("role_kind", ""))):
+			continue
+		var generation := int(row.get("generation", 0)) + 1
+		var successor := _new_person(slot_id, settlement_id, String(row.get("faction_id", "")), String(row.get("role_kind", "")), String(row.get("role_title", "")), generation)
+		slots[slot_id] = successor
+		events.append({"kind": "npc_succeeded", "slot_id": slot_id, "settlement_id": settlement_id, "role_kind": String(successor["role_kind"]), "person_id": String(successor["person_id"]), "display_name": String(successor["display_name"]), "generation": generation})
+	return events
+
+func _replacement_possible(settlement_id: String, role_kind: String) -> bool:
+	if world == null or world.settlement_authority == null:
+		return false
+	if world.settlement_authority.population(settlement_id) < REPLACEMENT_POPULATION_FLOOR:
+		return false
+	if world.settlement_authority.security(settlement_id) < REPLACEMENT_SECURITY_FLOOR:
+		return false
+	return world.settlement_authority.fund_npc_replacement(settlement_id, role_kind)
+
+func _replacement_delay(row: Dictionary) -> int:
+	var role_kind := String(row.get("role_kind", ""))
+	var delay := GUARD_REPLACEMENT_HOURS if role_kind == ROLE_GUARD else MERCHANT_REPLACEMENT_HOURS
+	if world != null and world.settlement_authority != null:
+		var security: int = world.settlement_authority.security(String(row.get("settlement_id", "")))
+		if security < 50:
+			delay += 24
+	return delay
+
+func export_state() -> Array:
+	var rows: Array = []
+	for slot_id in all_slots():
+		var row: Dictionary = slots[slot_id]
+		rows.append({
+			"slot_id": slot_id,
+			"generation": int(row.get("generation", 0)),
+			"alive": bool(row.get("alive", true)),
+			"health": float(row.get("health", max_health(slot_id))),
+			"death_hour": int(row.get("death_hour", -1)),
+			"replacement_due_hour": int(row.get("replacement_due_hour", -1)),
+		})
+	return rows
+
+func restore_state(raw) -> bool:
+	if not raw is Array or raw.size() != slots.size():
+		return false
+	var staged: Dictionary = {}
+	for entry in raw:
+		if not entry is Dictionary:
+			return false
+		var slot_id := String(entry.get("slot_id", ""))
+		if not slots.has(slot_id) or staged.has(slot_id):
+			return false
+		var baseline: Dictionary = slots[slot_id]
+		var generation := int(entry.get("generation", -1))
+		var alive_value = entry.get("alive", null)
+		var hp := float(entry.get("health", -1.0))
+		var death_hour := int(entry.get("death_hour", -2))
+		var due_hour := int(entry.get("replacement_due_hour", -2))
+		if generation < 0 or not alive_value is bool or not is_finite(hp) or hp < 0.0 or hp > max_health(slot_id):
+			return false
+		if bool(alive_value) and (hp <= 0.0 or death_hour != -1 or due_hour != -1):
+			return false
+		if not bool(alive_value) and (hp != 0.0 or death_hour < 0 or due_hour <= death_hour):
+			return false
+		var restored := _new_person(slot_id, String(baseline.get("settlement_id", "")), String(baseline.get("faction_id", "")), String(baseline.get("role_kind", "")), String(baseline.get("role_title", "")), generation)
+		restored["alive"] = bool(alive_value)
+		restored["health"] = hp
+		restored["death_hour"] = death_hour
+		restored["replacement_due_hour"] = due_hour
+		staged[slot_id] = restored
+	slots = staged
+	return true
+
+func restore_legacy_health(slot_id: String, hp: float, absolute_hour: int) -> bool:
+	if not slots.has(slot_id) or hp < 0.0 or hp > max_health(slot_id):
+		return false
+	var row: Dictionary = slots[slot_id]
+	row["health"] = hp
+	if hp <= 0.0:
+		row["alive"] = false
+		row["death_hour"] = maxi(0, absolute_hour)
+		row["replacement_due_hour"] = maxi(0, absolute_hour) + _replacement_delay(row)
+	slots[slot_id] = row
+	return true

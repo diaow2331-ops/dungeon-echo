@@ -288,6 +288,10 @@ func _on_world_event(event: Dictionary) -> void:
 		if touch_controls != null:
 			touch_controls.show_world_notice(_era_transition_notice(event))
 		return
+	if kind == "npc_succeeded":
+		if actor_authority != null:
+			actor_authority.sync_npc_roster(true)
+		return
 	if actor_authority == null:
 		return
 	if kind == "caravan_attacked":

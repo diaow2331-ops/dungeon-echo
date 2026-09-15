@@ -387,7 +387,7 @@ func mark_removed(actor_id: String) -> bool:
 func _register_actor(actor_id: String, kind: String, cell: Vector2i, metadata: Dictionary) -> void:
 	if actor_id.is_empty() or descriptors.has(actor_id):
 		return
-	if kind in [KIND_SETTLEMENT_GUARD, KIND_BOUNTY_HUNTER]:
+	if kind in [KIND_MERCHANT, KIND_SETTLEMENT_GUARD, KIND_BOUNTY_HUNTER]:
 		metadata["home_cell"] = [cell.x, cell.y]
 	var key := world.chunk_key_for(cell)
 	descriptors[actor_id] = {
@@ -523,10 +523,13 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		var meta: Dictionary = descriptor.get("meta", {})
 		npc.name = _node_name("SettlementNpc", actor_id)
 		npc.player = player
+		npc.authority = self
 		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("lost_cargo" if kind == KIND_LOST_CARGO else ("player_storage" if kind == KIND_PLAYER_STORAGE else "warehouse")), {
 			"actor_id": actor_id,
 			"settlement_id": String(meta.get("settlement_id", "")),
 			"faction_id": String(meta.get("faction_id", "")),
+			"person_id": String(meta.get("person_id", "")),
+			"personality": String(meta.get("personality", "")),
 			"display_name": String(meta.get("display_name", actor_id)),
 			"role": String(meta.get("role", "")),
 			"dialogue": (meta.get("dialogue", []) as Array).duplicate(),
@@ -603,11 +606,48 @@ func _planted_tree_actor_id(cell: Vector2i) -> String:
 func _node_name(prefix: String, actor_id: String) -> String:
 	return "%s_%s" % [prefix, actor_id.replace(":", "_")]
 
+func npc_health(actor_id: String) -> float:
+	if world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		return world.npc_roster_authority.health(actor_id)
+	return float(((descriptors.get(actor_id, {}) as Dictionary).get("meta", {}) as Dictionary).get("health", 0.0))
+
+func npc_alive(actor_id: String) -> bool:
+	if world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		return world.npc_roster_authority.is_alive(actor_id)
+	return npc_health(actor_id) > 0.0
+
 func guard_health(actor_id: String) -> float:
+	if world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		return world.npc_roster_authority.health(actor_id)
 	return float(((descriptors.get(actor_id, {}) as Dictionary).get("meta", {}) as Dictionary).get("health", 420.0))
+
+func damage_settlement_npc(actor_id: String, damage: float, at: Vector2) -> Dictionary:
+	if not descriptors.has(actor_id) or damage <= 0.0 or world == null or world.npc_roster_authority == null or not world.npc_roster_authority.has_slot(actor_id):
+		return {"ok": false}
+	var result: Dictionary = world.npc_roster_authority.damage(actor_id, damage, world.absolute_world_hour())
+	if not bool(result.get("ok", false)):
+		return result
+	if bool(result.get("died", false)):
+		var meta: Dictionary = (descriptors[actor_id] as Dictionary).get("meta", {})
+		var settlement_id := String(meta.get("settlement_id", ""))
+		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 600)
+		if world.settlement_authority != null:
+			world.settlement_authority.apply_player_crime_pressure(settlement_id, 6)
+		_move_npc_corpse(actor_id, at)
+	return result
 
 func damage_guard(actor_id: String, damage: float, at: Vector2) -> void:
 	if not descriptors.has(actor_id) or guard_health(actor_id) <= 0.0:
+		return
+	var kind := String((descriptors[actor_id] as Dictionary).get("kind", ""))
+	if kind == KIND_SETTLEMENT_GUARD and world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		var result: Dictionary = world.npc_roster_authority.damage(actor_id, damage, world.absolute_world_hour())
+		if bool(result.get("died", false)):
+			var settlement_id := String(((descriptors[actor_id] as Dictionary).get("meta", {}) as Dictionary).get("settlement_id", ""))
+			world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 1000)
+			if world.settlement_authority != null:
+				world.settlement_authority.apply_player_crime_pressure(settlement_id, 8)
+			_move_npc_corpse(actor_id, at)
 		return
 	var row: Dictionary = descriptors[actor_id]
 	var meta: Dictionary = row["meta"]
@@ -615,19 +655,56 @@ func damage_guard(actor_id: String, damage: float, at: Vector2) -> void:
 	row["meta"] = meta
 	descriptors[actor_id] = row
 	if float(meta["health"]) <= 0.0:
-		var settlement_id := String(meta.get("settlement_id", ""))
-		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 1000)
-		if world.settlement_authority != null:
-			world.settlement_authority.apply_player_crime_pressure(settlement_id, 8)
-		var old_key: Vector2i = row["chunk"]
+		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(String(meta.get("settlement_id", ""))), 1000)
+		_move_npc_corpse(actor_id, at)
+
+func _move_npc_corpse(actor_id: String, at: Vector2) -> void:
+	if not descriptors.has(actor_id):
+		return
+	var row: Dictionary = descriptors[actor_id]
+	var old_key: Vector2i = row["chunk"]
+	if ids_by_chunk.has(old_key):
 		(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
-		var cell := world.world_to_cell(at - Vector2(0, 1))
-		row["cell"] = cell
-		row["chunk"] = world.chunk_key_for(cell)
+	var cell := world.world_to_cell(at - Vector2(0, 1))
+	row["cell"] = cell
+	row["chunk"] = world.chunk_key_for(cell)
+	descriptors[actor_id] = row
+	if not ids_by_chunk.has(row["chunk"]):
+		ids_by_chunk[row["chunk"]] = {}
+	(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+
+func sync_npc_roster(force := false) -> void:
+	if world == null or world.npc_roster_authority == null:
+		return
+	for actor_id in actor_ids(KIND_MERCHANT) + actor_ids(KIND_SETTLEMENT_GUARD):
+		if not world.npc_roster_authority.has_slot(actor_id):
+			continue
+		var person: Dictionary = world.npc_roster_authority.person(actor_id)
+		var row: Dictionary = descriptors[actor_id]
+		var meta: Dictionary = row["meta"]
+		var changed := force or String(meta.get("person_id", "")) != String(person.get("person_id", ""))
+		if not changed:
+			continue
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		meta["person_id"] = String(person.get("person_id", actor_id))
+		meta["personality"] = String(person.get("personality", ""))
+		meta["display_name"] = String(person.get("display_name", actor_id))
+		meta["role"] = String(person.get("role_title", meta.get("role", "")))
+		meta["key_taken"] = false
+		var home_cell: Array = meta.get("home_cell", [row["cell"].x, row["cell"].y])
+		var old_key: Vector2i = row["chunk"]
+		if ids_by_chunk.has(old_key):
+			(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
+		row["cell"] = Vector2i(int(home_cell[0]), int(home_cell[1]))
+		row["chunk"] = world.chunk_key_for(row["cell"])
+		row["present"] = true
+		row["meta"] = meta
 		descriptors[actor_id] = row
 		if not ids_by_chunk.has(row["chunk"]):
 			ids_by_chunk[row["chunk"]] = {}
 		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+	_reconcile_current_stream()
 
 func claim_guard_key(actor_id: String) -> bool:
 	if not descriptors.has(actor_id) or guard_health(actor_id) > 0.0 or not is_projected(actor_id):

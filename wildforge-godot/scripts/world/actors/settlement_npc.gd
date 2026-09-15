@@ -7,6 +7,8 @@ var actor_id := ""
 var npc_kind := "merchant"
 var payload: Dictionary = {}
 var player: SlicePlayer
+var authority: SliceWorldActorAuthority
+var hit_flash := 0.0
 var redraw_elapsed := 0.0
 var body_tint := Color("6f9c72")
 
@@ -22,6 +24,8 @@ func _ready() -> void:
 	input_pickable = true
 	add_to_group("settlement_npcs")
 	add_to_group("settlement_" + npc_kind)
+	if npc_kind == "merchant":
+		add_to_group("damageable_npcs")
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(56, 64)
 	var collider := CollisionShape2D.new()
@@ -32,6 +36,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	# Scene-only refresh: economic and political facts stay in world authority.
+	hit_flash = maxf(0.0, hit_flash - delta)
 	redraw_elapsed += delta
 	if redraw_elapsed >= 0.5:
 		redraw_elapsed = 0.0
@@ -48,6 +53,8 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 		return
 	if player == null or not is_instance_valid(player) or player.global_position.distance_to(global_position) > 118.0:
 		return
+	if npc_kind == "merchant" and not alive():
+		return
 	viewport.set_input_as_handled()
 	var request := payload.duplicate(true)
 	request["npc_kind"] = npc_kind
@@ -57,6 +64,26 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 		lines.push_front(era_line)
 		request["dialogue"] = lines
 	dialogue_requested.emit(request)
+
+
+func health() -> float:
+	return authority.npc_health(actor_id) if authority != null and npc_kind == "merchant" else 0.0
+
+func alive() -> bool:
+	return authority.npc_alive(actor_id) if authority != null and npc_kind == "merchant" else true
+
+func apply_hit(damage: float, _force: Vector2) -> void:
+	if npc_kind != "merchant" or damage <= 0.0 or authority == null or player == null or not alive():
+		return
+	var settlement_id := String(payload.get("settlement_id", ""))
+	if player.world != null and player.world.faction_authority != null:
+		var faction_id := player.world.faction_authority.controller_for_settlement(settlement_id)
+		if not player.world.faction_authority.hostile_to_player(faction_id):
+			player.world.faction_authority.record_player_crime(faction_id, 150)
+	var result := authority.damage_settlement_npc(actor_id, damage, global_position)
+	if bool(result.get("ok", false)):
+		hit_flash = 0.14
+		queue_redraw()
 
 func era_context_line() -> String:
 	if npc_kind != "merchant" or player == null or not is_instance_valid(player) or player.world == null or player.world.progression_authority == null:
@@ -87,7 +114,11 @@ func _draw() -> void:
 	if npc_kind == "warehouse":
 		_draw_warehouse()
 		return
-	draw_circle(Vector2(0, -39), 8.5, Color("d7bf91"))
+	if npc_kind == "merchant" and not alive():
+		draw_rect(Rect2(-22, -9, 44, 9), Color("705d50"))
+		draw_string(ThemeDB.fallback_font, Vector2(-34, -18), "职位空缺", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("c8b49a"))
+		return
+	draw_circle(Vector2(0, -39), 8.5, Color("e4c29a") if hit_flash > 0.0 else Color("d7bf91"))
 	draw_rect(Rect2(-10, -31, 20, 25), body_tint)
 	draw_rect(Rect2(-9, -6, 7, 13), Color("4d5d61"))
 	draw_rect(Rect2(2, -6, 7, 13), Color("4d5d61"))

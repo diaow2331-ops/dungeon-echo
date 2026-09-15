@@ -30,6 +30,8 @@ const ROUTE_REPAIR_TREASURY_COST := 2
 const ROUTE_REPAIR_MATERIALS := ["wood", "sandstone", "basalt"]
 const RETURN_MIGRATION_INTERVAL_HOURS := 24
 const RETURN_MIGRATION_SECURITY := 85
+const MERCHANT_REPLACEMENT_TREASURY_COST := 8
+const GUARD_REPLACEMENT_TREASURY_COST := 12
 const CARAVAN_INCIDENT_COOLDOWN_HOURS := 24
 const CARAVAN_INCIDENT_TENSION_SCORE := -35
 const CARAVAN_INCIDENT_SECURITY_THRESHOLD := 65
@@ -1233,6 +1235,17 @@ func recover_security(settlement_id: String, amount: int) -> int:
 	row["security"] = mini(100, security(settlement_id) + amount)
 	settlements[settlement_id] = row
 	return int(row["security"])
+
+func fund_npc_replacement(settlement_id: String, role_kind: String) -> bool:
+	if not settlements.has(settlement_id):
+		return false
+	var cost := GUARD_REPLACEMENT_TREASURY_COST if role_kind == "guard" else MERCHANT_REPLACEMENT_TREASURY_COST
+	var row: Dictionary = settlements[settlement_id]
+	if int(row.get("treasury", 0)) < cost:
+		return false
+	row["treasury"] = int(row.get("treasury", 0)) - cost
+	settlements[settlement_id] = row
+	return true
 
 func apply_player_crime_pressure(settlement_id: String, amount: int) -> int:
 	if not settlements.has(settlement_id) or amount <= 0:

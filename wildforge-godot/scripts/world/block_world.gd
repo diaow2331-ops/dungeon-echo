@@ -191,6 +191,8 @@ func _sync_world_simulation() -> int:
 			var faction_events = faction_result.get("events", [])
 			if faction_events is Array:
 				hour_events.append_array(faction_events)
+		if npc_roster_authority != null:
+			hour_events.append_array(npc_roster_authority.simulate_hour(simulation_hour_cursor))
 		for event in hour_events:
 			if event is Dictionary:
 				world_event.emit((event as Dictionary).duplicate(true))
