@@ -54,7 +54,6 @@ func _ready() -> void:
 	actor_authority.dialogue_requested.connect(_open_dialogue)
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
 	actor_authority.sync_war_raids()
-	actor_authority.sync_war_raids()
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
