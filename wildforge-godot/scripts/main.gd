@@ -71,6 +71,7 @@ func _ready() -> void:
 	dialogue_overlay.market_route_requested.connect(_mark_market_route)
 	dialogue_overlay.security_action_requested.connect(_security_action)
 	dialogue_overlay.storage_route_requested.connect(_mark_storage_route)
+	dialogue_overlay.beast_feed_requested.connect(_feed_beast)
 	ui_layer.add_child(dialogue_overlay)
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
@@ -122,6 +123,11 @@ func _open_dialogue(payload: Dictionary) -> void:
 		presented["security_action"] = "收起空箱"
 	elif active_interaction_kind == "workbench":
 		presented["security_action"] = "制作储物箱 · 8木板 + 2石块"
+	if active_interaction_kind == "merchant" and actor_authority.beast_state().is_empty() and not world.settlement_authority.market_closed_to_player(active_merchant_settlement):
+		presented["security_action"] = "购置苔背驮兽 · 240◆"
+	if active_actor_id == SliceWorldActorAuthority.BEAST_ID:
+		presented["security_action"] = _beast_action_label()
+		presented["beast_care"] = float(actor_authority.beast_state().get("health", 0)) > 0
 	presented["storage_routes"] = actor_authority.storage_destinations()
 	player.interaction_locked = true
 	if touch_controls != null:
@@ -311,6 +317,22 @@ func _add_mouse(action: StringName, button: MouseButton) -> void:
 func _security_action() -> void:
 	if dialogue_overlay == null or not dialogue_overlay.visible:
 		return
+	if active_interaction_kind == "merchant":
+		var bought := actor_authority.buy_beast(active_merchant_settlement)
+		dialogue_overlay.body_label.text = "驮兽在附近等你。点击它装货、喂食或让它跟随。" if bought else "需要240枚钱币，且附近要有可供驮兽站立的地面。"
+		dialogue_overlay.security_button.visible = not bought
+		dialogue_overlay.update_market(_market_view(active_merchant_settlement))
+		return
+	if active_actor_id == SliceWorldActorAuthority.BEAST_ID:
+		if float(actor_authority.beast_state().get("health", 0)) <= 0:
+			if actor_authority.bury_beast():
+				dialogue_overlay.close_dialogue()
+			else:
+				dialogue_overlay.market_feedback.text = "请先取回剩余物资，再安葬驮兽。"
+		else:
+			actor_authority.tend_beast(false)
+			dialogue_overlay.security_button.text = _beast_action_label()
+		return
 	if active_interaction_kind == "workbench":
 		if SliceCrafting.craft(player, "storage_box"):
 			dialogue_overlay.close_dialogue()
@@ -346,7 +368,7 @@ func _start_warehouse_transfer(item_id: String, quantity: int, deposit := false)
 		return
 	if not _at_storage(active_merchant_settlement) or (active_interaction_kind == "warehouse" and world.settlement_authority.warehouse_locked(active_merchant_settlement)):
 		return
-	warehouse_transfer = {"deposit": deposit, "town": active_merchant_settlement, "item": item_id, "quantity": quantity, "remaining": 1.4 + quantity * 0.35, "position": player.global_position}
+	warehouse_transfer = {"beast_health": float(actor_authority.beast_state().get("health", 0)), "deposit": deposit, "town": active_merchant_settlement, "item": item_id, "quantity": quantity, "remaining": 1.4 + quantity * 0.35, "position": player.global_position}
 	dialogue_overlay.market_buy_button.disabled = true
 	dialogue_overlay.market_sell_button.disabled = true
 	dialogue_overlay.market_item_picker.disabled = true
@@ -361,6 +383,9 @@ func _update_warehouse_transfer(delta: float) -> void:
 		return
 	dialogue_health = player.health
 	if warehouse_transfer.is_empty():
+		return
+	if active_actor_id == SliceWorldActorAuthority.BEAST_ID and float(actor_authority.beast_state().get("health", 0)) < float(warehouse_transfer.get("beast_health", 0)):
+		dialogue_overlay.close_dialogue()
 		return
 	var town := String(warehouse_transfer["town"])
 	if not _at_storage(town) or player.global_position.distance_to(warehouse_transfer["position"]) > 28.0:
@@ -402,3 +427,16 @@ func _mark_storage_route(actor_id: String) -> void:
 		return
 	touch_controls.travel_destination_id = actor_id
 	dialogue_overlay.close_dialogue()
+
+
+func _beast_action_label() -> String:
+	var state := actor_authority.beast_state()
+	if float(state.get("health", 0)) <= 0:
+		return "取空遗物后安葬"
+	return "留在原地" if bool(state.get("following", false)) else "跟随我"
+
+func _feed_beast() -> void:
+	if active_actor_id != SliceWorldActorAuthority.BEAST_ID or dialogue_overlay == null or not dialogue_overlay.visible:
+		return
+	var fed := actor_authority.tend_beast(true)
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement), "喂食后恢复了体力与伤势。" if fed else "需要1份旅行口粮，且驮兽仍活着并需要照料。")

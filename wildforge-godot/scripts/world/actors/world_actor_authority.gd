@@ -7,6 +7,8 @@ const CrawlerScript = preload("res://scripts/enemies/crawler.gd")
 const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
 const GuardScript = preload("res://scripts/world/actors/settlement_guard.gd")
+const BeastScript = preload("res://scripts/world/actors/mossback.gd")
+const BEAST_ID := "player_storage:mossback"
 const KIND_PLAYER_STORAGE := "player_storage"
 const STORAGE_CAPACITY := 480.0
 const KIND_LOST_CARGO := "lost_cargo"
@@ -434,6 +436,15 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		guard.z_index = 18
 		guard.dialogue_requested.connect(_forward_dialogue)
 		node = guard
+	elif actor_id == BEAST_ID:
+		var beast := BeastScript.new() as SliceMossback
+		beast.actor_id = actor_id
+		beast.authority = self
+		beast.player = player
+		beast.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE - 2.0)
+		beast.dialogue_requested.connect(_forward_dialogue)
+		beast.z_index = 18
+		node = beast
 	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
 		var npc := SettlementNpcScript.new() as SliceSettlementNpc
 		var meta: Dictionary = descriptor.get("meta", {})
@@ -704,7 +715,7 @@ func cargo_view(actor_id: String, selected_item: String, quantity: int) -> Dicti
 	var item_id: String = selected_item if selected_item in goods else String(goods[0])
 	return {"enabled": true, "warehouse": true, "lost_cargo": true, "locked": false, "settlement_id": actor_id,
 		"goods": goods, "item_id": item_id, "quantity": quantity, "stock": int(inventory.get(item_id, 0)),
-		"personal_storage": personal, "storage_weight": storage_weight(actor_id), "capacity": STORAGE_CAPACITY,
+		"personal_storage": personal, "storage_weight": storage_weight(actor_id), "capacity": storage_capacity(actor_id), "beast": actor_id == BEAST_ID, "beast_state": beast_state() if actor_id == BEAST_ID else {},
 		"can_deposit": personal and can_deposit(actor_id, item_id, quantity),
 		"player_count": player.item_count(item_id), "can_carry": player.can_carry(item_id, quantity), "weight": player.carried_weight()}
 
@@ -748,6 +759,8 @@ func restore_lost_cargo(raw) -> bool:
 
 func has_container_at(cell: Vector2i) -> bool:
 	for id in actor_ids(KIND_PLAYER_STORAGE):
+		if id == BEAST_ID and float(beast_state().get("health", 0)) <= 0:
+			continue
 		if (descriptors[id]["cell"] as Vector2i) == cell:
 			return true
 	return false
@@ -786,9 +799,11 @@ func storage_weight(actor_id: String) -> float:
 func can_deposit(actor_id: String, item_id: String, quantity: int) -> bool:
 	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_PLAYER_STORAGE or quantity not in [1, 5, 20]:
 		return false
+	if actor_id == BEAST_ID and float(beast_state().get("health", 0)) <= 0:
+		return false
 	# Equipped gear remains a player-owned capability; unequipped spares are storable.
 	var reserve := 1 if item_id in [player.equipped_pick_id, player.equipped_weapon_id, player.equipped_axe_id] else 0
-	return player.item_count(item_id) - reserve >= quantity and storage_weight(actor_id) + player.cargo_unit_weight(item_id) * quantity <= STORAGE_CAPACITY
+	return player.item_count(item_id) - reserve >= quantity and storage_weight(actor_id) + player.cargo_unit_weight(item_id) * quantity <= storage_capacity(actor_id)
 
 func deposit_cargo(actor_id: String, item_id: String, quantity: int) -> Dictionary:
 	if not is_projected(actor_id) or player.global_position.distance_to(projection_for(actor_id).global_position) > 112.0:
@@ -802,6 +817,8 @@ func deposit_cargo(actor_id: String, item_id: String, quantity: int) -> Dictiona
 	return {"ok": true}
 
 func pack_storage(actor_id: String) -> bool:
+	if actor_id == BEAST_ID:
+		return false
 	if not is_projected(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_PLAYER_STORAGE or player.global_position.distance_to(projection_for(actor_id).global_position) > 112.0:
 		return false
 	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
@@ -820,7 +837,7 @@ func export_storage() -> Array:
 	for actor_id in actor_ids(KIND_PLAYER_STORAGE):
 		var row: Dictionary = descriptors[actor_id]
 		var cell: Vector2i = row["cell"]
-		rows.append({"id": actor_id, "cell": [cell.x, cell.y], "inventory": (row["meta"]["inventory"] as Dictionary).duplicate(true)})
+		rows.append({"beast": beast_state().duplicate(true) if actor_id == BEAST_ID else {}, "id": actor_id, "cell": [cell.x, cell.y], "inventory": (row["meta"]["inventory"] as Dictionary).duplicate(true)})
 	return rows
 
 func restore_storage(raw: Array) -> void:
@@ -830,6 +847,8 @@ func restore_storage(raw: Array) -> void:
 		_remove_descriptor(actor_id)
 	for row in raw:
 		_register_actor(String(row["id"]), KIND_PLAYER_STORAGE, Vector2i(int(row["cell"][0]), int(row["cell"][1])), {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": "个人储物箱", "role": "营地仓储 · 容量480", "dialogue": ["存放补给、整理货物，再继续远行。"]})
+		if String(row["id"]) == BEAST_ID:
+			descriptors[BEAST_ID]["meta"]["beast"] = (row.get("beast", {}) as Dictionary).duplicate(true)
 	_reconcile_current_stream()
 
 # Navigation reads durable container positions; it does not maintain a second registry.
@@ -837,8 +856,86 @@ func storage_destinations() -> Array:
 	var entries: Array = []
 	for id in actor_ids(KIND_PLAYER_STORAGE):
 		var cell: Vector2i = descriptors[id]["cell"]
-		entries.append({"id": id, "label": "货栈 (%d, %d) · %d/480" % [cell.x, cell.y, int(storage_weight(id))]})
+		entries.append({"id": id, "label": "%s (%d, %d) · %d/%d" % ["驮兽" if id == BEAST_ID else "货栈", cell.x, cell.y, int(storage_weight(id)), int(storage_capacity(id))]})
 	return entries
 
 func storage_position(id: String) -> Vector2:
 	return world.cell_center(descriptors[id]["cell"]) if descriptors.has(id) and String(descriptors[id]["kind"]) == KIND_PLAYER_STORAGE else Vector2.INF
+
+func storage_capacity(id: String) -> float:
+	return 320.0 if id == BEAST_ID else STORAGE_CAPACITY
+
+func beast_state() -> Dictionary:
+	return descriptors[BEAST_ID]["meta"].get("beast", {}) if descriptors.has(BEAST_ID) else {}
+
+func buy_beast(town: String) -> bool:
+	if descriptors.has(BEAST_ID) or player.nearby_market_id() != town or world.settlement_authority.market_closed_to_player(town) or player.forge_marks < 240:
+		return false
+	var cell := world.world_to_cell(player.global_position)
+	cell.x += 2
+	cell.y = world.surface_y_at(cell.x) - 1
+	if world.has_cell(cell) or world.has_cell(cell + Vector2i.UP):
+		return false
+	if not world.settlement_authority.pay_for_pack_beast(player, town):
+		return false
+	_register_actor(BEAST_ID, KIND_PLAYER_STORAGE, cell, {"inventory": {}, "beast": {"health": 180.0, "food": 100.0, "following": true}})
+	_reconcile_current_stream()
+	return true
+
+func move_beast(at: Vector2, distance: float) -> void:
+	if not descriptors.has(BEAST_ID):
+		return
+	var row: Dictionary = descriptors[BEAST_ID]
+	var cell := world.world_to_cell(at - Vector2(0, 4))
+	cell.x = clampi(cell.x, SliceWorld.MIN_X, SliceWorld.MAX_X)
+	cell.y = clampi(cell.y, -100, SliceWorld.MAX_Y)
+	var chunk := world.chunk_key_for(cell)
+	if chunk != row["chunk"]:
+		(ids_by_chunk[row["chunk"]] as Dictionary).erase(BEAST_ID)
+		if not ids_by_chunk.has(chunk):
+			ids_by_chunk[chunk] = {}
+		(ids_by_chunk[chunk] as Dictionary)[BEAST_ID] = true
+		row["chunk"] = chunk
+	row["cell"] = cell
+	var state := beast_state()
+	state["food"] = maxf(0.0, float(state.get("food", 0)) - distance / 900.0)
+
+func hurt_beast(amount: float) -> void:
+	var state := beast_state()
+	if state.is_empty() or float(state["health"]) <= 0:
+		return
+	state["health"] = maxf(0.0, float(state["health"]) - maxf(0.0, amount))
+	if float(state["health"]) <= 0:
+		state["following"] = false
+		var inventory: Dictionary = descriptors[BEAST_ID]["meta"]["inventory"]
+		# Destruction occurs once on the alive -> dead transition, in the original ledger.
+		for item in inventory.keys():
+			if not String(item).begins_with("warehouse_key:"):
+				inventory[item] = int(floor(int(inventory[item]) * 0.75))
+
+func tend_beast(feed: bool) -> bool:
+	if not is_projected(BEAST_ID) or player.global_position.distance_to(projection_for(BEAST_ID).global_position) > 112:
+		return false
+	var state := beast_state()
+	if float(state["health"]) <= 0:
+		return false
+	if feed:
+		if float(state["food"]) >= 100.0 and float(state["health"]) >= 180.0:
+			return false
+		if not player.spend_item("trail_ration", 1):
+			return false
+		state["food"] = minf(100, float(state["food"]) + 35)
+		state["health"] = minf(180, float(state["health"]) + 30)
+	else:
+		state["following"] = not bool(state["following"])
+	return true
+
+func bury_beast() -> bool:
+	if beast_state().is_empty() or float(beast_state()["health"]) > 0 or not is_projected(BEAST_ID) or player.global_position.distance_to(projection_for(BEAST_ID).global_position) > 112:
+		return false
+	for count in (descriptors[BEAST_ID]["meta"]["inventory"] as Dictionary).values():
+		if int(count) > 0:
+			return false
+	_unload_projection(BEAST_ID)
+	_remove_descriptor(BEAST_ID)
+	return true

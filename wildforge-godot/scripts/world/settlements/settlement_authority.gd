@@ -425,3 +425,12 @@ func _relieve_stolen_deficit(settlement_id: String, item_id: String, amount: int
 	deficit[item_id] = maxi(0, int(deficit.get(item_id, 0)) - amount)
 	row["stolen_deficit"] = deficit
 	settlements[settlement_id] = row
+
+# Purchase is paid into the same settlement treasury as ordinary retail.
+func pay_for_pack_beast(player, settlement_id: String) -> bool:
+	if not settlements.has(settlement_id) or nearby_market(player.global_position) != settlement_id or market_closed_to_player(settlement_id) or player.forge_marks < 240:
+		return false
+	player.forge_marks -= 240
+	var row: Dictionary = settlements[settlement_id]
+	row["treasury"] = int(row.get("treasury", 0)) + 240
+	return true

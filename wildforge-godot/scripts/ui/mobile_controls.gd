@@ -92,6 +92,7 @@ func _journey_hint() -> String:
 	var actors = player.get_parent().get("actor_authority")
 	if travel_destination_id.begins_with("player_storage:") and actors != null:
 		var target: Vector2 = actors.storage_position(travel_destination_id)
+		var destination_name := "驮兽" if travel_destination_id == SliceWorldActorAuthority.BEAST_ID else "货栈"
 		if target == Vector2.INF:
 			travel_destination_id = ""
 		else:
@@ -99,8 +100,18 @@ func _journey_hint() -> String:
 			var horizontal := int(ceil(absf(offset.x) / SliceWorld.TILE_SIZE))
 			var vertical := int(ceil(absf(offset.y) / SliceWorld.TILE_SIZE))
 			if offset.length() <= 112.0:
-				return "货栈已到 · 靠近箱子存取物资，卸货后轻装出发"
-			return "货栈 %s %d格 · %s %d格 · 负重 %d/160" % ["→" if offset.x > 0 else "←", horizontal, "下方" if offset.y > 0 else "上方", vertical, int(player.carried_weight())]
+				return destination_name + "已到 · 靠近后点击，存取物资或照料"
+			return "%s %s %d格 · %s %d格 · 负重 %d/160" % [destination_name, "→" if offset.x > 0 else "←", horizontal, "下方" if offset.y > 0 else "上方", vertical, int(player.carried_weight())]
+	if actors != null and not actors.beast_state().is_empty():
+		var beast: Dictionary = actors.beast_state()
+		var at: Vector2 = actors.storage_position(SliceWorldActorAuthority.BEAST_ID)
+		var distance := int(ceil(player.global_position.distance_to(at) / SliceWorld.TILE_SIZE))
+		if float(beast["health"]) <= 0:
+			return "驮兽倒下了 · 剩余货物在原地，距离%d格 · 面板可标记位置" % distance
+		if float(beast["food"]) < 15:
+			return "驮兽需要补给 · 点击喂食旅行口粮 · 距离%d格" % distance
+		if distance > 14:
+			return "驮兽落在后面了 · 距离%d格 · 回去接应，陡坡需要修路" % distance
 	if player.item_count("storage_box") > 0:
 		return "带着储物箱：离开营火/工作台，瞄准平地 · 中央键放置"
 	if player.carried_weight() > 80.0 and actors != null and not actors.storage_destinations().is_empty() and travel_destination_id.is_empty():

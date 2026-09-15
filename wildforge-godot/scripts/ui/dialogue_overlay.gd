@@ -7,6 +7,7 @@ const GOODS_LABELS := {"storage_box": "储物箱", "raw_meat": "鲜肉", "wood":
 
 const TOWN_LABELS := {"verdant_mossbridge": "苔桥镇", "frost_frostmirror": "霜镜站", "ember_cinder_ridge": "烬脊营"}
 
+signal beast_feed_requested
 signal storage_route_requested(actor_id: String)
 signal security_action_requested
 signal market_route_requested
@@ -16,6 +17,7 @@ signal market_item_selected(item_id: String)
 signal closed
 signal market_sell_requested(settlement_id: String, item_id: String, quantity: int)
 
+var beast_feed_button: Button
 var storage_route_picker: OptionButton
 var security_button: Button
 var speaker_label: Label
@@ -53,9 +55,16 @@ func _ready() -> void:
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
 		margin.add_theme_constant_override(side, 18)
 	dialogue_panel.add_child(margin)
+	var layout := VBoxContainer.new()
+	margin.add_child(layout)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(scroll)
 	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", 7)
-	margin.add_child(box)
+	scroll.add_child(box)
 	speaker_label = Label.new()
 	speaker_label.add_theme_font_size_override("font_size", 22)
 	box.add_child(speaker_label)
@@ -122,6 +131,11 @@ func _ready() -> void:
 	security_button.visible = false
 	security_button.pressed.connect(func(): security_action_requested.emit())
 	box.add_child(security_button)
+	beast_feed_button = Button.new()
+	beast_feed_button.text = "喂食 · 1份旅行口粮"
+	beast_feed_button.custom_minimum_size.y = SliceMobileLayout.MIN_TOUCH_TARGET
+	beast_feed_button.pressed.connect(func(): beast_feed_requested.emit())
+	box.add_child(beast_feed_button)
 	storage_route_picker = OptionButton.new()
 	storage_route_picker.custom_minimum_size = Vector2(240, SliceMobileLayout.MIN_TOUCH_TARGET)
 	storage_route_picker.get_popup().add_theme_constant_override("v_separation", 36)
@@ -133,7 +147,7 @@ func _ready() -> void:
 	next_button.custom_minimum_size = Vector2(148, SliceMobileLayout.MIN_TOUCH_TARGET)
 	next_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	next_button.pressed.connect(_advance)
-	box.add_child(next_button)
+	layout.add_child(next_button)
 	_apply_mobile_layout()
 
 
@@ -145,12 +159,13 @@ func _apply_mobile_layout() -> void:
 	if dialogue_panel == null:
 		return
 	var rect := SliceMobileLayout.content_rect(get_viewport_rect().size)
-	var target_height := clampf(rect.size.y * 0.44, 230.0, 310.0)
+	var target_height := clampf(rect.size.y * 0.65, 250.0, 460.0)
 	target_height = minf(maxf(target_height, dialogue_panel.get_combined_minimum_size().y), rect.size.y)
 	dialogue_panel.position = Vector2(rect.position.x, rect.end.y - target_height)
 	dialogue_panel.size = Vector2(rect.size.x, target_height)
 
 func open_dialogue(payload: Dictionary) -> void:
+	beast_feed_button.visible = bool(payload.get("beast_care", false))
 	storage_route_picker.clear()
 	storage_route_picker.add_item("返回货栈 · 选择目的地")
 	for route in payload.get("storage_routes", []):
@@ -248,6 +263,14 @@ func update_market(market: Dictionary, feedback := "") -> void:
 			market_buy_button.text = "存入 %d 份" % quantity if not market_buy_button.disabled else "箱满/物资不足/装备保留"
 	elif bool(active_market.get("crisis", false)):
 		market_label.text += " · 仓库遭劫，急需补给"
+	if bool(active_market.get("beast", false)):
+		var state: Dictionary = active_market.get("beast_state", {})
+		var alive := float(state.get("health", 0)) > 0
+		market_label.text = "驮兽载重 %d/320 · 生命 %d/180 · 体力 %d/100\n%s：驮兽携带 %d · 你有 %d" % [int(active_market.get("storage_weight", 0)), int(state.get("health", 0)), int(state.get("food", 0)), item_label, stock, player_count]
+		beast_feed_button.visible = alive
+		security_button.text = ("留在原地" if bool(state.get("following", false)) else "跟随我") if alive else "取空遗物后安葬"
+		if not alive:
+			market_feedback.text = "驮兽死亡，部分货物已损毁。剩余物资可取回。" + feedback
 	var opportunity: Dictionary = {} if warehouse else active_market.get("opportunity", {})
 	market_route_label.get_parent().visible = not opportunity.is_empty()
 	if not opportunity.is_empty():
