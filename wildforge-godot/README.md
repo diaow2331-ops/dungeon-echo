@@ -14,7 +14,7 @@ The Godot client only becomes authoritative if this slice is materially better o
 - Camera smoothing and lightweight hit feedback
 - Low-obstruction touch input: floating left/right sticks, one contextual place button
 
-Still deferred: autonomous diplomacy drift, full caravans, large-scale siege presentation and boss content. Persistence, regional logistics, bounded war raids, political annexation, world heartbeat and the three-faction authority chain now run in Godot; Canvas remains reference-only for historical systems.
+Still deferred: large-scale siege presentation and boss content. Persistence, regional logistics, autonomous caravans, world-driven diplomacy, bounded war raids, political annexation, travel incidents, population displacement and the three-faction authority chain now run in Godot; Canvas remains reference-only for historical systems.
 
 ## v0.02 Feel Gate
 
@@ -354,3 +354,14 @@ Only one tiny local group is projected when the player approaches the route. The
 ### v0.30 route disruption is a real logistics constraint
 
 A caravan attack now leaves more than loot. The persisted route-pair incident cooldown is also the temporary road hazard authority: while it is active, new autonomous shipments cannot launch across that pair, and a lightweight debris marker is streamed only when the player approaches the physical midpoint. When the cooldown expires, dispatch eligibility and the local obstruction clear from the same fact.
+## v0.31 world-density feedback loops
+
+Phase 4 now turns severe settlement shortages into a derived world opportunity instead of a quest entry. Shortage pressure comes only from effective population-scaled targets and current authoritative inventory. Critical stock loss adds a bounded transport premium, autonomous caravans prioritize the deepest real need, the market stall shows shortage severity, and ordinary player deliveries erase both the shortage and premium by replenishing the same stock. No event currency, delivery ledger or guaranteed reward was added.
+
+### v0.31 autonomous route recovery
+
+A disrupted road can now recover early through real settlement capacity. Every bounded repair pulse can spend one locally produced construction material above reserve plus real treasury funds, then shortens the existing route-incident cooldown. If settlements cannot spare material or money, nothing advances. The cooldown remains the only route-hazard authority, so economic blockage and visible debris clear together.
+
+### v0.31 demographic recovery
+
+Population flow is now reversible after war. A peaceful, secure settlement below its deterministic population baseline can draw a small group back from a safe settlement holding population above its own baseline. Returnees reuse the same persisted displacement record and streamed traveler projection: people leave the host immediately, arrive at home later, and both settlements' real consumption targets follow the population movement. Save schema remains 30 because no second durable state was introduced.

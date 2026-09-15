@@ -17,6 +17,15 @@ const CARAVAN_MAX_LOAD := 4
 const CARAVAN_EXPORT_FLOOR_RATIO := 0.55
 const CARAVAN_MIN_TRAVEL_HOURS := 4
 const CARAVAN_CELLS_PER_HOUR := 80.0
+const SHORTAGE_STRAINED_RATIO := 0.50
+const SHORTAGE_CRITICAL_RATIO := 0.25
+const SHORTAGE_LOGISTICS_SCORE := 420
+const ROUTE_REPAIR_INTERVAL_HOURS := 4
+const ROUTE_REPAIR_ACCEL_HOURS := 4
+const ROUTE_REPAIR_TREASURY_COST := 2
+const ROUTE_REPAIR_MATERIALS := ["wood", "sandstone", "basalt"]
+const RETURN_MIGRATION_INTERVAL_HOURS := 24
+const RETURN_MIGRATION_SECURITY := 85
 const CARAVAN_INCIDENT_COOLDOWN_HOURS := 24
 const CARAVAN_INCIDENT_TENSION_SCORE := -35
 const CARAVAN_INCIDENT_SECURITY_THRESHOLD := 65
@@ -144,6 +153,66 @@ func accepted_goods(settlement_id: String) -> Array[String]:
 	goods.sort()
 	return goods
 
+func shortage_pressure(settlement_id: String, item_id: String) -> float:
+	var target := effective_target(settlement_id, item_id)
+	if target <= 0:
+		return 0.0
+	return clampf(float(maxi(0, target - item_count(settlement_id, item_id))) / float(target), 0.0, 1.0)
+
+func shortage_severity(settlement_id: String, item_id: String) -> String:
+	var target := effective_target(settlement_id, item_id)
+	if target <= 0:
+		return "stable"
+	var stock_ratio := float(item_count(settlement_id, item_id)) / float(target)
+	if stock_ratio <= SHORTAGE_CRITICAL_RATIO:
+		return "critical"
+	if stock_ratio <= SHORTAGE_STRAINED_RATIO:
+		return "strained"
+	return "stable"
+
+func shortage_state(settlement_id: String) -> Dictionary:
+	if not settlements.has(settlement_id):
+		return {}
+	var goods: Array = []
+	var highest := 0.0
+	for item_id in accepted_goods(settlement_id):
+		var target := effective_target(settlement_id, item_id)
+		if target <= 0:
+			continue
+		var stock := item_count(settlement_id, item_id)
+		var pressure := shortage_pressure(settlement_id, item_id)
+		if pressure < (1.0 - SHORTAGE_STRAINED_RATIO):
+			continue
+		var severity := shortage_severity(settlement_id, item_id)
+		goods.append({"item_id": item_id, "stock": stock, "target": target, "deficit": maxi(0, target - stock), "pressure": pressure, "severity": severity, "unit_price": buy_price(settlement_id, item_id)})
+		highest = maxf(highest, pressure)
+	goods.sort_custom(func(a, b):
+		var ap := float((a as Dictionary).get("pressure", 0.0))
+		var bp := float((b as Dictionary).get("pressure", 0.0))
+		if not is_equal_approx(ap, bp):
+			return ap > bp
+		return String((a as Dictionary).get("item_id", "")) < String((b as Dictionary).get("item_id", ""))
+	)
+	var overall := "stable"
+	if not goods.is_empty():
+		overall = "critical" if String((goods[0] as Dictionary).get("severity", "")) == "critical" else "strained"
+	return {"settlement_id": settlement_id, "severity": overall, "pressure": highest, "goods": goods, "population": population(settlement_id), "security": security(settlement_id), "conflict": world.faction_authority.conflict_status(settlement_id) if world.faction_authority != null else "peace"}
+
+func urgent_shortages() -> Array:
+	var rows: Array = []
+	for settlement_id in ids():
+		var shortage := shortage_state(settlement_id)
+		if String(shortage.get("severity", "stable")) != "stable":
+			rows.append(shortage)
+	rows.sort_custom(func(a, b):
+		var ap := float((a as Dictionary).get("pressure", 0.0))
+		var bp := float((b as Dictionary).get("pressure", 0.0))
+		if not is_equal_approx(ap, bp):
+			return ap > bp
+		return String((a as Dictionary).get("settlement_id", "")) < String((b as Dictionary).get("settlement_id", ""))
+	)
+	return rows
+
 func buy_price(settlement_id: String, item_id: String) -> int:
 	return _buy_price_at_stock(settlement_id, item_id, item_count(settlement_id, item_id))
 
@@ -161,8 +230,10 @@ func _buy_price_at_stock(settlement_id: String, item_id: String, stock: int) -> 
 	var loss := int((row.get("stolen_deficit", {}) as Dictionary).get(item_id, 0))
 	# Ordinary demand moves gently; physical supply destruction drives crises.
 	var crisis := clampf(float(loss) / float(target), 0.0, 1.0) * shortage
+	# A severe real shortage creates a bounded transport premium; replenishment removes it automatically.
+	var emergency := maxf(0.0, shortage - 0.5) * 0.8
 	var security_factor := (1.0 - float(security(settlement_id)) / 100.0) * 0.35
-	var factor := 1.0 + shortage * 0.08 + crisis * 1.5 + security_factor
+	var factor := 1.0 + shortage * 0.08 + emergency + crisis * 1.5 + security_factor
 	return maxi(1, int(round(float(base) * factor)))
 
 func sale_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
@@ -191,6 +262,8 @@ func sale_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictio
 		"affordable": available_treasury >= total,
 		"needed": maxi(0, target - starting_stock),
 		"demand_met": quantity <= maxi(0, target - starting_stock),
+		"shortage_pressure": shortage_pressure(settlement_id, item_id),
+		"shortage_severity": shortage_severity(settlement_id, item_id),
 		"crisis": int((row.get("stolen_deficit", {}) as Dictionary).get(item_id, 0)) > 0,
 	}
 
@@ -370,6 +443,9 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 				var status_after: String = world.faction_authority.recover_status(founding)
 				if status_after != status_before:
 					events.append({"settlement_id": settlement_id, "kind": "faction_recovery", "from": status_before, "to": status_after})
+	if absolute_hour % RETURN_MIGRATION_INTERVAL_HOURS == 0:
+		events.append_array(_maybe_start_return_migrations(absolute_hour))
+	events.append_array(_maintain_route_hazards(absolute_hour))
 	if absolute_hour % 24 == 0:
 		events.append_array(apply_annexation_taxes())
 	if absolute_hour % CARAVAN_DISPATCH_INTERVAL_HOURS == 0:
@@ -556,7 +632,8 @@ func _best_caravan_candidate(absolute_hour: int) -> Dictionary:
 				if quantity <= 0 or not bool(quote.get("ok", false)) or not bool(quote.get("affordable", false)) or not bool(quote.get("demand_met", false)):
 					continue
 				var distance := absi(market_cell(destination).x - market_cell(origin).x)
-				var score := need * 100 + int(quote.get("total", 0)) * 4 - distance / 20
+				var urgency := int(round(shortage_pressure(destination, item_id) * SHORTAGE_LOGISTICS_SCORE))
+				var score := need * 100 + urgency + int(quote.get("total", 0)) * 4 - distance / 20
 				var tie := "%s|%s|%s" % [origin, destination, item_id]
 				var best_tie := "%s|%s|%s" % [String(best.get("origin", "~")), String(best.get("destination", "~")), String(best.get("item_id", "~"))]
 				if score > best_score or (score == best_score and tie < best_tie):
@@ -703,6 +780,59 @@ func _prune_route_hazards(absolute_hour: int) -> void:
 		if int(caravan_incident_cooldowns.get(raw_key, 0)) <= absolute_hour:
 			caravan_incident_cooldowns.erase(raw_key)
 
+func _route_repair_material(settlement_id: String) -> String:
+	if not has(settlement_id) or treasury(settlement_id) < ROUTE_REPAIR_TREASURY_COST:
+		return ""
+	var production := production_profile(settlement_id)
+	for item_id in ROUTE_REPAIR_MATERIALS:
+		if not production.has(item_id):
+			continue
+		var target := maxi(1, effective_target(settlement_id, item_id))
+		var reserve := int(ceil(float(target) * 0.40))
+		if item_count(settlement_id, item_id) > reserve:
+			return item_id
+	return ""
+
+func _spend_route_repair(settlement_id: String, item_id: String) -> bool:
+	if item_id.is_empty() or not has(settlement_id) or treasury(settlement_id) < ROUTE_REPAIR_TREASURY_COST or item_count(settlement_id, item_id) <= 0:
+		return false
+	var row: Dictionary = settlements[settlement_id]
+	var inventory: Dictionary = row["inventory"]
+	inventory[item_id] = maxi(0, int(inventory.get(item_id, 0)) - 1)
+	row["inventory"] = inventory
+	row["treasury"] = maxi(0, int(row.get("treasury", 0)) - ROUTE_REPAIR_TREASURY_COST)
+	settlements[settlement_id] = row
+	return true
+
+func _maintain_route_hazards(absolute_hour: int) -> Array:
+	var events: Array = []
+	if absolute_hour <= 0 or absolute_hour % ROUTE_REPAIR_INTERVAL_HOURS != 0:
+		return events
+	for hazard in active_route_hazards(absolute_hour):
+		var row: Dictionary = hazard
+		var key := String(row.get("pair_key", ""))
+		var origin := String(row.get("origin", ""))
+		var destination := String(row.get("destination", ""))
+		var contributors: Array = []
+		var materials: Dictionary = {}
+		for settlement_id in [origin, destination]:
+			var material := _route_repair_material(settlement_id)
+			if material.is_empty() or not _spend_route_repair(settlement_id, material):
+				continue
+			contributors.append(settlement_id)
+			materials[settlement_id] = material
+		if contributors.is_empty():
+			continue
+		var before_until := int(caravan_incident_cooldowns.get(key, absolute_hour))
+		var reduced := ROUTE_REPAIR_ACCEL_HOURS * contributors.size()
+		var after_until := maxi(absolute_hour, before_until - reduced)
+		if after_until <= absolute_hour:
+			caravan_incident_cooldowns.erase(key)
+		else:
+			caravan_incident_cooldowns[key] = after_until
+		events.append({"kind": "route_repair", "pair_key": key, "origin": origin, "destination": destination, "contributors": contributors, "materials": materials, "treasury_cost_each": ROUTE_REPAIR_TREASURY_COST, "hours_reduced": mini(reduced, maxi(0, before_until - absolute_hour)), "until_hour": after_until, "cleared": after_until <= absolute_hour})
+	return events
+
 func _route_blocked(origin: String, destination: String) -> bool:
 	if not has(origin) or not has(destination):
 		return true
@@ -809,6 +939,71 @@ func _maybe_start_displacement(origin: String, attacker_faction: String, absolut
 	displacement_serial += 1
 	displacements[id] = {"id": id, "origin": origin, "destination": destination, "people": people, "depart_hour": absolute_hour, "arrival_hour": absolute_hour + travel_hours, "cause": "war_displacement"}
 	return (displacements[id] as Dictionary).duplicate(true)
+
+func _maybe_start_return_migrations(absolute_hour: int) -> Array:
+	var events: Array = []
+	if absolute_hour <= 0 or absolute_hour % RETURN_MIGRATION_INTERVAL_HOURS != 0 or world.faction_authority == null:
+		return events
+	for home in ids():
+		if displacements.size() >= DISPLACEMENT_MAX_ACTIVE:
+			break
+		var home_row: Dictionary = settlements[home]
+		var deficit := population_baseline(home) - population(home)
+		if deficit <= 0 or security(home) < RETURN_MIGRATION_SECURITY or absolute_hour < int(home_row.get("next_displacement_hour", 0)):
+			continue
+		if String(world.faction_authority.conflict_status(home)) != "peace":
+			continue
+		var already_returning := false
+		for raw in displacements.values():
+			var moving: Dictionary = raw
+			if String(moving.get("destination", "")) == home:
+				already_returning = true
+				break
+		if already_returning:
+			continue
+		var source := _return_migration_source(home)
+		if source.is_empty():
+			continue
+		var surplus := population(source) - population_baseline(source)
+		var people := mini(DISPLACEMENT_GROUP_SIZE, mini(deficit, surplus))
+		if people <= 0:
+			continue
+		var source_row: Dictionary = settlements[source]
+		source_row["population"] = population(source) - people
+		settlements[source] = source_row
+		home_row["next_displacement_hour"] = absolute_hour + DISPLACEMENT_COOLDOWN_HOURS
+		settlements[home] = home_row
+		var distance := absi(market_cell(home).x - market_cell(source).x)
+		var travel_hours := maxi(2, int(ceil(float(distance) / DISPLACEMENT_CELLS_PER_HOUR)))
+		var id := "displacement:%d" % displacement_serial
+		displacement_serial += 1
+		displacements[id] = {"id": id, "origin": source, "destination": home, "people": people, "depart_hour": absolute_hour, "arrival_hour": absolute_hour + travel_hours, "cause": "return_migration"}
+		events.append({"kind": "return_migration_departed", "displacement_id": id, "origin": source, "destination": home, "people": people, "arrival_hour": absolute_hour + travel_hours})
+	return events
+
+func _return_migration_source(home: String) -> String:
+	var home_controller: String = world.faction_authority.controller_for_settlement(home)
+	var best := ""
+	var best_surplus := 0
+	var best_security := -1
+	for candidate in ids():
+		if candidate == home:
+			continue
+		var surplus := population(candidate) - population_baseline(candidate)
+		if surplus <= 0 or security(candidate) < 60:
+			continue
+		var conflict := String(world.faction_authority.conflict_status(candidate))
+		if conflict in ["war", "raid"]:
+			continue
+		var controller: String = world.faction_authority.controller_for_settlement(candidate)
+		if controller != home_controller and String(world.faction_authority.relation(home_controller, controller).get("stance", "neutral")) == "war":
+			continue
+		var candidate_security := security(candidate)
+		if surplus > best_surplus or (surplus == best_surplus and (candidate_security > best_security or (candidate_security == best_security and (best.is_empty() or candidate < best)))):
+			best = candidate
+			best_surplus = surplus
+			best_security = candidate_security
+	return best
 
 func _safest_displacement_destination(origin: String, attacker_faction: String) -> String:
 	if world.faction_authority == null:
