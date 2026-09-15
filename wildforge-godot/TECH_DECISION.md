@@ -14,7 +14,7 @@ Godot is promoted only if a touch-device build is materially better than the Can
 4. melee hit/knockback response;
 5. unobtrusive landscape touch controls.
 
-If the advantage is not obvious, stop further migration and retain the last proven authority boundary. The feel gate has already allowed the narrow traveler/settlement economy slice to migrate. v0.21 establishes the faction political authority boundary; autonomous diplomacy drift, war, raids, caravans and annexation execution remain deferred until their own causal simulation gates exist.
+If the advantage is not obvious, stop further migration and retain the last proven authority boundary. The feel gate has already allowed the narrow traveler/settlement economy slice to migrate. v0.21 established the faction political authority boundary; v0.28 now adds bounded war raids and annexation on that same boundary. Autonomous diplomacy drift, full caravans and larger siege presentation remain deferred until their own causal simulation gates exist.
 
 ## Architecture rules
 - World data is authoritative; visual/physics nodes are projections of nearby data.
@@ -196,3 +196,9 @@ Schema 26 stores animal health/energy/following alongside its existing container
 The dialogue body now scrolls on short screens and the close button stays outside the scroll area. Placeholder procedural animal art establishes silhouette only; atlas production is deferred per plan.
 
 Validation: Godot headless editor compilation and git diff --check. No full test suite, runtime playthrough, mobile visual verification or PR merge. Balance, obstacle traversal, combat risk and migration regression still require integration verification. Phase 2 is not declared complete; autonomous trade routes/caravans remain outstanding.
+
+## v0.28 war/raid authority boundary
+
+War is not a second world-state machine. Canonical war/peace remains a relation in `FactionAuthority`; active raids are bounded operational records owned by that same authority. `SettlementAuthority` owns only consequences that are inherently settlement facts: security, stock loss, treasury loss and post-annexation tax transfer. `WorldActorAuthority` is projection only: at most three raiders are materialized near the target, and each local defeat calls back into the single macro raid record.
+
+Annexation intentionally does not call `OwnershipAuthority.transfer_owner()`. Physical territory, structures, biome supply and founding identity remain stable; political controller resolution changes through `FactionAuthority.controller_id()`. This preserves the plan's rule that conquest changes sovereignty without erasing regional economic identity. Schema 27 adds persistent raid/security state and treats schema 26 as the direct migration source.

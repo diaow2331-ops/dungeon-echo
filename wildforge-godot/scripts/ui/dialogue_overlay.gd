@@ -241,6 +241,10 @@ func update_market(market: Dictionary, feedback := "") -> void:
 	var total := maxi(0, int(active_market.get("total", 0)))
 	var treasury := maxi(0, int(active_market.get("treasury", 0)))
 	market_label.text = "%s：你有 %d · %s · 收购 %d◆ · 城库 %d◆" % [item_label, player_count, "短缺（%d/%d）" % [stock, target] if stock < target else "库存充足", unit_price, treasury]
+	var conflict_status := String(active_market.get("conflict_status", "peace"))
+	if conflict_status != "peace":
+		var conflict_label := String({"tense":"边境紧张", "war":"战争中", "raid":"正在遭袭", "occupied":"已被占领"}.get(conflict_status, "局势异常"))
+		market_label.text += " · %s · 安全 %d/100" % [conflict_label, int(active_market.get("security", 100))]
 	market_feedback.text = feedback
 	var can_sell := bool(active_market.get("ok", false)) and bool(active_market.get("affordable", false)) and player_count >= quantity and total > 0 and bool(active_market.get("demand_met", true))
 	market_sell_button.disabled = not can_sell
@@ -275,7 +279,9 @@ func update_market(market: Dictionary, feedback := "") -> void:
 	market_route_label.get_parent().visible = not opportunity.is_empty()
 	if not opportunity.is_empty():
 		var destination := String(TOWN_LABELS.get(String(opportunity.get("destination_id", "")), "远方集市"))
-		market_route_label.text = "%s需要这批物资 · 向%s约 %d 格 · 抵达后按当地需求收购" % [destination, "东" if bool(opportunity.get("east", false)) else "西", int(opportunity.get("distance_cells", 0))]
+		var route_risk := String(opportunity.get("risk", "peace"))
+		var risk_text := "" if route_risk == "peace" else (" · 风险：%s" % String({"tense":"边境紧张", "war":"交战区", "raid":"袭击中", "occupied":"占领区"}.get(route_risk, "局势异常")))
+		market_route_label.text = "%s需要这批物资 · 向%s约 %d 格%s · 抵达后按当地需求收购" % [destination, "东" if bool(opportunity.get("east", false)) else "西", int(opportunity.get("distance_cells", 0)), risk_text]
 
 func _buy_market_item() -> void:
 	if not bool(active_market.get("enabled", false)) or market_buy_button.disabled:

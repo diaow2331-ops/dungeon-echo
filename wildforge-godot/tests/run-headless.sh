@@ -56,6 +56,7 @@ run_gate res://tests/first30_start_loop_test.gd 'wildforge_first30_start_loop=PA
 run_gate res://tests/settlement_test.gd 'wildforge_three_settlements=PASS'
 run_gate res://tests/world_simulation_test.gd 'wildforge_world_simulation=PASS'
 run_gate res://tests/faction_authority_test.gd 'wildforge_faction_authority=PASS'
+run_gate res://tests/war_annexation_test.gd 'wildforge_war_annexation=PASS'
 run_gate res://tests/world_authority_test.gd 'wildforge_world_authority=PASS'
 run_gate res://tests/ownership_test.gd 'wildforge_ownership_authority=PASS'
 node "$ROOT/tests/recipe_parity.mjs" | tee /tmp/wildforge-recipe-parity.log

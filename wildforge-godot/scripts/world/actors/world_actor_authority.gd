@@ -14,6 +14,7 @@ const STORAGE_CAPACITY := 480.0
 const KIND_LOST_CARGO := "lost_cargo"
 const KIND_WAREHOUSE := "warehouse"
 const KIND_BOUNTY_HUNTER := "bounty_hunter"
+const KIND_RAIDER := "war_raider"
 const SettlementNpcScript = preload("res://scripts/world/actors/settlement_npc.gd")
 const VegetationRegistryScript = preload("res://scripts/world/vegetation/vegetation_registry.gd")
 
@@ -344,6 +345,8 @@ func mark_removed(actor_id: String) -> bool:
 	if not bool(descriptor.get("present", false)):
 		return false
 	var meta: Dictionary = descriptor.get("meta", {})
+	if String(descriptor.get("kind", "")) == KIND_RAIDER and world.faction_authority != null:
+		world.faction_authority.record_raid_defeat(String(meta.get("raid_id", "")), int(meta.get("slot", -1)))
 	if String(descriptor.get("kind", "")) == KIND_TREE and not bool(meta.get("baseline", false)):
 		_remove_descriptor(actor_id)
 	else:
@@ -408,6 +411,16 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		guard.global_position = world.cell_center(cell) + Vector2(0, -16)
 		guard.add_to_group("ruin_guards")
 		node = guard
+	elif kind == KIND_RAIDER:
+		var raider := CrawlerScript.new() as SliceCrawler
+		raider.name = _node_name("WarRaider", actor_id)
+		raider.player = player
+		raider.hp = 72.0
+		raider.world_actor_id = actor_id
+		raider.world_actor_authority = self
+		raider.global_position = world.cell_center(cell) + Vector2(0, -16)
+		raider.add_to_group("war_raiders")
+		node = raider
 	elif kind == KIND_TREE:
 		var tree := TreeScript.new() as SliceTreeResource
 		var meta: Dictionary = descriptor.get("meta", {})
@@ -624,6 +637,45 @@ func restore_security(raw) -> bool:
 		descriptors[actor_id] = row
 	_reconcile_current_stream()
 	return true
+
+func sync_war_raids() -> void:
+	if world == null or world.faction_authority == null or world.settlement_authority == null:
+		return
+	var desired: Dictionary = {}
+	for raw_raid in world.faction_authority.active_raids():
+		var raid: Dictionary = raw_raid
+		var raid_id := String(raid.get("id", ""))
+		var target_id := String(raid.get("target_settlement", ""))
+		var attacker := String(raid.get("attacker", ""))
+		if raid_id.is_empty() or not world.settlement_authority.has(target_id):
+			continue
+		var target_state := world.settlement_authority.state(target_id)
+		var target_anchor: Vector2i = target_state.get("anchor_cell", Vector2i.ZERO)
+		var source_id := world.settlement_authority.settlement_for_faction(attacker)
+		var source_x := target_anchor.x
+		if not source_id.is_empty():
+			var source_state := world.settlement_authority.state(source_id)
+			var source_anchor: Vector2i = source_state.get("anchor_cell", Vector2i.ZERO)
+			source_x = source_anchor.x
+		var approach_side := -1 if source_x < target_anchor.x else 1
+		var defeated: Array = raid.get("defeated_slots", [])
+		for slot in range(int(raid.get("max_strength", SliceFactionAuthority.RAID_MAX_STRENGTH))):
+			if slot in defeated:
+				continue
+			var actor_id := "%s:unit:%d" % [raid_id, slot]
+			desired[actor_id] = true
+			if descriptors.has(actor_id):
+				continue
+			var x := clampi(target_anchor.x + approach_side * (12 + slot * 2), SliceWorld.MIN_X + 2, SliceWorld.MAX_X - 2)
+			var cell := Vector2i(x, world.surface_y_at(x) - 1)
+			_register_actor(actor_id, KIND_RAIDER, cell, {"raid_id": raid_id, "slot": slot, "attacker": attacker, "target_settlement": target_id})
+	for actor_id in actor_ids(KIND_RAIDER):
+		if desired.has(actor_id):
+			continue
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	_reconcile_current_stream()
 
 func update_pursuit() -> void:
 	if player == null or world == null:
