@@ -278,14 +278,32 @@ func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: 
 		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。")))
 
 func _on_world_event(event: Dictionary) -> void:
+	var kind := String(event.get("kind", ""))
+	if kind == "world_era_changed":
+		if touch_controls != null:
+			touch_controls.show_world_notice(_era_transition_notice(event))
+		return
 	if actor_authority == null:
 		return
-	if String(event.get("kind", "")) == "caravan_attacked":
+	if kind == "caravan_attacked":
 		var cell = event.get("spill_cell", Vector2i(99999, 99999))
 		var lost = event.get("lost_items", {})
 		if cell is Vector2i and lost is Dictionary:
 			actor_authority.spawn_lost_cargo(lost, cell, "商队残骸", "受袭商队遗落的真实货物", ["这批货物来自一支刚刚遇袭的商队。", "取走后可自用，也可以运往真正缺货的聚落。"], "incident:" + String(event.get("caravan_id", "")))
 		actor_authority.sync_caravans(true)
+
+func _era_transition_notice(event: Dictionary) -> String:
+	var to_era := int(event.get("to", -1))
+	var cause := String(event.get("cause", ""))
+	match to_era:
+		SliceWorldProgressionAuthority.ERA_FOOTHOLD: return "你终于在一个聚落站住了脚。这里的买卖开始真正向你敞开。"
+		SliceWorldProgressionAuthority.ERA_OPEN_ROADS: return "远方的货路开始连成网络。不同地区的富余与短缺第一次真正彼此影响。"
+		SliceWorldProgressionAuthority.ERA_FRACTURE: return "商路仍在运转，但边境已经露出裂痕。接下来的异常会在道路和聚落里留下痕迹。"
+		SliceWorldProgressionAuthority.ERA_WARFRONT:
+			return "三地已经成熟到足以承受战争，但和平仍然可以被维持。" if cause == "peaceful_maturity" else "你见过的紧张已经不再只是征兆。战争现在成为这个世界的真实可能。"
+		SliceWorldProgressionAuthority.ERA_REFORGING:
+			return "长期维持的平衡让地区进入新的成熟阶段。旧主权不再是唯一可能的未来。" if cause == "regional_balance" else "战争与恢复已经改变了旧秩序。接下来连主权和势力版图都可能被真实改写。"
+	return ""
 
 func _process(delta: float) -> void:
 	_update_warehouse_transfer(delta)

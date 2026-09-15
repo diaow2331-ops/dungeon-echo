@@ -379,3 +379,10 @@ World progression no longer treats background simulation as player knowledge. Po
 Regional delivery milestones are also grounded in geography. An ordinary local sale does not count as cross-region circulation; the destination must not produce that good locally and the player must already know another settlement that really does produce it. Fracture additionally waits until all three current regional powers have been discovered.
 
 Because one Wildforge world day is only twelve real minutes, era dwell floors are measured in several world days rather than a few simulation ticks: Foothold 24h, Open Roads 120h, Fracture 240h, and Warfront 480h before conflict resolution can unlock Reforging (720h for the peaceful regional-balance route). These are pacing floors, not XP requirements: the real world milestones are still mandatory, so idling, wealth and kill count cannot advance the macro game by themselves.
+## v0.34 world-readable progression guidance
+
+Era progression is no longer only an internal gate. `WorldProgressionAuthority.guidance_snapshot()` derives the player's current next concern from the same canonical milestones, diplomacy, settlement contacts and conflict facts that already drive the simulation. The snapshot is never persisted and cannot mutate progression, so it is guidance rather than a quest ledger.
+
+Mobile journey hints now translate that derived state into practical world language: survive first, find another region, prove real logistics, let cross-faction exchange mature, investigate an actually tense settlement or blocked road, or choose how to respond once war is real. Unknown-region hints are rumors and directions rather than exact checklist counters.
+
+Merchant and guard conversations append one current, authority-derived line after contact/observation has been recorded. This keeps advice synchronized with what just happened instead of presenting stale phase text. Era transitions also briefly replace the ordinary journey hint with an ambient world notice; peaceful maturity explicitly remains peaceful rather than being presented as a scripted war unlock.

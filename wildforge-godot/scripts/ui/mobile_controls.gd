@@ -16,6 +16,8 @@ var move_pos := Vector2.ZERO
 var aim_pos := Vector2.ZERO
 var touch_capable := false
 var interaction_blocked := false
+var world_notice := ""
+var world_notice_remaining := 0.0
 var status_label: Label
 var hint_label: Label
 const STICK_RADIUS := 58.0
@@ -64,7 +66,10 @@ func _apply_safe_layout() -> void:
 		hint_label.position = Vector2(rect.position.x, rect.position.y + 28.0)
 		hint_label.size = Vector2(rect.size.x, 28.0)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	world_notice_remaining = maxf(0.0, world_notice_remaining - delta)
+	if world_notice_remaining <= 0.0:
+		world_notice = ""
 	if player != null and is_instance_valid(player):
 		var relic := " · 芯%d 铜%d" % [player.item_count("ancient_core"), player.item_count("copper_ore")] if player.item_count("ancient_core") + player.item_count("copper_ore") > 0 else ""
 		var pick_label := "无" if player.equipped_pick_id.is_empty() else ("遗" if player.equipped_pick_id == "delver_pick" else ("Ⅲ" if player.equipped_pick_id == "copper_pick" else ("Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ")))
@@ -73,8 +78,12 @@ func _process(_delta: float) -> void:
 		var market := player.nearby_market_id()
 		var market_note := " · 市场" if not market.is_empty() else ""
 		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
-		hint_label.text = _journey_hint()
+		hint_label.text = world_notice if world_notice_remaining > 0.0 and not world_notice.is_empty() else _journey_hint()
 	queue_redraw()
+
+func show_world_notice(text: String, duration := 7.0) -> void:
+	world_notice = text.strip_edges()
+	world_notice_remaining = maxf(0.0, duration) if not world_notice.is_empty() else 0.0
 
 func _journey_hint() -> String:
 	if player == null or player.world == null:

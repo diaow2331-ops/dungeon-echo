@@ -267,3 +267,8 @@ A world fact is not automatically a player-observed fact. `WorldProgressionAutho
 Cross-region delivery is likewise derived rather than trusted from a generic sale callback. The destination must lack local production of the delivered item and at least one already-contacted settlement must canonically produce it. No item-provenance ledger is introduced.
 
 Era dwell constants are explicit production pacing floors. They compensate for the accelerated 720-second world day and prevent knowledgeable players from reaching formal war or annexation in the opening hour. They do not replace milestone requirements and therefore are not a hidden level/XP system.
+## v0.34 guidance is a derived projection, not quest state
+
+Progression guidance must never become another authority. `guidance_snapshot()` is a pure read of existing era milestones plus canonical faction/settlement facts; it is not saved, has no counters of its own, and calling it cannot satisfy a milestone. Presentation may turn that snapshot into dialogue or a travel hint, but only the existing authorities may change the world.
+
+Era transition feedback follows the same rule. `world_era_changed` may trigger a short-lived UI notice, but the notice owns no durable unlock flag and disappears automatically. It describes lived consequences such as markets opening, trade routes linking regions or sovereignty becoming mutable rather than exposing internal era numbers or an XP bar.
