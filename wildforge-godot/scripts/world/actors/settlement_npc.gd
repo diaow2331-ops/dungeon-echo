@@ -96,12 +96,11 @@ func _draw_market_stock() -> void:
 	if row.is_empty():
 		return
 	var inventory: Dictionary = row.get("inventory", {})
-	var targets: Dictionary = row.get("targets", {})
 	var stock := 0
 	var target := 0
 	for good in economy.accepted_goods(town):
 		stock += int(inventory.get(good, 0))
-		target += int(targets.get(good, 0))
+		target += economy.effective_target(town, good)
 	# The stall's crates are a bounded stock projection, never loot containers.
 	var crates := clampi(int(ceil(float(stock) / float(maxi(1, target)) * 3.0)), 0, 3)
 	for index in range(crates):
@@ -109,10 +108,11 @@ func _draw_market_stock() -> void:
 		var y := -8.0 - floorf(float(index) / 2.0) * 13.0
 		draw_rect(Rect2(x, y, 12, 12), Color("97764f"))
 		draw_rect(Rect2(x, y, 12, 12), Color("c2a16d"), false, 1.0)
-	var meat_target := int(targets.get("raw_meat", 0))
-	if int(inventory.get("raw_meat", 0)) < meat_target:
-		draw_line(Vector2(-19, -31), Vector2(-19, -22), Color("e2b45d"), 2.5)
-		draw_circle(Vector2(-19, -18), 1.5, Color("e2b45d"))
+	var shortage := economy.shortage_state(town)
+	if String(shortage.get("severity", "stable")) != "stable":
+		var alert_color := Color("ef765f") if String(shortage.get("severity", "")) == "critical" else Color("e2b45d")
+		draw_line(Vector2(-19, -33), Vector2(-19, -22), alert_color, 3.0)
+		draw_circle(Vector2(-19, -17), 2.0, alert_color)
 
 func _draw_warehouse() -> void:
 	if player == null or player.world == null:

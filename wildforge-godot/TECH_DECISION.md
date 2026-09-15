@@ -14,7 +14,7 @@ Godot is promoted only if a touch-device build is materially better than the Can
 4. melee hit/knockback response;
 5. unobtrusive landscape touch controls.
 
-If the advantage is not obvious, stop further migration and retain the last proven authority boundary. The feel gate has already allowed the narrow traveler/settlement economy slice to migrate. v0.21 established the faction political authority boundary; v0.28 now adds bounded war raids and annexation on that same boundary. Autonomous diplomacy drift, full caravans and larger siege presentation remain deferred until their own causal simulation gates exist.
+If the advantage is not obvious, stop further migration and retain the last proven authority boundary. The feel gate has already allowed the narrow traveler/settlement economy slice to migrate. v0.21 established the faction political authority boundary; v0.28 added bounded war raids and annexation, while v0.29–v0.30 moved autonomous caravans, world-driven diplomacy and causal travel consequences onto those same authorities. Larger siege presentation remains deferred until its own causal simulation gate exists.
 
 ## Architecture rules
 - World data is authoritative; visual/physics nodes are projections of nearby data.
@@ -242,3 +242,15 @@ This avoids premature citizen simulation while establishing the causal contract 
 ### v0.30 route hazards are derived, not a second event state
 
 Temporary route blockage is derived directly from the caravan-incident cooldown already owned by `SettlementAuthority`. No separate road-event registry exists. Dispatch checks that cooldown, and `WorldActorAuthority` only projects debris for active entries. Expiry prunes the same cooldown and therefore clears both the economic effect and the visible world consequence together.
+
+## v0.31 shortage opportunities are derived facts
+
+Shortage events may not own state. `SettlementAuthority` derives pressure and severity from population-scaled demand targets and the same inventory used by markets and caravans. Severe shortage may temporarily raise the existing buy price and candidate priority, but delivery through either autonomous logistics or ordinary player trade must collapse that premium automatically as stock recovers. Presentation may show the derived severity; it may not cache a separate shortage flag.
+
+### v0.31 route repair mutates the existing hazard authority
+
+Road recovery is allowed to consume real settlement stock and treasury, but it may not create road-health points or a repair quest ledger. A repair pulse only shortens the existing persisted caravan-incident cooldown. Local production reserve rules prevent maintenance from consuming essential stock, and failure to fund repair leaves both inventory and the route cooldown unchanged.
+
+### v0.31 return migration reuses displacement authority
+
+Demographic recovery uses the same bounded `SettlementAuthority.displacements` records as wartime flight. A secure peaceful home below baseline may pull population from a safe settlement above baseline; source population is deducted at departure and home population changes only at arrival. The local traveler remains projection-only. Because the existing schema-30 population, displacement serial and in-transit records are sufficient, v0.31 adds no save schema and no parallel refugee ledger.

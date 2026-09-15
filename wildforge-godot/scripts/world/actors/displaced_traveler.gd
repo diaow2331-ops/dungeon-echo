@@ -17,6 +17,11 @@ func state() -> Dictionary:
 			return (raw as Dictionary).duplicate(true)
 	return {}
 
+func label_text() -> String:
+	var row := state()
+	var people := clampi(int(row.get("people", 1)), 1, 3)
+	return ("返乡者" if String(row.get("cause", "")) == "return_migration" else "撤离者") + " ×%d" % people
+
 func _draw() -> void:
 	var row := state()
 	var people := clampi(int(row.get("people", 1)), 1, 3)
@@ -27,4 +32,4 @@ func _draw() -> void:
 		draw_line(Vector2(x - 3, -5), Vector2(x - 5, 5), Color("554f45"), 2.0)
 		draw_line(Vector2(x + 3, -5), Vector2(x + 5, 5), Color("554f45"), 2.0)
 	draw_rect(Rect2(-31, -52, 62, 17), Color(0.05, 0.07, 0.08, 0.82))
-	draw_string(ThemeDB.fallback_font, Vector2(-27, -39), "撤离者 ×%d" % people, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("e7ddc8"))
+	draw_string(ThemeDB.fallback_font, Vector2(-27, -39), label_text(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("e7ddc8"))
