@@ -89,7 +89,7 @@ func _run() -> void:
 	player.global_position = world.cell_center(guard_cell) + Vector2(0, -42)
 	world.refresh_streaming(true)
 	await process_frame
-	var guard := authority.projection_for(guard_id) as SliceSettlementNpc
+	var guard := authority.projection_for(guard_id) as SliceSettlementGuard
 	_check(guard != null and guard.is_in_group("settlement_guard"), "approaching the gate projects the settlement guard")
 	var touch := InputEventScreenTouch.new()
 	touch.index = 0

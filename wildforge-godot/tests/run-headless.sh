@@ -16,8 +16,8 @@ run_gate() {
   local marker="$2"
   local log
   log="$(mktemp)"
-  "$GODOT_BIN" --headless --path "$ROOT" --script "$script" 2>&1 | tee "$log"
-  if ! grep -Fq "$marker" "$log"; then
+  timeout 120 "$GODOT_BIN" --headless --path "$ROOT" --script "$script" 2>&1 | tee "$log"
+  if grep -Eq "SCRIPT ERROR:|Parse Error:" "$log" || ! grep -Fq "$marker" "$log"; then
     echo "missing_gate_marker=$marker script=$script" >&2
     rm -f "$log"
     exit 1
