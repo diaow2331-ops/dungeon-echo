@@ -9,6 +9,14 @@ const ERA_WARFRONT := 4
 const ERA_REFORGING := 5
 const MAX_ERA := ERA_REFORGING
 
+# World time is intentionally fast (24h = 12 real minutes), so era floors must be
+# measured in several world days or the entire macro game would unlock in under an hour.
+const FOOTHOLD_MIN_DWELL_HOURS := 24
+const OPEN_ROADS_MIN_DWELL_HOURS := 120
+const FRACTURE_MIN_DWELL_HOURS := 240
+const WARFRONT_RESOLVED_MIN_DWELL_HOURS := 480
+const WARFRONT_BALANCE_MIN_DWELL_HOURS := 720
+
 const MILESTONE_ALLOWLIST := [
 	"survival_ready",
 	"settlement:verdant_mossbridge",
@@ -92,6 +100,38 @@ func settlement_contact_count() -> int:
 			count += 1
 	return count
 
+func observe_settlement_tension(settlement_id: String) -> bool:
+	# Observation is a player-facing fact, not a synonym for background political pressure.
+	if era < ERA_FRACTURE or world == null or world.faction_authority == null or settlement_id.is_empty():
+		return false
+	var status := String(world.faction_authority.conflict_status(settlement_id))
+	if status not in ["tense", "war", "raid", "occupied"]:
+		return false
+	return record_milestone("tension_seen")
+
+func observe_route_hazard(pair_key: String) -> bool:
+	if era < ERA_FRACTURE or world == null or world.settlement_authority == null or pair_key.is_empty():
+		return false
+	for raw_hazard in world.settlement_authority.active_route_hazards():
+		if raw_hazard is Dictionary and String((raw_hazard as Dictionary).get("pair_key", "")) == pair_key:
+			return record_milestone("tension_seen")
+	return false
+
+func record_player_delivery(destination_id: String, item_id: String) -> bool:
+	# A delivery milestone must represent regional circulation, not any arbitrary market sale.
+	if era < ERA_FOOTHOLD or world == null or world.settlement_authority == null or not has_milestone("settlement:" + destination_id):
+		return false
+	var destination_production: Dictionary = world.settlement_authority.production_profile(destination_id)
+	if int(destination_production.get(item_id, 0)) > 0:
+		return false
+	for source_id in ["verdant_mossbridge", "frost_frostmirror", "ember_cinder_ridge"]:
+		if source_id == destination_id or not has_milestone("settlement:" + source_id):
+			continue
+		var source_production: Dictionary = world.settlement_authority.production_profile(source_id)
+		if int(source_production.get(item_id, 0)) > 0:
+			return record_milestone("cross_region_delivery")
+	return false
+
 func export_state() -> Dictionary:
 	var ids := milestones.keys()
 	ids.sort()
@@ -159,10 +199,6 @@ func _observe_event(event: Dictionary) -> void:
 				record_milestone("cross_faction_exchange")
 	elif kind in ["caravan_attacked", "route_repair"]:
 		record_milestone("tension_catalyst")
-		if kind == "caravan_attacked":
-			record_milestone("tension_seen")
-	elif kind == "raid_started":
-		record_milestone("tension_seen")
 
 func _observe_world_facts() -> void:
 	if world == null or world.settlement_authority == null or world.faction_authority == null:
@@ -175,8 +211,6 @@ func _observe_world_facts() -> void:
 				if a >= b:
 					continue
 				var score := int(world.faction_authority.relation(a, b).get("score", 0))
-				if score <= -35:
-					record_milestone("tension_seen")
 				if score <= SliceFactionAuthority.RELATION_WAR_ENTER + 1:
 					record_milestone("war_ready_pressure")
 
@@ -187,20 +221,20 @@ func _next_transition(absolute_hour: int) -> Dictionary:
 			if has_milestone("survival_ready") and settlement_contact_count() >= 1:
 				return {"to": ERA_FOOTHOLD, "cause": "first_foothold"}
 		ERA_FOOTHOLD:
-			if age >= 4 and settlement_contact_count() >= 2 and (has_milestone("cross_region_delivery") or has_milestone("pack_beast_acquired")):
+			if age >= FOOTHOLD_MIN_DWELL_HOURS and settlement_contact_count() >= 2 and (has_milestone("cross_region_delivery") or has_milestone("pack_beast_acquired")):
 				return {"to": ERA_OPEN_ROADS, "cause": "open_roads"}
 		ERA_OPEN_ROADS:
-			if age >= 24 and has_milestone("cross_faction_exchange") and has_milestone("tension_catalyst"):
+			if age >= OPEN_ROADS_MIN_DWELL_HOURS and settlement_contact_count() >= 3 and has_milestone("cross_faction_exchange") and has_milestone("tension_catalyst"):
 				return {"to": ERA_FRACTURE, "cause": "first_fracture"}
 		ERA_FRACTURE:
-			if age >= 24 and has_milestone("tension_seen") and has_milestone("war_ready_pressure"):
+			if age >= FRACTURE_MIN_DWELL_HOURS and has_milestone("tension_seen") and has_milestone("war_ready_pressure"):
 				return {"to": ERA_WARFRONT, "cause": "war_ready"}
-			if age >= 24 and _is_regional_balance():
+			if age >= FRACTURE_MIN_DWELL_HOURS and _is_regional_balance():
 				return {"to": ERA_WARFRONT, "cause": "peaceful_maturity"}
 		ERA_WARFRONT:
-			if age >= 24 and has_milestone("war_resolved"):
+			if age >= WARFRONT_RESOLVED_MIN_DWELL_HOURS and has_milestone("war_resolved"):
 				return {"to": ERA_REFORGING, "cause": "war_resolved"}
-			if age >= 48 and _is_regional_balance():
+			if age >= WARFRONT_BALANCE_MIN_DWELL_HOURS and _is_regional_balance():
 				return {"to": ERA_REFORGING, "cause": "regional_balance"}
 	return {}
 

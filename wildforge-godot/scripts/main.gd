@@ -116,6 +116,8 @@ func _open_dialogue(payload: Dictionary) -> void:
 	var contacted_settlement := String(payload.get("settlement_id", ""))
 	if world != null and world.progression_authority != null and not contacted_settlement.is_empty():
 		world.progression_authority.record_settlement_contact(contacted_settlement)
+		if active_interaction_kind in ["merchant", "guard"]:
+			world.progression_authority.observe_settlement_tension(contacted_settlement)
 	dialogue_health = player.health
 	warehouse_transfer.clear()
 	if active_interaction_kind in ["merchant", "warehouse", "lost_cargo", "player_storage"]:
@@ -241,8 +243,8 @@ func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: 
 	var trade: Dictionary = world.settlement_authority.sell_from_player(player, settlement_id, item_id, quantity)
 	if bool(trade.get("ok", false)):
 		world.feedback_burst(player.global_position + Vector2(0, -24), Color("dfc36f"), 6, 55.0)
-		if world.progression_authority != null and world.progression_authority.settlement_contact_count() >= 2:
-			world.progression_authority.record_milestone("cross_region_delivery")
+		if world.progression_authority != null:
+			world.progression_authority.record_player_delivery(settlement_id, item_id)
 		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), "成交：+%d◆" % int(trade.get("total", 0)))
 	else:
 		var messages := {"wanted": "你已被本势力通缉，商人拒绝交易。", "demand_filled": "当前不需要这么多货物，请减少数量。", "overburdened": "负重已满，先卸下或出售部分货物。", "not_at_market": "请靠近商人后再交易。", "insufficient_goods": "携带的货物不足。", "treasury_short": "城库暂不足，请稍后再来。", "not_bought_here": "这里不收购这种货物。", "era_locked": "你刚刚抵达这里。先在聚落中站稳脚跟，市场会很快向你开放。"}

@@ -36,7 +36,9 @@ func _run() -> void:
 
 	progression.record_milestone("cross_faction_exchange")
 	progression.record_milestone("tension_catalyst")
-	var fracture := progression.simulate_hour_end(34, [])
+	progression.record_settlement_contact("ember_cinder_ridge")
+	var fracture_hour := 10 + SliceWorldProgressionAuthority.OPEN_ROADS_MIN_DWELL_HOURS
+	var fracture := progression.simulate_hour_end(fracture_hour, [])
 	_check(int(fracture.get("to", -1)) == SliceWorldProgressionAuthority.ERA_FRACTURE, "mature trade and catalyst enter Fracture")
 	for _i in range(8):
 		factions.adjust_relation("verdant", "ember", -20, "fracture_pressure")
@@ -44,9 +46,11 @@ func _run() -> void:
 	_check(int(fracture_relation.get("score", 0)) == SliceFactionAuthority.RELATION_WAR_ENTER + 1, "Fracture caps pressure one point before war")
 	_check(String(fracture_relation.get("stance", "")) == "neutral", "Fracture exposes tension without silently declaring war")
 	_check(progression.has_milestone("war_ready_pressure"), "Fracture records that real pressure has reached war-ready intensity")
-	var too_soon := progression.simulate_hour_end(50, [])
+	_check(not progression.has_milestone("tension_seen"), "war-ready pressure is still not player observation")
+	_check(progression.observe_settlement_tension("verdant_mossbridge"), "player observation is recorded only after encountering the tense settlement")
+	var too_soon := progression.simulate_hour_end(fracture_hour + SliceWorldProgressionAuthority.FRACTURE_MIN_DWELL_HOURS - 1, [])
 	_check(too_soon.is_empty() and progression.era == SliceWorldProgressionAuthority.ERA_FRACTURE, "war-ready pressure cannot skip the Fracture dwell time")
-	var warfront := progression.simulate_hour_end(58, [])
+	var warfront := progression.simulate_hour_end(fracture_hour + SliceWorldProgressionAuthority.FRACTURE_MIN_DWELL_HOURS, [])
 	_check(int(warfront.get("to", -1)) == SliceWorldProgressionAuthority.ERA_WARFRONT, "sustained visible tension opens Warfront only after its minimum stay")
 	_check(String(factions.relation("verdant", "ember").get("stance", "")) == "neutral", "Warfront transition itself does not retroactively declare war")
 	var post_unlock := factions.adjust_relation("verdant", "ember", -2, "post_unlock_pressure")

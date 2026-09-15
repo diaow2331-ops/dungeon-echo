@@ -3,11 +3,20 @@ extends Node2D
 
 var authority: SliceWorldActorAuthority
 var pair_key := ""
+var observed := false
 
 func setup(owner: SliceWorldActorAuthority, key: String) -> void:
 	authority = owner
 	pair_key = key
 	queue_redraw()
+
+func _process(_delta: float) -> void:
+	if observed or authority == null or authority.player == null or authority.world == null or authority.world.progression_authority == null:
+		return
+	if authority.player.global_position.distance_to(global_position) > 180.0:
+		return
+	if authority.world.progression_authority.observe_route_hazard(pair_key):
+		observed = true
 
 func _draw() -> void:
 	# Projection only: the authoritative hazard lifetime is the logistics route cooldown.
