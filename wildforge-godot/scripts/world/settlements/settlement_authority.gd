@@ -1302,3 +1302,15 @@ func repair_route_from_player(player, pair_key: String, material: String) -> Dic
 	else:
 		caravan_incident_cooldowns[pair_key] = after
 	return {"ok": true, "cleared": after <= hour, "remaining_hours": after - hour, "hours_reduced": int(quote["hours_reduced"])}
+
+func route_repair_destinations(settlement_id: String) -> Array:
+	var entries: Array = []
+	for hazard in active_route_hazards():
+		if settlement_id not in [String(hazard["origin"]), String(hazard["destination"])]:
+			continue
+		var other := String(hazard["destination"]) if String(hazard["origin"]) == settlement_id else String(hazard["origin"])
+		entries.append({"id": String(hazard["id"]), "destination": other, "remaining_hours": int(hazard["until_hour"]) - world.absolute_world_hour()})
+	return entries
+
+func route_hazard_remaining(pair_key: String) -> int:
+	return maxi(0, int(caravan_incident_cooldowns.get(pair_key, 0)) - world.absolute_world_hour())

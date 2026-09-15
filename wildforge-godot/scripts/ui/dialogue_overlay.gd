@@ -167,7 +167,7 @@ func _apply_mobile_layout() -> void:
 func open_dialogue(payload: Dictionary) -> void:
 	beast_feed_button.visible = bool(payload.get("beast_care", false))
 	storage_route_picker.clear()
-	storage_route_picker.add_item("返回货栈 · 选择目的地")
+	storage_route_picker.add_item("旅行导航 · 选择目的地")
 	for route in payload.get("storage_routes", []):
 		var index := storage_route_picker.item_count
 		storage_route_picker.add_item(String(route["label"]))

@@ -139,6 +139,10 @@ func _open_dialogue(payload: Dictionary) -> void:
 		presented["security_action"] = "抢修道路 · 4份建材 · 4秒"
 		presented["dialogue"] = [_road_repair_description()]
 	presented["storage_routes"] = actor_authority.storage_destinations()
+	if active_interaction_kind == "merchant":
+		for route in world.settlement_authority.route_repair_destinations(active_merchant_settlement):
+			var destination := String(SliceDialogueOverlay.TOWN_LABELS.get(String(route["destination"]), "邻近聚落"))
+			presented["storage_routes"].append({"id": String(route["id"]), "label": "抢修通往%s的商路 · 封锁%d小时" % [destination, int(route["remaining_hours"])]})
 	player.interaction_locked = true
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(true)
@@ -470,7 +474,14 @@ func drop_death_cargo(at: Vector2) -> void:
 
 
 func _mark_storage_route(actor_id: String) -> void:
-	if touch_controls == null or actor_authority.storage_position(actor_id) == Vector2.INF:
+	if touch_controls == null:
+		return
+	if actor_id.begins_with("route_hazard:"):
+		var pair_key := actor_id.trim_prefix("route_hazard:")
+		if world.settlement_authority.route_hazard_remaining(pair_key) <= 0:
+			dialogue_overlay.body_label.text = "这条商路已经恢复，不必再前往抢修。"
+			return
+	elif actor_authority.storage_position(actor_id) == Vector2.INF:
 		return
 	touch_controls.travel_destination_id = actor_id
 	dialogue_overlay.close_dialogue()

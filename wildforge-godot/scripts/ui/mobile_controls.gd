@@ -89,6 +89,22 @@ func _journey_hint() -> String:
 		return "通缉 · " + " / ".join(wanted) + " · 负重 %d/160 · 卫兵会追捕，商人拒绝交易" % int(player.carried_weight())
 	if player.hunger <= 25.0:
 		return "先补充食物，再赶路 · 中央互动键可进食" if not player.preferred_food_id().is_empty() else "饥饿了：猎取食物，带回营火烹饪"
+	if travel_destination_id.begins_with("route_hazard:"):
+		var key := travel_destination_id.trim_prefix("route_hazard:")
+		var road_economy := player.world.settlement_authority as SliceSettlementAuthority
+		var remaining := road_economy.route_hazard_remaining(key)
+		if remaining <= 0:
+			travel_destination_id = ""
+			return "商路封锁已解除 · 商队会按当地供需和关系恢复运输"
+		var at := player.world.cell_center(road_economy.route_hazard_cell(key))
+		var distance := int(ceil(player.global_position.distance_to(at) / SliceWorld.TILE_SIZE))
+		var ready := false
+		for material in SliceSettlementAuthority.ROUTE_REPAIR_MATERIALS:
+			if player.item_count(material) >= 4:
+				ready = true
+		if distance <= 3:
+			return "抢修现场已到 · 点击残骸 · " + ("建材已备齐" if ready else "需要4份木材、砂岩或玄武岩")
+		return "抢修现场 %s %d格 · 封锁%d小时 · %s" % ["→" if at.x > player.global_position.x else "←", distance, remaining, "建材已备齐" if ready else "带上4份同类建材"]
 	var actors = player.get_parent().get("actor_authority")
 	if travel_destination_id.begins_with("player_storage:") and actors != null:
 		var target: Vector2 = actors.storage_position(travel_destination_id)
