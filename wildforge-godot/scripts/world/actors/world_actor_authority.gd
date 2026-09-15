@@ -6,6 +6,10 @@ signal dialogue_requested(payload: Dictionary)
 const CrawlerScript = preload("res://scripts/enemies/crawler.gd")
 const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
+const GuardScript = preload("res://scripts/world/actors/settlement_guard.gd")
+const KIND_LOST_CARGO := "lost_cargo"
+const KIND_WAREHOUSE := "warehouse"
+const KIND_BOUNTY_HUNTER := "bounty_hunter"
 const SettlementNpcScript = preload("res://scripts/world/actors/settlement_npc.gd")
 const VegetationRegistryScript = preload("res://scripts/world/vegetation/vegetation_registry.gd")
 
@@ -57,6 +61,13 @@ func register_settlement_npcs(raw_settlements: Array) -> void:
 		var settlement: Dictionary = raw_settlement
 		var settlement_id := String(settlement.get("id", ""))
 		var faction_id := String(settlement.get("founding_faction", ""))
+		var hunter_id := settlement_id + ":hunter"
+		_register_actor(hunter_id, KIND_BOUNTY_HUNTER, world.settlement_authority.market_cell(settlement_id), {"settlement_id": settlement_id, "faction_id": faction_id, "hunter": true, "display_name": "悬赏追捕者", "role": "势力追捕队"})
+		if not (descriptors[hunter_id] as Dictionary).has("security_initialized"):
+			(descriptors[hunter_id] as Dictionary)["present"] = false
+			(descriptors[hunter_id] as Dictionary)["security_initialized"] = true
+		var warehouse_cell: Vector2i = world.settlement_authority.warehouse_door(settlement_id)
+		_register_actor(settlement_id + ":warehouse_access", KIND_WAREHOUSE, warehouse_cell, {"settlement_id": settlement_id, "faction_id": faction_id, "display_name": "势力仓库", "role": "受卫兵保护的物资库", "dialogue": ["这座仓库供应当地集市和居民。"]})
 		var raw_npcs = settlement.get("npcs", [])
 		if not raw_npcs is Array:
 			continue
@@ -341,6 +352,8 @@ func mark_removed(actor_id: String) -> bool:
 func _register_actor(actor_id: String, kind: String, cell: Vector2i, metadata: Dictionary) -> void:
 	if actor_id.is_empty() or descriptors.has(actor_id):
 		return
+	if kind in [KIND_SETTLEMENT_GUARD, KIND_BOUNTY_HUNTER]:
+		metadata["home_cell"] = [cell.x, cell.y]
 	var key := world.chunk_key_for(cell)
 	descriptors[actor_id] = {
 		"id": actor_id,
@@ -407,12 +420,24 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		tree.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE)
 		tree.z_index = 5
 		node = tree
-	elif kind in [KIND_MERCHANT, KIND_SETTLEMENT_GUARD]:
+	elif kind in [KIND_SETTLEMENT_GUARD, KIND_BOUNTY_HUNTER]:
+		var guard := GuardScript.new() as SliceSettlementGuard
+		var meta: Dictionary = descriptor.get("meta", {})
+		guard.name = _node_name("SettlementGuard", actor_id)
+		guard.actor_id = actor_id
+		guard.authority = self
+		guard.player = player
+		guard.payload = meta.duplicate(true)
+		guard.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE - 2.0)
+		guard.z_index = 18
+		guard.dialogue_requested.connect(_forward_dialogue)
+		node = guard
+	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_LOST_CARGO]:
 		var npc := SettlementNpcScript.new() as SliceSettlementNpc
 		var meta: Dictionary = descriptor.get("meta", {})
 		npc.name = _node_name("SettlementNpc", actor_id)
 		npc.player = player
-		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else "guard", {
+		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("lost_cargo" if kind == KIND_LOST_CARGO else "warehouse"), {
 			"actor_id": actor_id,
 			"settlement_id": String(meta.get("settlement_id", "")),
 			"faction_id": String(meta.get("faction_id", "")),
@@ -491,3 +516,221 @@ func _planted_tree_actor_id(cell: Vector2i) -> String:
 
 func _node_name(prefix: String, actor_id: String) -> String:
 	return "%s_%s" % [prefix, actor_id.replace(":", "_")]
+
+func guard_health(actor_id: String) -> float:
+	return float(((descriptors.get(actor_id, {}) as Dictionary).get("meta", {}) as Dictionary).get("health", 420.0))
+
+func damage_guard(actor_id: String, damage: float, at: Vector2) -> void:
+	if not descriptors.has(actor_id) or guard_health(actor_id) <= 0.0:
+		return
+	var row: Dictionary = descriptors[actor_id]
+	var meta: Dictionary = row["meta"]
+	meta["health"] = maxf(0.0, guard_health(actor_id) - damage)
+	row["meta"] = meta
+	descriptors[actor_id] = row
+	if float(meta["health"]) <= 0.0:
+		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(String(meta.get("settlement_id", ""))), 1000)
+		var old_key: Vector2i = row["chunk"]
+		(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
+		var cell := world.world_to_cell(at - Vector2(0, 1))
+		row["cell"] = cell
+		row["chunk"] = world.chunk_key_for(cell)
+		descriptors[actor_id] = row
+		if not ids_by_chunk.has(row["chunk"]):
+			ids_by_chunk[row["chunk"]] = {}
+		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+
+func claim_guard_key(actor_id: String) -> bool:
+	if not descriptors.has(actor_id) or guard_health(actor_id) > 0.0 or not is_projected(actor_id):
+		return false
+	if player.global_position.distance_to(projection_for(actor_id).global_position) > 118.0:
+		return false
+	var row: Dictionary = descriptors[actor_id]
+	var meta: Dictionary = row["meta"]
+	if bool(meta.get("hunter", false)) or bool(meta.get("key_taken", false)):
+		return false
+	meta["key_taken"] = true
+	row["meta"] = meta
+	descriptors[actor_id] = row
+	player.add_item(world.settlement_authority.warehouse_key_id(String(meta["settlement_id"])), 1)
+	return true
+
+func export_security() -> Array:
+	var rows: Array = []
+	for actor_id in actor_ids(KIND_SETTLEMENT_GUARD) + actor_ids(KIND_BOUNTY_HUNTER):
+		var row: Dictionary = descriptors[actor_id]
+		var meta: Dictionary = row["meta"]
+		var cell: Vector2i = row["cell"]
+		rows.append({"id": actor_id, "health": guard_health(actor_id), "key_taken": bool(meta.get("key_taken", false)), "present": bool(row.get("present", true)), "cell": [cell.x, cell.y]})
+	return rows
+
+func restore_security(raw) -> bool:
+	if not raw is Array:
+		return false
+	var seen: Dictionary = {}
+	for entry in raw:
+		if not entry is Dictionary:
+			return false
+		var actor_id := String(entry.get("id", ""))
+		if actor_id not in actor_ids(KIND_SETTLEMENT_GUARD) + actor_ids(KIND_BOUNTY_HUNTER) or seen.has(actor_id):
+			return false
+		var hp := float(entry.get("health", -1.0))
+		var cell_data = entry.get("cell", [])
+		if not is_finite(hp) or hp < 0 or hp > 420 or not cell_data is Array or cell_data.size() != 2:
+			return false
+		seen[actor_id] = true
+	for actor_id in actor_ids(KIND_SETTLEMENT_GUARD) + actor_ids(KIND_BOUNTY_HUNTER):
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		var row: Dictionary = descriptors[actor_id]
+		var meta: Dictionary = row["meta"]
+		meta["health"] = 420.0
+		meta["key_taken"] = false
+		row["present"] = not bool(meta.get("hunter", false))
+		var old_chunk: Vector2i = row["chunk"]
+		(ids_by_chunk[old_chunk] as Dictionary).erase(actor_id)
+		var home_cell: Array = meta.get("home_cell", [0, 0])
+		row["cell"] = Vector2i(int(home_cell[0]), int(home_cell[1]))
+		row["chunk"] = world.chunk_key_for(row["cell"])
+		if not ids_by_chunk.has(row["chunk"]):
+			ids_by_chunk[row["chunk"]] = {}
+		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+		for entry in raw:
+			if String(entry["id"]) == actor_id:
+				meta["health"] = float(entry["health"])
+				meta["key_taken"] = bool(entry.get("key_taken", false))
+				row["present"] = bool(entry.get("present", true))
+				var old_key: Vector2i = row["chunk"]
+				(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
+				row["cell"] = Vector2i(int(entry["cell"][0]), int(entry["cell"][1]))
+				row["chunk"] = world.chunk_key_for(row["cell"])
+				if not ids_by_chunk.has(row["chunk"]):
+					ids_by_chunk[row["chunk"]] = {}
+				(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+		row["meta"] = meta
+		descriptors[actor_id] = row
+	_reconcile_current_stream()
+	return true
+
+func update_pursuit() -> void:
+	if player == null or world == null:
+		return
+	var active := false
+	for actor_id in actor_ids(KIND_BOUNTY_HUNTER):
+		if not is_present(actor_id):
+			continue
+		var node := projection_for(actor_id)
+		var row: Dictionary = descriptors[actor_id]
+		var at: Vector2 = node.global_position if node != null else world.cell_center(row["cell"])
+		if guard_health(actor_id) <= 0 or at.distance_to(player.global_position) > 1400.0:
+			row["present"] = false
+			descriptors[actor_id] = row
+			if is_projected(actor_id):
+				_unload_projection(actor_id)
+		else:
+			active = true
+	if active:
+		return
+	for actor_id in actor_ids(KIND_BOUNTY_HUNTER):
+		var row: Dictionary = descriptors[actor_id]
+		var meta: Dictionary = row["meta"]
+		var faction := world.faction_authority.controller_for_settlement(String(meta["settlement_id"]))
+		if not world.faction_authority.pursuit_due(faction):
+			continue
+		# One patrol at a time, spawned beyond melee range on real surface terrain.
+		var player_cell := world.world_to_cell(player.global_position)
+		var side := -1 if player_cell.x > 0 else 1
+		var x := clampi(player_cell.x + side * 18, SliceWorld.MIN_X + 3, SliceWorld.MAX_X - 3)
+		var cell := Vector2i(x, world.surface_y_at(x) - 1)
+		if not world.chunk_streamer.active_keys.has(world.chunk_key_for(cell)) or absf(world.cell_center(cell).y - player.global_position.y) > 180.0:
+			continue
+		(ids_by_chunk[row["chunk"]] as Dictionary).erase(actor_id)
+		row["cell"] = cell
+		row["chunk"] = world.chunk_key_for(cell)
+		row["present"] = true
+		if guard_health(actor_id) <= 0.0:
+			meta["health"] = 420.0
+		row["meta"] = meta
+		descriptors[actor_id] = row
+		if not ids_by_chunk.has(row["chunk"]):
+			ids_by_chunk[row["chunk"]] = {}
+		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+		world.faction_authority.defer_pursuit(faction)
+		_ensure_projection(actor_id)
+		break
+
+func drop_player_cargo(at: Vector2) -> void:
+	var cargo: Dictionary = {}
+	var retained := [player.equipped_pick_id, player.equipped_weapon_id, "workbench", "campfire"]
+	for raw_id in player.stock.keys():
+		var item_id := String(raw_id)
+		var count := player.item_count(item_id)
+		if count > 0 and item_id not in retained:
+			cargo[item_id] = count
+	if cargo.is_empty():
+		return
+	var serial := 0
+	while descriptors.has("lost_cargo:%d" % serial):
+		serial += 1
+	var actor_id := "lost_cargo:%d" % serial
+	var cell := world.world_to_cell(at)
+	cell.x = clampi(cell.x, SliceWorld.MIN_X, SliceWorld.MAX_X)
+	cell.y = clampi(cell.y, -100, SliceWorld.MAX_Y)
+	_register_actor(actor_id, KIND_LOST_CARGO, cell, {"inventory": cargo, "display_name": "遗落的行囊", "role": "死亡时遗落的物资", "dialogue": ["取回物资仍需实际搬运。"]})
+	for item_id in cargo.keys():
+		player.spend_item(String(item_id), int(cargo[item_id]))
+	_reconcile_current_stream()
+
+func cargo_view(actor_id: String, selected_item: String, quantity: int) -> Dictionary:
+	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_LOST_CARGO:
+		return {}
+	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
+	var goods: Array = []
+	for item_id in inventory.keys():
+		if int(inventory[item_id]) > 0:
+			goods.append(String(item_id))
+	goods.sort()
+	if goods.is_empty():
+		return {}
+	var item_id: String = selected_item if selected_item in goods else String(goods[0])
+	return {"enabled": true, "warehouse": true, "lost_cargo": true, "locked": false, "settlement_id": actor_id,
+		"goods": goods, "item_id": item_id, "quantity": quantity, "stock": int(inventory[item_id]),
+		"player_count": player.item_count(item_id), "can_carry": player.can_carry(item_id, quantity), "weight": player.carried_weight()}
+
+func recover_cargo(actor_id: String, item_id: String, quantity: int) -> Dictionary:
+	if not is_projected(actor_id) or player.global_position.distance_to(projection_for(actor_id).global_position) > 112.0:
+		return {"ok": false, "reason": "not_at_warehouse"}
+	if String(descriptors[actor_id]["kind"]) != KIND_LOST_CARGO or quantity not in [1, 5]:
+		return {"ok": false, "reason": "invalid_trade"}
+	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
+	if int(inventory.get(item_id, 0)) < quantity:
+		return {"ok": false, "reason": "stock_short"}
+	if not player.can_carry(item_id, quantity):
+		return {"ok": false, "reason": "overburdened"}
+	inventory[item_id] = int(inventory[item_id]) - quantity
+	player.add_item(item_id, quantity)
+	if cargo_view(actor_id, item_id, 1).is_empty():
+		_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	return {"ok": true}
+
+func export_lost_cargo() -> Array:
+	var rows: Array = []
+	for actor_id in actor_ids(KIND_LOST_CARGO):
+		var row: Dictionary = descriptors[actor_id]
+		var cell: Vector2i = row["cell"]
+		rows.append({"id": actor_id, "cell": [cell.x, cell.y], "inventory": (row["meta"]["inventory"] as Dictionary).duplicate(true)})
+	return rows
+
+func restore_lost_cargo(raw) -> bool:
+	if not raw is Array:
+		return false
+	for actor_id in actor_ids(KIND_LOST_CARGO):
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	for row in raw:
+		var cell := Vector2i(int(row["cell"][0]), int(row["cell"][1]))
+		_register_actor(String(row["id"]), KIND_LOST_CARGO, cell, {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": "遗落的行囊", "role": "死亡时遗落的物资", "dialogue": ["取回物资仍需实际搬运。"]})
+	_reconcile_current_stream()
+	return true

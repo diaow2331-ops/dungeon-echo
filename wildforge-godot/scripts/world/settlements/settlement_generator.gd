@@ -22,19 +22,19 @@ const SETTLEMENT_DEMAND := {
 		"initial_inventory": {"raw_meat": 2},
 		"targets": {"raw_meat": 10, "wood": 6, "ice": 3, "basalt": 4},
 		"base_prices": {"raw_meat": 4, "wood": 2, "ice": 6, "basalt": 5},
-		"local_consumption": {"raw_meat": 1},
+		"local_consumption": {"raw_meat": 1, "wood": 1, "ice": 1, "basalt": 1},
 	},
 	"frost_frostmirror": {
 		"initial_inventory": {"raw_meat": 1},
 		"targets": {"raw_meat": 14, "wood": 8, "basalt": 4, "snow": 8, "ice": 8},
 		"base_prices": {"raw_meat": 6, "wood": 5, "basalt": 5, "snow": 1, "ice": 2},
-		"local_consumption": {"raw_meat": 1},
+		"local_consumption": {"raw_meat": 1, "wood": 1, "basalt": 1},
 	},
 	"ember_cinder_ridge": {
 		"initial_inventory": {"raw_meat": 1},
 		"targets": {"raw_meat": 14, "wood": 10, "ice": 6, "ash": 8, "sandstone": 6, "basalt": 6},
 		"base_prices": {"raw_meat": 6, "wood": 5, "ice": 7, "ash": 1, "sandstone": 2, "basalt": 3},
-		"local_consumption": {"raw_meat": 1},
+		"local_consumption": {"raw_meat": 1, "wood": 1, "ice": 1, "basalt": 1},
 	},
 }
 

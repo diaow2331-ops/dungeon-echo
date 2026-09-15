@@ -589,6 +589,8 @@ func request_world_edit(request: Dictionary) -> Dictionary:
 		place_flash_cell = cell
 		place_flash = 0.16
 		_mark_cell_changed(cell)
+	if bool(decision.get("violation", false)) and String(decision.get("actor_id", "")) == "player" and faction_authority != null:
+		faction_authority.record_player_crime(String(decision.get("owner_id", "")), 100)
 	decision["changed"] = true
 	queue_redraw()
 	return decision

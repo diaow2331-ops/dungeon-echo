@@ -331,12 +331,24 @@ func melee_force() -> float:
 	var multiplier := STONE_BLADE_REFERENCE_KNOCKBACK / STARTER_BLADE_REFERENCE_KNOCKBACK if equipped_weapon_id == "stone_blade" else 1.0
 	return SLICE_BASE_MELEE_FORCE * multiplier
 
+func carried_weight() -> float:
+	var total := 0.0
+	for item_id in stock.keys():
+		total += float(item_count(String(item_id))) * cargo_unit_weight(String(item_id))
+	return total
+
+func cargo_unit_weight(item_id: String) -> float:
+	if item_id.begins_with("warehouse_key:"):
+		return 0.0
+	return 2.0 if item_id in ["stone", "basalt", "sandstone", "copper_ore", "copper_bar"] else 1.0
+
+func can_carry(item_id: String, quantity: int) -> bool:
+	return quantity > 0 and carried_weight() + cargo_unit_weight(item_id) * quantity <= 160.0
+
 func movement_speed_multiplier() -> float:
-	if hunger <= 0.0:
-		return 0.78
-	if hunger < 20.0:
-		return 0.88
-	return 1.0
+	var food := 0.78 if hunger <= 0.0 else (0.88 if hunger < 20.0 else 1.0)
+	var burden := 1.0 - clampf((carried_weight() - 80.0) / 80.0, 0.0, 1.0) * 0.45
+	return food * burden
 
 func _update_survival(delta: float) -> void:
 	hunger = maxf(0.0, hunger - HUNGER_DRAIN_PER_SEC * delta)
@@ -639,6 +651,8 @@ func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
 		_respawn_after_death()
 
 func _respawn_after_death() -> void:
+	if get_parent() != null and get_parent().has_method("drop_death_cargo"):
+		get_parent().drop_death_cargo(global_position)
 	health = max_health
 	hunger = maxf(35.0, hunger)
 	starvation_tick = 0.0

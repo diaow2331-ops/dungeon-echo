@@ -3,10 +3,11 @@ extends Control
 
 const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
 
-const GOODS_LABELS := {"raw_meat": "鲜肉", "wood": "木材", "ice": "冰块", "snow": "积雪", "ash": "灰烬", "sandstone": "砂岩", "basalt": "玄武岩"}
+const GOODS_LABELS := {"raw_meat": "鲜肉", "wood": "木材", "ice": "冰块", "snow": "积雪", "ash": "灰烬", "sandstone": "砂岩", "basalt": "玄武岩", "stone": "石块", "soil": "泥土", "plank": "木板", "coal": "煤炭", "copper_ore": "铜矿", "copper_bar": "铜锭", "ancient_core": "远古核心", "trail_ration": "旅行口粮", "wood_pick": "木镐", "stone_pick": "石镐", "stone_blade": "石刃", "copper_pick": "铜镐", "delver_pick": "遗迹镐"}
 
 const TOWN_LABELS := {"verdant_mossbridge": "苔桥镇", "frost_frostmirror": "霜镜站", "ember_cinder_ridge": "烬脊营"}
 
+signal security_action_requested
 signal market_route_requested
 signal market_buy_requested(settlement_id: String, item_id: String, quantity: int)
 signal market_quantity_selected(quantity: int)
@@ -14,6 +15,7 @@ signal market_item_selected(item_id: String)
 signal closed
 signal market_sell_requested(settlement_id: String, item_id: String, quantity: int)
 
+var security_button: Button
 var speaker_label: Label
 var role_label: Label
 var body_label: Label
@@ -113,6 +115,11 @@ func _ready() -> void:
 	market_sell_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	market_sell_button.pressed.connect(_sell_market_item)
 	trade_row.add_child(market_sell_button)
+	security_button = Button.new()
+	security_button.custom_minimum_size = Vector2(260, SliceMobileLayout.MIN_TOUCH_TARGET)
+	security_button.visible = false
+	security_button.pressed.connect(func(): security_action_requested.emit())
+	box.add_child(security_button)
 	next_button = Button.new()
 	next_button.custom_minimum_size = Vector2(148, SliceMobileLayout.MIN_TOUCH_TARGET)
 	next_button.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -135,6 +142,9 @@ func _apply_mobile_layout() -> void:
 	dialogue_panel.size = Vector2(rect.size.x, target_height)
 
 func open_dialogue(payload: Dictionary) -> void:
+	security_button.text = String(payload.get("security_action", ""))
+	security_button.visible = not security_button.text.is_empty()
+	security_button.disabled = false
 	speaker_label.text = String(payload.get("display_name", "旅人"))
 	role_label.text = String(payload.get("role", ""))
 	lines.clear()
@@ -176,12 +186,14 @@ func update_market(market: Dictionary, feedback := "") -> void:
 	market_box.visible = enabled
 	if not enabled:
 		return
+	market_item_picker.disabled = false
+	market_quantity_picker.disabled = false
 	var item_id := String(active_market.get("item_id", ""))
-	var item_label := String(GOODS_LABELS.get(item_id, "货物"))
+	var item_label := "仓库钥匙" if item_id.begins_with("warehouse_key:") else String(GOODS_LABELS.get(item_id, "货物"))
 	market_item_picker.clear()
 	for good in active_market.get("goods", [item_id]):
 		var index := market_item_picker.item_count
-		market_item_picker.add_item(String(GOODS_LABELS.get(String(good), "货物")))
+		market_item_picker.add_item("仓库钥匙" if String(good).begins_with("warehouse_key:") else String(GOODS_LABELS.get(String(good), "货物")))
 		market_item_picker.set_item_metadata(index, String(good))
 		if String(good) == item_id:
 			market_item_picker.select(index)
@@ -195,19 +207,27 @@ func update_market(market: Dictionary, feedback := "") -> void:
 	var treasury := maxi(0, int(active_market.get("treasury", 0)))
 	market_label.text = "%s：你有 %d · %s · 收购 %d◆ · 城库 %d◆" % [item_label, player_count, "短缺（%d/%d）" % [stock, target] if stock < target else "库存充足", unit_price, treasury]
 	market_feedback.text = feedback
-	var can_sell := bool(active_market.get("ok", false)) and bool(active_market.get("affordable", false)) and player_count >= quantity and total > 0
+	var can_sell := bool(active_market.get("ok", false)) and bool(active_market.get("affordable", false)) and player_count >= quantity and total > 0 and bool(active_market.get("demand_met", true))
 	market_sell_button.disabled = not can_sell
-	market_sell_button.text = "出售 %d 份 · +%d◆" % [quantity, total] if can_sell else ("%s数量不足" % item_label if player_count < quantity else "城库暂不足")
+	market_sell_button.text = "出售 %d 份 · +%d◆" % [quantity, total] if can_sell else ("%s数量不足" % item_label if player_count < quantity else ("需求已满足" if not bool(active_market.get("demand_met", true)) else "城库暂不足"))
 	var purchase: Dictionary = active_market.get("purchase", {})
 	var cost := int(purchase.get("total", 0))
-	var can_buy := bool(purchase.get("ok", false)) and bool(purchase.get("available", false)) and int(active_market.get("player_marks", 0)) >= cost
+	var can_buy := bool(purchase.get("ok", false)) and bool(purchase.get("available", false)) and int(active_market.get("player_marks", 0)) >= cost and bool(active_market.get("can_carry", true))
 	market_buy_button.disabled = not can_buy
-	market_buy_button.text = "购入 %d 份 · %d◆" % [quantity, cost] if can_buy else ("现货不足" if not bool(purchase.get("available", false)) else "需 %d◆" % cost)
-	var opportunity: Dictionary = active_market.get("opportunity", {})
+	market_buy_button.text = "购入 %d 份 · %d◆" % [quantity, cost] if can_buy else ("现货不足/保留口粮" if not bool(purchase.get("available", false)) else ("负重已满" if not bool(active_market.get("can_carry", true)) else "需 %d◆" % cost))
+	var warehouse := bool(active_market.get("warehouse", false))
+	market_buy_button.visible = not warehouse
+	if warehouse:
+		market_label.text = "%s · 仓库剩余 %d · 携带 %d · 负重 %d/160" % [item_label, stock, player_count, int(active_market.get("weight", 0))]
+		market_sell_button.disabled = bool(active_market.get("locked", true)) or stock < quantity or not bool(active_market.get("can_carry", false))
+		market_sell_button.text = ("取回 %d 份" % quantity if bool(active_market.get("lost_cargo", false)) else "搬走 %d 份（犯罪）" % quantity) if not market_sell_button.disabled else ("先打开门锁" if bool(active_market.get("locked", true)) else "库存不足或背不动")
+	elif bool(active_market.get("crisis", false)):
+		market_label.text += " · 仓库遭劫，急需补给"
+	var opportunity: Dictionary = {} if warehouse else active_market.get("opportunity", {})
 	market_route_label.get_parent().visible = not opportunity.is_empty()
 	if not opportunity.is_empty():
 		var destination := String(TOWN_LABELS.get(String(opportunity.get("destination_id", "")), "远方集市"))
-		market_route_label.text = "%s · 向%s约 %d 格 · 此批当前价差 +%d◆（抵达价可能变化）" % [destination, "东" if bool(opportunity.get("east", false)) else "西", int(opportunity.get("distance_cells", 0)), int(opportunity.get("profit", 0))]
+		market_route_label.text = "%s需要这批物资 · 向%s约 %d 格 · 抵达后按当地需求收购" % [destination, "东" if bool(opportunity.get("east", false)) else "西", int(opportunity.get("distance_cells", 0))]
 
 func _buy_market_item() -> void:
 	if not bool(active_market.get("enabled", false)) or market_buy_button.disabled:

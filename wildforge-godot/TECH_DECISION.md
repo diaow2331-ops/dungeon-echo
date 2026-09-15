@@ -166,3 +166,9 @@ The first mining tool is the wood pick crafted at a real workbench from harveste
 The merchant selector lists only SettlementAuthority.accepted_goods. UI quotes are projections, never transaction authority: each sale revalidates physical range, item, quantity, player stock and treasury through sell_from_player. Selected goods are ephemeral presentation state and never enter saves. Regional resource art remains a future renderer over the existing item/world identities.
 
 Retail purchase and route hints follow the same ownership rule: purchase_quote/buy_to_player mutate only existing player stock/currency and settlement inventory/treasury. The spread is calculated from post-withdrawal stock to prevent profitable same-town immediate reversal. Route leads are live reads, not contracts or guaranteed rewards; the UI waypoint stores only a destination id and does not enter persistence. NPC crates and HUD hints are read-only projections. Save schema remains 23.
+
+## v0.27 security and physical loss ownership
+
+SettlementAuthority owns stock, treasury and unfilled stolen supply deficits; FactionAuthority owns player bounty and pursuit dispatch timing. WorldActorAuthority owns guard/patrol health, presence, key collection and recoverable cargo containers. WorldEditAuthority owns physical warehouse-door edits. The lock is derived from the door cells, not another saved boolean. Player stock owns carried keys and goods. UI hauling state is transient; it does not reserve, duplicate or persist goods before the single successful transfer.
+
+New schema 24 explicitly carries the new durable facts while preserving generation 5 and migrating schema 23. No crime record expires on unload, UI close or player death. Patrols are bounded projections over persisted actor/political facts. Ordinary stock variation gets only an 8% premium; loss-induced crises use factual theft deficits and are relieved only by physical replacement goods.

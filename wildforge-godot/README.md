@@ -255,3 +255,18 @@ All three merchants now expose their settlement authority's accepted goods throu
 - Regional merchant dialogue describes local goods and imports. NPC touch areas are 56x64; nearby interaction prompts and bounded stall crates project live inventory only.
 
 Validation boundary: the earlier sell-only commit passed 40 gates. The subsequent purchase/navigation/context/NPC work has editor compilation checks only; integration owner should run the full suite, exercise buy/sell conservation and same-market round trips, check bulk boundaries/save reload, and review mobile layout before merging. PR/merge/release are intentionally delegated per the user's instruction. Current branch: `feat/wildforge-multi-good-market-v026`.
+
+## v0.27 demand-led trade, warehouse robbery and pursuit
+
+Implementation follows the user's September 14–15 direction: ordinary economics is driven by actual civilian needs and remains quiet; severe physical losses create supply crises. This is not a speculative price simulator.
+
+- Normal shortage premium is bounded at 8%; towns stop accepting goods beyond current targets. Residents use food every four world hours and building/cooling imports once per day. Consumed essentials retain a quarter-target retail reserve. There is no imaginary stock behind the market.
+- Warehouse theft transfers the same settlement inventory into the player's existing stock. A stolen supply deficit records the loss and adds crisis pricing; incoming deliveries and actual production reduce it. Trade refuses wanted players.
+- Each existing warehouse has an interactive locked doorway. The corresponding guard carries its key; opening removes the real door cells through WorldEditAuthority. Saved world deltas retain the opening. Basic picks cannot bypass the lock (3.5 tool requirement).
+- Guards have 420 health, 55% armor reduction, a 32-damage telegraphed thrust and resistance to stun-lock. Neutral guards require an explicit challenge; an assault adds 150 bounty, killing one adds 1,000, and theft adds 25 per unit. Corpse health/key collection persists in WorldActorAuthority. Keys can only be collected once and match one warehouse.
+- FactionAuthority owns permanent bounty and pursuit scheduling. At 500+ bounty, a patrol can appear after three world hours; further dispatches are spaced by twelve world hours and only one pursuer is active at a time. Patrols spawn on real nearby surface terrain, not in the player's face. They never carry warehouse keys. Leaving town or dying does not clear the criminal record.
+- Hauling takes 1.75 seconds for one unit or 3.15 for five. Leaving, closing or taking damage cancels before transfer. Load derives from existing stock; soft threshold 80, trade/haul capacity 160, maximum load slows movement to 55% before hunger effects.
+- Death transfers carried supplies/keys into persistent, recoverable world bags. Equipped tools and camp stations remain with the player. This removes death-as-free-cargo-transport. Recovery uses the same timed hauling UI and never copies cargo.
+- Save schema 24 stores security actors, bounty/pursuit, stolen deficits and lost cargo. Schema 23 remains a same-generation migration source; original world/economy/player data is retained and new security defaults are initialized.
+
+Integration status: implementation and editor compilation only. Per user instruction, no new regression suite, PR merge or release was performed. Full runtime/balance/save/mobile integration remains for the integration owner. Earlier v0.26 gate results do not validate this v0.27 change. In particular, old tests assuming passive Area2D guards, unrestricted purchasing, old schema number, or death retaining all stock need their contracts updated deliberately.

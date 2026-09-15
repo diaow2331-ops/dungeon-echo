@@ -72,13 +72,21 @@ func _process(_delta: float) -> void:
 		var hour := int(floor(player.world.clock.hour_24())) if player.world != null else 0
 		var market := player.nearby_market_id()
 		var market_note := " · 市场" if not market.is_empty() else ""
-		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s · v0.26" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
+		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s · v0.27" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
 		hint_label.text = _journey_hint()
 	queue_redraw()
 
 func _journey_hint() -> String:
 	if player == null or player.world == null:
 		return "左侧移动/上推跳跃 · 右侧瞄准战斗"
+	var wanted: Array[String] = []
+	for faction in player.world.faction_authority.ids():
+		var bounty: int = player.world.faction_authority.player_bounty(faction)
+		if bounty > 0 and player.world.faction_authority.controller_id(faction) == faction:
+			var names := {"verdant": "翠野", "frost": "霜原", "ember": "烬土"}
+			wanted.append("%s悬赏%d◆" % [String(names.get(faction, faction)), bounty])
+	if not wanted.is_empty():
+		return "通缉 · " + " / ".join(wanted) + " · 负重 %d/160 · 卫兵会追捕，商人拒绝交易" % int(player.carried_weight())
 	if player.hunger <= 25.0:
 		return "先补充食物，再赶路 · 中央互动键可进食" if not player.preferred_food_id().is_empty() else "饥饿了：猎取食物，带回营火烹饪"
 	var economy := player.world.settlement_authority as SliceSettlementAuthority

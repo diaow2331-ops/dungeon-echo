@@ -28,6 +28,8 @@ func reset_baseline() -> void:
 			"biome": String(raw["biome"]),
 			"status": "active",
 			"owner_faction_id": "",
+			"player_bounty": 0,
+			"pursuit_due_hour": 0,
 		}
 	for i in range(BASELINE.size()):
 		for j in range(i + 1, BASELINE.size()):
@@ -125,6 +127,8 @@ func export_state() -> Dictionary:
 			"id": faction_id,
 			"status": String(row.get("status", "active")),
 			"owner_faction_id": String(row.get("owner_faction_id", "")),
+			"player_bounty": int(row.get("player_bounty", 0)),
+			"pursuit_due_hour": int(row.get("pursuit_due_hour", 0)),
 		})
 	var relation_rows: Array = []
 	var keys := relations.keys()
@@ -162,6 +166,10 @@ func restore_state(raw) -> bool:
 		var row: Dictionary = staged_factions[id]
 		row["status"] = status
 		row["owner_faction_id"] = owner
+		if int(entry.get("player_bounty", 0)) < 0:
+			return false
+		row["player_bounty"] = int(entry.get("player_bounty", 0))
+		row["pursuit_due_hour"] = maxi(0, int(entry.get("pursuit_due_hour", 0)))
 		staged_factions[id] = row
 		seen_factions[id] = true
 	for faction_id in seen_factions.keys():
@@ -196,3 +204,34 @@ func restore_state(raw) -> bool:
 
 func _relation_key(a: String, b: String) -> String:
 	return a + "|" + b if a < b else b + "|" + a
+
+func record_player_crime(faction_id: String, severity: int) -> int:
+	var sovereign := controller_id(faction_id)
+	if not factions.has(sovereign) or severity <= 0:
+		return 0
+	var row: Dictionary = factions[sovereign]
+	if int(row.get("player_bounty", 0)) == 0:
+		row["pursuit_due_hour"] = world.absolute_world_hour() + 3
+	row["player_bounty"] = mini(1000000, int(row.get("player_bounty", 0)) + severity)
+	factions[sovereign] = row
+	return player_bounty(sovereign)
+
+func player_bounty(faction_id: String) -> int:
+	var sovereign := controller_id(faction_id)
+	var total := 0
+	for id in ids():
+		if controller_id(id) == sovereign:
+			total += int((factions[id] as Dictionary).get("player_bounty", 0))
+	return total
+
+func hostile_to_player(faction_id: String) -> bool:
+	return player_bounty(faction_id) > 0
+
+func pursuit_due(faction_id: String) -> bool:
+	var sovereign := controller_id(faction_id)
+	return factions.has(sovereign) and player_bounty(sovereign) >= 500 and world.absolute_world_hour() >= int((factions[sovereign] as Dictionary).get("pursuit_due_hour", 0))
+
+func defer_pursuit(faction_id: String) -> void:
+	var sovereign := controller_id(faction_id)
+	if factions.has(sovereign):
+		(factions[sovereign] as Dictionary)["pursuit_due_hour"] = world.absolute_world_hour() + 12

@@ -44,6 +44,12 @@ func _evaluate_mine(world: Node, result: Dictionary, request: Dictionary) -> Dic
 	if not registry.has(tile) or tile == 0:
 		return _deny_result(result, "unknown_block")
 	var required := registry.required_pick_power(tile)
+	# A low-tier pick cannot bypass a guarded lock; keys open the same cells.
+	if String(request.get("actor_id", "")) == "player" and world.settlement_authority != null:
+		for town in world.settlement_authority.ids():
+			var door: Vector2i = world.settlement_authority.warehouse_door(town)
+			if cell == door or cell == door + Vector2i.UP:
+				required = maxf(required, 3.5)
 	var tool_power := float(request.get("tool_power", 0.0))
 	result["tile"] = tile
 	result["required_tool_power"] = required

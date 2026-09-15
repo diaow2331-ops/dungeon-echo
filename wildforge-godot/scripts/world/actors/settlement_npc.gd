@@ -54,6 +54,14 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	dialogue_requested.emit(request)
 
 func _draw() -> void:
+	if npc_kind == "lost_cargo":
+		draw_rect(Rect2(-16, -23, 32, 23), Color("9b8052"))
+		draw_line(Vector2(-12, -21), Vector2(12, -3), Color("d7bc82"), 3)
+		draw_string(ThemeDB.fallback_font, Vector2(-30, -32), "遗落行囊", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e1c996"))
+		return
+	if npc_kind == "warehouse":
+		_draw_warehouse()
+		return
 	draw_circle(Vector2(0, -39), 8.5, Color("d7bf91"))
 	draw_rect(Rect2(-10, -31, 20, 25), body_tint)
 	draw_rect(Rect2(-9, -6, 7, 13), Color("4d5d61"))
@@ -97,3 +105,15 @@ func _draw_market_stock() -> void:
 	if int(inventory.get("raw_meat", 0)) < meat_target:
 		draw_line(Vector2(-19, -31), Vector2(-19, -22), Color("e2b45d"), 2.5)
 		draw_circle(Vector2(-19, -18), 1.5, Color("e2b45d"))
+
+func _draw_warehouse() -> void:
+	if player == null or player.world == null:
+		return
+	var economy := player.world.settlement_authority as SliceSettlementAuthority
+	var town := String(payload.get("settlement_id", ""))
+	var locked := economy.warehouse_locked(town)
+	draw_rect(Rect2(-14, -60, 28, 60), Color("765438") if locked else Color(0.13, 0.11, 0.08, 0.4))
+	if locked:
+		draw_rect(Rect2(-6, -36, 12, 14), Color("c7b16c"))
+		draw_arc(Vector2(0, -37), 5, PI, TAU, 8, Color("c7b16c"), 2)
+	draw_string(ThemeDB.fallback_font, Vector2(-36, -70), "仓库·锁闭" if locked else "仓库·已开", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e1c996"))
