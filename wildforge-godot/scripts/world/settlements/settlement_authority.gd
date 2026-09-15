@@ -1336,6 +1336,28 @@ func _decode_cell(raw) -> Vector2i:
 func market_closed_to_player(settlement_id: String) -> bool:
 	return world.faction_authority != null and world.faction_authority.hostile_to_player(world.faction_authority.controller_for_settlement(settlement_id))
 
+func pay_player_bounty(player, settlement_id: String, amount: int) -> Dictionary:
+	if player == null or not has(settlement_id) or world.faction_authority == null or amount <= 0:
+		return {"ok": false, "reason": "invalid_payment"}
+	var faction_id: String = world.faction_authority.controller_for_settlement(settlement_id)
+	var outstanding: int = world.faction_authority.player_bounty(faction_id)
+	if outstanding <= 0:
+		return {"ok": false, "reason": "not_wanted"}
+	var paid := mini(amount, mini(outstanding, player.forge_marks))
+	if paid <= 0:
+		return {"ok": false, "reason": "marks_short", "remaining": outstanding}
+	var settled: Dictionary = world.faction_authority.settle_player_bounty(faction_id, paid)
+	var applied := int(settled.get("paid", 0))
+	if applied <= 0:
+		return {"ok": false, "reason": "invalid_payment", "remaining": outstanding}
+	player.forge_marks -= applied
+	var row: Dictionary = settlements[settlement_id]
+	row["treasury"] = int(row.get("treasury", 0)) + applied
+	settlements[settlement_id] = row
+	settled["ok"] = true
+	settled["treasury"] = int(row["treasury"])
+	return settled
+
 func warehouse_key_id(settlement_id: String) -> String:
 	return "warehouse_key:" + settlement_id
 

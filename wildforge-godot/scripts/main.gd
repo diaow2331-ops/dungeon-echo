@@ -131,7 +131,8 @@ func _open_dialogue(payload: Dictionary) -> void:
 		if active_interaction_kind == "merchant" and world.settlement_authority.market_closed_to_player(active_merchant_settlement):
 			presented["dialogue"] = ["你的名字在通缉令上。这里不会与你交易。"]
 	if active_interaction_kind == "guard":
-		presented["security_action"] = "搜取仓库钥匙" if bool(payload.get("guard_dead", false)) else "拔刀挑战守卫（将被通缉）"
+		var bounty := int(payload.get("bounty", 0))
+		presented["security_action"] = "搜取仓库钥匙" if bool(payload.get("guard_dead", false)) else ("缴纳悬赏 · %d◆" % bounty if bounty > 0 else "拔刀挑战守卫（将被通缉）")
 	elif active_interaction_kind == "warehouse":
 		presented["security_action"] = "用钥匙开锁" if world.settlement_authority.warehouse_locked(active_merchant_settlement) else ""
 	if active_interaction_kind == "player_storage":
@@ -443,6 +444,15 @@ func _security_action() -> void:
 			var taken := actor_authority.claim_guard_key(active_actor_id)
 			dialogue_overlay.body_label.text = "取得仓库钥匙。通缉不会因离开城镇而解除。" if taken else "钥匙已经被取走了。"
 			dialogue_overlay.security_button.disabled = true
+		elif guard.hostile():
+			var settlement_id := String(guard.payload.get("settlement_id", ""))
+			var bounty := world.faction_authority.player_bounty(world.faction_authority.controller_for_settlement(settlement_id))
+			var result: Dictionary = world.settlement_authority.pay_player_bounty(player, settlement_id, bounty)
+			if bool(result.get("ok", false)):
+				dialogue_overlay.body_label.text = "已缴纳 %d◆。本势力悬赏已清除。" % int(result.get("paid", 0))
+				dialogue_overlay.security_button.visible = false
+			else:
+				dialogue_overlay.body_label.text = "钱币不足。当前悬赏 %d◆，你持有 %d◆。" % [bounty, player.forge_marks]
 		else:
 			guard.provoke()
 			dialogue_overlay.close_dialogue()

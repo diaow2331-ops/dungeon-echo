@@ -55,7 +55,7 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if not pressed or player == null or player.global_position.distance_to(global_position) > 118.0:
 		return
 	viewport.set_input_as_handled()
-	if bool(payload.get("hunter", false)) or (health() > 0.0 and hostile()):
+	if bool(payload.get("hunter", false)):
 		return
 	var request := payload.duplicate(true)
 	request["npc_kind"] = "guard"
@@ -63,6 +63,9 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	request["guard_dead"] = health() <= 0.0
 	request["display_name"] = "倒下的守卫" if health() <= 0.0 else String(payload.get("display_name", "仓库卫兵"))
 	request["dialogue"] = ["搜身或许能找到仓库钥匙。"] if health() <= 0.0 else _guard_dialogue()
+	if health() > 0.0 and hostile() and player != null and player.world != null:
+		var faction_id: String = player.world.faction_authority.controller_for_settlement(String(payload.get("settlement_id", "")))
+		request["bounty"] = player.world.faction_authority.player_bounty(faction_id)
 	dialogue_requested.emit(request)
 
 func _guard_dialogue() -> Array:
@@ -78,6 +81,9 @@ func _guard_dialogue() -> Array:
 			SliceWorldProgressionAuthority.ERA_FRACTURE: lines.append("边境上已经有人开始多看彼此一眼。现在还没开战，但路上的异常不会是无缘无故。")
 			SliceWorldProgressionAuthority.ERA_WARFRONT: lines.append("如今和平只是当前状态，不再是世界的保证。守卫、补给和商路都得为最坏的情况做准备。")
 			SliceWorldProgressionAuthority.ERA_REFORGING: lines.append("现在连一面旗帜归谁都不再是永远的。这里的土地没变，控制它的人却可能会变。")
+	if hostile() and player != null and player.world != null:
+		var faction_id: String = player.world.faction_authority.controller_for_settlement(String(payload.get("settlement_id", "")))
+		lines.append("你在本势力的悬赏是 %d◆。缴清后守卫与追捕会停止。" % player.world.faction_authority.player_bounty(faction_id))
 	match status:
 		"tense": lines.append("边境正在升温。守卫已经加强警戒，长途商路风险也在上升。")
 		"war": lines.append("战事已经开始。聚落会优先保留口粮与补给，外运物资受到限制。")
