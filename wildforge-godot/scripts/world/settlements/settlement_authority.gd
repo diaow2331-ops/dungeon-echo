@@ -5,6 +5,9 @@ var world
 var settlements: Dictionary = {}
 var caravans: Dictionary = {}
 var caravan_serial := 0
+var caravan_incident_cooldowns: Dictionary = {}
+var displacements: Dictionary = {}
+var displacement_serial := 0
 
 const LOCAL_CONSUMPTION_INTERVAL_HOURS := 4
 const LOCAL_MEAT_REVENUE := 2
@@ -14,6 +17,15 @@ const CARAVAN_MAX_LOAD := 4
 const CARAVAN_EXPORT_FLOOR_RATIO := 0.55
 const CARAVAN_MIN_TRAVEL_HOURS := 4
 const CARAVAN_CELLS_PER_HOUR := 80.0
+const CARAVAN_INCIDENT_COOLDOWN_HOURS := 24
+const CARAVAN_INCIDENT_TENSION_SCORE := -35
+const CARAVAN_INCIDENT_SECURITY_THRESHOLD := 65
+const DISPLACEMENT_MAX_ACTIVE := 2
+const DISPLACEMENT_GROUP_SIZE := 3
+const DISPLACEMENT_TRIGGER_SECURITY := 35
+const DISPLACEMENT_COOLDOWN_HOURS := 24
+const DISPLACEMENT_MIN_POPULATION := 6
+const DISPLACEMENT_CELLS_PER_HOUR := 72.0
 
 func _init(owner_world) -> void:
 	world = owner_world
@@ -22,6 +34,9 @@ func register_baseline(raw_settlements: Array) -> int:
 	settlements.clear()
 	caravans.clear()
 	caravan_serial = 0
+	caravan_incident_cooldowns.clear()
+	displacements.clear()
+	displacement_serial = 0
 	var count := 0
 	for raw in raw_settlements:
 		if not raw is Dictionary:
@@ -46,6 +61,9 @@ func register_baseline(raw_settlements: Array) -> int:
 			"treasury": maxi(0, int(spec.get("initial_treasury", 0))),
 			"treasury_target": maxi(0, int(spec.get("initial_treasury", 0))),
 			"security": 100,
+			"population": maxi(1, int(spec.get("initial_population", 24))),
+			"population_baseline": maxi(1, int(spec.get("initial_population", 24))),
+			"next_displacement_hour": 0,
 		}
 		count += 1
 	return count
@@ -94,6 +112,23 @@ func item_count(settlement_id: String, item_id: String) -> int:
 func treasury(settlement_id: String) -> int:
 	return maxi(0, int((settlements.get(settlement_id, {}) as Dictionary).get("treasury", 0)))
 
+func population(settlement_id: String) -> int:
+	return maxi(0, int((settlements.get(settlement_id, {}) as Dictionary).get("population", 0)))
+
+func population_baseline(settlement_id: String) -> int:
+	return maxi(1, int((settlements.get(settlement_id, {}) as Dictionary).get("population_baseline", 1)))
+
+func effective_target(settlement_id: String, item_id: String) -> int:
+	if not settlements.has(settlement_id):
+		return 0
+	var row: Dictionary = settlements[settlement_id]
+	var base := maxi(0, int((row.get("targets", {}) as Dictionary).get(item_id, 0)))
+	if base <= 0 or not (row.get("local_consumption", {}) as Dictionary).has(item_id):
+		return base
+	var baseline := population_baseline(settlement_id)
+	var people := population(settlement_id)
+	return maxi(1, int(ceil(float(base) * float(maxi(1, people)) / float(baseline))))
+
 func production_profile(settlement_id: String) -> Dictionary:
 	return ((settlements.get(settlement_id, {}) as Dictionary).get("local_production", {}) as Dictionary).duplicate(true)
 
@@ -120,8 +155,7 @@ func _buy_price_at_stock(settlement_id: String, item_id: String, stock: int) -> 
 	var base := maxi(0, int(base_prices.get(item_id, 0)))
 	if base <= 0:
 		return 0
-	var targets: Dictionary = row["targets"]
-	var target := maxi(1, int(targets.get(item_id, 1)))
+	var target := maxi(1, effective_target(settlement_id, item_id))
 	var ratio := float(maxi(0, stock)) / float(target)
 	var shortage := clampf(1.0 - ratio, 0.0, 1.0)
 	var loss := int((row.get("stolen_deficit", {}) as Dictionary).get(item_id, 0))
@@ -142,7 +176,7 @@ func sale_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictio
 	for offset in range(quantity):
 		total += _buy_price_at_stock(settlement_id, item_id, starting_stock + offset)
 	var row: Dictionary = settlements[settlement_id]
-	var target := maxi(0, int((row["targets"] as Dictionary).get(item_id, 0)))
+	var target := maxi(0, effective_target(settlement_id, item_id))
 	var available_treasury := maxi(0, int(row["treasury"]))
 	return {
 		"ok": true,
@@ -201,7 +235,7 @@ func purchase_quote(settlement_id: String, item_id: String, quantity := 1) -> Di
 		return {"ok": false, "reason": "not_sold_here"}
 	var stock := item_count(settlement_id, item_id)
 	var row: Dictionary = settlements[settlement_id]
-	var target := int((row["targets"] as Dictionary).get(item_id, 0))
+	var target := effective_target(settlement_id, item_id)
 	var reserve_ratio := 0.25
 	if world.faction_authority != null:
 		match world.faction_authority.conflict_status(settlement_id):
@@ -272,6 +306,8 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 	var events: Array = []
 	if absolute_hour < 0:
 		return {"hour": absolute_hour, "events": events}
+	_prune_route_hazards(absolute_hour)
+	events.append_array(_advance_displacements(absolute_hour))
 	events.append_array(_advance_caravans(absolute_hour))
 	if absolute_hour % LOCAL_CONSUMPTION_INTERVAL_HOURS != 0:
 		return {"hour": absolute_hour, "events": events}
@@ -302,7 +338,7 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 		for raw_id in production_ids:
 			var item_id := String(raw_id)
 			var current := maxi(0, int(inventory.get(item_id, 0)))
-			var target := maxi(current, int(targets.get(item_id, current)))
+			var target := maxi(current, effective_target(settlement_id, item_id))
 			var amount := mini(maxi(0, int(production[item_id])), maxi(0, target - current))
 			if amount <= 0:
 				continue
@@ -366,18 +402,20 @@ func caravan_cell(caravan_id: String, absolute_hour := -1) -> Vector2i:
 	return Vector2i(x, world.surface_y_at(x) - 1)
 
 func export_caravans() -> Dictionary:
-	return {"serial": caravan_serial, "active": active_caravans()}
+	return {"serial": caravan_serial, "active": active_caravans(), "incident_cooldowns": caravan_incident_cooldowns.duplicate(true)}
 
 func restore_caravans(raw) -> bool:
 	caravans.clear()
 	caravan_serial = 0
+	caravan_incident_cooldowns.clear()
 	if raw == null or (raw is Dictionary and raw.is_empty()):
 		return true
 	if not raw is Dictionary:
 		return false
 	var serial := int(raw.get("serial", 0))
 	var active = raw.get("active", [])
-	if serial < 0 or not active is Array or active.size() > CARAVAN_MAX_ACTIVE:
+	var incident_cooldowns = raw.get("incident_cooldowns", {})
+	if serial < 0 or not active is Array or active.size() > CARAVAN_MAX_ACTIVE or not incident_cooldowns is Dictionary:
 		return false
 	var staged: Dictionary = {}
 	var max_active_serial := -1
@@ -407,8 +445,16 @@ func restore_caravans(raw) -> bool:
 		staged[id] = row
 	if serial <= max_active_serial:
 		return false
+	var staged_cooldowns: Dictionary = {}
+	for raw_key in incident_cooldowns.keys():
+		var key := String(raw_key)
+		var until_hour := int(incident_cooldowns[raw_key])
+		if not _valid_route_pair_key(key) or until_hour < 0:
+			return false
+		staged_cooldowns[key] = until_hour
 	caravans = staged
 	caravan_serial = serial
+	caravan_incident_cooldowns = staged_cooldowns
 	return true
 
 func _advance_caravans(absolute_hour: int) -> Array:
@@ -427,6 +473,16 @@ func _advance_caravans(absolute_hour: int) -> Array:
 			caravans.erase(caravan_id)
 			events.append({"kind": "caravan_returned", "caravan_id": caravan_id, "origin": origin, "destination": destination, "reason": "war"})
 			continue
+		if not bool(caravan.get("incident_checked", false)) and absolute_hour >= _caravan_midpoint_hour(caravan):
+			caravan["incident_checked"] = true
+			caravans[caravan_id] = caravan
+			if _caravan_incident_due(caravan, absolute_hour):
+				var incident := _apply_caravan_incident(caravan_id, absolute_hour)
+				if not incident.is_empty():
+					events.append(incident)
+				if not caravans.has(caravan_id):
+					continue
+				caravan = caravans[caravan_id]
 		if absolute_hour < int(caravan.get("arrival_hour", 0)):
 			continue
 		var item_id := String(caravan.get("item_id", ""))
@@ -470,18 +526,18 @@ func _best_caravan_candidate(absolute_hour: int) -> Dictionary:
 		goods.sort()
 		for raw_item in goods:
 			var item_id := String(raw_item)
-			var target := maxi(1, int((origin_row.get("targets", {}) as Dictionary).get(item_id, 1)))
+			var target := maxi(1, effective_target(origin, item_id))
 			var export_floor := int(ceil(float(target) * CARAVAN_EXPORT_FLOOR_RATIO))
 			var surplus := maxi(0, item_count(origin, item_id) - export_floor)
 			if surplus <= 0:
 				continue
 			for destination in ids():
-				if destination == origin or _route_blocked(origin, destination) or _has_caravan_for_item(origin, destination, item_id):
+				if destination == origin or _route_blocked(origin, destination) or _route_hazard_active(origin, destination, absolute_hour) or _has_caravan_for_item(origin, destination, item_id):
 					continue
 				if item_id not in accepted_goods(destination):
 					continue
 				var destination_row: Dictionary = settlements[destination]
-				var destination_target := maxi(0, int((destination_row.get("targets", {}) as Dictionary).get(item_id, 0)))
+				var destination_target := maxi(0, effective_target(destination, item_id))
 				var need := maxi(0, destination_target - item_count(destination, item_id))
 				if need <= 0:
 					continue
@@ -514,7 +570,7 @@ func _dispatch_caravan(candidate: Dictionary, absolute_hour: int) -> Dictionary:
 	var item_id := String(candidate.get("item_id", ""))
 	var quantity := int(candidate.get("quantity", 0))
 	var payment := int(candidate.get("payment", 0))
-	if not has(origin) or not has(destination) or quantity <= 0 or _route_blocked(origin, destination):
+	if not has(origin) or not has(destination) or quantity <= 0 or _route_blocked(origin, destination) or _route_hazard_active(origin, destination, absolute_hour):
 		return {}
 	if item_count(origin, item_id) < quantity or treasury(destination) < payment:
 		return {}
@@ -530,8 +586,69 @@ func _dispatch_caravan(candidate: Dictionary, absolute_hour: int) -> Dictionary:
 	var travel_hours := maxi(CARAVAN_MIN_TRAVEL_HOURS, int(ceil(float(distance) / CARAVAN_CELLS_PER_HOUR)))
 	var caravan_id := "caravan:%d" % caravan_serial
 	caravan_serial += 1
-	caravans[caravan_id] = {"id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment, "depart_hour": absolute_hour, "arrival_hour": absolute_hour + travel_hours}
+	caravans[caravan_id] = {"id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment, "depart_hour": absolute_hour, "arrival_hour": absolute_hour + travel_hours, "incident_checked": false}
 	return {"kind": "caravan_departed", "caravan_id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment, "arrival_hour": absolute_hour + travel_hours}
+
+func _caravan_midpoint_hour(caravan: Dictionary) -> int:
+	var depart := int(caravan.get("depart_hour", 0))
+	var arrival := maxi(depart + 1, int(caravan.get("arrival_hour", depart + 1)))
+	return depart + maxi(1, int(ceil(float(arrival - depart) * 0.5)))
+
+func _route_pair_key(origin: String, destination: String) -> String:
+	return origin + "|" + destination if origin < destination else destination + "|" + origin
+
+func _valid_route_pair_key(key: String) -> bool:
+	var pair := key.split("|")
+	return pair.size() == 2 and has(String(pair[0])) and has(String(pair[1])) and String(pair[0]) != String(pair[1])
+
+func _caravan_incident_due(caravan: Dictionary, absolute_hour: int) -> bool:
+	var origin := String(caravan.get("origin", ""))
+	var destination := String(caravan.get("destination", ""))
+	if not has(origin) or not has(destination) or world.faction_authority == null:
+		return false
+	var key := _route_pair_key(origin, destination)
+	if absolute_hour < int(caravan_incident_cooldowns.get(key, 0)):
+		return false
+	var a: String = world.faction_authority.controller_for_settlement(origin)
+	var b: String = world.faction_authority.controller_for_settlement(destination)
+	if a == b:
+		return false
+	var relation_score := int(world.faction_authority.relation(a, b).get("score", 0))
+	var unsafe_endpoint := mini(security(origin), security(destination)) <= CARAVAN_INCIDENT_SECURITY_THRESHOLD
+	return relation_score <= CARAVAN_INCIDENT_TENSION_SCORE or unsafe_endpoint
+
+func _apply_caravan_incident(caravan_id: String, absolute_hour: int) -> Dictionary:
+	if not caravans.has(caravan_id):
+		return {}
+	var caravan: Dictionary = caravans[caravan_id]
+	var origin := String(caravan.get("origin", ""))
+	var destination := String(caravan.get("destination", ""))
+	var item_id := String(caravan.get("item_id", ""))
+	var quantity := maxi(0, int(caravan.get("quantity", 0)))
+	var payment := maxi(0, int(caravan.get("payment", 0)))
+	if quantity <= 0 or item_id.is_empty():
+		return {}
+	var spill_cell := caravan_cell(caravan_id, absolute_hour)
+	var lost_quantity := maxi(1, int(ceil(float(quantity) * 0.5)))
+	lost_quantity = mini(lost_quantity, quantity)
+	var refund := mini(payment, int(round(float(payment) * float(lost_quantity) / float(quantity))))
+	var remaining := quantity - lost_quantity
+	if has(destination) and refund > 0:
+		var destination_row: Dictionary = settlements[destination]
+		destination_row["treasury"] = maxi(0, int(destination_row.get("treasury", 0))) + refund
+		settlements[destination] = destination_row
+	var relation_shift: Dictionary = {}
+	if world.faction_authority != null:
+		relation_shift = world.faction_authority.record_caravan_attack(origin, destination, lost_quantity)
+	caravan_incident_cooldowns[_route_pair_key(origin, destination)] = absolute_hour + CARAVAN_INCIDENT_COOLDOWN_HOURS
+	if remaining <= 0:
+		caravans.erase(caravan_id)
+	else:
+		caravan["quantity"] = remaining
+		caravan["payment"] = maxi(0, payment - refund)
+		caravan["incident_checked"] = true
+		caravans[caravan_id] = caravan
+	return {"kind": "caravan_attacked", "hour": absolute_hour, "caravan_id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "lost_items": {item_id: lost_quantity}, "spill_cell": spill_cell, "destroyed": remaining <= 0, "remaining": remaining, "refund": refund, "relation": relation_shift}
 
 func _return_caravan(caravan: Dictionary) -> void:
 	var origin := String(caravan.get("origin", ""))
@@ -549,6 +666,42 @@ func _return_caravan(caravan: Dictionary) -> void:
 		var destination_row: Dictionary = settlements[destination]
 		destination_row["treasury"] = maxi(0, int(destination_row.get("treasury", 0))) + payment
 		settlements[destination] = destination_row
+
+func _route_hazard_active(origin: String, destination: String, absolute_hour := -1) -> bool:
+	if not has(origin) or not has(destination) or origin == destination:
+		return false
+	var hour: int = world.absolute_world_hour() if absolute_hour < 0 else absolute_hour
+	return hour < int(caravan_incident_cooldowns.get(_route_pair_key(origin, destination), 0))
+
+func active_route_hazards(absolute_hour := -1) -> Array:
+	var hour: int = world.absolute_world_hour() if absolute_hour < 0 else absolute_hour
+	var rows: Array = []
+	var keys := caravan_incident_cooldowns.keys()
+	keys.sort()
+	for raw_key in keys:
+		var key := String(raw_key)
+		var until_hour := int(caravan_incident_cooldowns.get(key, 0))
+		if until_hour <= hour or not _valid_route_pair_key(key):
+			continue
+		var pair := key.split("|")
+		var a := String(pair[0])
+		var b := String(pair[1])
+		rows.append({"id": "route_hazard:" + key, "pair_key": key, "origin": a, "destination": b, "until_hour": until_hour, "cell": route_hazard_cell(key)})
+	return rows
+
+func route_hazard_cell(pair_key: String) -> Vector2i:
+	if not _valid_route_pair_key(pair_key):
+		return Vector2i(99999, 99999)
+	var pair := pair_key.split("|")
+	var ax := market_cell(String(pair[0])).x
+	var bx := market_cell(String(pair[1])).x
+	var x := clampi(roundi((float(ax) + float(bx)) * 0.5), SliceWorld.MIN_X + 2, SliceWorld.MAX_X - 2)
+	return Vector2i(x, world.surface_y_at(x) - 1)
+
+func _prune_route_hazards(absolute_hour: int) -> void:
+	for raw_key in caravan_incident_cooldowns.keys().duplicate():
+		if int(caravan_incident_cooldowns.get(raw_key, 0)) <= absolute_hour:
+			caravan_incident_cooldowns.erase(raw_key)
 
 func _route_blocked(origin: String, destination: String) -> bool:
 	if not has(origin) or not has(destination):
@@ -571,6 +724,133 @@ func _has_caravan_for_item(origin: String, destination: String, item_id: String)
 			return true
 	return false
 
+func active_displacements() -> Array:
+	var rows: Array = []
+	var keys := displacements.keys()
+	keys.sort()
+	for raw_id in keys:
+		rows.append((displacements[raw_id] as Dictionary).duplicate(true))
+	return rows
+
+func displacement_cell(displacement_id: String, absolute_hour := -1) -> Vector2i:
+	if not displacements.has(displacement_id):
+		return Vector2i(99999, 99999)
+	var row: Dictionary = displacements[displacement_id]
+	var origin := String(row.get("origin", ""))
+	var destination := String(row.get("destination", ""))
+	if not has(origin) or not has(destination):
+		return Vector2i(99999, 99999)
+	var hour: int = world.absolute_world_hour() if absolute_hour < 0 else absolute_hour
+	var depart := int(row.get("depart_hour", hour))
+	var arrival := maxi(depart + 1, int(row.get("arrival_hour", depart + 1)))
+	var progress := clampf(float(hour - depart) / float(arrival - depart), 0.0, 1.0)
+	var ox := market_cell(origin).x
+	var dx := market_cell(destination).x
+	var x := clampi(roundi(lerpf(float(ox), float(dx), progress)), SliceWorld.MIN_X + 2, SliceWorld.MAX_X - 2)
+	return Vector2i(x, world.surface_y_at(x) - 1)
+
+func export_displacements() -> Dictionary:
+	return {"serial": displacement_serial, "active": active_displacements()}
+
+func restore_displacements(raw) -> bool:
+	displacements.clear()
+	displacement_serial = 0
+	if raw == null or (raw is Dictionary and raw.is_empty()):
+		return true
+	if not raw is Dictionary:
+		return false
+	var serial := int(raw.get("serial", 0))
+	var active = raw.get("active", [])
+	if serial < 0 or not active is Array or active.size() > DISPLACEMENT_MAX_ACTIVE:
+		return false
+	var staged: Dictionary = {}
+	var max_serial := -1
+	for entry in active:
+		if not entry is Dictionary:
+			return false
+		var row: Dictionary = (entry as Dictionary).duplicate(true)
+		var id := String(row.get("id", ""))
+		if not id.begins_with("displacement:") or not id.trim_prefix("displacement:").is_valid_int():
+			return false
+		max_serial = maxi(max_serial, int(id.trim_prefix("displacement:")))
+		var origin := String(row.get("origin", ""))
+		var destination := String(row.get("destination", ""))
+		var people := int(row.get("people", 0))
+		var depart := int(row.get("depart_hour", -1))
+		var arrival := int(row.get("arrival_hour", -1))
+		if staged.has(id) or not has(origin) or not has(destination) or origin == destination or people <= 0 or people > DISPLACEMENT_GROUP_SIZE or depart < 0 or arrival <= depart:
+			return false
+		staged[id] = row
+	if serial <= max_serial:
+		return false
+	displacements = staged
+	displacement_serial = serial
+	return true
+
+func _maybe_start_displacement(origin: String, attacker_faction: String, absolute_hour: int) -> Dictionary:
+	if not has(origin) or displacements.size() >= DISPLACEMENT_MAX_ACTIVE:
+		return {}
+	var origin_row: Dictionary = settlements[origin]
+	if absolute_hour < int(origin_row.get("next_displacement_hour", 0)):
+		return {}
+	var available_people := population(origin) - DISPLACEMENT_MIN_POPULATION
+	if available_people <= 0:
+		return {}
+	var destination := _safest_displacement_destination(origin, attacker_faction)
+	if destination.is_empty():
+		return {}
+	var people := mini(DISPLACEMENT_GROUP_SIZE, available_people)
+	origin_row["population"] = population(origin) - people
+	origin_row["next_displacement_hour"] = absolute_hour + DISPLACEMENT_COOLDOWN_HOURS
+	settlements[origin] = origin_row
+	var distance := absi(market_cell(destination).x - market_cell(origin).x)
+	var travel_hours := maxi(2, int(ceil(float(distance) / DISPLACEMENT_CELLS_PER_HOUR)))
+	var id := "displacement:%d" % displacement_serial
+	displacement_serial += 1
+	displacements[id] = {"id": id, "origin": origin, "destination": destination, "people": people, "depart_hour": absolute_hour, "arrival_hour": absolute_hour + travel_hours, "cause": "war_displacement"}
+	return (displacements[id] as Dictionary).duplicate(true)
+
+func _safest_displacement_destination(origin: String, attacker_faction: String) -> String:
+	if world.faction_authority == null:
+		return ""
+	var origin_controller: String = world.faction_authority.controller_for_settlement(origin)
+	var best := ""
+	var best_security := -1
+	for candidate in ids():
+		if candidate == origin:
+			continue
+		var controller: String = world.faction_authority.controller_for_settlement(candidate)
+		if controller == attacker_faction:
+			continue
+		if controller != origin_controller and String(world.faction_authority.relation(origin_controller, controller).get("stance", "neutral")) == "war":
+			continue
+		var candidate_security := security(candidate)
+		if candidate_security > best_security or (candidate_security == best_security and candidate < best):
+			best = candidate
+			best_security = candidate_security
+	return best
+
+func _advance_displacements(absolute_hour: int) -> Array:
+	var events: Array = []
+	var keys := displacements.keys()
+	keys.sort()
+	for raw_id in keys:
+		var id := String(raw_id)
+		if not displacements.has(id):
+			continue
+		var row: Dictionary = displacements[id]
+		if absolute_hour < int(row.get("arrival_hour", 0)):
+			continue
+		var destination := String(row.get("destination", ""))
+		var people := maxi(0, int(row.get("people", 0)))
+		if has(destination) and people > 0:
+			var destination_row: Dictionary = settlements[destination]
+			destination_row["population"] = population(destination) + people
+			settlements[destination] = destination_row
+		displacements.erase(id)
+		events.append({"kind": "displacement_arrived", "displacement_id": id, "origin": String(row.get("origin", "")), "destination": destination, "people": people})
+	return events
+
 func export_state() -> Array:
 	var rows: Array = []
 	for settlement_id in ids():
@@ -581,6 +861,8 @@ func export_state() -> Array:
 			"stolen_deficit": (row.get("stolen_deficit", {}) as Dictionary).duplicate(true),
 			"treasury": maxi(0, int(row["treasury"])),
 			"security": clampi(int(row.get("security", 100)), 0, 100),
+			"population": maxi(0, int(row.get("population", row.get("population_baseline", 1)))),
+			"next_displacement_hour": maxi(0, int(row.get("next_displacement_hour", 0))),
 		})
 	return rows
 
@@ -600,9 +882,12 @@ func restore_state(raw) -> bool:
 		if treasury_value < 0 or not inventory_raw is Dictionary:
 			return false
 		var security_value := int((entry as Dictionary).get("security", 100))
-		if security_value < 0 or security_value > 100:
+		var baseline_population := population_baseline(id)
+		var population_value := int((entry as Dictionary).get("population", baseline_population))
+		var next_displacement := int((entry as Dictionary).get("next_displacement_hour", 0))
+		if security_value < 0 or security_value > 100 or population_value < 0 or population_value > 10000 or next_displacement < 0:
 			return false
-		staged[id] = {"inventory": _clean_counts(inventory_raw), "treasury": treasury_value, "stolen_deficit": _clean_counts(entry.get("stolen_deficit", {})), "security": security_value}
+		staged[id] = {"inventory": _clean_counts(inventory_raw), "treasury": treasury_value, "stolen_deficit": _clean_counts(entry.get("stolen_deficit", {})), "security": security_value, "population": population_value, "next_displacement_hour": next_displacement}
 		seen[id] = true
 	if seen.size() != settlements.size():
 		return false
@@ -613,6 +898,8 @@ func restore_state(raw) -> bool:
 		row["treasury"] = int(values["treasury"])
 		row["stolen_deficit"] = values["stolen_deficit"]
 		row["security"] = int(values.get("security", 100))
+		row["population"] = int(values.get("population", row.get("population_baseline", 1)))
+		row["next_displacement_hour"] = int(values.get("next_displacement_hour", 0))
 		settlements[id] = row
 	return true
 
@@ -672,7 +959,10 @@ func apply_raid_pressure(settlement_id: String, pressure: int, attacker_faction:
 	var treasury_loss := mini(maxi(0, int(row["treasury"])), maxi(1, pressure / 2))
 	row["treasury"] = maxi(0, int(row["treasury"]) - treasury_loss)
 	settlements[settlement_id] = row
-	return {"ok": true, "attacker": attacker_faction, "security_before": before, "security_after": int(row["security"]), "treasury_loss": treasury_loss, "items_lost": lost}
+	var displacement: Dictionary = {}
+	if int(row["security"]) <= DISPLACEMENT_TRIGGER_SECURITY:
+		displacement = _maybe_start_displacement(settlement_id, attacker_faction, world.absolute_world_hour())
+	return {"ok": true, "attacker": attacker_faction, "security_before": before, "security_after": int(row["security"]), "treasury_loss": treasury_loss, "items_lost": lost, "displacement": displacement}
 
 func settlement_for_faction(faction_id: String) -> String:
 	for settlement_id in ids():

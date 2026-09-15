@@ -10,6 +10,8 @@ const GuardScript = preload("res://scripts/world/actors/settlement_guard.gd")
 const BeastScript = preload("res://scripts/world/actors/mossback.gd")
 const BannerScript = preload("res://scripts/world/actors/settlement_banner.gd")
 const CaravanScript = preload("res://scripts/world/actors/trade_caravan.gd")
+const DisplacedTravelerScript = preload("res://scripts/world/actors/displaced_traveler.gd")
+const RouteHazardScript = preload("res://scripts/world/actors/route_hazard.gd")
 const BEAST_ID := "player_storage:mossback"
 const KIND_PLAYER_STORAGE := "player_storage"
 const STORAGE_CAPACITY := 480.0
@@ -18,6 +20,8 @@ const KIND_WAREHOUSE := "warehouse"
 const KIND_BOUNTY_HUNTER := "bounty_hunter"
 const KIND_RAIDER := "war_raider"
 const KIND_CARAVAN := "trade_caravan"
+const KIND_DISPLACEMENT := "displacement"
+const KIND_ROUTE_HAZARD := "route_hazard"
 const SettlementNpcScript = preload("res://scripts/world/actors/settlement_npc.gd")
 const VegetationRegistryScript = preload("res://scripts/world/vegetation/vegetation_registry.gd")
 
@@ -39,6 +43,8 @@ var deactivation_count := 0
 var vegetation_registry := VegetationRegistryScript.new() as SliceVegetationRegistry
 var war_raid_signature := ""
 var caravan_signature := ""
+var displacement_signature := ""
+var route_hazard_signature := ""
 
 func _init(owner_host: Node, owner_world: SliceWorld, owner_player: SlicePlayer) -> void:
 	host = owner_host
@@ -55,6 +61,8 @@ func clear_world_baseline() -> void:
 	projections.clear()
 	war_raid_signature = ""
 	caravan_signature = ""
+	displacement_signature = ""
+	route_hazard_signature = ""
 	descriptors.clear()
 	ids_by_chunk.clear()
 
@@ -441,6 +449,22 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		caravan.global_position = world.cell_center(cell) + Vector2(0, -10)
 		caravan.z_index = 16
 		node = caravan
+	elif kind == KIND_DISPLACEMENT:
+		var traveler := DisplacedTravelerScript.new() as SliceDisplacedTraveler
+		var displacement_meta: Dictionary = descriptor.get("meta", {})
+		traveler.name = _node_name("DisplacedTraveler", actor_id)
+		traveler.setup(self, String(displacement_meta.get("displacement_id", "")))
+		traveler.global_position = world.cell_center(cell) + Vector2(0, -8)
+		traveler.z_index = 16
+		node = traveler
+	elif kind == KIND_ROUTE_HAZARD:
+		var hazard := RouteHazardScript.new() as SliceRouteHazard
+		var hazard_meta: Dictionary = descriptor.get("meta", {})
+		hazard.name = _node_name("RouteHazard", actor_id)
+		hazard.setup(self, String(hazard_meta.get("pair_key", "")))
+		hazard.global_position = world.cell_center(cell) + Vector2(0, -2)
+		hazard.z_index = 15
+		node = hazard
 	elif kind == KIND_TREE:
 		var tree := TreeScript.new() as SliceTreeResource
 		var meta: Dictionary = descriptor.get("meta", {})
@@ -768,6 +792,97 @@ func sync_caravans(force := false) -> void:
 		_remove_descriptor(actor_id)
 	_reconcile_current_stream()
 
+func sync_displacements(force := false) -> void:
+	if world == null or world.settlement_authority == null:
+		return
+	var active := world.settlement_authority.active_displacements()
+	var signature_parts: Array[String] = []
+	var cells: Dictionary = {}
+	for raw in active:
+		var displacement: Dictionary = raw
+		var id := String(displacement.get("id", ""))
+		var cell := world.settlement_authority.displacement_cell(id)
+		cells[id] = cell
+		signature_parts.append("%s:%d:%d:%d" % [id, cell.x, int(displacement.get("people", 0)), int(displacement.get("arrival_hour", 0))])
+	var signature := "|".join(signature_parts)
+	if not force and signature == displacement_signature:
+		return
+	displacement_signature = signature
+	var desired: Dictionary = {}
+	for raw in active:
+		var displacement: Dictionary = raw
+		var id := String(displacement.get("id", ""))
+		var actor_id := "world:" + id
+		var cell: Vector2i = cells.get(id, Vector2i(99999, 99999))
+		if cell.x < SliceWorld.MIN_X or cell.x > SliceWorld.MAX_X:
+			continue
+		desired[actor_id] = true
+		var meta := {"displacement_id": id, "origin": String(displacement.get("origin", "")), "destination": String(displacement.get("destination", "")), "people": int(displacement.get("people", 0))}
+		if not descriptors.has(actor_id):
+			_register_actor(actor_id, KIND_DISPLACEMENT, cell, meta)
+		else:
+			var row: Dictionary = descriptors[actor_id]
+			var old_key: Vector2i = row["chunk"]
+			var new_key := world.chunk_key_for(cell)
+			if old_key != new_key:
+				if ids_by_chunk.has(old_key):
+					(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
+					if (ids_by_chunk[old_key] as Dictionary).is_empty():
+						ids_by_chunk.erase(old_key)
+				if not ids_by_chunk.has(new_key):
+					ids_by_chunk[new_key] = {}
+				(ids_by_chunk[new_key] as Dictionary)[actor_id] = true
+			row["cell"] = cell
+			row["chunk"] = new_key
+			row["meta"] = meta
+			descriptors[actor_id] = row
+			if is_projected(actor_id):
+				(projections[actor_id] as Node2D).global_position = world.cell_center(cell) + Vector2(0, -8)
+	for actor_id in actor_ids(KIND_DISPLACEMENT):
+		if desired.has(actor_id):
+			continue
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	_reconcile_current_stream()
+
+func sync_route_hazards(force := false) -> void:
+	if world == null or world.settlement_authority == null:
+		return
+	var active := world.settlement_authority.active_route_hazards()
+	var signature_parts: Array[String] = []
+	for raw in active:
+		var hazard: Dictionary = raw
+		var cell: Vector2i = hazard.get("cell", Vector2i(99999, 99999))
+		signature_parts.append("%s:%d:%d" % [String(hazard.get("pair_key", "")), cell.x, int(hazard.get("until_hour", 0))])
+	var signature := "|".join(signature_parts)
+	if not force and signature == route_hazard_signature:
+		return
+	route_hazard_signature = signature
+	var desired: Dictionary = {}
+	for raw in active:
+		var hazard: Dictionary = raw
+		var pair_key := String(hazard.get("pair_key", ""))
+		var actor_id := "world:route_hazard:" + pair_key
+		var cell: Vector2i = hazard.get("cell", Vector2i(99999, 99999))
+		if cell.x < SliceWorld.MIN_X or cell.x > SliceWorld.MAX_X:
+			continue
+		desired[actor_id] = true
+		var meta := {"pair_key": pair_key, "until_hour": int(hazard.get("until_hour", 0))}
+		if not descriptors.has(actor_id):
+			_register_actor(actor_id, KIND_ROUTE_HAZARD, cell, meta)
+		else:
+			var row: Dictionary = descriptors[actor_id]
+			row["meta"] = meta
+			descriptors[actor_id] = row
+	for actor_id in actor_ids(KIND_ROUTE_HAZARD):
+		if desired.has(actor_id):
+			continue
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	_reconcile_current_stream()
+
 func update_pursuit() -> void:
 	if player == null or world == null:
 		return
@@ -815,6 +930,32 @@ func update_pursuit() -> void:
 		_ensure_projection(actor_id)
 		break
 
+func spawn_lost_cargo(cargo_raw: Dictionary, cell: Vector2i, display_name := "遗落的行囊", role := "遗落物资", dialogue: Array = [], source_id := "") -> String:
+	var cargo: Dictionary = {}
+	for raw_id in cargo_raw.keys():
+		var item_id := String(raw_id)
+		var count := maxi(0, int(cargo_raw[raw_id]))
+		if not item_id.is_empty() and count > 0:
+			cargo[item_id] = count
+	if cargo.is_empty():
+		return ""
+	if not source_id.is_empty():
+		for existing_id in actor_ids(KIND_LOST_CARGO):
+			if String((descriptors[existing_id]["meta"] as Dictionary).get("source_id", "")) == source_id:
+				return existing_id
+	var serial := 0
+	while descriptors.has("lost_cargo:%d" % serial):
+		serial += 1
+	var actor_id := "lost_cargo:%d" % serial
+	cell.x = clampi(cell.x, SliceWorld.MIN_X, SliceWorld.MAX_X)
+	cell.y = clampi(cell.y, -100, SliceWorld.MAX_Y)
+	var lines := dialogue.duplicate()
+	if lines.is_empty():
+		lines = ["取回物资仍需实际搬运。"]
+	_register_actor(actor_id, KIND_LOST_CARGO, cell, {"inventory": cargo, "display_name": display_name, "role": role, "dialogue": lines, "source_id": source_id})
+	_reconcile_current_stream()
+	return actor_id
+
 func drop_player_cargo(at: Vector2) -> void:
 	var cargo: Dictionary = {}
 	var retained := [player.equipped_pick_id, player.equipped_weapon_id, "workbench", "campfire"]
@@ -825,17 +966,12 @@ func drop_player_cargo(at: Vector2) -> void:
 			cargo[item_id] = count
 	if cargo.is_empty():
 		return
-	var serial := 0
-	while descriptors.has("lost_cargo:%d" % serial):
-		serial += 1
-	var actor_id := "lost_cargo:%d" % serial
 	var cell := world.world_to_cell(at)
-	cell.x = clampi(cell.x, SliceWorld.MIN_X, SliceWorld.MAX_X)
-	cell.y = clampi(cell.y, -100, SliceWorld.MAX_Y)
-	_register_actor(actor_id, KIND_LOST_CARGO, cell, {"inventory": cargo, "display_name": "遗落的行囊", "role": "死亡时遗落的物资", "dialogue": ["取回物资仍需实际搬运。"]})
+	var actor_id := spawn_lost_cargo(cargo, cell, "遗落的行囊", "死亡时遗落的物资", ["取回物资仍需实际搬运。"], "")
+	if actor_id.is_empty():
+		return
 	for item_id in cargo.keys():
 		player.spend_item(String(item_id), int(cargo[item_id]))
-	_reconcile_current_stream()
 
 func cargo_view(actor_id: String, selected_item: String, quantity: int) -> Dictionary:
 	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) not in [KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
@@ -884,7 +1020,8 @@ func export_lost_cargo() -> Array:
 	for actor_id in actor_ids(KIND_LOST_CARGO):
 		var row: Dictionary = descriptors[actor_id]
 		var cell: Vector2i = row["cell"]
-		rows.append({"id": actor_id, "cell": [cell.x, cell.y], "inventory": (row["meta"]["inventory"] as Dictionary).duplicate(true)})
+		var meta: Dictionary = row["meta"]
+		rows.append({"id": actor_id, "cell": [cell.x, cell.y], "inventory": (meta["inventory"] as Dictionary).duplicate(true), "display_name": String(meta.get("display_name", "遗落的行囊")), "role": String(meta.get("role", "遗落物资")), "dialogue": (meta.get("dialogue", []) as Array).duplicate(), "source_id": String(meta.get("source_id", ""))})
 	return rows
 
 func restore_lost_cargo(raw) -> bool:
@@ -896,7 +1033,7 @@ func restore_lost_cargo(raw) -> bool:
 		_remove_descriptor(actor_id)
 	for row in raw:
 		var cell := Vector2i(int(row["cell"][0]), int(row["cell"][1]))
-		_register_actor(String(row["id"]), KIND_LOST_CARGO, cell, {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": "遗落的行囊", "role": "死亡时遗落的物资", "dialogue": ["取回物资仍需实际搬运。"]})
+		_register_actor(String(row["id"]), KIND_LOST_CARGO, cell, {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": String(row.get("display_name", "遗落的行囊")), "role": String(row.get("role", "遗落物资")), "dialogue": (row.get("dialogue", ["取回物资仍需实际搬运。"]) as Array).duplicate(), "source_id": String(row.get("source_id", ""))})
 	_reconcile_current_stream()
 	return true
 

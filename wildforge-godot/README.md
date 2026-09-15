@@ -338,3 +338,19 @@ Active macro shipments now have one derived local projection when their route ce
 Faction relations now evolve from durable world facts instead of random diplomacy rolls. Every 48 world hours, persistent severe shortages and unserved cross-region dependencies apply bounded pressure to the existing canonical relation score. Successful physical caravan arrivals move that same score in the opposite direction, while non-decisive raid stalemates create war-exhaustion relief. Trade and war use explicit hysteresis thresholds so a single inventory tick cannot flip diplomacy back and forth.
 
 The causal chain is therefore shared end to end: geography creates production differences → settlement inventory develops needs → autonomous caravans serve or fail to serve those needs → relations warm or deteriorate → sustained deterioration can cross the existing war boundary → bounded raids use the same relation authority. No random faction clock, diplomacy wallet or parallel political state was added.
+
+## v0.30 causal travel incidents
+
+Phase 4 starts by making long-distance travel consequences emerge from existing logistics rather than from a random event table. A real in-transit caravan on a tense or insecure route can suffer one bounded midpoint attack. The lost quantity is removed from the same shipment, the matching escrow is refunded, the canonical faction relation worsens, and a route-pair cooldown prevents repeated spam.
+
+The resulting cargo is materialized through the existing lost-cargo actor authority at the caravan's real route cell. It stays recoverable, survives save/load with provenance, and replaying the same simulation event cannot duplicate goods. Save schema 29 persists route-incident cooldowns while schema 28 migrates with no fabricated incidents.
+
+### v0.30 war displacement is a real population flow
+
+Settlements now keep one coarse population fact alongside security, inventory and treasury. Severe raid pressure can push a bounded group of civilians out of an unsafe settlement; those people are removed from the origin immediately, travel as one authoritative displacement record, and are added to the safest eligible destination only on arrival. Consumable target demand scales from the same population fact, so flight reduces demand at the damaged settlement and increases it at the refuge rather than creating a cosmetic refugee event.
+
+Only one tiny local group is projected when the player approaches the route. The visible travelers own no population state. Save schema 30 persists current population, displacement cooldowns and in-transit groups while schema 29 and earlier supported saves derive deterministic baseline populations and create no synthetic refugees.
+
+### v0.30 route disruption is a real logistics constraint
+
+A caravan attack now leaves more than loot. The persisted route-pair incident cooldown is also the temporary road hazard authority: while it is active, new autonomous shipments cannot launch across that pair, and a lightweight debris marker is streamed only when the player approaches the physical midpoint. When the cooldown expires, dispatch eligibility and the local obstruction clear from the same fact.

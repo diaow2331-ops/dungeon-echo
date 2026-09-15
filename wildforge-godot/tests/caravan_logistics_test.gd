@@ -55,7 +55,7 @@ func _run() -> void:
 	_check(route_cell.x > SliceWorld.MIN_X and route_cell.x < SliceWorld.MAX_X, "caravan has a deterministic physical route position in the world")
 
 	var snap := SliceSaveSystem.snapshot(main)
-	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION and SliceSaveSystem.validate_snapshot(snap), "schema 28 validates in-transit caravan authority")
+	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION and SliceSaveSystem.validate_snapshot(snap), "current schema validates in-transit caravan authority")
 	var stale_serial := snap.duplicate(true)
 	var caravan_payload: Dictionary = stale_serial.get("caravans", {})
 	var active_payload: Array = caravan_payload.get("active", [])

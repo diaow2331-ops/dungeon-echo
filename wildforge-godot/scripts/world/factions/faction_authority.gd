@@ -337,6 +337,15 @@ func record_caravan_arrival(origin_settlement: String, destination_settlement: S
 		return {}
 	return adjust_relation(a, b, 1, "caravan_arrival")
 
+func record_caravan_attack(origin_settlement: String, destination_settlement: String, lost_quantity: int) -> Dictionary:
+	if world == null or world.settlement_authority == null or lost_quantity <= 0:
+		return {}
+	var a := controller_for_settlement(origin_settlement)
+	var b := controller_for_settlement(destination_settlement)
+	if a == b:
+		return {}
+	return adjust_relation(a, b, -mini(8, 2 + lost_quantity * 2), "caravan_attacked")
+
 func _stance_for_score(current: String, score: int) -> String:
 	if current == "war":
 		return "neutral" if score >= RELATION_WAR_EXIT else "war"
