@@ -401,3 +401,11 @@ Player crime now changes the same local stability facts used by the rest of the 
 High-impact crime can act as the `tension_catalyst` for Open Roads only after the regional trade layer exists. The existing 500-bounty pursuit threshold is reused as the trigger; ordinary crime below it does not advance macro progression, and even severe crime cannot bypass era dwell time, fabricate relation loss or declare war directly.
 
 Warehouse UI now exposes current local security and completed theft feedback reports the real security loss. This gives the criminal route visible consequences without adding a crime XP bar, destabilization meter or parallel political state.
+
+## v0.37 NPC identity, death and succession
+
+Settlement NPCs are no longer immortal service fixtures. `NpcRosterAuthority` separates a persistent role slot from the person currently holding it. Names and personality are generated deterministically from world seed, role slot and succession generation, so the same save reproduces the same person while a successor is guaranteed to be a new identity with a different name and speaking temperament.
+
+Merchants and settlement guards are now valid deliberate melee targets. Killing one permanently kills that person's identity, applies the existing crime/bounty and local-security consequences, and leaves the role vacant. The vacancy cannot refill immediately: merchant and guard roles wait different world-time delays, require minimum population/security, and spend real settlement treasury before a successor can take the same job.
+
+Succession reuses the same physical role slot but never revives the deceased person. Save schema 32 persists generation, life state, health, death hour and replacement deadline. Schema 31 remains loadable; legacy dead guards migrate into roster death, while older saves never invent deaths they did not previously record.

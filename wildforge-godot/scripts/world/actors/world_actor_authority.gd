@@ -687,23 +687,26 @@ func sync_npc_roster(force := false) -> void:
 			continue
 		if is_projected(actor_id):
 			_unload_projection(actor_id)
+		var person_changed := String(meta.get("person_id", "")) != String(person.get("person_id", ""))
 		meta["person_id"] = String(person.get("person_id", actor_id))
 		meta["personality"] = String(person.get("personality", ""))
 		meta["display_name"] = String(person.get("display_name", actor_id))
 		meta["role"] = String(person.get("role_title", meta.get("role", "")))
-		meta["key_taken"] = false
-		var home_cell: Array = meta.get("home_cell", [row["cell"].x, row["cell"].y])
-		var old_key: Vector2i = row["chunk"]
-		if ids_by_chunk.has(old_key):
-			(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
-		row["cell"] = Vector2i(int(home_cell[0]), int(home_cell[1]))
-		row["chunk"] = world.chunk_key_for(row["cell"])
+		if person_changed:
+			meta["key_taken"] = false
+		if bool(person.get("alive", true)):
+			var home_cell: Array = meta.get("home_cell", [row["cell"].x, row["cell"].y])
+			var old_key: Vector2i = row["chunk"]
+			if ids_by_chunk.has(old_key):
+				(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
+			row["cell"] = Vector2i(int(home_cell[0]), int(home_cell[1]))
+			row["chunk"] = world.chunk_key_for(row["cell"])
+			if not ids_by_chunk.has(row["chunk"]):
+				ids_by_chunk[row["chunk"]] = {}
+			(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
 		row["present"] = true
 		row["meta"] = meta
 		descriptors[actor_id] = row
-		if not ids_by_chunk.has(row["chunk"]):
-			ids_by_chunk[row["chunk"]] = {}
-		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
 	_reconcile_current_stream()
 
 func claim_guard_key(actor_id: String) -> bool:
@@ -730,7 +733,7 @@ func export_security() -> Array:
 		rows.append({"id": actor_id, "health": guard_health(actor_id), "key_taken": bool(meta.get("key_taken", false)), "present": bool(row.get("present", true)), "cell": [cell.x, cell.y]})
 	return rows
 
-func restore_security(raw) -> bool:
+func restore_security(raw, migrate_roster := false) -> bool:
 	if not raw is Array:
 		return false
 	var seen: Dictionary = {}
@@ -763,7 +766,14 @@ func restore_security(raw) -> bool:
 		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
 		for entry in raw:
 			if String(entry["id"]) == actor_id:
-				meta["health"] = float(entry["health"])
+				var restored_hp := float(entry["health"])
+				if String(row.get("kind", "")) == KIND_SETTLEMENT_GUARD and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+					if migrate_roster:
+						if not world.npc_roster_authority.restore_legacy_health(actor_id, restored_hp, world.absolute_world_hour()):
+							return false
+					elif absf(world.npc_roster_authority.health(actor_id) - restored_hp) > 0.01:
+						return false
+				meta["health"] = restored_hp
 				meta["key_taken"] = bool(entry.get("key_taken", false))
 				row["present"] = bool(entry.get("present", true))
 				var old_key: Vector2i = row["chunk"]
