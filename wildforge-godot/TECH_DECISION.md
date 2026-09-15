@@ -216,3 +216,7 @@ Settlement banners and guard alert posture are read-only projections. They do no
 Autonomous caravan logistics belongs to `SettlementAuthority` because the durable facts are settlement stock, treasury escrow, route endpoints and in-transit cargo. There is no parallel caravan economy: cargo leaves the same origin inventory at dispatch, destination money leaves the same treasury into the caravan record, and arrival or cancellation resolves those exact facts once. Later local caravan actors must be projections of these records and may not own a second cargo wallet.
 
 The scheduler is deliberately bounded to two active caravans and derives candidates only from geography-produced surplus and real destination shortage. Direct war blocks a route; broader tension/war reduces load size. Save schema 28 persists only the minimal in-transit records required to preserve conservation across process death.
+
+### v0.29 caravan projection rule
+
+A visible trade caravan is a streamed projection, not a second simulation. `WorldActorAuthority` may cache only descriptor position and presentation metadata derived from the macro caravan ID. Cargo, payment, departure/arrival time and route outcome remain owned by `SettlementAuthority`. The projection signature changes only when the bounded caravan set or its authoritative world-hour route cell changes, avoiding whole-actor reconciliation each frame.
