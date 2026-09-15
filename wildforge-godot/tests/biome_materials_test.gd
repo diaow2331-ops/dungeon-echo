@@ -51,8 +51,8 @@ func _run() -> void:
 	var placed := world.request_world_edit({"action":"place", "cell":placed_cell, "tile":SliceWorld.ASH, "actor_id":"biome_test"})
 	_check(bool(placed.get("changed", false)), "new biome block ids can exist as player-authored world deltas")
 	var snap := SliceSaveSystem.snapshot(main)
-	_check(int(snap.get("version", 0)) == 23 and int(snap.get("world_generation", 0)) == 5, "biome-material baseline is bound to schema 23 generation 5")
-	_check(SliceSaveSystem.validate_snapshot(snap), "schema 23 validates new biome block ids")
+	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION and int(snap.get("world_generation", 0)) == SliceWorld.WORLD_GENERATION_VERSION, "biome-material baseline is bound to the current save schema and world generation")
+	_check(SliceSaveSystem.validate_snapshot(snap), "current schema validates new biome block ids")
 	var legacy22 := snap.duplicate(true)
 	legacy22["version"] = SliceSaveSystem.LEGACY_THREE_SETTLEMENT_SAVE_VERSION
 	legacy22["world_generation"] = SliceWorld.THREE_SETTLEMENT_WORLD_GENERATION_VERSION
@@ -60,7 +60,7 @@ func _run() -> void:
 	var fresh := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(fresh, snap), "schema 23 biome-material snapshot restores into a fresh runtime")
+	_check(SliceSaveSystem.apply_snapshot(fresh, snap), "current biome-material snapshot restores into a fresh runtime")
 	var fresh_world := fresh.get_node("World") as SliceWorld
 	_check(fresh_world.tile_at(placed_cell) == SliceWorld.ASH, "player-authored biome material survives save round-trip")
 

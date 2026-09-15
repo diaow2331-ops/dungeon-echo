@@ -160,3 +160,39 @@ Persistent saves store economic facts only. Biome supply, settlement targets, ba
 Onboarding must use the same resource, crafting, station, combat and save authorities as the rest of the game. A new traveler may own baseline role equipment, but must not receive injected wood, stone, currency or fabricated tutorial goods. The current baseline is one ordinary travel hatchet, no pick, and zero building resources.
 
 The first mining tool is the wood pick crafted at a real workbench from harvested wood. It grants exactly the minimum 1.0 pick power needed to enter normal terrain mining; stone, campfire construction and later tools then continue through the existing block registry and crafting authority. Tutorial-only resource nodes, tutorial inventories, or a second starter progression state are forbidden.
+
+## Multi-good market presentation rule
+
+The merchant selector lists only SettlementAuthority.accepted_goods. UI quotes are projections, never transaction authority: each sale revalidates physical range, item, quantity, player stock and treasury through sell_from_player. Selected goods are ephemeral presentation state and never enter saves. Regional resource art remains a future renderer over the existing item/world identities.
+
+Retail purchase and route hints follow the same ownership rule: purchase_quote/buy_to_player mutate only existing player stock/currency and settlement inventory/treasury. The spread is calculated from post-withdrawal stock to prevent profitable same-town immediate reversal. Route leads are live reads, not contracts or guaranteed rewards; the UI waypoint stores only a destination id and does not enter persistence. NPC crates and HUD hints are read-only projections. Save schema remains 23.
+
+## v0.27 security and physical loss ownership
+
+SettlementAuthority owns stock, treasury and unfilled stolen supply deficits; FactionAuthority owns player bounty and pursuit dispatch timing. WorldActorAuthority owns guard/patrol health, presence, key collection and recoverable cargo containers. WorldEditAuthority owns physical warehouse-door edits. The lock is derived from the door cells, not another saved boolean. Player stock owns carried keys and goods. UI hauling state is transient; it does not reserve, duplicate or persist goods before the single successful transfer.
+
+New schema 24 explicitly carries the new durable facts while preserving generation 5 and migrating schema 23. No crime record expires on unload, UI close or player death. Patrols are bounded projections over persisted actor/political facts. Ordinary stock variation gets only an 8% premium; loss-induced crises use factual theft deficits and are relieved only by physical replacement goods.
+
+## v0.28 — Phase 2 personal storage foundation
+
+Implements the plan's hand hauling → storage step on the Godot runtime. Click a nearby workbench to craft a storage box (8 planks + 2 stone), then aim at supported empty ground and use the central context action to place it. Placement is limited to wilderness/player land and rejects occupied cells.
+
+Click the box nearby to deposit/withdraw 1 or 5 items. Each box holds 480 units of cargo weight; withdrawals obey the player's existing 160 hard carrying limit. Equipped tools retain one copy. Transfers take time and cancel on injury, movement, or closing the menu. An empty box can be packed and carried elsewhere. Inventory is held only in world actor authority; streamed scene nodes display it.
+
+Save schema 25 persists each box's ID, position and inventory, and migrates schema 24/23 and older supported saves. Personal storage does not alter town stock, prices, crime or bounty. This is the foundation for later pack beasts and transport routes, not completion of Phase 2.
+
+Validation: Godot headless editor script compilation only. Full gameplay, mobile interaction and migration regression remain for integration; no PR merge or full test run performed.
+
+## v0.29 — Mossback transport foundation (Phase 2)
+
+A merchant can sell the player one mossback for 240 forge marks, paid into that settlement's authoritative treasury. Wanted players cannot purchase. This first transport tier carries 320 weight, with 1/5/20-item timed loading through the existing cargo authority. It follows physically, slows with cargo, stops at deep drops and can jump small obstacles. It never teleports to catch up; streamed-out animals remain at their recorded location.
+
+Travel distance consumes food/energy. One actual trail ration restores 35 energy and 30 health up to 100/180. Waiting/following can be toggled in the animal's panel. The animal pauses while the player interacts; world threats continue. Nearby hostile actors inflict contact damage through an unobstructed line, with a 1.5-second cooldown; long falls also damage it. This is an initial escort-risk model, not enemy retargeting AI.
+
+On death, the original inventory loses approximately 25% of each ordinary stack exactly once (warehouse keys are preserved); remaining goods stay with the corpse. Deposits, feeding and following are disabled. After recovering all goods, burial removes the descriptor and allows another purchase. No corpse inventory copy or separate cargo registry is created.
+
+Schema 26 stores animal health/energy/following alongside its existing container record and migrates schema 25 and earlier supported saves. Moving updates the same actor cell/chunk record. Return navigation includes the animal and HUD warns about hunger, separation and death. Cargo handling cancels when the animal is injured.
+
+The dialogue body now scrolls on short screens and the close button stays outside the scroll area. Placeholder procedural animal art establishes silhouette only; atlas production is deferred per plan.
+
+Validation: Godot headless editor compilation and git diff --check. No full test suite, runtime playthrough, mobile visual verification or PR merge. Balance, obstacle traversal, combat risk and migration regression still require integration verification. Phase 2 is not declared complete; autonomous trade routes/caravans remain outstanding.

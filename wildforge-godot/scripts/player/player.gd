@@ -331,12 +331,24 @@ func melee_force() -> float:
 	var multiplier := STONE_BLADE_REFERENCE_KNOCKBACK / STARTER_BLADE_REFERENCE_KNOCKBACK if equipped_weapon_id == "stone_blade" else 1.0
 	return SLICE_BASE_MELEE_FORCE * multiplier
 
+func carried_weight() -> float:
+	var total := 0.0
+	for item_id in stock.keys():
+		total += float(item_count(String(item_id))) * cargo_unit_weight(String(item_id))
+	return total
+
+func cargo_unit_weight(item_id: String) -> float:
+	if item_id.begins_with("warehouse_key:"):
+		return 0.0
+	return 2.0 if item_id in ["stone", "basalt", "sandstone", "copper_ore", "copper_bar"] else 1.0
+
+func can_carry(item_id: String, quantity: int) -> bool:
+	return quantity > 0 and carried_weight() + cargo_unit_weight(item_id) * quantity <= 160.0
+
 func movement_speed_multiplier() -> float:
-	if hunger <= 0.0:
-		return 0.78
-	if hunger < 20.0:
-		return 0.88
-	return 1.0
+	var food := 0.78 if hunger <= 0.0 else (0.88 if hunger < 20.0 else 1.0)
+	var burden := 1.0 - clampf((carried_weight() - 80.0) / 80.0, 0.0, 1.0) * 0.45
+	return food * burden
 
 func _update_survival(delta: float) -> void:
 	hunger = maxf(0.0, hunger - HUNGER_DRAIN_PER_SEC * delta)
@@ -403,6 +415,8 @@ func context_label() -> String:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return "食"
+	if _can_place_carried_storage():
+		return "箱"
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return "台"
@@ -419,8 +433,6 @@ func context_label() -> String:
 			return "镐"
 		if can_craft("stone_blade"):
 			return "刃"
-	if can_craft("plank"):
-		return "制"
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return "火"
@@ -432,12 +444,18 @@ func context_label() -> String:
 		return "烤"
 	if hunger < 65.0 and not food.is_empty():
 		return "食"
+	if can_craft("plank"):
+		return "制"
 	return "置"
 
 func context_action() -> bool:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return eat_item(food)
+	if _can_place_carried_storage():
+		var target := _placement_cell()
+		var actors = get_parent().get("actor_authority")
+		return actors != null and actors.place_storage(target)
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return place_workbench_once()
@@ -456,8 +474,6 @@ func context_action() -> bool:
 			return craft("wood_pick")
 		if can_craft("stone_blade"):
 			return craft("stone_blade")
-	if can_craft("plank"):
-		return craft("plank")
 	if world != null and not world.has_campfire():
 		if item_count("campfire") > 0:
 			return place_campfire_once()
@@ -469,6 +485,8 @@ func context_action() -> bool:
 		return craft("trail_ration")
 	if hunger < 65.0 and not food.is_empty():
 		return eat_item(food)
+	if can_craft("plank"):
+		return craft("plank")
 	place_once()
 	return true
 
@@ -639,6 +657,8 @@ func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
 		_respawn_after_death()
 
 func _respawn_after_death() -> void:
+	if get_parent() != null and get_parent().has_method("drop_death_cargo"):
+		get_parent().drop_death_cargo(global_position)
 	health = max_health
 	hunger = maxf(35.0, hunger)
 	starvation_tick = 0.0
@@ -677,3 +697,13 @@ func _draw() -> void:
 	var blade_end := hand + Vector2(facing * (22.0 + swing), 4.0 - swing * 0.42)
 	draw_line(hand, blade_end, Color("d8e2df"), 4.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _can_place_carried_storage() -> bool:
+	if world == null or item_count("storage_box") <= 0:
+		return false
+	# Camp facilities retain their crafting/food priority.
+	if world.near_workbench(global_position) or world.near_campfire(global_position):
+		return false
+	var actors = get_parent().get("actor_authority")
+	return actors != null and actors.can_place_storage(_placement_cell())

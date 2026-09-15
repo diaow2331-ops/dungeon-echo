@@ -64,21 +64,6 @@ func _run() -> void:
 		_check(world.structure_authority.owner_id(structure_id) == "verdant", "structure ownership is delegated to Verdant claims: " + structure_id)
 		_check(world.structure_authority.integrity(structure_id) > 0.999, "baseline structure is physically intact: " + structure_id)
 
-	var warehouse_id := settlement_id + ":warehouse"
-	var warehouse_cells := world.structure_authority.cells_for(warehouse_id)
-	_check(not warehouse_cells.is_empty(), "warehouse blueprint contains real world cells")
-	var damage_cell: Vector2i = warehouse_cells[0]
-	var expected_tile := world.structure_authority.expected_tile(warehouse_id, damage_cell)
-	var damage := world.request_world_edit({"action": "mine", "cell": damage_cell, "tool_power": 99.0, "actor_id": "player"})
-	_check(bool(damage.get("changed", false)), "player can physically damage faction structure with sufficient capability")
-	_check(String(damage.get("legal_status", "")) == "illegal" and String(damage.get("crime_class", "")) == "major_property_damage", "unauthorized structure damage is classified as a major property crime")
-	_check(world.structure_authority.integrity(warehouse_id) < 0.999, "physical block loss lowers derived structure integrity")
-	var repairs := world.structure_authority.repair_requirements(warehouse_id)
-	_check(not repairs.is_empty(), "damaged warehouse exposes material repair demand")
-	var repaired := world.structure_authority.repair_cell(warehouse_id, damage_cell, "verdant_worker", "verdant")
-	_check(bool(repaired.get("changed", false)) and String(repaired.get("legal_status", "")) == "legal", "owner workforce repairs through the same edit authority")
-	_check(world.tile_at(damage_cell) == expected_tile and world.structure_authority.integrity(warehouse_id) > 0.999, "repair restores the real blueprint cell and full integrity")
-
 	var market_cell := authority.market_cell(settlement_id)
 	player.global_position = world.cell_center(market_cell) + Vector2(0, -48)
 	player.add_item("raw_meat", 2)
@@ -95,6 +80,21 @@ func _run() -> void:
 	_check(authority.item_count(settlement_id, "raw_meat") == stock_before + 2, "trade moves goods into settlement inventory")
 	_check(authority.treasury(settlement_id) == treasury_before - total, "trade debits the settlement treasury by the same amount")
 	_check(authority.buy_price(settlement_id, "raw_meat") <= price_before, "market price responds downward as the shortage is relieved")
+
+	var warehouse_id := settlement_id + ":warehouse"
+	var warehouse_cells := world.structure_authority.cells_for(warehouse_id)
+	_check(not warehouse_cells.is_empty(), "warehouse blueprint contains real world cells")
+	var damage_cell: Vector2i = warehouse_cells[0]
+	var expected_tile := world.structure_authority.expected_tile(warehouse_id, damage_cell)
+	var damage := world.request_world_edit({"action": "mine", "cell": damage_cell, "tool_power": 99.0, "actor_id": "player"})
+	_check(bool(damage.get("changed", false)), "player can physically damage faction structure with sufficient capability")
+	_check(String(damage.get("legal_status", "")) == "illegal" and String(damage.get("crime_class", "")) == "major_property_damage", "unauthorized structure damage is classified as a major property crime")
+	_check(world.structure_authority.integrity(warehouse_id) < 0.999, "physical block loss lowers derived structure integrity")
+	var repairs := world.structure_authority.repair_requirements(warehouse_id)
+	_check(not repairs.is_empty(), "damaged warehouse exposes material repair demand")
+	var repaired := world.structure_authority.repair_cell(warehouse_id, damage_cell, "verdant_worker", "verdant")
+	_check(bool(repaired.get("changed", false)) and String(repaired.get("legal_status", "")) == "legal", "owner workforce repairs through the same edit authority")
+	_check(world.tile_at(damage_cell) == expected_tile and world.structure_authority.integrity(warehouse_id) > 0.999, "repair restores the real blueprint cell and full integrity")
 
 	var snap := SliceSaveSystem.snapshot(main)
 	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION, "settlement economy uses current schema 23")

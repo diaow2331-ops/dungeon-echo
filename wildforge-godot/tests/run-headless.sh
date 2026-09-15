@@ -16,8 +16,8 @@ run_gate() {
   local marker="$2"
   local log
   log="$(mktemp)"
-  "$GODOT_BIN" --headless --path "$ROOT" --script "$script" 2>&1 | tee "$log"
-  if ! grep -Fq "$marker" "$log"; then
+  timeout 120 "$GODOT_BIN" --headless --path "$ROOT" --script "$script" 2>&1 | tee "$log"
+  if grep -Eq "SCRIPT ERROR:|Parse Error:" "$log" || ! grep -Fq "$marker" "$log"; then
     echo "missing_gate_marker=$marker script=$script" >&2
     rm -f "$log"
     exit 1
@@ -32,6 +32,7 @@ run_gate res://tests/loop_test.gd 'wildforge_godot_loop=PASS'
 run_gate res://tests/chunk_test.gd 'wildforge_godot_chunks=PASS'
 run_gate res://tests/streaming_test.gd 'wildforge_chunk_streaming=PASS'
 run_gate res://tests/actor_streaming_test.gd 'wildforge_actor_streaming=PASS'
+run_gate res://tests/multi_good_market_test.gd 'wildforge_multi_good_market=PASS'
 run_gate res://tests/npc_dialogue_test.gd 'wildforge_npc_dialogue=PASS'
 run_gate res://tests/mobile_ui_test.gd 'wildforge_mobile_ui=PASS'
 run_gate res://tests/vegetation_test.gd 'wildforge_vegetation_authority=PASS'

@@ -16,6 +16,10 @@ var dialogue_overlay: SliceDialogueOverlay
 var touch_controls: SliceTouchControls
 var defeats := 0
 var active_merchant_settlement := ""
+var active_interaction_kind := ""
+var active_actor_id := ""
+var dialogue_health := 0.0
+var warehouse_transfer: Dictionary = {}
 var autosave_elapsed := 0.0
 const AUTOSAVE_INTERVAL := 20.0
 
@@ -61,6 +65,13 @@ func _ready() -> void:
 	dialogue_overlay.name = "DialogueOverlay"
 	dialogue_overlay.closed.connect(_close_dialogue)
 	dialogue_overlay.market_sell_requested.connect(_sell_to_active_merchant)
+	dialogue_overlay.market_item_selected.connect(_select_market_item)
+	dialogue_overlay.market_quantity_selected.connect(_select_market_quantity)
+	dialogue_overlay.market_buy_requested.connect(_buy_from_active_merchant)
+	dialogue_overlay.market_route_requested.connect(_mark_market_route)
+	dialogue_overlay.security_action_requested.connect(_security_action)
+	dialogue_overlay.storage_route_requested.connect(_mark_storage_route)
+	dialogue_overlay.beast_feed_requested.connect(_feed_beast)
 	ui_layer.add_child(dialogue_overlay)
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
@@ -72,6 +83,8 @@ func reconfigure_world_seed(new_seed: int) -> bool:
 		dialogue_overlay.close_dialogue()
 	if world.world_seed == new_seed:
 		return true
+	if touch_controls != null:
+		touch_controls.travel_destination_id = ""
 	actor_authority.clear_world_baseline()
 	for group_name in ["enemies", "workbenches", "campfires", "pickups"]:
 		for node in get_tree().get_nodes_in_group(group_name):
@@ -93,43 +106,136 @@ func _open_dialogue(payload: Dictionary) -> void:
 		return
 	var presented := payload.duplicate(true)
 	active_merchant_settlement = ""
-	if String(payload.get("npc_kind", "")) == "merchant":
-		active_merchant_settlement = String(payload.get("settlement_id", ""))
+	active_interaction_kind = String(payload.get("npc_kind", ""))
+	active_actor_id = String(payload.get("actor_id", ""))
+	dialogue_health = player.health
+	warehouse_transfer.clear()
+	if active_interaction_kind in ["merchant", "warehouse", "lost_cargo", "player_storage"]:
+		active_merchant_settlement = active_actor_id if active_interaction_kind in ["lost_cargo", "player_storage"] else String(payload.get("settlement_id", ""))
 		presented["market"] = _market_view(active_merchant_settlement)
+		if active_interaction_kind == "merchant" and world.settlement_authority.market_closed_to_player(active_merchant_settlement):
+			presented["dialogue"] = ["你的名字在通缉令上。这里不会与你交易。"]
+	if active_interaction_kind == "guard":
+		presented["security_action"] = "搜取仓库钥匙" if bool(payload.get("guard_dead", false)) else "拔刀挑战守卫（将被通缉）"
+	elif active_interaction_kind == "warehouse":
+		presented["security_action"] = "用钥匙开锁" if world.settlement_authority.warehouse_locked(active_merchant_settlement) else ""
+	if active_interaction_kind == "player_storage":
+		presented["security_action"] = "收起空箱"
+	elif active_interaction_kind == "workbench":
+		presented["security_action"] = "制作储物箱 · 8木板 + 2石块"
+	if active_interaction_kind == "merchant" and actor_authority.beast_state().is_empty() and not world.settlement_authority.market_closed_to_player(active_merchant_settlement):
+		presented["security_action"] = "购置苔背驮兽 · 240◆"
+	if active_actor_id == SliceWorldActorAuthority.BEAST_ID:
+		presented["security_action"] = _beast_action_label()
+		presented["beast_care"] = float(actor_authority.beast_state().get("health", 0)) > 0
+	presented["storage_routes"] = actor_authority.storage_destinations()
 	player.interaction_locked = true
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(true)
 	dialogue_overlay.open_dialogue(presented)
 
 func _close_dialogue() -> void:
+	warehouse_transfer.clear()
+	active_interaction_kind = ""
+	active_actor_id = ""
 	active_merchant_settlement = ""
 	if player != null:
 		player.interaction_locked = false
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(false)
 
-func _market_view(settlement_id: String) -> Dictionary:
+func _market_view(settlement_id: String, selected_item := "raw_meat", quantity := 1) -> Dictionary:
+	if active_interaction_kind in ["lost_cargo", "player_storage"]:
+		return actor_authority.cargo_view(active_actor_id, selected_item, quantity)
 	if settlement_id.is_empty() or world == null or player == null or world.settlement_authority == null:
 		return {}
-	var quote: Dictionary = world.settlement_authority.sale_quote(settlement_id, "raw_meat", 1)
-	quote["enabled"] = true
-	quote["player_count"] = player.item_count("raw_meat")
+	var goods: Array[String] = world.settlement_authority.accepted_goods(settlement_id)
+	if goods.is_empty():
+		return {}
+	var item_id: String = selected_item if selected_item in goods else goods[0]
+	var quote: Dictionary = world.settlement_authority.sale_quote(settlement_id, item_id, quantity)
+	quote["enabled"] = active_interaction_kind == "warehouse" or not world.settlement_authority.market_closed_to_player(settlement_id)
+	quote["warehouse"] = active_interaction_kind == "warehouse"
+	quote["locked"] = world.settlement_authority.warehouse_locked(settlement_id)
+	quote["can_carry"] = player.can_carry(item_id, quantity)
+	quote["weight"] = player.carried_weight()
+	quote["goods"] = goods
+	quote["player_count"] = player.item_count(item_id)
+	quote["player_marks"] = player.forge_marks
+	quote["purchase"] = world.settlement_authority.purchase_quote(settlement_id, item_id, quantity)
+	quote["opportunity"] = world.settlement_authority.export_opportunity(settlement_id, item_id, quantity)
 	return quote
 
-func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: int) -> void:
+func _select_market_item(item_id: String) -> void:
+	if dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty():
+		return
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, int(dialogue_overlay.active_market.get("quantity", 1))))
+
+func _mark_market_route() -> void:
+	if dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty() or touch_controls == null:
+		return
+	var item_id := String(dialogue_overlay.active_market.get("item_id", ""))
+	var quantity := int(dialogue_overlay.active_market.get("quantity", 1))
+	var lead: Dictionary = world.settlement_authority.export_opportunity(active_merchant_settlement, item_id, quantity)
+	if lead.is_empty():
+		dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity), "行情已变化，请重新查看。")
+		return
+	touch_controls.travel_destination_id = String(lead["destination_id"])
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity), "目的地已标记，离开集市后可查看方向。")
+
+func _select_market_quantity(quantity: int) -> void:
+	if quantity not in ([1, 5, 20] if active_interaction_kind == "player_storage" else [1, 5]) or dialogue_overlay == null or not dialogue_overlay.visible or active_merchant_settlement.is_empty():
+		return
+	var item_id := String(dialogue_overlay.active_market.get("item_id", "raw_meat"))
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement, item_id, quantity))
+
+func _buy_from_active_merchant(settlement_id: String, item_id: String, quantity: int) -> void:
+	if active_interaction_kind == "player_storage" and dialogue_overlay != null and dialogue_overlay.visible:
+		_start_warehouse_transfer(item_id, quantity, true)
+		return
+	if active_interaction_kind != "merchant":
+		return
 	if dialogue_overlay == null or not dialogue_overlay.visible or player == null or world == null:
 		return
-	if settlement_id.is_empty() or settlement_id != active_merchant_settlement or item_id != "raw_meat" or quantity != 1:
+	if settlement_id.is_empty() or settlement_id != active_merchant_settlement or item_id not in world.settlement_authority.accepted_goods(settlement_id) or quantity not in [1, 5]:
 		dialogue_overlay.update_market(_market_view(active_merchant_settlement), "这笔交易无效。")
+		return
+	var trade: Dictionary = world.settlement_authority.buy_to_player(player, settlement_id, item_id, quantity)
+	var feedback := ""
+	if bool(trade.get("ok", false)):
+		world.feedback_burst(player.global_position + Vector2(0, -24), Color("dfc36f"), 6, 55.0)
+		feedback = "购入 %d 份 · -%d◆" % [quantity, int(trade.get("total", 0))]
+	else:
+		var messages := {"wanted": "你已被本势力通缉，商人拒绝交易。", "demand_filled": "当前不需要这么多货物，请减少数量。", "overburdened": "负重已满，先卸下或出售部分货物。", "not_at_market": "请靠近商人后再交易。", "stock_short": "这批货已不足，请减少数量或稍后再来。", "marks_short": "钱币不足，可以先出售手头的货物。"}
+		feedback = String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。"))
+	dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), feedback)
+
+func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: int) -> void:
+	if active_interaction_kind in ["lost_cargo", "player_storage"] and dialogue_overlay != null and dialogue_overlay.visible:
+		_start_warehouse_transfer(item_id, quantity)
+		return
+	if dialogue_overlay == null or not dialogue_overlay.visible or player == null or world == null:
+		return
+	if settlement_id.is_empty() or settlement_id != active_merchant_settlement or item_id not in world.settlement_authority.accepted_goods(settlement_id) or quantity not in [1, 5]:
+		dialogue_overlay.update_market(_market_view(active_merchant_settlement), "这笔交易无效。")
+		return
+	if active_interaction_kind == "warehouse":
+		_start_warehouse_transfer(item_id, quantity)
+		return
+	if active_interaction_kind != "merchant":
 		return
 	var trade: Dictionary = world.settlement_authority.sell_from_player(player, settlement_id, item_id, quantity)
 	if bool(trade.get("ok", false)):
 		world.feedback_burst(player.global_position + Vector2(0, -24), Color("dfc36f"), 6, 55.0)
-		dialogue_overlay.update_market(_market_view(settlement_id), "成交：+%d◆" % int(trade.get("total", 0)))
+		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), "成交：+%d◆" % int(trade.get("total", 0)))
 	else:
-		dialogue_overlay.update_market(_market_view(settlement_id), "交易未完成：%s" % String(trade.get("reason", "unknown")))
+		var messages := {"wanted": "你已被本势力通缉，商人拒绝交易。", "demand_filled": "当前不需要这么多货物，请减少数量。", "overburdened": "负重已满，先卸下或出售部分货物。", "not_at_market": "请靠近商人后再交易。", "insufficient_goods": "携带的货物不足。", "treasury_short": "城库暂不足，请稍后再来。", "not_bought_here": "这里不收购这种货物。"}
+		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。")))
 
 func _process(delta: float) -> void:
+	_update_warehouse_transfer(delta)
+	if actor_authority != null and not SaveScript.is_test_run():
+		actor_authority.update_pursuit()
 	if SaveScript.is_test_run() or world == null or player == null:
 		return
 	autosave_elapsed += delta
@@ -207,3 +313,130 @@ func _add_mouse(action: StringName, button: MouseButton) -> void:
 	var event := InputEventMouseButton.new()
 	event.button_index = button
 	InputMap.action_add_event(action, event)
+
+func _security_action() -> void:
+	if dialogue_overlay == null or not dialogue_overlay.visible:
+		return
+	if active_interaction_kind == "merchant":
+		var bought := actor_authority.buy_beast(active_merchant_settlement)
+		dialogue_overlay.body_label.text = "驮兽在附近等你。点击它装货、喂食或让它跟随。" if bought else "需要240枚钱币，且附近要有可供驮兽站立的地面。"
+		dialogue_overlay.security_button.visible = not bought
+		dialogue_overlay.update_market(_market_view(active_merchant_settlement))
+		return
+	if active_actor_id == SliceWorldActorAuthority.BEAST_ID:
+		if float(actor_authority.beast_state().get("health", 0)) <= 0:
+			if actor_authority.bury_beast():
+				dialogue_overlay.close_dialogue()
+			else:
+				dialogue_overlay.market_feedback.text = "请先取回剩余物资，再安葬驮兽。"
+		else:
+			actor_authority.tend_beast(false)
+			dialogue_overlay.security_button.text = _beast_action_label()
+		return
+	if active_interaction_kind == "workbench":
+		if SliceCrafting.craft(player, "storage_box"):
+			dialogue_overlay.close_dialogue()
+		else:
+			dialogue_overlay.body_label.text = "需要靠近工作台，备好8块木板和2块石头。"
+		return
+	if active_interaction_kind == "player_storage":
+		if actor_authority.pack_storage(active_actor_id):
+			dialogue_overlay.close_dialogue()
+		else:
+			dialogue_overlay.market_feedback.text = "先取空箱内物资，并留出携带空箱的负重。"
+		return
+	if active_interaction_kind == "guard":
+		var guard := actor_authority.projection_for(active_actor_id) as SliceSettlementGuard
+		if guard == null or player.global_position.distance_to(guard.global_position) > 118.0:
+			dialogue_overlay.close_dialogue()
+			return
+		if guard.health() <= 0.0:
+			var taken := actor_authority.claim_guard_key(active_actor_id)
+			dialogue_overlay.body_label.text = "取得仓库钥匙。通缉不会因离开城镇而解除。" if taken else "钥匙已经被取走了。"
+			dialogue_overlay.security_button.disabled = true
+		else:
+			guard.provoke()
+			dialogue_overlay.close_dialogue()
+	elif active_interaction_kind == "warehouse":
+		var result: Dictionary = world.settlement_authority.unlock_warehouse(player, active_merchant_settlement)
+		var ok := bool(result.get("ok", false))
+		dialogue_overlay.security_button.visible = not ok
+		dialogue_overlay.update_market(_market_view(active_merchant_settlement), "门锁已打开，搬走物资将触发通缉。" if ok else "需要本仓库的钥匙，且必须靠近门锁。")
+
+func _start_warehouse_transfer(item_id: String, quantity: int, deposit := false) -> void:
+	if not warehouse_transfer.is_empty() or quantity not in ([1, 5, 20] if active_interaction_kind == "player_storage" else [1, 5]):
+		return
+	if not _at_storage(active_merchant_settlement) or (active_interaction_kind == "warehouse" and world.settlement_authority.warehouse_locked(active_merchant_settlement)):
+		return
+	warehouse_transfer = {"beast_health": float(actor_authority.beast_state().get("health", 0)), "deposit": deposit, "town": active_merchant_settlement, "item": item_id, "quantity": quantity, "remaining": 1.4 + quantity * 0.35, "position": player.global_position}
+	dialogue_overlay.market_buy_button.disabled = true
+	dialogue_overlay.market_sell_button.disabled = true
+	dialogue_overlay.market_item_picker.disabled = true
+	dialogue_overlay.market_quantity_picker.disabled = true
+
+func _update_warehouse_transfer(delta: float) -> void:
+	if dialogue_overlay == null or not dialogue_overlay.visible or player == null:
+		return
+	# A menu is no refuge: being hit returns control and cancels uncompleted hauling.
+	if player.health < dialogue_health:
+		dialogue_overlay.close_dialogue()
+		return
+	dialogue_health = player.health
+	if warehouse_transfer.is_empty():
+		return
+	if active_actor_id == SliceWorldActorAuthority.BEAST_ID and float(actor_authority.beast_state().get("health", 0)) < float(warehouse_transfer.get("beast_health", 0)):
+		dialogue_overlay.close_dialogue()
+		return
+	var town := String(warehouse_transfer["town"])
+	if not _at_storage(town) or player.global_position.distance_to(warehouse_transfer["position"]) > 28.0:
+		dialogue_overlay.close_dialogue()
+		return
+	warehouse_transfer["remaining"] = float(warehouse_transfer["remaining"]) - delta
+	dialogue_overlay.market_feedback.text = "搬运中 %.1f 秒 · 关闭或受伤会中断" % maxf(0.0, float(warehouse_transfer["remaining"]))
+	if float(warehouse_transfer["remaining"]) > 0.0:
+		return
+	var item_id := String(warehouse_transfer["item"])
+	var quantity := int(warehouse_transfer["quantity"])
+	var deposit := bool(warehouse_transfer.get("deposit", false))
+	warehouse_transfer.clear()
+	var recovery := active_interaction_kind in ["lost_cargo", "player_storage"]
+	var result: Dictionary = actor_authority.deposit_cargo(active_actor_id, item_id, quantity) if deposit else (actor_authority.recover_cargo(active_actor_id, item_id, quantity) if recovery else world.settlement_authority.loot_warehouse(player, town, item_id, quantity))
+	var messages := {"storage_full": "箱子已满或可存物资不足，装备中的工具会保留。", "overburdened": "背不动了，先运走一批。", "stock_short": "库存不足，减少搬运数量。", "locked": "门锁未打开。"}
+	var success_text := "存入 %d 份物资。" % quantity if deposit else ("取回 %d 份物资。" % quantity if recovery else "取得 %d 份物资 · 悬赏上升，尽快撤离！" % quantity)
+	var feedback := success_text if bool(result.get("ok", false)) else String(messages.get(String(result.get("reason", "")), "搬运中断。"))
+	if recovery and not actor_authority.is_projected(active_actor_id):
+		dialogue_overlay.close_dialogue()
+	else:
+		dialogue_overlay.update_market(_market_view(town, item_id, quantity), feedback)
+
+func _at_storage(id: String) -> bool:
+	if active_interaction_kind in ["lost_cargo", "player_storage"]:
+		var bag := actor_authority.projection_for(id)
+		return bag != null and player.global_position.distance_to(bag.global_position) <= 112.0
+	return world.settlement_authority.at_warehouse(player, id)
+
+func drop_death_cargo(at: Vector2) -> void:
+	if dialogue_overlay != null and dialogue_overlay.visible:
+		dialogue_overlay.close_dialogue()
+	if actor_authority != null:
+		actor_authority.drop_player_cargo(at)
+
+
+func _mark_storage_route(actor_id: String) -> void:
+	if touch_controls == null or actor_authority.storage_position(actor_id) == Vector2.INF:
+		return
+	touch_controls.travel_destination_id = actor_id
+	dialogue_overlay.close_dialogue()
+
+
+func _beast_action_label() -> String:
+	var state := actor_authority.beast_state()
+	if float(state.get("health", 0)) <= 0:
+		return "取空遗物后安葬"
+	return "留在原地" if bool(state.get("following", false)) else "跟随我"
+
+func _feed_beast() -> void:
+	if active_actor_id != SliceWorldActorAuthority.BEAST_ID or dialogue_overlay == null or not dialogue_overlay.visible:
+		return
+	var fed := actor_authority.tend_beast(true)
+	dialogue_overlay.update_market(_market_view(active_merchant_settlement), "喂食后恢复了体力与伤势。" if fed else "需要1份旅行口粮，且驮兽仍活着并需要照料。")

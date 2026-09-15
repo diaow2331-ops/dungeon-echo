@@ -22,19 +22,19 @@ const SETTLEMENT_DEMAND := {
 		"initial_inventory": {"raw_meat": 2},
 		"targets": {"raw_meat": 10, "wood": 6, "ice": 3, "basalt": 4},
 		"base_prices": {"raw_meat": 4, "wood": 2, "ice": 6, "basalt": 5},
-		"local_consumption": {"raw_meat": 1},
+		"local_consumption": {"raw_meat": 1, "wood": 1, "ice": 1, "basalt": 1},
 	},
 	"frost_frostmirror": {
 		"initial_inventory": {"raw_meat": 1},
 		"targets": {"raw_meat": 14, "wood": 8, "basalt": 4, "snow": 8, "ice": 8},
 		"base_prices": {"raw_meat": 6, "wood": 5, "basalt": 5, "snow": 1, "ice": 2},
-		"local_consumption": {"raw_meat": 1},
+		"local_consumption": {"raw_meat": 1, "wood": 1, "basalt": 1},
 	},
 	"ember_cinder_ridge": {
 		"initial_inventory": {"raw_meat": 1},
 		"targets": {"raw_meat": 14, "wood": 10, "ice": 6, "ash": 8, "sandstone": 6, "basalt": 6},
 		"base_prices": {"raw_meat": 6, "wood": 5, "ice": 7, "ash": 1, "sandstone": 2, "basalt": 3},
-		"local_consumption": {"raw_meat": 1},
+		"local_consumption": {"raw_meat": 1, "wood": 1, "ice": 1, "basalt": 1},
 	},
 }
 
@@ -105,9 +105,15 @@ func _economy_for(spec: Dictionary) -> Dictionary:
 	}
 
 func _npc_specs(spec: Dictionary, settlement_id: String, faction_id: String, anchor_x: int, ground_y: int) -> Array:
+	var introductions := {
+		"verdant_mossbridge": "林子给我们木材，远方的冰块和玄武岩却难得。带上货物，去看看别处的价钱吧。",
+		"frost_frostmirror": "霜原不缺冰雪，木材和鲜肉却得靠旅人运来。冰块在暖和的地方更值钱。",
+		"ember_cinder_ridge": "灰烬、砂岩、玄武岩都是本地货。我们缺木材和鲜肉，冰块更是抢手。",
+	}
+	var faction_names := {"verdant": "翠野", "frost": "霜原", "ember": "烬土"}
 	return [
-		{"id":settlement_id+":merchant","kind":"merchant","cell":[anchor_x+7,ground_y-1],"display_name":String(spec["merchant"]),"role":String(spec["merchant_role"]),"dialogue":["旅人，集市只认真实库存和现货。缺货时，价钱自然会上去。","货物进仓以后就属于这座聚落的库存，不会凭空消失。"]},
-		{"id":settlement_id+":guard","kind":"guard","cell":[anchor_x-HALF_WIDTH+2,ground_y-1],"display_name":String(spec["guard"]),"role":String(spec["guard_role"]),"dialogue":["这里是%s的领地。交易欢迎，破坏受保护设施会被记作违法。" % faction_id,"城外发生什么，城内的库存和财政也会继续变化。"]},
+		{"id":settlement_id+":merchant","kind":"merchant","cell":[anchor_x+7,ground_y-1],"display_name":String(spec["merchant"]),"role":String(spec["merchant_role"]),"dialogue":[String(introductions.get(settlement_id, "欢迎来集市。")),"先看看现货和价钱，再决定带什么上路。缺口补上后，收购价也会回落。"]},
+		{"id":settlement_id+":guard","kind":"guard","cell":[anchor_x-HALF_WIDTH+2,ground_y-1],"display_name":String(spec["guard"]),"role":String(spec["guard_role"]),"dialogue":["这里是%s的领地。欢迎交易，请别破坏房屋和城门。" % String(faction_names.get(faction_id, "聚落")),"出远门多带些口粮。即使你不在，镇上的人也要吃饭、干活。"]},
 	]
 
 func _find_anchor(world, spec: Dictionary) -> int:

@@ -47,14 +47,14 @@ func _run() -> void:
 	_check(authority.controller_for_settlement(settlement_id) == "ember", "settlement political controller derives from faction control chain")
 
 	var snap := SliceSaveSystem.snapshot(main)
-	_check(int(snap["version"]) == 23 and snap.has("factions"), "schema 23 persists political facts explicitly")
-	_check(SliceSaveSystem.validate_snapshot(snap), "schema 23 faction payload validates before disk persistence")
+	_check(int(snap["version"]) == SliceSaveSystem.SAVE_VERSION and snap.has("factions"), "current schema persists political facts explicitly")
+	_check(SliceSaveSystem.validate_snapshot(snap), "current faction payload validates before disk persistence")
 	main.free()
 	await process_frame
 	var restored := _new_main()
 	await process_frame
 	await process_frame
-	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 23 restores faction state into a fresh world")
+	_check(SliceSaveSystem.apply_snapshot(restored, snap), "current schema restores faction state into a fresh world")
 	var authority2 := (restored.get_node("World") as SliceWorld).faction_authority as SliceFactionAuthority
 	_check(authority2.controller_id("verdant") == "ember" and authority2.controller_id("frost") == "ember", "political controller chains survive save round-trip")
 	_check(authority2.relation("verdant", "ember")["stance"] == "self", "annexed controller relation resolves to self after restore")

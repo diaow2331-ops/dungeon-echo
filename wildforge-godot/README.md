@@ -241,3 +241,64 @@ A fresh traveler can now complete the opening survival chain from real world res
 The compact/mobile context path now remains usable after the first workbench exists: generic plank crafting stays available, while workbench-local tool recipes still require physical proximity. Existing saves adopt the same traveler-hatchet baseline on restore; save schema remains 23 because no new durable authority is introduced.
 
 `tests/first30_start_loop_test.gd` is the release gate for the no-injected-resource opening chain. It obtains wood from deterministic trees, stone through `WorldEditAuthority`, food from a real Bramble Boar, and places the first authoritative workbench/campfire. Tests may no longer prove onboarding solely by injecting wood or stone into player stock.
+
+## v0.26 regional goods at physical markets
+
+All three merchants now expose their settlement authority's accepted goods through one thumb-sized goods selector and the existing sale action. Wood, ice, basalt and other accepted materials transfer from the same player stock into the same settlement inventory, using a fresh authoritative quote at execution time. Shortage feedback explains local demand, selection survives a sale, and unsupported goods, insufficient stock/treasury and remote transactions remain rejected. No new inventory, pricing state or save schema is introduced (schema 23).
+
+### v0.26 continued implementation — integration handoff
+
+- Two-way stock-backed trade: player purchases debit settlement stock and player money, crediting the same settlement treasury. Retail quotes price each withdrawal with a 25% spread above marginal buyback price; 1/5-unit UI batches use fresh execution quotes. No task cargo or additional durable inventory.
+- Read-only export leads compare current source cost with other towns' funded sale quotes. Optional destination marking feeds a transient HUD waypoint with direction/distance; arrival and world reset clear it. Prices are explicitly provisional.
+- Opening/travel hints derive from equipment, stock, station presence, hunger and actual market coordinates. Hint text occupies a separate HUD row.
+- Context action priority now reserves available wood for campfire, cooking and smelting before generic plank crafting. Label and action order match.
+- Regional merchant dialogue describes local goods and imports. NPC touch areas are 56x64; nearby interaction prompts and bounded stall crates project live inventory only.
+
+Validation boundary: the earlier sell-only commit passed 40 gates. The subsequent purchase/navigation/context/NPC work has editor compilation checks only; integration owner should run the full suite, exercise buy/sell conservation and same-market round trips, check bulk boundaries/save reload, and review mobile layout before merging. PR/merge/release are intentionally delegated per the user's instruction. Current branch: `feat/wildforge-multi-good-market-v026`.
+
+## v0.27 demand-led trade, warehouse robbery and pursuit
+
+Implementation follows the user's September 14–15 direction: ordinary economics is driven by actual civilian needs and remains quiet; severe physical losses create supply crises. This is not a speculative price simulator.
+
+- Normal shortage premium is bounded at 8%; towns stop accepting goods beyond current targets. Residents use food every four world hours and building/cooling imports once per day. Consumed essentials retain a quarter-target retail reserve. There is no imaginary stock behind the market.
+- Warehouse theft transfers the same settlement inventory into the player's existing stock. A stolen supply deficit records the loss and adds crisis pricing; incoming deliveries and actual production reduce it. Trade refuses wanted players.
+- Each existing warehouse has an interactive locked doorway. The corresponding guard carries its key; opening removes the real door cells through WorldEditAuthority. Saved world deltas retain the opening. Basic picks cannot bypass the lock (3.5 tool requirement).
+- Guards have 420 health, 55% armor reduction, a 32-damage telegraphed thrust and resistance to stun-lock. Neutral guards require an explicit challenge; an assault adds 150 bounty, killing one adds 1,000, and theft adds 25 per unit. Corpse health/key collection persists in WorldActorAuthority. Keys can only be collected once and match one warehouse.
+- FactionAuthority owns permanent bounty and pursuit scheduling. At 500+ bounty, a patrol can appear after three world hours; further dispatches are spaced by twelve world hours and only one pursuer is active at a time. Patrols spawn on real nearby surface terrain, not in the player's face. They never carry warehouse keys. Leaving town or dying does not clear the criminal record.
+- Hauling takes 1.75 seconds for one unit or 3.15 for five. Leaving, closing or taking damage cancels before transfer. Load derives from existing stock; soft threshold 80, trade/haul capacity 160, maximum load slows movement to 55% before hunger effects.
+- Death transfers carried supplies/keys into persistent, recoverable world bags. Equipped tools and camp stations remain with the player. This removes death-as-free-cargo-transport. Recovery uses the same timed hauling UI and never copies cargo.
+- Save schema 24 stores security actors, bounty/pursuit, stolen deficits and lost cargo. Schema 23 remains a same-generation migration source; original world/economy/player data is retained and new security defaults are initialized.
+
+Integration status: implementation and editor compilation only. Per user instruction, no new regression suite, PR merge or release was performed. Full runtime/balance/save/mobile integration remains for the integration owner. Earlier v0.26 gate results do not validate this v0.27 change. In particular, old tests assuming passive Area2D guards, unrestricted purchasing, old schema number, or death retaining all stock need their contracts updated deliberately.
+
+## v0.28 — Phase 2 personal storage foundation
+
+Implements the plan's hand hauling → storage step on the Godot runtime. Click a nearby workbench to craft a storage box (8 planks + 2 stone), then aim at supported empty ground and use the central context action to place it. Placement is limited to wilderness/player land and rejects occupied cells.
+
+Click the box nearby to deposit/withdraw 1 or 5 items. Each box holds 480 units of cargo weight; withdrawals obey the player's existing 160 hard carrying limit. Equipped tools retain one copy. Transfers take time and cancel on injury, movement, or closing the menu. An empty box can be packed and carried elsewhere. Inventory is held only in world actor authority; streamed scene nodes display it.
+
+Save schema 25 persists each box's ID, position and inventory, and migrates schema 24/23 and older supported saves. Personal storage does not alter town stock, prices, crime or bounty. This is the foundation for later pack beasts and transport routes, not completion of Phase 2.
+
+Validation: Godot headless editor script compilation only. Full gameplay, mobile interaction and migration regression remain for integration; no PR merge or full test run performed.
+
+### Phase 2 continuation — return trips and bulk unloading
+
+Merchant, workbench and container panels now offer navigation back to any player-built storage box. Destinations read the existing actor inventory/location records, including unloaded chunks; packing a box invalidates its waypoint. The HUD shows horizontal and vertical direction and carrying weight, with an arrival hint. Navigation remains a temporary UI selection, not a delivery quest or additional saved world registry.
+
+Personal boxes support 1/5/20-item batches with the same real inventory and timed transfer rules. Markets, hostile warehouses and death bags retain 1/5 batches. Carried boxes only take over the context action when placement is valid and outside workbench/campfire range, preserving crafting and cooking access. Removed the stale internal version suffix from the player HUD.
+
+Editor compilation and diff whitespace check passed. No full gameplay tests or PR merges. Pack beasts and physical route risks remain the next Phase 2 implementation.
+
+## v0.29 — Mossback transport foundation (Phase 2)
+
+A merchant can sell the player one mossback for 240 forge marks, paid into that settlement's authoritative treasury. Wanted players cannot purchase. This first transport tier carries 320 weight, with 1/5/20-item timed loading through the existing cargo authority. It follows physically, slows with cargo, stops at deep drops and can jump small obstacles. It never teleports to catch up; streamed-out animals remain at their recorded location.
+
+Travel distance consumes food/energy. One actual trail ration restores 35 energy and 30 health up to 100/180. Waiting/following can be toggled in the animal's panel. The animal pauses while the player interacts; world threats continue. Nearby hostile actors inflict contact damage through an unobstructed line, with a 1.5-second cooldown; long falls also damage it. This is an initial escort-risk model, not enemy retargeting AI.
+
+On death, the original inventory loses approximately 25% of each ordinary stack exactly once (warehouse keys are preserved); remaining goods stay with the corpse. Deposits, feeding and following are disabled. After recovering all goods, burial removes the descriptor and allows another purchase. No corpse inventory copy or separate cargo registry is created.
+
+Schema 26 stores animal health/energy/following alongside its existing container record and migrates schema 25 and earlier supported saves. Moving updates the same actor cell/chunk record. Return navigation includes the animal and HUD warns about hunger, separation and death. Cargo handling cancels when the animal is injured.
+
+The dialogue body now scrolls on short screens and the close button stays outside the scroll area. Placeholder procedural animal art establishes silhouette only; atlas production is deferred per plan.
+
+Validation: Godot headless editor compilation and git diff --check. No full test suite, runtime playthrough, mobile visual verification or PR merge. Balance, obstacle traversal, combat risk and migration regression still require integration verification. Phase 2 is not declared complete; autonomous trade routes/caravans remain outstanding.

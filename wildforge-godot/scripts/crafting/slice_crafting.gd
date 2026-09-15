@@ -2,6 +2,7 @@ extends RefCounted
 class_name SliceCrafting
 
 const RECIPES := {
+	"storage_box": {"out_id": "storage_box", "out_n": 1, "need": {"plank": 8, "stone": 2}, "station": "workbench"},
 	"plank": {"out_id": "plank", "out_n": 4, "need": {"wood": 1}},
 	"workbench": {"out_id": "workbench", "out_n": 1, "need": {"plank": 8}},
 	"wood_pick": {"out_id": "wood_pick", "out_n": 1, "need": {"plank": 4}, "station": "workbench", "unique": true},

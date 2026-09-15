@@ -34,6 +34,15 @@ func _run() -> void:
 	_check(content_rect.encloses(panel_rect), "dialogue panel stays inside the safe interactive content rect")
 	_check(overlay.body_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "dialogue body wraps on narrow landscape screens")
 
+	overlay.open_dialogue({"display_name": "米菈", "role": "苔桥镇 · 商人", "dialogue": ["远方的货物在这里很受欢迎。"], "market": {"enabled": true, "ok": true, "affordable": true, "item_id": "basalt", "goods": ["basalt", "ice", "raw_meat", "wood"], "player_count": 4, "stock": 1, "target": 6, "total": 5}})
+	overlay.update_market(overlay.active_market, "成交：+5◆")
+	await process_frame
+	await process_frame
+	content_rect = SliceMobileLayout.content_rect(overlay.get_viewport_rect().size)
+	_check(content_rect.encloses(overlay.dialogue_panel.get_global_rect()), "populated market and feedback stay inside safe area")
+	_check(overlay.dialogue_panel.get_global_rect().encloses(overlay.next_button.get_global_rect()), "close action stays inside market panel")
+	_check(overlay.market_item_picker.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET, "goods selector meets mobile touch floor")
+
 	var controls := SliceTouchControls.new()
 	controls.name = "TouchControlsTest"
 	root.add_child(controls)
