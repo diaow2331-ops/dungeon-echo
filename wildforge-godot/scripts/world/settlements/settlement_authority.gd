@@ -1270,3 +1270,35 @@ func pay_for_pack_beast(player, settlement_id: String) -> bool:
 	var row: Dictionary = settlements[settlement_id]
 	row["treasury"] = int(row.get("treasury", 0)) + 240
 	return true
+
+# Player repair changes the existing route lifetime; no quest or repair ledger.
+func player_route_repair_quote(player, pair_key: String) -> Dictionary:
+	var hour: int = world.absolute_world_hour()
+	var until_hour := int(caravan_incident_cooldowns.get(pair_key, 0))
+	if not _valid_route_pair_key(pair_key) or until_hour <= hour:
+		return {"ok": false, "reason": "cleared"}
+	if player == null or player.global_position.distance_to(world.cell_center(route_hazard_cell(pair_key))) > 112.0:
+		return {"ok": false, "reason": "too_far"}
+	var material := ""
+	for item in ROUTE_REPAIR_MATERIALS:
+		if player.item_count(item) >= 4:
+			material = item
+			break
+	return {"ok": not material.is_empty(), "reason": "materials" if material.is_empty() else "", "material": material, "quantity": 4, "hours_reduced": mini(12, until_hour - hour), "remaining_hours": until_hour - hour}
+
+func repair_route_from_player(player, pair_key: String, material: String) -> Dictionary:
+	var quote := player_route_repair_quote(player, pair_key)
+	if not bool(quote.get("ok", false)):
+		return quote
+	# Respect the material shown when the player started work.
+	if material not in ROUTE_REPAIR_MATERIALS or player.item_count(material) < 4:
+		return {"ok": false, "reason": "materials"}
+	if not player.spend_item(material, 4):
+		return {"ok": false, "reason": "materials"}
+	var hour: int = world.absolute_world_hour()
+	var after := maxi(hour, int(caravan_incident_cooldowns[pair_key]) - 12)
+	if after <= hour:
+		caravan_incident_cooldowns.erase(pair_key)
+	else:
+		caravan_incident_cooldowns[pair_key] = after
+	return {"ok": true, "cleared": after <= hour, "remaining_hours": after - hour, "hours_reduced": int(quote["hours_reduced"])}

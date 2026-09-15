@@ -20,6 +20,7 @@ var active_interaction_kind := ""
 var active_actor_id := ""
 var dialogue_health := 0.0
 var warehouse_transfer: Dictionary = {}
+var road_repair: Dictionary = {}
 var autosave_elapsed := 0.0
 const AUTOSAVE_INTERVAL := 20.0
 
@@ -115,6 +116,7 @@ func _open_dialogue(payload: Dictionary) -> void:
 	active_actor_id = String(payload.get("actor_id", ""))
 	dialogue_health = player.health
 	warehouse_transfer.clear()
+	road_repair.clear()
 	if active_interaction_kind in ["merchant", "warehouse", "lost_cargo", "player_storage"]:
 		active_merchant_settlement = active_actor_id if active_interaction_kind in ["lost_cargo", "player_storage"] else String(payload.get("settlement_id", ""))
 		presented["market"] = _market_view(active_merchant_settlement)
@@ -133,6 +135,9 @@ func _open_dialogue(payload: Dictionary) -> void:
 	if active_actor_id == SliceWorldActorAuthority.BEAST_ID:
 		presented["security_action"] = _beast_action_label()
 		presented["beast_care"] = float(actor_authority.beast_state().get("health", 0)) > 0
+	if active_interaction_kind == "route_hazard":
+		presented["security_action"] = "抢修道路 · 4份建材 · 4秒"
+		presented["dialogue"] = [_road_repair_description()]
 	presented["storage_routes"] = actor_authority.storage_destinations()
 	player.interaction_locked = true
 	if touch_controls != null:
@@ -140,6 +145,7 @@ func _open_dialogue(payload: Dictionary) -> void:
 	dialogue_overlay.open_dialogue(presented)
 
 func _close_dialogue() -> void:
+	road_repair.clear()
 	warehouse_transfer.clear()
 	active_interaction_kind = ""
 	active_actor_id = ""
@@ -251,6 +257,7 @@ func _on_world_event(event: Dictionary) -> void:
 		actor_authority.sync_caravans(true)
 
 func _process(delta: float) -> void:
+	_update_road_repair(delta)
 	_update_warehouse_transfer(delta)
 	if actor_authority != null:
 		actor_authority.sync_war_raids()
@@ -339,6 +346,16 @@ func _add_mouse(action: StringName, button: MouseButton) -> void:
 
 func _security_action() -> void:
 	if dialogue_overlay == null or not dialogue_overlay.visible:
+		return
+	if active_interaction_kind == "route_hazard":
+		if not road_repair.is_empty():
+			return
+		var quote := world.settlement_authority.player_route_repair_quote(player, active_actor_id)
+		if not bool(quote.get("ok", false)):
+			dialogue_overlay.body_label.text = _road_repair_description()
+			return
+		road_repair = {"pair": active_actor_id, "material": String(quote["material"]), "remaining": 4.0, "position": player.global_position, "health": player.health}
+		dialogue_overlay.security_button.disabled = true
 		return
 	if active_interaction_kind == "merchant":
 		var bought := actor_authority.buy_beast(active_merchant_settlement)
@@ -470,3 +487,33 @@ func _feed_beast() -> void:
 		return
 	var fed := actor_authority.tend_beast(true)
 	dialogue_overlay.update_market(_market_view(active_merchant_settlement), "喂食后恢复了体力与伤势。" if fed else "需要1份旅行口粮，且驮兽仍活着并需要照料。")
+
+func _road_repair_description() -> String:
+	var quote := world.settlement_authority.player_route_repair_quote(player, active_actor_id)
+	if not bool(quote.get("ok", false)):
+		return String({"cleared": "这段商路已经清理完毕。", "too_far": "请靠近道路残骸后抢修。", "materials": "需要4份木材、砂岩或玄武岩中的一种。"}.get(String(quote.get("reason", "")), "暂时无法抢修。"))
+	var names := {"wood": "木材", "sandstone": "砂岩", "basalt": "玄武岩"}
+	return "消耗4份%s，缩短%d小时封锁（当前剩余%d小时）。受伤或关闭面板会取消，完工时才扣材料。道路畅通后，交战势力仍可能禁止通商。" % [String(names.get(String(quote["material"]), "建材")), int(quote["hours_reduced"]), int(quote["remaining_hours"])]
+
+func _update_road_repair(delta: float) -> void:
+	if road_repair.is_empty():
+		return
+	if dialogue_overlay == null or not dialogue_overlay.visible or player.health < float(road_repair["health"]) or player.global_position.distance_to(road_repair["position"]) > 28.0:
+		road_repair.clear()
+		if dialogue_overlay != null:
+			dialogue_overlay.close_dialogue()
+		return
+	road_repair["remaining"] = float(road_repair["remaining"]) - delta
+	dialogue_overlay.body_label.text = "正在抢修 %.1f 秒 · 关闭或受伤会中断" % maxf(0, float(road_repair["remaining"]))
+	if float(road_repair["remaining"]) > 0:
+		return
+	var result := world.settlement_authority.repair_route_from_player(player, String(road_repair["pair"]), String(road_repair["material"]))
+	road_repair.clear()
+	dialogue_overlay.security_button.disabled = false
+	if bool(result.get("ok", false)):
+		actor_authority.sync_route_hazards(true)
+		world.feedback_burst(player.global_position + Vector2(0, -24), Color("bbcc88"), 8, 70.0)
+		dialogue_overlay.body_label.text = "抢修完成，道路已畅通。商队将在供需和关系允许时重新出发。" if bool(result.get("cleared", false)) else "抢修完成，还剩%d小时封锁。可继续投入建材。" % int(result["remaining_hours"])
+		dialogue_overlay.security_button.visible = not bool(result.get("cleared", false))
+	else:
+		dialogue_overlay.body_label.text = _road_repair_description()

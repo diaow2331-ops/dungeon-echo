@@ -464,6 +464,7 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		hazard.setup(self, String(hazard_meta.get("pair_key", "")))
 		hazard.global_position = world.cell_center(cell) + Vector2(0, -2)
 		hazard.z_index = 15
+		hazard.dialogue_requested.connect(_forward_dialogue)
 		node = hazard
 	elif kind == KIND_TREE:
 		var tree := TreeScript.new() as SliceTreeResource

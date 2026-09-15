@@ -365,3 +365,11 @@ A disrupted road can now recover early through real settlement capacity. Every b
 ### v0.31 demographic recovery
 
 Population flow is now reversible after war. A peaceful, secure settlement below its deterministic population baseline can draw a small group back from a safe settlement holding population above its own baseline. Returnees reuse the same persisted displacement record and streamed traveler projection: people leave the host immediately, arrive at home later, and both settlements' real consumption targets follow the population movement. Save schema remains 30 because no second durable state was introduced.
+
+### Player roadside repair
+
+Click a nearby route-debris marker to repair the affected trade route. Each four-second action consumes four wood, sandstone or basalt from the player's real inventory and removes up to twelve hours from the existing route-incident cooldown. Closing the dialogue, moving or taking damage cancels work without charging materials; completion rechecks proximity, active disruption and the originally quoted material. An independently cleared route incurs no charge.
+
+A completed repair immediately reconciles the debris projection. Once the cooldown ends, normal demand, supply and diplomatic dispatch rules determine whether caravans resume; repairs do not override war restrictions or create guaranteed trade rewards. Progress persists in the existing cooldown save field, with no additional schema or repair ledger.
+
+Validation this iteration: editor compilation and diff whitespace only. No full regression or PR merge.
