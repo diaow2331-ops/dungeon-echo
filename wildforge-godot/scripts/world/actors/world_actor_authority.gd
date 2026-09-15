@@ -7,6 +7,8 @@ const CrawlerScript = preload("res://scripts/enemies/crawler.gd")
 const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
 const GuardScript = preload("res://scripts/world/actors/settlement_guard.gd")
+const KIND_PLAYER_STORAGE := "player_storage"
+const STORAGE_CAPACITY := 480.0
 const KIND_LOST_CARGO := "lost_cargo"
 const KIND_WAREHOUSE := "warehouse"
 const KIND_BOUNTY_HUNTER := "bounty_hunter"
@@ -432,12 +434,12 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		guard.z_index = 18
 		guard.dialogue_requested.connect(_forward_dialogue)
 		node = guard
-	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_LOST_CARGO]:
+	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
 		var npc := SettlementNpcScript.new() as SliceSettlementNpc
 		var meta: Dictionary = descriptor.get("meta", {})
 		npc.name = _node_name("SettlementNpc", actor_id)
 		npc.player = player
-		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("lost_cargo" if kind == KIND_LOST_CARGO else "warehouse"), {
+		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("lost_cargo" if kind == KIND_LOST_CARGO else ("player_storage" if kind == KIND_PLAYER_STORAGE else "warehouse")), {
 			"actor_id": actor_id,
 			"settlement_id": String(meta.get("settlement_id", "")),
 			"faction_id": String(meta.get("faction_id", "")),
@@ -682,25 +684,34 @@ func drop_player_cargo(at: Vector2) -> void:
 	_reconcile_current_stream()
 
 func cargo_view(actor_id: String, selected_item: String, quantity: int) -> Dictionary:
-	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_LOST_CARGO:
+	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) not in [KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
 		return {}
 	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
 	var goods: Array = []
 	for item_id in inventory.keys():
 		if int(inventory[item_id]) > 0:
 			goods.append(String(item_id))
+	var personal := String(descriptors[actor_id]["kind"]) == KIND_PLAYER_STORAGE
+	if personal:
+		for item_id in player.stock.keys():
+			if player.item_count(String(item_id)) > 0 and String(item_id) not in goods:
+				goods.append(String(item_id))
 	goods.sort()
+	if goods.is_empty() and personal:
+		goods.append("wood")
 	if goods.is_empty():
 		return {}
 	var item_id: String = selected_item if selected_item in goods else String(goods[0])
 	return {"enabled": true, "warehouse": true, "lost_cargo": true, "locked": false, "settlement_id": actor_id,
-		"goods": goods, "item_id": item_id, "quantity": quantity, "stock": int(inventory[item_id]),
+		"goods": goods, "item_id": item_id, "quantity": quantity, "stock": int(inventory.get(item_id, 0)),
+		"personal_storage": personal, "storage_weight": storage_weight(actor_id), "capacity": STORAGE_CAPACITY,
+		"can_deposit": personal and can_deposit(actor_id, item_id, quantity),
 		"player_count": player.item_count(item_id), "can_carry": player.can_carry(item_id, quantity), "weight": player.carried_weight()}
 
 func recover_cargo(actor_id: String, item_id: String, quantity: int) -> Dictionary:
 	if not is_projected(actor_id) or player.global_position.distance_to(projection_for(actor_id).global_position) > 112.0:
 		return {"ok": false, "reason": "not_at_warehouse"}
-	if String(descriptors[actor_id]["kind"]) != KIND_LOST_CARGO or quantity not in [1, 5]:
+	if String(descriptors[actor_id]["kind"]) not in [KIND_LOST_CARGO, KIND_PLAYER_STORAGE] or quantity not in [1, 5]:
 		return {"ok": false, "reason": "invalid_trade"}
 	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
 	if int(inventory.get(item_id, 0)) < quantity:
@@ -709,7 +720,7 @@ func recover_cargo(actor_id: String, item_id: String, quantity: int) -> Dictiona
 		return {"ok": false, "reason": "overburdened"}
 	inventory[item_id] = int(inventory[item_id]) - quantity
 	player.add_item(item_id, quantity)
-	if cargo_view(actor_id, item_id, 1).is_empty():
+	if String(descriptors[actor_id]["kind"]) == KIND_LOST_CARGO and cargo_view(actor_id, item_id, 1).is_empty():
 		_unload_projection(actor_id)
 		_remove_descriptor(actor_id)
 	return {"ok": true}
@@ -734,3 +745,84 @@ func restore_lost_cargo(raw) -> bool:
 		_register_actor(String(row["id"]), KIND_LOST_CARGO, cell, {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": "遗落的行囊", "role": "死亡时遗落的物资", "dialogue": ["取回物资仍需实际搬运。"]})
 	_reconcile_current_stream()
 	return true
+
+func has_container_at(cell: Vector2i) -> bool:
+	for id in actor_ids(KIND_PLAYER_STORAGE):
+		if (descriptors[id]["cell"] as Vector2i) == cell:
+			return true
+	return false
+
+func place_storage(cell: Vector2i) -> bool:
+	if player.item_count("storage_box") <= 0 or world.cell_center(cell).distance_to(player.global_position) > SlicePlayer.REACH:
+		return false
+	if world.owner_at(cell) not in ["wilderness", "player"] or has_container_at(cell):
+		return false
+	var decision: Dictionary = world.edit_authority.evaluate(world, {"action": "station", "cell": cell, "station_kind": "storage_box", "actor_id": "player"})
+	if not bool(decision.get("allowed", false)):
+		return false
+	var serial := 0
+	while descriptors.has("player_storage:%d" % serial):
+		serial += 1
+	if not player.spend_item("storage_box", 1):
+		return false
+	_register_actor("player_storage:%d" % serial, KIND_PLAYER_STORAGE, cell, {"inventory": {}, "display_name": "个人储物箱", "role": "营地仓储 · 容量480", "dialogue": ["把暂时不用的物资留在这里，轻装出发。", "只能在箱子旁存取。空箱可以收起搬走。"]})
+	_reconcile_current_stream()
+	return true
+
+func storage_weight(actor_id: String) -> float:
+	if not descriptors.has(actor_id):
+		return 0.0
+	var inventory: Dictionary = descriptors[actor_id]["meta"].get("inventory", {})
+	var total := 0.0
+	for item_id in inventory.keys():
+		total += player.cargo_unit_weight(String(item_id)) * int(inventory[item_id])
+	return total
+
+func can_deposit(actor_id: String, item_id: String, quantity: int) -> bool:
+	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_PLAYER_STORAGE or quantity not in [1, 5]:
+		return false
+	# Equipped gear remains a player-owned capability; unequipped spares are storable.
+	var reserve := 1 if item_id in [player.equipped_pick_id, player.equipped_weapon_id, player.equipped_axe_id] else 0
+	return player.item_count(item_id) - reserve >= quantity and storage_weight(actor_id) + player.cargo_unit_weight(item_id) * quantity <= STORAGE_CAPACITY
+
+func deposit_cargo(actor_id: String, item_id: String, quantity: int) -> Dictionary:
+	if not is_projected(actor_id) or player.global_position.distance_to(projection_for(actor_id).global_position) > 112.0:
+		return {"ok": false, "reason": "not_at_warehouse"}
+	if not can_deposit(actor_id, item_id, quantity):
+		return {"ok": false, "reason": "storage_full"}
+	if not player.spend_item(item_id, quantity):
+		return {"ok": false, "reason": "stock_short"}
+	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
+	inventory[item_id] = int(inventory.get(item_id, 0)) + quantity
+	return {"ok": true}
+
+func pack_storage(actor_id: String) -> bool:
+	if not is_projected(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_PLAYER_STORAGE or player.global_position.distance_to(projection_for(actor_id).global_position) > 112.0:
+		return false
+	var inventory: Dictionary = descriptors[actor_id]["meta"]["inventory"]
+	for count in inventory.values():
+		if int(count) > 0:
+			return false
+	if not player.can_carry("storage_box", 1):
+		return false
+	player.add_item("storage_box", 1)
+	_unload_projection(actor_id)
+	_remove_descriptor(actor_id)
+	return true
+
+func export_storage() -> Array:
+	var rows: Array = []
+	for actor_id in actor_ids(KIND_PLAYER_STORAGE):
+		var row: Dictionary = descriptors[actor_id]
+		var cell: Vector2i = row["cell"]
+		rows.append({"id": actor_id, "cell": [cell.x, cell.y], "inventory": (row["meta"]["inventory"] as Dictionary).duplicate(true)})
+	return rows
+
+func restore_storage(raw: Array) -> void:
+	for actor_id in actor_ids(KIND_PLAYER_STORAGE):
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	for row in raw:
+		_register_actor(String(row["id"]), KIND_PLAYER_STORAGE, Vector2i(int(row["cell"][0]), int(row["cell"][1])), {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": "个人储物箱", "role": "营地仓储 · 容量480", "dialogue": ["存放补给、整理货物，再继续远行。"]})
+	_reconcile_current_stream()

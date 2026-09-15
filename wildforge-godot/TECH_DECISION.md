@@ -172,3 +172,13 @@ Retail purchase and route hints follow the same ownership rule: purchase_quote/b
 SettlementAuthority owns stock, treasury and unfilled stolen supply deficits; FactionAuthority owns player bounty and pursuit dispatch timing. WorldActorAuthority owns guard/patrol health, presence, key collection and recoverable cargo containers. WorldEditAuthority owns physical warehouse-door edits. The lock is derived from the door cells, not another saved boolean. Player stock owns carried keys and goods. UI hauling state is transient; it does not reserve, duplicate or persist goods before the single successful transfer.
 
 New schema 24 explicitly carries the new durable facts while preserving generation 5 and migrating schema 23. No crime record expires on unload, UI close or player death. Patrols are bounded projections over persisted actor/political facts. Ordinary stock variation gets only an 8% premium; loss-induced crises use factual theft deficits and are relieved only by physical replacement goods.
+
+## v0.28 — Phase 2 personal storage foundation
+
+Implements the plan's hand hauling → storage step on the Godot runtime. Click a nearby workbench to craft a storage box (8 planks + 2 stone), then aim at supported empty ground and use the central context action to place it. Placement is limited to wilderness/player land and rejects occupied cells.
+
+Click the box nearby to deposit/withdraw 1 or 5 items. Each box holds 480 units of cargo weight; withdrawals obey the player's existing 160 hard carrying limit. Equipped tools retain one copy. Transfers take time and cancel on injury, movement, or closing the menu. An empty box can be packed and carried elsewhere. Inventory is held only in world actor authority; streamed scene nodes display it.
+
+Save schema 25 persists each box's ID, position and inventory, and migrates schema 24/23 and older supported saves. Personal storage does not alter town stock, prices, crime or bounty. This is the foundation for later pack beasts and transport routes, not completion of Phase 2.
+
+Validation: Godot headless editor script compilation only. Full gameplay, mobile interaction and migration regression remain for integration; no PR merge or full test run performed.

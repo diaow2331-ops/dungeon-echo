@@ -620,6 +620,9 @@ func spawn_material_pickup(at: Vector2, tile: int, collector: SlicePlayer, amoun
 
 
 func station_cell_occupied(cell: Vector2i) -> bool:
+	var actors = get_parent().get("actor_authority") if get_parent() != null else null
+	if actors != null and actors.has_container_at(cell):
+		return true
 	for group_name in ["workbenches", "campfires"]:
 		for node in get_tree().get_nodes_in_group(group_name):
 			if is_instance_valid(node) and node.get("cell") == cell:

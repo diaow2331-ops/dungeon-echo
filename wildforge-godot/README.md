@@ -270,3 +270,13 @@ Implementation follows the user's September 14–15 direction: ordinary economic
 - Save schema 24 stores security actors, bounty/pursuit, stolen deficits and lost cargo. Schema 23 remains a same-generation migration source; original world/economy/player data is retained and new security defaults are initialized.
 
 Integration status: implementation and editor compilation only. Per user instruction, no new regression suite, PR merge or release was performed. Full runtime/balance/save/mobile integration remains for the integration owner. Earlier v0.26 gate results do not validate this v0.27 change. In particular, old tests assuming passive Area2D guards, unrestricted purchasing, old schema number, or death retaining all stock need their contracts updated deliberately.
+
+## v0.28 — Phase 2 personal storage foundation
+
+Implements the plan's hand hauling → storage step on the Godot runtime. Click a nearby workbench to craft a storage box (8 planks + 2 stone), then aim at supported empty ground and use the central context action to place it. Placement is limited to wilderness/player land and rejects occupied cells.
+
+Click the box nearby to deposit/withdraw 1 or 5 items. Each box holds 480 units of cargo weight; withdrawals obey the player's existing 160 hard carrying limit. Equipped tools retain one copy. Transfers take time and cancel on injury, movement, or closing the menu. An empty box can be packed and carried elsewhere. Inventory is held only in world actor authority; streamed scene nodes display it.
+
+Save schema 25 persists each box's ID, position and inventory, and migrates schema 24/23 and older supported saves. Personal storage does not alter town stock, prices, crime or bounty. This is the foundation for later pack beasts and transport routes, not completion of Phase 2.
+
+Validation: Godot headless editor script compilation only. Full gameplay, mobile interaction and migration regression remain for integration; no PR merge or full test run performed.

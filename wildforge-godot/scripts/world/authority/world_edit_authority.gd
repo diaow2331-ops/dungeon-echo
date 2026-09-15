@@ -77,7 +77,7 @@ func _evaluate_station(world: Node, result: Dictionary, request: Dictionary) -> 
 	var cell: Vector2i = result["cell"]
 	var station_kind := String(request.get("station_kind", ""))
 	result["station_kind"] = station_kind
-	if station_kind not in ["workbench", "campfire"]:
+	if station_kind not in ["workbench", "campfire", "storage_box"]:
 		return _deny_result(result, "unknown_station")
 	if not world.is_cell_in_bounds(cell):
 		return _deny_result(result, "out_of_bounds")

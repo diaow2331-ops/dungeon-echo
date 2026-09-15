@@ -3,7 +3,7 @@ extends Control
 
 const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
 
-const GOODS_LABELS := {"raw_meat": "鲜肉", "wood": "木材", "ice": "冰块", "snow": "积雪", "ash": "灰烬", "sandstone": "砂岩", "basalt": "玄武岩", "stone": "石块", "soil": "泥土", "plank": "木板", "coal": "煤炭", "copper_ore": "铜矿", "copper_bar": "铜锭", "ancient_core": "远古核心", "trail_ration": "旅行口粮", "wood_pick": "木镐", "stone_pick": "石镐", "stone_blade": "石刃", "copper_pick": "铜镐", "delver_pick": "遗迹镐"}
+const GOODS_LABELS := {"storage_box": "储物箱", "raw_meat": "鲜肉", "wood": "木材", "ice": "冰块", "snow": "积雪", "ash": "灰烬", "sandstone": "砂岩", "basalt": "玄武岩", "stone": "石块", "soil": "泥土", "plank": "木板", "coal": "煤炭", "copper_ore": "铜矿", "copper_bar": "铜锭", "ancient_core": "远古核心", "trail_ration": "旅行口粮", "wood_pick": "木镐", "stone_pick": "石镐", "stone_blade": "石刃", "copper_pick": "铜镐", "delver_pick": "遗迹镐"}
 
 const TOWN_LABELS := {"verdant_mossbridge": "苔桥镇", "frost_frostmirror": "霜镜站", "ember_cinder_ridge": "烬脊营"}
 
@@ -221,6 +221,11 @@ func update_market(market: Dictionary, feedback := "") -> void:
 		market_label.text = "%s · 仓库剩余 %d · 携带 %d · 负重 %d/160" % [item_label, stock, player_count, int(active_market.get("weight", 0))]
 		market_sell_button.disabled = bool(active_market.get("locked", true)) or stock < quantity or not bool(active_market.get("can_carry", false))
 		market_sell_button.text = ("取回 %d 份" % quantity if bool(active_market.get("lost_cargo", false)) else "搬走 %d 份（犯罪）" % quantity) if not market_sell_button.disabled else ("先打开门锁" if bool(active_market.get("locked", true)) else "库存不足或背不动")
+		if bool(active_market.get("personal_storage", false)):
+			market_label.text += " · 箱内负重 %d/%d" % [int(active_market.get("storage_weight", 0)), int(active_market.get("capacity", 480))]
+			market_buy_button.visible = true
+			market_buy_button.disabled = not bool(active_market.get("can_deposit", false))
+			market_buy_button.text = "存入 %d 份" % quantity if not market_buy_button.disabled else "箱满/物资不足/装备保留"
 	elif bool(active_market.get("crisis", false)):
 		market_label.text += " · 仓库遭劫，急需补给"
 	var opportunity: Dictionary = {} if warehouse else active_market.get("opportunity", {})

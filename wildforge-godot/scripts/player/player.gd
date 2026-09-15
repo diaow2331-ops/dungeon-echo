@@ -415,6 +415,8 @@ func context_label() -> String:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return "食"
+	if item_count("storage_box") > 0:
+		return "箱"
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return "台"
@@ -450,6 +452,10 @@ func context_action() -> bool:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return eat_item(food)
+	if item_count("storage_box") > 0:
+		var target := _placement_cell()
+		var actors = get_parent().get("actor_authority")
+		return actors != null and actors.place_storage(target)
 	if world != null and not world.has_workbench():
 		if item_count("workbench") > 0:
 			return place_workbench_once()

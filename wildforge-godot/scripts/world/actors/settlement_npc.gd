@@ -54,6 +54,13 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	dialogue_requested.emit(request)
 
 func _draw() -> void:
+	if npc_kind == "player_storage":
+		draw_rect(Rect2(-20, -28, 40, 28), Color("8c623f"))
+		draw_rect(Rect2(-20, -28, 40, 28), Color("c7a26a"), false, 2)
+		draw_line(Vector2(-20, -18), Vector2(20, -18), Color("c7a26a"), 2)
+		draw_rect(Rect2(-3, -20, 6, 9), Color("d9c176"))
+		draw_string(ThemeDB.fallback_font, Vector2(-30, -38), "储物箱", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e1c996"))
+		return
 	if npc_kind == "lost_cargo":
 		draw_rect(Rect2(-16, -23, 32, 23), Color("9b8052"))
 		draw_line(Vector2(-12, -21), Vector2(12, -3), Color("d7bc82"), 3)
