@@ -57,6 +57,7 @@ func _ready() -> void:
 	actor_authority.sync_war_raids()
 	actor_authority.sync_caravans()
 	actor_authority.sync_displacements()
+	actor_authority.sync_route_hazards()
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
@@ -255,6 +256,7 @@ func _process(delta: float) -> void:
 		actor_authority.sync_war_raids()
 		actor_authority.sync_caravans()
 		actor_authority.sync_displacements()
+		actor_authority.sync_route_hazards()
 		if not SaveScript.is_test_run():
 			actor_authority.update_pursuit()
 	if SaveScript.is_test_run() or world == null or player == null:

@@ -306,6 +306,7 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 	var events: Array = []
 	if absolute_hour < 0:
 		return {"hour": absolute_hour, "events": events}
+	_prune_route_hazards(absolute_hour)
 	events.append_array(_advance_displacements(absolute_hour))
 	events.append_array(_advance_caravans(absolute_hour))
 	if absolute_hour % LOCAL_CONSUMPTION_INTERVAL_HOURS != 0:
@@ -531,7 +532,7 @@ func _best_caravan_candidate(absolute_hour: int) -> Dictionary:
 			if surplus <= 0:
 				continue
 			for destination in ids():
-				if destination == origin or _route_blocked(origin, destination) or _has_caravan_for_item(origin, destination, item_id):
+				if destination == origin or _route_blocked(origin, destination) or _route_hazard_active(origin, destination, absolute_hour) or _has_caravan_for_item(origin, destination, item_id):
 					continue
 				if item_id not in accepted_goods(destination):
 					continue
@@ -569,7 +570,7 @@ func _dispatch_caravan(candidate: Dictionary, absolute_hour: int) -> Dictionary:
 	var item_id := String(candidate.get("item_id", ""))
 	var quantity := int(candidate.get("quantity", 0))
 	var payment := int(candidate.get("payment", 0))
-	if not has(origin) or not has(destination) or quantity <= 0 or _route_blocked(origin, destination):
+	if not has(origin) or not has(destination) or quantity <= 0 or _route_blocked(origin, destination) or _route_hazard_active(origin, destination, absolute_hour):
 		return {}
 	if item_count(origin, item_id) < quantity or treasury(destination) < payment:
 		return {}
@@ -665,6 +666,42 @@ func _return_caravan(caravan: Dictionary) -> void:
 		var destination_row: Dictionary = settlements[destination]
 		destination_row["treasury"] = maxi(0, int(destination_row.get("treasury", 0))) + payment
 		settlements[destination] = destination_row
+
+func _route_hazard_active(origin: String, destination: String, absolute_hour := -1) -> bool:
+	if not has(origin) or not has(destination) or origin == destination:
+		return false
+	var hour: int = world.absolute_world_hour() if absolute_hour < 0 else absolute_hour
+	return hour < int(caravan_incident_cooldowns.get(_route_pair_key(origin, destination), 0))
+
+func active_route_hazards(absolute_hour := -1) -> Array:
+	var hour: int = world.absolute_world_hour() if absolute_hour < 0 else absolute_hour
+	var rows: Array = []
+	var keys := caravan_incident_cooldowns.keys()
+	keys.sort()
+	for raw_key in keys:
+		var key := String(raw_key)
+		var until_hour := int(caravan_incident_cooldowns.get(key, 0))
+		if until_hour <= hour or not _valid_route_pair_key(key):
+			continue
+		var pair := key.split("|")
+		var a := String(pair[0])
+		var b := String(pair[1])
+		rows.append({"id": "route_hazard:" + key, "pair_key": key, "origin": a, "destination": b, "until_hour": until_hour, "cell": route_hazard_cell(key)})
+	return rows
+
+func route_hazard_cell(pair_key: String) -> Vector2i:
+	if not _valid_route_pair_key(pair_key):
+		return Vector2i(99999, 99999)
+	var pair := pair_key.split("|")
+	var ax := market_cell(String(pair[0])).x
+	var bx := market_cell(String(pair[1])).x
+	var x := clampi(roundi((float(ax) + float(bx)) * 0.5), SliceWorld.MIN_X + 2, SliceWorld.MAX_X - 2)
+	return Vector2i(x, world.surface_y_at(x) - 1)
+
+func _prune_route_hazards(absolute_hour: int) -> void:
+	for raw_key in caravan_incident_cooldowns.keys().duplicate():
+		if int(caravan_incident_cooldowns.get(raw_key, 0)) <= absolute_hour:
+			caravan_incident_cooldowns.erase(raw_key)
 
 func _route_blocked(origin: String, destination: String) -> bool:
 	if not has(origin) or not has(destination):

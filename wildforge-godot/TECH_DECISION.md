@@ -238,3 +238,7 @@ Route-pair incident cooldowns are persisted with caravan authority because they 
 Population is intentionally coarse at v0.30: one integer per settlement, owned by `SettlementAuthority`, not individual persistent citizens. War pressure may transfer a small bounded group between those integers through one persisted in-transit displacement record. Demand reads that population directly; local traveler nodes are streaming projections only.
 
 This avoids premature citizen simulation while establishing the causal contract needed by Phase 4: warfare can now move people, movement changes real regional demand, and those consequences survive save/load without a refugee quest ledger or second economy.
+
+### v0.30 route hazards are derived, not a second event state
+
+Temporary route blockage is derived directly from the caravan-incident cooldown already owned by `SettlementAuthority`. No separate road-event registry exists. Dispatch checks that cooldown, and `WorldActorAuthority` only projects debris for active entries. Expiry prunes the same cooldown and therefore clears both the economic effect and the visible world consequence together.

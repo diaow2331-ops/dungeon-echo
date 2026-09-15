@@ -11,6 +11,7 @@ const BeastScript = preload("res://scripts/world/actors/mossback.gd")
 const BannerScript = preload("res://scripts/world/actors/settlement_banner.gd")
 const CaravanScript = preload("res://scripts/world/actors/trade_caravan.gd")
 const DisplacedTravelerScript = preload("res://scripts/world/actors/displaced_traveler.gd")
+const RouteHazardScript = preload("res://scripts/world/actors/route_hazard.gd")
 const BEAST_ID := "player_storage:mossback"
 const KIND_PLAYER_STORAGE := "player_storage"
 const STORAGE_CAPACITY := 480.0
@@ -20,6 +21,7 @@ const KIND_BOUNTY_HUNTER := "bounty_hunter"
 const KIND_RAIDER := "war_raider"
 const KIND_CARAVAN := "trade_caravan"
 const KIND_DISPLACEMENT := "displacement"
+const KIND_ROUTE_HAZARD := "route_hazard"
 const SettlementNpcScript = preload("res://scripts/world/actors/settlement_npc.gd")
 const VegetationRegistryScript = preload("res://scripts/world/vegetation/vegetation_registry.gd")
 
@@ -42,6 +44,7 @@ var vegetation_registry := VegetationRegistryScript.new() as SliceVegetationRegi
 var war_raid_signature := ""
 var caravan_signature := ""
 var displacement_signature := ""
+var route_hazard_signature := ""
 
 func _init(owner_host: Node, owner_world: SliceWorld, owner_player: SlicePlayer) -> void:
 	host = owner_host
@@ -59,6 +62,7 @@ func clear_world_baseline() -> void:
 	war_raid_signature = ""
 	caravan_signature = ""
 	displacement_signature = ""
+	route_hazard_signature = ""
 	descriptors.clear()
 	ids_by_chunk.clear()
 
@@ -453,6 +457,14 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		traveler.global_position = world.cell_center(cell) + Vector2(0, -8)
 		traveler.z_index = 16
 		node = traveler
+	elif kind == KIND_ROUTE_HAZARD:
+		var hazard := RouteHazardScript.new() as SliceRouteHazard
+		var hazard_meta: Dictionary = descriptor.get("meta", {})
+		hazard.name = _node_name("RouteHazard", actor_id)
+		hazard.setup(self, String(hazard_meta.get("pair_key", "")))
+		hazard.global_position = world.cell_center(cell) + Vector2(0, -2)
+		hazard.z_index = 15
+		node = hazard
 	elif kind == KIND_TREE:
 		var tree := TreeScript.new() as SliceTreeResource
 		var meta: Dictionary = descriptor.get("meta", {})
@@ -827,6 +839,43 @@ func sync_displacements(force := false) -> void:
 			if is_projected(actor_id):
 				(projections[actor_id] as Node2D).global_position = world.cell_center(cell) + Vector2(0, -8)
 	for actor_id in actor_ids(KIND_DISPLACEMENT):
+		if desired.has(actor_id):
+			continue
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		_remove_descriptor(actor_id)
+	_reconcile_current_stream()
+
+func sync_route_hazards(force := false) -> void:
+	if world == null or world.settlement_authority == null:
+		return
+	var active := world.settlement_authority.active_route_hazards()
+	var signature_parts: Array[String] = []
+	for raw in active:
+		var hazard: Dictionary = raw
+		var cell: Vector2i = hazard.get("cell", Vector2i(99999, 99999))
+		signature_parts.append("%s:%d:%d" % [String(hazard.get("pair_key", "")), cell.x, int(hazard.get("until_hour", 0))])
+	var signature := "|".join(signature_parts)
+	if not force and signature == route_hazard_signature:
+		return
+	route_hazard_signature = signature
+	var desired: Dictionary = {}
+	for raw in active:
+		var hazard: Dictionary = raw
+		var pair_key := String(hazard.get("pair_key", ""))
+		var actor_id := "world:route_hazard:" + pair_key
+		var cell: Vector2i = hazard.get("cell", Vector2i(99999, 99999))
+		if cell.x < SliceWorld.MIN_X or cell.x > SliceWorld.MAX_X:
+			continue
+		desired[actor_id] = true
+		var meta := {"pair_key": pair_key, "until_hour": int(hazard.get("until_hour", 0))}
+		if not descriptors.has(actor_id):
+			_register_actor(actor_id, KIND_ROUTE_HAZARD, cell, meta)
+		else:
+			var row: Dictionary = descriptors[actor_id]
+			row["meta"] = meta
+			descriptors[actor_id] = row
+	for actor_id in actor_ids(KIND_ROUTE_HAZARD):
 		if desired.has(actor_id):
 			continue
 		if is_projected(actor_id):
