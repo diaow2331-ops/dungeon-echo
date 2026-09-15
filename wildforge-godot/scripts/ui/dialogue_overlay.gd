@@ -245,6 +245,8 @@ func update_market(market: Dictionary, feedback := "") -> void:
 	if conflict_status != "peace":
 		var conflict_label := String({"tense":"边境紧张", "war":"战争中", "raid":"正在遭袭", "occupied":"已被占领"}.get(conflict_status, "局势异常"))
 		market_label.text += " · %s · 安全 %d/100" % [conflict_label, int(active_market.get("security", 100))]
+	if bool(active_market.get("relief_relevant", false)):
+		market_label.text += " · 外来补给可稳定当地"
 	market_feedback.text = feedback
 	var can_sell := bool(active_market.get("ok", false)) and bool(active_market.get("affordable", false)) and player_count >= quantity and total > 0 and bool(active_market.get("demand_met", true))
 	market_sell_button.disabled = not can_sell
