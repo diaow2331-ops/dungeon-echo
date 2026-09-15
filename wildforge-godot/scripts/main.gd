@@ -447,12 +447,20 @@ func _security_action() -> void:
 		elif guard.hostile():
 			var settlement_id := String(guard.payload.get("settlement_id", ""))
 			var bounty := world.faction_authority.player_bounty(world.faction_authority.controller_for_settlement(settlement_id))
-			var result: Dictionary = world.settlement_authority.pay_player_bounty(player, settlement_id, bounty)
+			var payment := mini(bounty, player.forge_marks)
+			var result: Dictionary = world.settlement_authority.pay_player_bounty(player, settlement_id, payment)
 			if bool(result.get("ok", false)):
-				dialogue_overlay.body_label.text = "已缴纳 %d◆。本势力悬赏已清除。" % int(result.get("paid", 0))
-				dialogue_overlay.security_button.visible = false
+				var remaining := int(result.get("remaining", 0))
+				if remaining <= 0:
+					dialogue_overlay.body_label.text = "已缴纳 %d◆。本势力悬赏已清除。" % int(result.get("paid", 0))
+					dialogue_overlay.security_button.visible = false
+				else:
+					dialogue_overlay.body_label.text = "已缴纳 %d◆，尚欠悬赏 %d◆。守卫仍保持敌对。" % [int(result.get("paid", 0)), remaining]
+					dialogue_overlay.security_button.text = "缴纳悬赏 · %d◆" % remaining
+					dialogue_overlay.security_button.disabled = player.forge_marks <= 0
 			else:
-				dialogue_overlay.body_label.text = "钱币不足。当前悬赏 %d◆，你持有 %d◆。" % [bounty, player.forge_marks]
+				dialogue_overlay.body_label.text = "你身上没有可缴纳的钱币。当前悬赏 %d◆。" % bounty
+				dialogue_overlay.security_button.disabled = true
 		else:
 			guard.provoke()
 			dialogue_overlay.close_dialogue()
