@@ -64,7 +64,8 @@ func _draw() -> void:
 	if npc_kind == "lost_cargo":
 		draw_rect(Rect2(-16, -23, 32, 23), Color("9b8052"))
 		draw_line(Vector2(-12, -21), Vector2(12, -3), Color("d7bc82"), 3)
-		draw_string(ThemeDB.fallback_font, Vector2(-30, -32), "遗落行囊", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e1c996"))
+		var cargo_label := String(payload.get("display_name", "遗落行囊"))
+		draw_string(ThemeDB.fallback_font, Vector2(-30, -32), cargo_label.substr(0, 6), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e1c996"))
 		return
 	if npc_kind == "warehouse":
 		_draw_warehouse()

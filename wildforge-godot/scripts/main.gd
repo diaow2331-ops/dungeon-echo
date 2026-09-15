@@ -52,6 +52,7 @@ func _ready() -> void:
 	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
 	actor_authority.register_settlement_npcs(world.baseline_settlements)
 	actor_authority.dialogue_requested.connect(_open_dialogue)
+	world.world_event.connect(_on_world_event)
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
 	actor_authority.sync_war_raids()
 	actor_authority.sync_caravans()
@@ -236,6 +237,16 @@ func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: 
 	else:
 		var messages := {"wanted": "你已被本势力通缉，商人拒绝交易。", "demand_filled": "当前不需要这么多货物，请减少数量。", "overburdened": "负重已满，先卸下或出售部分货物。", "not_at_market": "请靠近商人后再交易。", "insufficient_goods": "携带的货物不足。", "treasury_short": "城库暂不足，请稍后再来。", "not_bought_here": "这里不收购这种货物。"}
 		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。")))
+
+func _on_world_event(event: Dictionary) -> void:
+	if actor_authority == null:
+		return
+	if String(event.get("kind", "")) == "caravan_attacked":
+		var cell = event.get("spill_cell", Vector2i(99999, 99999))
+		var lost = event.get("lost_items", {})
+		if cell is Vector2i and lost is Dictionary:
+			actor_authority.spawn_lost_cargo(lost, cell, "商队残骸", "受袭商队遗落的真实货物", ["这批货物来自一支刚刚遇袭的商队。", "取走后可自用，也可以运往真正缺货的聚落。"], "incident:" + String(event.get("caravan_id", "")))
+		actor_authority.sync_caravans(true)
 
 func _process(delta: float) -> void:
 	_update_warehouse_transfer(delta)

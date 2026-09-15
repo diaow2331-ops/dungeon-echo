@@ -226,3 +226,9 @@ A visible trade caravan is a streamed projection, not a second simulation. `Worl
 Autonomous diplomacy may mutate only the canonical `FactionAuthority.relations` rows. Inputs are authoritative facts already owned elsewhere: successful caravan arrivals, settlement targets/current inventory/local production, and raid outcomes. The 48-hour cadence and capped shortage pressure prevent rapid oscillation; score hysteresis enters trade at +30, enters war at -60, leaves war only after recovery to -20, and leaves trade below +10. A diplomacy transition out of war removes obsolete raid records immediately.
 
 This is intentionally not a random diplomacy simulator. If the economy and logistics stabilize, relations stop degrading; if physical exchange succeeds repeatedly, relations improve; if a balanced war grinds into stalemate, exhaustion can cool it. The political layer therefore remains downstream of the same world state the player will eventually be free to influence.
+
+## v0.30 travel-event authority boundary
+
+Travel events do not own a second inventory, quest ledger or reward table. `SettlementAuthority` remains the logistics owner and may emit a causal `caravan_attacked` fact while mutating the real shipment and escrow. `FactionAuthority` receives only the diplomatic consequence. `SliceWorld` forwards simulation facts synchronously, and `WorldActorAuthority` materializes recoverable cargo as a projection/consequence without becoming the source of logistics truth.
+
+Route-pair incident cooldowns are persisted with caravan authority because they constrain future logistics simulation. The spilled cargo itself is persisted by the pre-existing lost-cargo authority. This split keeps one owner for each fact and allows the Phase 4 event layer to increase travel density without inventing a parallel mission system.

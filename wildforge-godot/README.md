@@ -338,3 +338,9 @@ Active macro shipments now have one derived local projection when their route ce
 Faction relations now evolve from durable world facts instead of random diplomacy rolls. Every 48 world hours, persistent severe shortages and unserved cross-region dependencies apply bounded pressure to the existing canonical relation score. Successful physical caravan arrivals move that same score in the opposite direction, while non-decisive raid stalemates create war-exhaustion relief. Trade and war use explicit hysteresis thresholds so a single inventory tick cannot flip diplomacy back and forth.
 
 The causal chain is therefore shared end to end: geography creates production differences → settlement inventory develops needs → autonomous caravans serve or fail to serve those needs → relations warm or deteriorate → sustained deterioration can cross the existing war boundary → bounded raids use the same relation authority. No random faction clock, diplomacy wallet or parallel political state was added.
+
+## v0.30 causal travel incidents
+
+Phase 4 starts by making long-distance travel consequences emerge from existing logistics rather than from a random event table. A real in-transit caravan on a tense or insecure route can suffer one bounded midpoint attack. The lost quantity is removed from the same shipment, the matching escrow is refunded, the canonical faction relation worsens, and a route-pair cooldown prevents repeated spam.
+
+The resulting cargo is materialized through the existing lost-cargo actor authority at the caravan's real route cell. It stays recoverable, survives save/load with provenance, and replaying the same simulation event cannot duplicate goods. Save schema 29 persists route-incident cooldowns while schema 28 migrates with no fabricated incidents.

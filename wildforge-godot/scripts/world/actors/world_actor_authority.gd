@@ -815,6 +815,32 @@ func update_pursuit() -> void:
 		_ensure_projection(actor_id)
 		break
 
+func spawn_lost_cargo(cargo_raw: Dictionary, cell: Vector2i, display_name := "遗落的行囊", role := "遗落物资", dialogue: Array = [], source_id := "") -> String:
+	var cargo: Dictionary = {}
+	for raw_id in cargo_raw.keys():
+		var item_id := String(raw_id)
+		var count := maxi(0, int(cargo_raw[raw_id]))
+		if not item_id.is_empty() and count > 0:
+			cargo[item_id] = count
+	if cargo.is_empty():
+		return ""
+	if not source_id.is_empty():
+		for existing_id in actor_ids(KIND_LOST_CARGO):
+			if String((descriptors[existing_id]["meta"] as Dictionary).get("source_id", "")) == source_id:
+				return existing_id
+	var serial := 0
+	while descriptors.has("lost_cargo:%d" % serial):
+		serial += 1
+	var actor_id := "lost_cargo:%d" % serial
+	cell.x = clampi(cell.x, SliceWorld.MIN_X, SliceWorld.MAX_X)
+	cell.y = clampi(cell.y, -100, SliceWorld.MAX_Y)
+	var lines := dialogue.duplicate()
+	if lines.is_empty():
+		lines = ["取回物资仍需实际搬运。"]
+	_register_actor(actor_id, KIND_LOST_CARGO, cell, {"inventory": cargo, "display_name": display_name, "role": role, "dialogue": lines, "source_id": source_id})
+	_reconcile_current_stream()
+	return actor_id
+
 func drop_player_cargo(at: Vector2) -> void:
 	var cargo: Dictionary = {}
 	var retained := [player.equipped_pick_id, player.equipped_weapon_id, "workbench", "campfire"]
@@ -825,17 +851,12 @@ func drop_player_cargo(at: Vector2) -> void:
 			cargo[item_id] = count
 	if cargo.is_empty():
 		return
-	var serial := 0
-	while descriptors.has("lost_cargo:%d" % serial):
-		serial += 1
-	var actor_id := "lost_cargo:%d" % serial
 	var cell := world.world_to_cell(at)
-	cell.x = clampi(cell.x, SliceWorld.MIN_X, SliceWorld.MAX_X)
-	cell.y = clampi(cell.y, -100, SliceWorld.MAX_Y)
-	_register_actor(actor_id, KIND_LOST_CARGO, cell, {"inventory": cargo, "display_name": "遗落的行囊", "role": "死亡时遗落的物资", "dialogue": ["取回物资仍需实际搬运。"]})
+	var actor_id := spawn_lost_cargo(cargo, cell, "遗落的行囊", "死亡时遗落的物资", ["取回物资仍需实际搬运。"], "")
+	if actor_id.is_empty():
+		return
 	for item_id in cargo.keys():
 		player.spend_item(String(item_id), int(cargo[item_id]))
-	_reconcile_current_stream()
 
 func cargo_view(actor_id: String, selected_item: String, quantity: int) -> Dictionary:
 	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) not in [KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
@@ -884,7 +905,8 @@ func export_lost_cargo() -> Array:
 	for actor_id in actor_ids(KIND_LOST_CARGO):
 		var row: Dictionary = descriptors[actor_id]
 		var cell: Vector2i = row["cell"]
-		rows.append({"id": actor_id, "cell": [cell.x, cell.y], "inventory": (row["meta"]["inventory"] as Dictionary).duplicate(true)})
+		var meta: Dictionary = row["meta"]
+		rows.append({"id": actor_id, "cell": [cell.x, cell.y], "inventory": (meta["inventory"] as Dictionary).duplicate(true), "display_name": String(meta.get("display_name", "遗落的行囊")), "role": String(meta.get("role", "遗落物资")), "dialogue": (meta.get("dialogue", []) as Array).duplicate(), "source_id": String(meta.get("source_id", ""))})
 	return rows
 
 func restore_lost_cargo(raw) -> bool:
@@ -896,7 +918,7 @@ func restore_lost_cargo(raw) -> bool:
 		_remove_descriptor(actor_id)
 	for row in raw:
 		var cell := Vector2i(int(row["cell"][0]), int(row["cell"][1]))
-		_register_actor(String(row["id"]), KIND_LOST_CARGO, cell, {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": "遗落的行囊", "role": "死亡时遗落的物资", "dialogue": ["取回物资仍需实际搬运。"]})
+		_register_actor(String(row["id"]), KIND_LOST_CARGO, cell, {"inventory": (row["inventory"] as Dictionary).duplicate(true), "display_name": String(row.get("display_name", "遗落的行囊")), "role": String(row.get("role", "遗落物资")), "dialogue": (row.get("dialogue", ["取回物资仍需实际搬运。"]) as Array).duplicate(), "source_id": String(row.get("source_id", ""))})
 	_reconcile_current_stream()
 	return true
 

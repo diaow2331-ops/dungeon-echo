@@ -3,6 +3,7 @@ class_name SliceWorld
 
 signal chunk_activated(key: Vector2i)
 signal chunk_deactivated(key: Vector2i)
+signal world_event(event: Dictionary)
 
 const BurstScript = preload("res://scripts/fx/feedback_burst.gd")
 const PickupScript = preload("res://scripts/items/item_pickup.gd")
@@ -174,11 +175,17 @@ func _sync_world_simulation() -> int:
 		var events = result.get("events", [])
 		if events is Array:
 			emitted += events.size()
+			for event in events:
+				if event is Dictionary:
+					world_event.emit((event as Dictionary).duplicate(true))
 		if faction_authority != null:
 			var faction_result: Dictionary = faction_authority.simulate_hour(simulation_hour_cursor)
 			var faction_events = faction_result.get("events", [])
 			if faction_events is Array:
 				emitted += faction_events.size()
+				for event in faction_events:
+					if event is Dictionary:
+						world_event.emit((event as Dictionary).duplicate(true))
 	simulation_event_count += emitted
 	return emitted
 

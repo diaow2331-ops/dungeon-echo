@@ -5,6 +5,7 @@ var world
 var settlements: Dictionary = {}
 var caravans: Dictionary = {}
 var caravan_serial := 0
+var caravan_incident_cooldowns: Dictionary = {}
 
 const LOCAL_CONSUMPTION_INTERVAL_HOURS := 4
 const LOCAL_MEAT_REVENUE := 2
@@ -14,6 +15,9 @@ const CARAVAN_MAX_LOAD := 4
 const CARAVAN_EXPORT_FLOOR_RATIO := 0.55
 const CARAVAN_MIN_TRAVEL_HOURS := 4
 const CARAVAN_CELLS_PER_HOUR := 80.0
+const CARAVAN_INCIDENT_COOLDOWN_HOURS := 24
+const CARAVAN_INCIDENT_TENSION_SCORE := -35
+const CARAVAN_INCIDENT_SECURITY_THRESHOLD := 65
 
 func _init(owner_world) -> void:
 	world = owner_world
@@ -22,6 +26,7 @@ func register_baseline(raw_settlements: Array) -> int:
 	settlements.clear()
 	caravans.clear()
 	caravan_serial = 0
+	caravan_incident_cooldowns.clear()
 	var count := 0
 	for raw in raw_settlements:
 		if not raw is Dictionary:
@@ -366,18 +371,20 @@ func caravan_cell(caravan_id: String, absolute_hour := -1) -> Vector2i:
 	return Vector2i(x, world.surface_y_at(x) - 1)
 
 func export_caravans() -> Dictionary:
-	return {"serial": caravan_serial, "active": active_caravans()}
+	return {"serial": caravan_serial, "active": active_caravans(), "incident_cooldowns": caravan_incident_cooldowns.duplicate(true)}
 
 func restore_caravans(raw) -> bool:
 	caravans.clear()
 	caravan_serial = 0
+	caravan_incident_cooldowns.clear()
 	if raw == null or (raw is Dictionary and raw.is_empty()):
 		return true
 	if not raw is Dictionary:
 		return false
 	var serial := int(raw.get("serial", 0))
 	var active = raw.get("active", [])
-	if serial < 0 or not active is Array or active.size() > CARAVAN_MAX_ACTIVE:
+	var incident_cooldowns = raw.get("incident_cooldowns", {})
+	if serial < 0 or not active is Array or active.size() > CARAVAN_MAX_ACTIVE or not incident_cooldowns is Dictionary:
 		return false
 	var staged: Dictionary = {}
 	var max_active_serial := -1
@@ -407,8 +414,16 @@ func restore_caravans(raw) -> bool:
 		staged[id] = row
 	if serial <= max_active_serial:
 		return false
+	var staged_cooldowns: Dictionary = {}
+	for raw_key in incident_cooldowns.keys():
+		var key := String(raw_key)
+		var until_hour := int(incident_cooldowns[raw_key])
+		if not _valid_route_pair_key(key) or until_hour < 0:
+			return false
+		staged_cooldowns[key] = until_hour
 	caravans = staged
 	caravan_serial = serial
+	caravan_incident_cooldowns = staged_cooldowns
 	return true
 
 func _advance_caravans(absolute_hour: int) -> Array:
@@ -427,6 +442,16 @@ func _advance_caravans(absolute_hour: int) -> Array:
 			caravans.erase(caravan_id)
 			events.append({"kind": "caravan_returned", "caravan_id": caravan_id, "origin": origin, "destination": destination, "reason": "war"})
 			continue
+		if not bool(caravan.get("incident_checked", false)) and absolute_hour >= _caravan_midpoint_hour(caravan):
+			caravan["incident_checked"] = true
+			caravans[caravan_id] = caravan
+			if _caravan_incident_due(caravan, absolute_hour):
+				var incident := _apply_caravan_incident(caravan_id, absolute_hour)
+				if not incident.is_empty():
+					events.append(incident)
+				if not caravans.has(caravan_id):
+					continue
+				caravan = caravans[caravan_id]
 		if absolute_hour < int(caravan.get("arrival_hour", 0)):
 			continue
 		var item_id := String(caravan.get("item_id", ""))
@@ -530,8 +555,69 @@ func _dispatch_caravan(candidate: Dictionary, absolute_hour: int) -> Dictionary:
 	var travel_hours := maxi(CARAVAN_MIN_TRAVEL_HOURS, int(ceil(float(distance) / CARAVAN_CELLS_PER_HOUR)))
 	var caravan_id := "caravan:%d" % caravan_serial
 	caravan_serial += 1
-	caravans[caravan_id] = {"id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment, "depart_hour": absolute_hour, "arrival_hour": absolute_hour + travel_hours}
+	caravans[caravan_id] = {"id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment, "depart_hour": absolute_hour, "arrival_hour": absolute_hour + travel_hours, "incident_checked": false}
 	return {"kind": "caravan_departed", "caravan_id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "quantity": quantity, "payment": payment, "arrival_hour": absolute_hour + travel_hours}
+
+func _caravan_midpoint_hour(caravan: Dictionary) -> int:
+	var depart := int(caravan.get("depart_hour", 0))
+	var arrival := maxi(depart + 1, int(caravan.get("arrival_hour", depart + 1)))
+	return depart + maxi(1, int(ceil(float(arrival - depart) * 0.5)))
+
+func _route_pair_key(origin: String, destination: String) -> String:
+	return origin + "|" + destination if origin < destination else destination + "|" + origin
+
+func _valid_route_pair_key(key: String) -> bool:
+	var pair := key.split("|")
+	return pair.size() == 2 and has(String(pair[0])) and has(String(pair[1])) and String(pair[0]) != String(pair[1])
+
+func _caravan_incident_due(caravan: Dictionary, absolute_hour: int) -> bool:
+	var origin := String(caravan.get("origin", ""))
+	var destination := String(caravan.get("destination", ""))
+	if not has(origin) or not has(destination) or world.faction_authority == null:
+		return false
+	var key := _route_pair_key(origin, destination)
+	if absolute_hour < int(caravan_incident_cooldowns.get(key, 0)):
+		return false
+	var a: String = world.faction_authority.controller_for_settlement(origin)
+	var b: String = world.faction_authority.controller_for_settlement(destination)
+	if a == b:
+		return false
+	var relation_score := int(world.faction_authority.relation(a, b).get("score", 0))
+	var unsafe_endpoint := mini(security(origin), security(destination)) <= CARAVAN_INCIDENT_SECURITY_THRESHOLD
+	return relation_score <= CARAVAN_INCIDENT_TENSION_SCORE or unsafe_endpoint
+
+func _apply_caravan_incident(caravan_id: String, absolute_hour: int) -> Dictionary:
+	if not caravans.has(caravan_id):
+		return {}
+	var caravan: Dictionary = caravans[caravan_id]
+	var origin := String(caravan.get("origin", ""))
+	var destination := String(caravan.get("destination", ""))
+	var item_id := String(caravan.get("item_id", ""))
+	var quantity := maxi(0, int(caravan.get("quantity", 0)))
+	var payment := maxi(0, int(caravan.get("payment", 0)))
+	if quantity <= 0 or item_id.is_empty():
+		return {}
+	var spill_cell := caravan_cell(caravan_id, absolute_hour)
+	var lost_quantity := maxi(1, int(ceil(float(quantity) * 0.5)))
+	lost_quantity = mini(lost_quantity, quantity)
+	var refund := mini(payment, int(round(float(payment) * float(lost_quantity) / float(quantity))))
+	var remaining := quantity - lost_quantity
+	if has(destination) and refund > 0:
+		var destination_row: Dictionary = settlements[destination]
+		destination_row["treasury"] = maxi(0, int(destination_row.get("treasury", 0))) + refund
+		settlements[destination] = destination_row
+	var relation_shift: Dictionary = {}
+	if world.faction_authority != null:
+		relation_shift = world.faction_authority.record_caravan_attack(origin, destination, lost_quantity)
+	caravan_incident_cooldowns[_route_pair_key(origin, destination)] = absolute_hour + CARAVAN_INCIDENT_COOLDOWN_HOURS
+	if remaining <= 0:
+		caravans.erase(caravan_id)
+	else:
+		caravan["quantity"] = remaining
+		caravan["payment"] = maxi(0, payment - refund)
+		caravan["incident_checked"] = true
+		caravans[caravan_id] = caravan
+	return {"kind": "caravan_attacked", "hour": absolute_hour, "caravan_id": caravan_id, "origin": origin, "destination": destination, "item_id": item_id, "lost_items": {item_id: lost_quantity}, "spill_cell": spill_cell, "destroyed": remaining <= 0, "remaining": remaining, "refund": refund, "relation": relation_shift}
 
 func _return_caravan(caravan: Dictionary) -> void:
 	var origin := String(caravan.get("origin", ""))
