@@ -40,6 +40,9 @@ func _run() -> void:
 	_check(int(theft.get("security_loss", 0)) == 1, "ordinary theft applies bounded pressure to canonical settlement security")
 	_check(economy.security(town) == 99, "crime pressure changes the same security fact used by world simulation")
 	_check(factions.player_bounty("verdant") == bounty_before + 25, "theft still raises the existing faction bounty rather than a second crime score")
+	# The same canonical deficit marks this stock as unresolved theft; no player-side
+	# stolen-item ledger is introduced.
+	_check(int(((economy.settlements[town] as Dictionary).get("stolen_deficit", {}) as Dictionary).get("wood", 0)) == 1, "warehouse theft leaves one canonical unresolved stolen deficit")
 
 	row = economy.settlements[town]
 	inventory = row["inventory"]
