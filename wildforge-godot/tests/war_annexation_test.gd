@@ -29,6 +29,7 @@ func _run() -> void:
 	var actors := main.actor_authority as SliceWorldActorAuthority
 
 	_check(factions.conflict_status("verdant_mossbridge") == "peace", "fresh settlement begins in visible peace state")
+	_check(factions.set_status("verdant", "weakened"), "decisive fixture weakens one faction before war")
 	_check(factions.set_relation("verdant", "ember", -80, "war"), "one political authority can declare a canonical war")
 	var started := factions.simulate_hour(4)
 	_check((started.get("events", []) as Array).any(func(e): return String((e as Dictionary).get("kind", "")) == "raid_started"), "war heartbeat creates one authoritative raid")

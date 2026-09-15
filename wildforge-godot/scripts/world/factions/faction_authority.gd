@@ -7,6 +7,9 @@ const VALID_STANCE := ["neutral", "trade", "war"]
 const RAID_MAX_STRENGTH := 3
 const RAID_STRIKE_INTERVAL_HOURS := 6
 const RAID_SPAWN_INTERVAL_HOURS := 12
+const RAID_DECISIVE_POWER_GAP := 24
+const RAID_CONTESTED_POWER_GAP := 12
+const RAID_STALEMATE_STRIKES := 2
 const BASELINE := [
 	{"id": "verdant", "biome": "verdant"},
 	{"id": "ember", "biome": "ember"},
@@ -159,6 +162,8 @@ func export_state() -> Dictionary:
 			"strikes": int(raid.get("strikes", 0)),
 			"next_strike_hour": int(raid.get("next_strike_hour", 0)),
 			"started_hour": int(raid.get("started_hour", 0)),
+			"power_gap": int(raid.get("power_gap", 0)),
+			"decisive": bool(raid.get("decisive", false)),
 			"defeated_slots": (raid.get("defeated_slots", []) as Array).duplicate(),
 		})
 	return {"factions": faction_rows, "relations": relation_rows, "raids": raid_rows}
@@ -239,7 +244,10 @@ func restore_state(raw) -> bool:
 		var defeated = raid.get("defeated_slots", [])
 		if raid_id.is_empty() or staged_raids.has(raid_id) or not staged_factions.has(attacker) or not staged_factions.has(defender) or attacker == defender:
 			return false
+		var power_gap := int(raid.get("power_gap", 0))
 		if target.is_empty() or strength <= 0 or max_strength < strength or max_strength > RAID_MAX_STRENGTH or int(raid.get("strikes", -1)) < 0 or int(raid.get("next_strike_hour", -1)) < 0 or int(raid.get("started_hour", -1)) < 0:
+			return false
+		if power_gap < 0 or power_gap > 1000 or bool(raid.get("decisive", false)) != (power_gap >= RAID_DECISIVE_POWER_GAP):
 			return false
 		if not defeated is Array or defeated.size() != max_strength - strength:
 			return false
@@ -353,7 +361,7 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 			raids.erase(raid_id)
 			continue
 		var target := String(raid.get("target_settlement", ""))
-		var pressure := 8 + int(raid.get("strength", 1)) * 4
+		var pressure := (8 + int(raid.get("strength", 1)) * 4) if bool(raid.get("decisive", false)) else (5 + int(raid.get("strength", 1)) * 3)
 		var damage: Dictionary = world.settlement_authority.apply_raid_pressure(target, pressure, attacker)
 		raid["strikes"] = int(raid.get("strikes", 0)) + 1
 		raid["next_strike_hour"] = absolute_hour + RAID_STRIKE_INTERVAL_HOURS
@@ -364,10 +372,15 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 			set_status(defender, "weakened")
 		elif security <= 25 and security > 0:
 			set_status(defender, "collapsing")
-		if security <= 0:
+		var decisive := bool(raid.get("decisive", false))
+		if security <= 0 and decisive:
 			if set_status(defender, "annexed", attacker):
 				raids.erase(raid_id)
 				events.append({"kind": "annexation", "attacker": attacker, "defender": defender, "target_settlement": target})
+		elif not decisive and int(raid.get("strikes", 0)) >= RAID_STALEMATE_STRIKES:
+			raids.erase(raid_id)
+			world.settlement_authority.recover_security(target, 18)
+			events.append({"kind": "raid_stalemate", "raid_id": raid_id, "attacker": attacker, "defender": defender, "target_settlement": target})
 	_drop_invalid_raids()
 	return {"hour": absolute_hour, "events": events}
 
@@ -408,20 +421,25 @@ func _ensure_scheduled_raids(absolute_hour: int, events: Array) -> void:
 		var b := controller_id(String(pair[1]))
 		if a == b or _has_raid_for_pair(a, b):
 			continue
+		var power_a := _faction_power(a)
+		var power_b := _faction_power(b)
 		var attacker := _stronger_faction(a, b, absolute_hour)
 		var defender := b if attacker == a else a
+		var power_gap := absi(power_a - power_b)
+		var decisive := power_gap >= RAID_DECISIVE_POWER_GAP
+		var raid_strength := RAID_MAX_STRENGTH if decisive else (2 if power_gap >= RAID_CONTESTED_POWER_GAP else 1)
 		var target := _settlement_for_faction(defender)
 		if target.is_empty():
 			continue
 		var raid_id := "raid:%s:%s" % [attacker, defender]
-		raids[raid_id] = {"id": raid_id, "attacker": attacker, "defender": defender, "target_settlement": target, "strength": RAID_MAX_STRENGTH, "max_strength": RAID_MAX_STRENGTH, "strikes": 0, "next_strike_hour": absolute_hour + 2, "started_hour": absolute_hour, "defeated_slots": []}
-		events.append({"kind": "raid_started", "raid_id": raid_id, "attacker": attacker, "defender": defender, "target_settlement": target})
+		raids[raid_id] = {"id": raid_id, "attacker": attacker, "defender": defender, "target_settlement": target, "strength": raid_strength, "max_strength": raid_strength, "strikes": 0, "next_strike_hour": absolute_hour + 2, "started_hour": absolute_hour, "power_gap": power_gap, "decisive": decisive, "defeated_slots": []}
+		events.append({"kind": "raid_started", "raid_id": raid_id, "attacker": attacker, "defender": defender, "target_settlement": target, "strength": raid_strength, "decisive": decisive, "power_gap": power_gap})
 
 func _stronger_faction(a: String, b: String, absolute_hour: int) -> String:
 	var power_a := _faction_power(a)
 	var power_b := _faction_power(b)
-	if power_a == power_b:
-		return a if floori(float(absolute_hour) / 24.0) % 2 == 0 else b
+	if absi(power_a - power_b) < RAID_CONTESTED_POWER_GAP:
+		return a if floori(float(absolute_hour) / float(RAID_SPAWN_INTERVAL_HOURS)) % 2 == 0 else b
 	return a if power_a > power_b else b
 
 func _faction_power(faction_id: String) -> int:
@@ -436,6 +454,28 @@ func _faction_power(faction_id: String) -> int:
 	for amount in (state.get("inventory", {}) as Dictionary).values():
 		stock_total += int(amount)
 	return base + mini(50, int(state.get("treasury", 0)) / 6 + stock_total)
+
+func power_rating(faction_id: String) -> int:
+	return _faction_power(controller_id(faction_id))
+
+func has_raid_targeting(settlement_id: String) -> bool:
+	for raid in raids.values():
+		if String((raid as Dictionary).get("target_settlement", "")) == settlement_id:
+			return true
+	return false
+
+func recover_status(faction_id: String) -> String:
+	var sovereign := controller_id(faction_id)
+	if not factions.has(sovereign):
+		return ""
+	var row: Dictionary = factions[sovereign]
+	var status := String(row.get("status", "active"))
+	if status == "collapsing":
+		row["status"] = "weakened"
+	elif status == "weakened":
+		row["status"] = "active"
+	factions[sovereign] = row
+	return String(row.get("status", "active"))
 
 func _settlement_for_faction(faction_id: String) -> String:
 	if world == null or world.settlement_authority == null:

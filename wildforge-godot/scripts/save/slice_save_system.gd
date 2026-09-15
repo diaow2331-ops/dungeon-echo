@@ -658,10 +658,14 @@ static func _valid_faction_payload(raw) -> bool:
 		var strength := int(entry.get("strength", 0))
 		var max_strength := int(entry.get("max_strength", SliceFactionAuthority.RAID_MAX_STRENGTH))
 		var defeated = entry.get("defeated_slots", [])
+		var power_gap := int(entry.get("power_gap", 0))
+		var decisive := bool(entry.get("decisive", false))
 		var pair_key := attacker + "|" + defender if attacker < defender else defender + "|" + attacker
 		if raid_id.is_empty() or raid_seen.has(raid_id) or not allowed.has(attacker) or not allowed.has(defender) or attacker == defender or not settlement_ids.has(target):
 			return false
 		if String(relation_stances.get(pair_key, "neutral")) != "war" or strength <= 0 or max_strength < strength or max_strength > SliceFactionAuthority.RAID_MAX_STRENGTH:
+			return false
+		if power_gap < 0 or power_gap > 1000 or decisive != (power_gap >= SliceFactionAuthority.RAID_DECISIVE_POWER_GAP):
 			return false
 		if int(entry.get("strikes", -1)) < 0 or int(entry.get("next_strike_hour", -1)) < 0 or int(entry.get("started_hour", -1)) < 0 or not defeated is Array or defeated.size() != max_strength - strength:
 			return false

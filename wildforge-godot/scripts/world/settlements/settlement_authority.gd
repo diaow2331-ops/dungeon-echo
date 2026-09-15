@@ -192,12 +192,20 @@ func purchase_quote(settlement_id: String, item_id: String, quantity := 1) -> Di
 	var stock := item_count(settlement_id, item_id)
 	var row: Dictionary = settlements[settlement_id]
 	var target := int((row["targets"] as Dictionary).get(item_id, 0))
-	var reserve := int(ceil(float(target) * 0.25)) if (row.get("local_consumption", {}) as Dictionary).has(item_id) else 0
+	var reserve_ratio := 0.25
+	if world.faction_authority != null:
+		match world.faction_authority.conflict_status(settlement_id):
+			"tense": reserve_ratio = 0.35
+			"war": reserve_ratio = 0.50
+			"raid": reserve_ratio = 0.75
+			"occupied": reserve_ratio = 0.40
+	var reserve := int(ceil(float(target) * reserve_ratio)) if (row.get("local_consumption", {}) as Dictionary).has(item_id) else 0
 	var total := 0
 	for offset in range(quantity):
 		total += maxi(1, int(ceil(float(_buy_price_at_stock(settlement_id, item_id, maxi(0, stock - offset - 1))) * 1.25)))
 	return {"ok": true, "settlement_id": settlement_id, "item_id": item_id,
 		"quantity": quantity, "stock": stock, "available": stock - reserve >= quantity, "reserve": reserve,
+		"reserve_ratio": reserve_ratio, "conflict_status": world.faction_authority.conflict_status(settlement_id) if world.faction_authority != null else "peace",
 		"total": total}
 
 func buy_to_player(player, settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
@@ -300,6 +308,19 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 			events.append({"settlement_id": settlement_id, "kind": "local_consumption", "items": consumed, "treasury_revenue": revenue})
 		if not produced.is_empty():
 			events.append({"settlement_id": settlement_id, "kind": "local_production", "items": produced})
+		if world.faction_authority != null and not world.faction_authority.has_raid_targeting(settlement_id):
+			var before_security := security(settlement_id)
+			var conflict: String = world.faction_authority.conflict_status(settlement_id)
+			var recovery := 3 if conflict == "peace" else (2 if conflict == "occupied" else 1)
+			var after_security := recover_security(settlement_id, recovery)
+			if after_security > before_security:
+				events.append({"settlement_id": settlement_id, "kind": "security_recovery", "amount": after_security - before_security, "security": after_security})
+			if absolute_hour % 24 == 0 and after_security >= 75 and conflict != "occupied":
+				var founding := String((settlements[settlement_id] as Dictionary).get("founding_faction", ""))
+				var status_before := String(world.faction_authority.state(founding).get("status", "active"))
+				var status_after: String = world.faction_authority.recover_status(founding)
+				if status_after != status_before:
+					events.append({"settlement_id": settlement_id, "kind": "faction_recovery", "from": status_before, "to": status_after})
 	if absolute_hour % 24 == 0:
 		events.append_array(apply_annexation_taxes())
 	return {"hour": absolute_hour, "events": events}
