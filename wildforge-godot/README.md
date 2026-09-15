@@ -409,3 +409,7 @@ Settlement NPCs are no longer immortal service fixtures. `NpcRosterAuthority` se
 Merchants and settlement guards are now valid deliberate melee targets. Killing one permanently kills that person's identity, applies the existing crime/bounty and local-security consequences, and leaves the role vacant. The vacancy cannot refill immediately: merchant and guard roles wait different world-time delays, require minimum population/security, and spend real settlement treasury before a successor can take the same job.
 
 Succession reuses the same physical role slot but never revives the deceased person. Save schema 32 persists generation, life state, health, death hour and replacement deadline. Schema 31 remains loadable; legacy dead guards migrate into roster death, while older saves never invent deaths they did not previously record.
+
+## v0.38 bounty resolution foundation
+
+Player crime is no longer a one-way permanent hostility flag. `SliceFactionAuthority.settle_player_bounty()` reduces the existing sovereign bounty directly, including controller-linked annexed factions, and clears pursuit timing when the debt reaches zero. No pardon/reputation/debt subsystem is introduced: hostility, pursuit and crime progression continue to read the same canonical bounty value. This foundation is ready for a later physical guard/authority interaction that spends real player currency or accepts surrender; this change deliberately does not add remote menu forgiveness.

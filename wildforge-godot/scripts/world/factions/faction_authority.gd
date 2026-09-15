@@ -307,6 +307,32 @@ func player_bounty(faction_id: String) -> int:
 			total += int((factions[id] as Dictionary).get("player_bounty", 0))
 	return total
 
+func settle_player_bounty(faction_id: String, amount: int) -> Dictionary:
+	var sovereign := controller_id(faction_id)
+	if not factions.has(sovereign) or amount <= 0:
+		return {"ok": false, "reason": "invalid"}
+	var outstanding := player_bounty(sovereign)
+	if outstanding <= 0:
+		return {"ok": false, "reason": "clear"}
+	var paid := mini(amount, outstanding)
+	# Annexed factions share one sovereign bounty. Reduce canonical rows in stable order
+	# instead of inventing a second debt ledger.
+	for id in ids():
+		if paid <= 0:
+			break
+		if controller_id(id) != sovereign:
+			continue
+		var row: Dictionary = factions[id]
+		var local := int(row.get("player_bounty", 0))
+		var reduction := mini(local, paid)
+		row["player_bounty"] = local - reduction
+		paid -= reduction
+		factions[id] = row
+	var remaining := player_bounty(sovereign)
+	if remaining == 0:
+		(factions[sovereign] as Dictionary)["pursuit_due_hour"] = 0
+	return {"ok": true, "paid": mini(amount, outstanding), "remaining": remaining}
+
 func hostile_to_player(faction_id: String) -> bool:
 	return player_bounty(faction_id) > 0
 

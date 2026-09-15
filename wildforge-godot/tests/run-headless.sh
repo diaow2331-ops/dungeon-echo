@@ -37,6 +37,7 @@ run_gate res://tests/multi_good_market_test.gd 'wildforge_multi_good_market=PASS
 run_gate res://tests/npc_dialogue_test.gd 'wildforge_npc_dialogue=PASS'
 run_gate res://tests/npc_roster_identity_test.gd 'wildforge_npc_roster_identity=PASS'
 run_gate res://tests/npc_succession_test.gd 'wildforge_npc_succession=PASS'
+run_gate res://tests/bounty_resolution_test.gd 'wildforge_bounty_resolution=PASS'
 run_gate res://tests/npc_roster_save_test.gd 'wildforge_npc_roster_save=PASS'
 run_gate res://tests/mobile_ui_test.gd 'wildforge_mobile_ui=PASS'
 run_gate res://tests/vegetation_test.gd 'wildforge_vegetation_authority=PASS'
