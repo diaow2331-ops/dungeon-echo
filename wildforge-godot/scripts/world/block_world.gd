@@ -174,6 +174,11 @@ func _sync_world_simulation() -> int:
 		var events = result.get("events", [])
 		if events is Array:
 			emitted += events.size()
+		if faction_authority != null:
+			var faction_result: Dictionary = faction_authority.simulate_hour(simulation_hour_cursor)
+			var faction_events = faction_result.get("events", [])
+			if faction_events is Array:
+				emitted += faction_events.size()
 	simulation_event_count += emitted
 	return emitted
 

@@ -35,6 +35,7 @@ func register_baseline(raw_settlements: Array) -> int:
 			"local_consumption": _clean_counts(spec.get("local_consumption", {})),
 			"treasury": maxi(0, int(spec.get("initial_treasury", 0))),
 			"treasury_target": maxi(0, int(spec.get("initial_treasury", 0))),
+			"security": 100,
 		}
 		count += 1
 	return count
@@ -116,7 +117,8 @@ func _buy_price_at_stock(settlement_id: String, item_id: String, stock: int) -> 
 	var loss := int((row.get("stolen_deficit", {}) as Dictionary).get(item_id, 0))
 	# Ordinary demand moves gently; physical supply destruction drives crises.
 	var crisis := clampf(float(loss) / float(target), 0.0, 1.0) * shortage
-	var factor := 1.0 + shortage * 0.08 + crisis * 1.5
+	var security_factor := (1.0 - float(security(settlement_id)) / 100.0) * 0.35
+	var factor := 1.0 + shortage * 0.08 + crisis * 1.5 + security_factor
 	return maxi(1, int(round(float(base) * factor)))
 
 func sale_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
@@ -176,6 +178,8 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 	settlements[settlement_id] = row
 	player.forge_marks += total
 	_relieve_stolen_deficit(settlement_id, item_id, quantity)
+	if world.faction_authority != null and world.faction_authority.at_war(world.faction_authority.controller_for_settlement(settlement_id)):
+		recover_security(settlement_id, mini(quantity, 3))
 	return {"ok": true, "item_id": item_id, "quantity": quantity, "unit_price": unit_price, "total": total}
 
 # Retail is priced after each withdrawal. Buying then selling to the same
@@ -188,12 +192,20 @@ func purchase_quote(settlement_id: String, item_id: String, quantity := 1) -> Di
 	var stock := item_count(settlement_id, item_id)
 	var row: Dictionary = settlements[settlement_id]
 	var target := int((row["targets"] as Dictionary).get(item_id, 0))
-	var reserve := int(ceil(float(target) * 0.25)) if (row.get("local_consumption", {}) as Dictionary).has(item_id) else 0
+	var reserve_ratio := 0.25
+	if world.faction_authority != null:
+		match world.faction_authority.conflict_status(settlement_id):
+			"tense": reserve_ratio = 0.35
+			"war": reserve_ratio = 0.50
+			"raid": reserve_ratio = 0.75
+			"occupied": reserve_ratio = 0.40
+	var reserve := int(ceil(float(target) * reserve_ratio)) if (row.get("local_consumption", {}) as Dictionary).has(item_id) else 0
 	var total := 0
 	for offset in range(quantity):
 		total += maxi(1, int(ceil(float(_buy_price_at_stock(settlement_id, item_id, maxi(0, stock - offset - 1))) * 1.25)))
 	return {"ok": true, "settlement_id": settlement_id, "item_id": item_id,
 		"quantity": quantity, "stock": stock, "available": stock - reserve >= quantity, "reserve": reserve,
+		"reserve_ratio": reserve_ratio, "conflict_status": world.faction_authority.conflict_status(settlement_id) if world.faction_authority != null else "peace",
 		"total": total}
 
 func buy_to_player(player, settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
@@ -242,7 +254,8 @@ func export_opportunity(origin_id: String, item_id: String, quantity := 1) -> Di
 			best = {"destination_id": destination_id, "profit": profit,
 				"sale_total": int(sale["total"]), "quantity": quantity,
 				"distance_cells": absi(market_cell(destination_id).x - market_cell(origin_id).x),
-				"east": market_cell(destination_id).x > market_cell(origin_id).x}
+				"east": market_cell(destination_id).x > market_cell(origin_id).x,
+				"risk": world.faction_authority.conflict_status(destination_id) if world.faction_authority != null else "peace"}
 	return best
 
 func simulate_hour(absolute_hour: int) -> Dictionary:
@@ -295,6 +308,21 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 			events.append({"settlement_id": settlement_id, "kind": "local_consumption", "items": consumed, "treasury_revenue": revenue})
 		if not produced.is_empty():
 			events.append({"settlement_id": settlement_id, "kind": "local_production", "items": produced})
+		if world.faction_authority != null and not world.faction_authority.has_raid_targeting(settlement_id):
+			var before_security := security(settlement_id)
+			var conflict: String = world.faction_authority.conflict_status(settlement_id)
+			var recovery := 3 if conflict == "peace" else (2 if conflict == "occupied" else 1)
+			var after_security := recover_security(settlement_id, recovery)
+			if after_security > before_security:
+				events.append({"settlement_id": settlement_id, "kind": "security_recovery", "amount": after_security - before_security, "security": after_security})
+			if absolute_hour % 24 == 0 and after_security >= 75 and conflict != "occupied":
+				var founding := String((settlements[settlement_id] as Dictionary).get("founding_faction", ""))
+				var status_before := String(world.faction_authority.state(founding).get("status", "active"))
+				var status_after: String = world.faction_authority.recover_status(founding)
+				if status_after != status_before:
+					events.append({"settlement_id": settlement_id, "kind": "faction_recovery", "from": status_before, "to": status_after})
+	if absolute_hour % 24 == 0:
+		events.append_array(apply_annexation_taxes())
 	return {"hour": absolute_hour, "events": events}
 
 func export_state() -> Array:
@@ -306,6 +334,7 @@ func export_state() -> Array:
 			"inventory": (row["inventory"] as Dictionary).duplicate(true),
 			"stolen_deficit": (row.get("stolen_deficit", {}) as Dictionary).duplicate(true),
 			"treasury": maxi(0, int(row["treasury"])),
+			"security": clampi(int(row.get("security", 100)), 0, 100),
 		})
 	return rows
 
@@ -324,7 +353,10 @@ func restore_state(raw) -> bool:
 		var inventory_raw = (entry as Dictionary).get("inventory", {})
 		if treasury_value < 0 or not inventory_raw is Dictionary:
 			return false
-		staged[id] = {"inventory": _clean_counts(inventory_raw), "treasury": treasury_value, "stolen_deficit": _clean_counts(entry.get("stolen_deficit", {}))}
+		var security_value := int((entry as Dictionary).get("security", 100))
+		if security_value < 0 or security_value > 100:
+			return false
+		staged[id] = {"inventory": _clean_counts(inventory_raw), "treasury": treasury_value, "stolen_deficit": _clean_counts(entry.get("stolen_deficit", {})), "security": security_value}
 		seen[id] = true
 	if seen.size() != settlements.size():
 		return false
@@ -334,6 +366,7 @@ func restore_state(raw) -> bool:
 		row["inventory"] = (values["inventory"] as Dictionary).duplicate(true)
 		row["treasury"] = int(values["treasury"])
 		row["stolen_deficit"] = values["stolen_deficit"]
+		row["security"] = int(values.get("security", 100))
 		settlements[id] = row
 	return true
 
@@ -352,6 +385,78 @@ func restore_generation3_state(raw) -> bool:
 	row["treasury"] = treasury_value
 	settlements["verdant_mossbridge"] = row
 	return true
+
+func security(settlement_id: String) -> int:
+	return clampi(int((settlements.get(settlement_id, {}) as Dictionary).get("security", 100)), 0, 100)
+
+func recover_security(settlement_id: String, amount: int) -> int:
+	if not settlements.has(settlement_id) or amount <= 0:
+		return security(settlement_id)
+	var row: Dictionary = settlements[settlement_id]
+	row["security"] = mini(100, security(settlement_id) + amount)
+	settlements[settlement_id] = row
+	return int(row["security"])
+
+func apply_raid_pressure(settlement_id: String, pressure: int, attacker_faction: String) -> Dictionary:
+	if not settlements.has(settlement_id) or pressure <= 0:
+		return {"ok": false}
+	var row: Dictionary = settlements[settlement_id]
+	var before := security(settlement_id)
+	row["security"] = maxi(0, before - pressure)
+	var inventory: Dictionary = row["inventory"]
+	var deficit: Dictionary = row.get("stolen_deficit", {})
+	var lost: Dictionary = {}
+	var budget := maxi(1, int(ceil(float(pressure) / 10.0)))
+	var goods := inventory.keys()
+	goods.sort()
+	for raw_id in goods:
+		if budget <= 0:
+			break
+		var item_id := String(raw_id)
+		var available := maxi(0, int(inventory.get(item_id, 0)))
+		if available <= 0:
+			continue
+		var amount := mini(available, budget)
+		inventory[item_id] = available - amount
+		deficit[item_id] = int(deficit.get(item_id, 0)) + amount
+		lost[item_id] = amount
+		budget -= amount
+	row["inventory"] = inventory
+	row["stolen_deficit"] = deficit
+	var treasury_loss := mini(maxi(0, int(row["treasury"])), maxi(1, pressure / 2))
+	row["treasury"] = maxi(0, int(row["treasury"]) - treasury_loss)
+	settlements[settlement_id] = row
+	return {"ok": true, "attacker": attacker_faction, "security_before": before, "security_after": int(row["security"]), "treasury_loss": treasury_loss, "items_lost": lost}
+
+func settlement_for_faction(faction_id: String) -> String:
+	for settlement_id in ids():
+		if String((settlements[settlement_id] as Dictionary).get("founding_faction", "")) == faction_id:
+			return settlement_id
+	return ""
+
+func apply_annexation_taxes() -> Array:
+	var events: Array = []
+	if world.faction_authority == null:
+		return events
+	for subject_id in ids():
+		var row: Dictionary = settlements[subject_id]
+		var founding := String(row.get("founding_faction", ""))
+		var controller: String = world.faction_authority.controller_id(founding)
+		if controller.is_empty() or controller == founding:
+			continue
+		var controller_settlement := settlement_for_faction(controller)
+		if controller_settlement.is_empty() or controller_settlement == subject_id:
+			continue
+		var tax := mini(6, maxi(0, int(row.get("treasury", 0))))
+		if tax <= 0:
+			continue
+		row["treasury"] = int(row["treasury"]) - tax
+		settlements[subject_id] = row
+		var controller_row: Dictionary = settlements[controller_settlement]
+		controller_row["treasury"] = int(controller_row.get("treasury", 0)) + tax
+		settlements[controller_settlement] = controller_row
+		events.append({"kind": "occupation_tax", "subject_settlement": subject_id, "controller_settlement": controller_settlement, "amount": tax})
+	return events
 
 func _clean_counts(raw) -> Dictionary:
 	var clean: Dictionary = {}

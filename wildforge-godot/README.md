@@ -14,7 +14,7 @@ The Godot client only becomes authoritative if this slice is materially better o
 - Camera smoothing and lightweight hit feedback
 - Low-obstruction touch input: floating left/right sticks, one contextual place button
 
-Still deferred: autonomous faction evolution, caravans, war/annexation execution, inventory depth and boss content. Persistence, the first physical settlement/economy, world heartbeat and the three-faction political authority skeleton have migrated to Godot; Canvas remains reference-only for systems not yet migrated.
+Still deferred: autonomous diplomacy drift, full caravans, large-scale siege presentation and boss content. Persistence, regional logistics, bounded war raids, political annexation, world heartbeat and the three-faction authority chain now run in Godot; Canvas remains reference-only for historical systems.
 
 ## v0.02 Feel Gate
 
@@ -302,3 +302,23 @@ Schema 26 stores animal health/energy/following alongside its existing container
 The dialogue body now scrolls on short screens and the close button stays outside the scroll area. Placeholder procedural animal art establishes silhouette only; atlas production is deferred per plan.
 
 Validation: Godot headless editor compilation and git diff --check. No full test suite, runtime playthrough, mobile visual verification or PR merge. Balance, obstacle traversal, combat risk and migration regression still require integration verification. Phase 2 is not declared complete; autonomous trade routes/caravans remain outstanding.
+
+## v0.28 authoritative war raids and annexation
+
+Phase 3 now begins on the same Godot world authorities instead of a parallel war simulator. `FactionAuthority` remains the sole owner of diplomacy and now owns bounded active raid operations derived only from canonical `war` relations. `SettlementAuthority` owns settlement security, real inventory/treasury losses and occupation tax flow. `WorldActorAuthority` projects at most three local attackers for the active macro raid; defeating one local attacker reduces that exact raid rather than winning a disconnected encounter.
+
+Unanswered raids reduce real settlement security, treasury and goods. Repeated pressure moves the defender through weakened/collapsing states and can end in political annexation. Annexation changes `FactionAuthority` control while preserving the settlement's physical ownership, biome, structures and geographic production identity, so conquest changes sovereignty instead of homogenizing regional value. Occupied settlements pay bounded tax from their real treasury into the controller's home settlement.
+
+Markets now expose peace/tension/war/raid/occupied status and settlement security, while route hints identify destination conflict risk. Supplying a settlement during war slightly restores the same security state, making ordinary trade a direct intervention path. Save schema 27 persists settlement security and active raid state while migrating schema 26 and earlier supported saves. `war_annexation_test.gd` verifies local-to-macro casualty linkage, bounded projection, economic damage, save round-trip, annexation identity preservation and occupation tax flow.
+
+### v0.28 balance gate — contested wars do not auto-snowball
+
+Raid strength is now derived from the same faction power facts rather than always spawning a maximum assault. Near-equal powers produce one-unit raids, alternate initiative on successive raid windows, and resolve after two unanswered strikes as a stalemate rather than an annexation. Only a power gap of at least 24 creates a decisive three-unit assault that is eligible to annex a settlement. This keeps deterministic strong-vs-weak collapse while preventing ordinary parity from turning into arbitrary conquest.
+
+War also changes the real market loop. Settlements retain a larger reserve of locally consumed goods as tension escalates (25% peace baseline, 35% tension, 50% war, 75% under active raid), while player deliveries during war restore a small amount of real settlement security. When no raid is active, security recovers gradually and degraded non-annexed factions can recover readiness once the settlement is stable. `war_balance_test.gd` locks these rules into the full headless suite.
+
+### v0.28 world-readable conflict presentation
+
+Each canonical settlement now projects one lightweight live banner from `WorldActorAuthority`. The banner owns no political state: it reads `FactionAuthority.conflict_status()` and the current controller at draw time, so the same physical settlement visibly transitions through peace, tension, war, raid and occupation without rebuilding terrain or duplicating sovereignty. Settlement guards use the same live conflict read for their warning dialogue and a compact alert stripe. This is code-level presentation scaffolding for the later art pass, not a replacement art system.
+
+The visualization gate verifies that one banner per settlement follows war → raid → occupation in place, that guard dialogue reports the same state, and that occupation still leaves the founding physical ownership untouched.

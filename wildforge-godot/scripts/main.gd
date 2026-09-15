@@ -53,6 +53,7 @@ func _ready() -> void:
 	actor_authority.register_settlement_npcs(world.baseline_settlements)
 	actor_authority.dialogue_requested.connect(_open_dialogue)
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
+	actor_authority.sync_war_raids()
 	var ui_layer := CanvasLayer.new()
 	ui_layer.name = "UI"
 	ui_layer.layer = 10
@@ -164,6 +165,9 @@ func _market_view(settlement_id: String, selected_item := "raw_meat", quantity :
 	quote["player_marks"] = player.forge_marks
 	quote["purchase"] = world.settlement_authority.purchase_quote(settlement_id, item_id, quantity)
 	quote["opportunity"] = world.settlement_authority.export_opportunity(settlement_id, item_id, quantity)
+	quote["conflict_status"] = world.faction_authority.conflict_status(settlement_id) if world.faction_authority != null else "peace"
+	quote["security"] = world.settlement_authority.security(settlement_id)
+	quote["controller"] = world.faction_authority.controller_for_settlement(settlement_id) if world.faction_authority != null else world.settlement_authority.owner_id(settlement_id)
 	return quote
 
 func _select_market_item(item_id: String) -> void:
@@ -234,8 +238,10 @@ func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: 
 
 func _process(delta: float) -> void:
 	_update_warehouse_transfer(delta)
-	if actor_authority != null and not SaveScript.is_test_run():
-		actor_authority.update_pursuit()
+	if actor_authority != null:
+		actor_authority.sync_war_raids()
+		if not SaveScript.is_test_run():
+			actor_authority.update_pursuit()
 	if SaveScript.is_test_run() or world == null or player == null:
 		return
 	autosave_elapsed += delta
