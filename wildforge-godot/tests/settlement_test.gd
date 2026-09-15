@@ -23,6 +23,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var player := main.get_node("Player") as SlicePlayer
 	var authority := world.settlement_authority as SliceSettlementAuthority
 	var ids := authority.ids()
@@ -108,6 +109,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(restored, snap), "schema 23 biome-material snapshot restores into a fresh world")
 	var world2 := restored.get_node("World") as SliceWorld
+	world2.progression_authority.restore_legacy_unlocked(world2.absolute_world_hour())
 	var player2 := restored.get_node("Player") as SlicePlayer
 	var authority2 := world2.settlement_authority as SliceSettlementAuthority
 	_check(player2.forge_marks == marks_before + total, "player forge marks survive save round-trip")
@@ -128,6 +130,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(migrated, legacy19), "v19 traveler save migrates explicitly into generation 5")
 	var world3 := migrated.get_node("World") as SliceWorld
+	world3.progression_authority.restore_legacy_unlocked(world3.absolute_world_hour())
 	var player3 := migrated.get_node("Player") as SlicePlayer
 	var authority3 := world3.settlement_authority as SliceSettlementAuthority
 	_check(world3.tile_at(damage_cell) == expected_tile, "generation-2 terrain delta cannot erase the newly introduced settlement baseline")

@@ -26,6 +26,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var settlement := world.settlement_authority as SliceSettlementAuthority
 	var factions := world.faction_authority as SliceFactionAuthority
 	var actors := main.actor_authority as SliceWorldActorAuthority
@@ -113,6 +114,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(restored, snap), "travel-event state restores through the normal save path")
 	var restored_world := restored.get_node("World") as SliceWorld
+	restored_world.progression_authority.restore_legacy_unlocked(restored_world.absolute_world_hour())
 	var restored_settlement := restored_world.settlement_authority as SliceSettlementAuthority
 	var restored_actors := restored.actor_authority as SliceWorldActorAuthority
 	_check(restored_settlement.export_caravans().get("incident_cooldowns", {}) == cooldowns, "route cooldown survives save round-trip")
@@ -124,6 +126,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(legacy_main, legacy28), "schema 28 migrates forward without fabricating travel incidents")
 	var legacy_world := legacy_main.get_node("World") as SliceWorld
+	legacy_world.progression_authority.restore_legacy_unlocked(legacy_world.absolute_world_hour())
 	_check((legacy_world.settlement_authority as SliceSettlementAuthority).export_caravans().get("incident_cooldowns", {}).is_empty(), "pre-event saves start with no synthetic route cooldowns")
 	_check(legacy_main.actor_authority.export_lost_cargo().is_empty(), "pre-event saves do not invent abandoned cargo")
 

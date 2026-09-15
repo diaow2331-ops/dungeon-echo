@@ -268,6 +268,8 @@ func sale_quote(settlement_id: String, item_id: String, quantity := 1) -> Dictio
 	}
 
 func sell_from_player(player, settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
+	if world.progression_authority != null and not world.progression_authority.allows_local_market():
+		return {"ok": false, "reason": "era_locked"}
 	if player == null or not settlements.has(settlement_id) or quantity <= 0:
 		return {"ok": false, "reason": "invalid_trade"}
 	if nearby_market(player.global_position) != settlement_id:
@@ -326,6 +328,8 @@ func purchase_quote(settlement_id: String, item_id: String, quantity := 1) -> Di
 		"total": total}
 
 func buy_to_player(player, settlement_id: String, item_id: String, quantity := 1) -> Dictionary:
+	if world.progression_authority != null and not world.progression_authority.allows_local_market():
+		return {"ok": false, "reason": "era_locked"}
 	if player == null or not settlements.has(settlement_id):
 		return {"ok": false, "reason": "invalid_trade"}
 	if nearby_market(player.global_position) != settlement_id:
@@ -582,6 +586,8 @@ func _advance_caravans(absolute_hour: int) -> Array:
 
 func _dispatch_caravans(absolute_hour: int) -> Array:
 	var events: Array = []
+	if world.progression_authority != null and not world.progression_authority.allows_autonomous_caravans():
+		return events
 	while caravans.size() < CARAVAN_MAX_ACTIVE:
 		var candidate := _best_caravan_candidate(absolute_hour)
 		if candidate.is_empty():
@@ -679,6 +685,8 @@ func _valid_route_pair_key(key: String) -> bool:
 	return pair.size() == 2 and has(String(pair[0])) and has(String(pair[1])) and String(pair[0]) != String(pair[1])
 
 func _caravan_incident_due(caravan: Dictionary, absolute_hour: int) -> bool:
+	if world.progression_authority != null and not world.progression_authority.allows_route_incidents():
+		return false
 	var origin := String(caravan.get("origin", ""))
 	var destination := String(caravan.get("destination", ""))
 	if not has(origin) or not has(destination) or world.faction_authority == null:
@@ -918,6 +926,8 @@ func restore_displacements(raw) -> bool:
 	return true
 
 func _maybe_start_displacement(origin: String, attacker_faction: String, absolute_hour: int) -> Dictionary:
+	if world.progression_authority != null and not world.progression_authority.allows_displacement():
+		return {}
 	if not has(origin) or displacements.size() >= DISPLACEMENT_MAX_ACTIVE:
 		return {}
 	var origin_row: Dictionary = settlements[origin]
@@ -942,6 +952,8 @@ func _maybe_start_displacement(origin: String, attacker_faction: String, absolut
 
 func _maybe_start_return_migrations(absolute_hour: int) -> Array:
 	var events: Array = []
+	if world.progression_authority != null and not world.progression_authority.allows_displacement():
+		return events
 	if absolute_hour <= 0 or absolute_hour % RETURN_MIGRATION_INTERVAL_HOURS != 0 or world.faction_authority == null:
 		return events
 	for home in ids():

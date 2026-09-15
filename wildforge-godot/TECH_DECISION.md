@@ -254,3 +254,9 @@ Road recovery is allowed to consume real settlement stock and treasury, but it m
 ### v0.31 return migration reuses displacement authority
 
 Demographic recovery uses the same bounded `SettlementAuthority.displacements` records as wartime flight. A secure peaceful home below baseline may pull population from a safe settlement above baseline; source population is deducted at departure and home population changes only at arrival. The local traveler remains projection-only. Because the existing schema-30 population, displacement serial and in-transit records are sufficient, v0.31 adds no save schema and no parallel refugee ledger.
+
+## v0.32 world progression is a capability gate, not a second simulation
+
+`WorldProgressionAuthority` may answer whether a class of world consequence is currently legal, but it may not store a shadow war, economy, route, population or quest state. The canonical subsystem still owns every fact. Gates therefore sit immediately before the existing mutation: caravan dispatch, negative diplomacy, route incidents, war/raid scheduling, displacement and annexation.
+
+Era transitions are monotonic and evaluated only at the end of a world-hour simulation tick. At most one transition may occur per tick and its new permissions take effect on the next tick. This prevents causal avalanches such as shortage → tension → war → raid → displacement → annexation in one update. Schema 31 stores only the minimal progression facts; schema-30 migration enters Reforging to preserve worlds that already ran unrestricted systems.

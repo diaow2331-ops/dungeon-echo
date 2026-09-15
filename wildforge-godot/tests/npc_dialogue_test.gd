@@ -27,6 +27,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var player := main.get_node("Player") as SlicePlayer
 	var authority := main.actor_authority as SliceWorldActorAuthority
 	var merchant_ids := authority.actor_ids(SliceWorldActorAuthority.KIND_MERCHANT)

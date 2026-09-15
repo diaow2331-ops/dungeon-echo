@@ -19,6 +19,7 @@ func _run() -> void:
 	await process_frame
 	var player := main.get_node("Player") as SlicePlayer
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var economy := world.settlement_authority as SliceSettlementAuthority
 	var overlay := main.dialogue_overlay as SliceDialogueOverlay
 	_check(overlay.market_item_picker.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET, "goods selector is thumb-sized")

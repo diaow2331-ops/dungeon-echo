@@ -365,3 +365,9 @@ A disrupted road can now recover early through real settlement capacity. Every b
 ### v0.31 demographic recovery
 
 Population flow is now reversible after war. A peaceful, secure settlement below its deterministic population baseline can draw a small group back from a safe settlement holding population above its own baseline. Returnees reuse the same persisted displacement record and streamed traveler projection: people leave the host immediately, arrive at home later, and both settlements' real consumption targets follow the population movement. Save schema remains 30 because no second durable state was introduced.
+
+## v0.32 world-era progression authority
+
+World complexity is now an explicit persistent authority rather than an accidental consequence of every subsystem being live on day one. New worlds begin in `Wanderer` and advance through Foothold, Open Roads, Fracture, Warfront and Reforging. The authority owns only the current era, entry hour, an allowlisted milestone set and the last transition; it never owns economy, diplomacy, population, roads or warfare.
+
+Existing systems are gated at their real mutation boundary: local trade opens in Foothold, autonomous caravans in Open Roads, negative diplomatic tension and route incidents in Fracture, war/raids/displacement in Warfront, and annexation only in Reforging. Time, Forge Marks and kill count cannot advance a new world by themselves. Save schema 31 persists progression; schema 30 and older supported saves migrate fully unlocked so pre-era worlds never lose existing macro state.

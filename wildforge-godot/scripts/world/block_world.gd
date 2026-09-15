@@ -23,6 +23,7 @@ const WorldClockScript = preload("res://scripts/world/time/world_clock.gd")
 const SettlementGeneratorScript = preload("res://scripts/world/settlements/settlement_generator.gd")
 const SettlementAuthorityScript = preload("res://scripts/world/settlements/settlement_authority.gd")
 const FactionAuthorityScript = preload("res://scripts/world/factions/faction_authority.gd")
+const WorldProgressionAuthorityScript = preload("res://scripts/world/progression/world_progression_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 5
@@ -67,6 +68,7 @@ var fluid_authority: SliceFluidAuthority
 var structure_authority: SliceStructureAuthority
 var settlement_authority: SliceSettlementAuthority
 var faction_authority: SliceFactionAuthority
+var progression_authority: SliceWorldProgressionAuthority
 var fluid_tick_accumulator := 0.0
 var simulation_hour_cursor := -1
 var simulation_event_count := 0
@@ -103,6 +105,7 @@ func _ready() -> void:
 	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
 	settlement_authority.register_baseline(baseline_settlements)
 	faction_authority = FactionAuthorityScript.new(self) as SliceFactionAuthority
+	progression_authority = WorldProgressionAuthorityScript.new(self) as SliceWorldProgressionAuthority
 	apply_baseline_ownership()
 	reset_simulation_cursor()
 	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
@@ -130,6 +133,7 @@ func rebuild_for_seed(new_seed: int) -> bool:
 	settlement_authority = SettlementAuthorityScript.new(self) as SliceSettlementAuthority
 	settlement_authority.register_baseline(baseline_settlements)
 	faction_authority = FactionAuthorityScript.new(self) as SliceFactionAuthority
+	progression_authority = WorldProgressionAuthorityScript.new(self) as SliceWorldProgressionAuthority
 	apply_baseline_ownership()
 	reset_simulation_cursor()
 	if lighting_authority != null:
@@ -171,21 +175,25 @@ func _sync_world_simulation() -> int:
 	var emitted := 0
 	while simulation_hour_cursor < current_hour:
 		simulation_hour_cursor += 1
+		var hour_events: Array = []
 		var result := settlement_authority.simulate_hour(simulation_hour_cursor)
 		var events = result.get("events", [])
 		if events is Array:
-			emitted += events.size()
-			for event in events:
-				if event is Dictionary:
-					world_event.emit((event as Dictionary).duplicate(true))
+			hour_events.append_array(events)
 		if faction_authority != null:
 			var faction_result: Dictionary = faction_authority.simulate_hour(simulation_hour_cursor)
 			var faction_events = faction_result.get("events", [])
 			if faction_events is Array:
-				emitted += faction_events.size()
-				for event in faction_events:
-					if event is Dictionary:
-						world_event.emit((event as Dictionary).duplicate(true))
+				hour_events.append_array(faction_events)
+		for event in hour_events:
+			if event is Dictionary:
+				world_event.emit((event as Dictionary).duplicate(true))
+		emitted += hour_events.size()
+		if progression_authority != null:
+			var transition := progression_authority.simulate_hour_end(simulation_hour_cursor, hour_events)
+			if not transition.is_empty():
+				emitted += 1
+				world_event.emit(transition.duplicate(true))
 	simulation_event_count += emitted
 	return emitted
 

@@ -94,6 +94,15 @@ func relation(a: String, b: String) -> Dictionary:
 func set_relation(a: String, b: String, score: int, stance: String) -> bool:
 	if not factions.has(a) or not factions.has(b) or stance not in VALID_STANCE:
 		return false
+	if world != null and world.progression_authority != null:
+		if stance == "war" and not world.progression_authority.allows_war():
+			return false
+		if stance == "trade" and not world.progression_authority.allows_autonomous_caravans():
+			stance = "neutral"
+		if not world.progression_authority.allows_tension():
+			score = maxi(score, -34)
+		elif not world.progression_authority.allows_war():
+			score = maxi(score, RELATION_WAR_ENTER + 1)
 	var ca := controller_id(a)
 	var cb := controller_id(b)
 	if ca == cb:
@@ -108,6 +117,8 @@ func set_relation(a: String, b: String, score: int, stance: String) -> bool:
 
 func set_status(faction_id: String, status: String, owner_faction_id := "") -> bool:
 	if not factions.has(faction_id) or status not in VALID_STATUS:
+		return false
+	if status == "annexed" and world != null and world.progression_authority != null and not world.progression_authority.allows_annexation():
 		return false
 	if status == "annexed":
 		if owner_faction_id == faction_id or not factions.has(owner_faction_id):
@@ -319,13 +330,30 @@ func adjust_relation(a: String, b: String, delta: int, reason := "world_pressure
 	var row: Dictionary = relations[key]
 	var before_score := int(row.get("score", 0))
 	var before_stance := String(row.get("stance", "neutral"))
-	var after_score := clampi(before_score + delta, -100, 100)
+	var requested_score := clampi(before_score + delta, -100, 100)
+	var after_score := requested_score
+	if world != null and world.progression_authority != null:
+		if delta < 0 and requested_score <= -35:
+			world.progression_authority.record_milestone("tension_catalyst")
+		if delta < 0 and requested_score <= RELATION_WAR_ENTER:
+			world.progression_authority.record_milestone("war_ready_pressure")
+		if not world.progression_authority.allows_tension():
+			after_score = maxi(after_score, -34)
+		elif not world.progression_authority.allows_war():
+			after_score = maxi(after_score, RELATION_WAR_ENTER + 1)
 	var after_stance := _stance_for_score(before_stance, after_score)
+	if world != null and world.progression_authority != null:
+		if after_stance == "trade" and not world.progression_authority.allows_autonomous_caravans():
+			after_stance = "neutral"
+		if after_stance == "war" and not world.progression_authority.allows_war():
+			after_stance = "neutral"
 	row["score"] = after_score
 	row["stance"] = after_stance
 	relations[key] = row
 	if after_stance != "war":
 		_remove_raids_for_pair(ca, cb)
+	if before_stance == "war" and after_stance != "war" and world != null and world.progression_authority != null:
+		world.progression_authority.record_milestone("war_resolved")
 	return {"a": ca, "b": cb, "reason": reason, "before_score": before_score, "score": after_score, "before_stance": before_stance, "stance": after_stance, "delta": after_score - before_score}
 
 func record_caravan_arrival(origin_settlement: String, destination_settlement: String, payment: int) -> Dictionary:
@@ -357,6 +385,8 @@ func _stance_for_score(current: String, score: int) -> String:
 
 func _simulate_diplomacy(absolute_hour: int) -> Array:
 	var events: Array = []
+	if world != null and world.progression_authority != null and not world.progression_authority.allows_tension():
+		return events
 	if absolute_hour <= 0 or absolute_hour % DIPLOMACY_INTERVAL_HOURS != 0 or world == null or world.settlement_authority == null:
 		return events
 	var keys := relations.keys()
@@ -486,7 +516,12 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 			set_status(defender, "collapsing")
 		var decisive := bool(raid.get("decisive", false))
 		if security <= 0 and decisive:
-			if set_status(defender, "annexed", attacker):
+			if world.progression_authority != null and not world.progression_authority.allows_annexation():
+				set_status(defender, "collapsing")
+				raids.erase(raid_id)
+				world.settlement_authority.recover_security(target, 12)
+				events.append({"kind": "annexation_deferred", "attacker": attacker, "defender": defender, "target_settlement": target})
+			elif set_status(defender, "annexed", attacker):
 				raids.erase(raid_id)
 				events.append({"kind": "annexation", "attacker": attacker, "defender": defender, "target_settlement": target})
 		elif not decisive and int(raid.get("strikes", 0)) >= RAID_STALEMATE_STRIKES:
@@ -518,6 +553,8 @@ func record_raid_defeat(raid_id: String, slot: int) -> Dictionary:
 	return {"ok": true, "repelled": false, "remaining": remaining, "target_settlement": target}
 
 func _ensure_scheduled_raids(absolute_hour: int, events: Array) -> void:
+	if world != null and world.progression_authority != null and not world.progression_authority.allows_raids():
+		return
 	var keys := relations.keys()
 	keys.sort()
 	for index in range(keys.size()):
