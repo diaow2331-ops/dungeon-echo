@@ -132,6 +132,76 @@ func record_player_delivery(destination_id: String, item_id: String) -> bool:
 			return record_milestone("cross_region_delivery")
 	return false
 
+func guidance_snapshot() -> Dictionary:
+	# Guidance is derived from existing authority facts. It is never saved and never advances an era.
+	var unknown: Array = []
+	for settlement_id in ["verdant_mossbridge", "frost_frostmirror", "ember_cinder_ridge"]:
+		if not has_milestone("settlement:" + settlement_id):
+			unknown.append(settlement_id)
+	var absolute_hour := era_entered_hour
+	if world != null and world.has_method("absolute_world_hour"):
+		absolute_hour = int(world.absolute_world_hour())
+	var age := maxi(0, absolute_hour - era_entered_hour)
+	var guide := {"era": era, "kind": "", "unknown_settlements": unknown}
+	match era:
+		ERA_WANDERER:
+			guide["kind"] = "survival" if not has_milestone("survival_ready") else "first_foothold"
+		ERA_FOOTHOLD:
+			if settlement_contact_count() < 2:
+				guide["kind"] = "discover_second_region"
+			elif not has_milestone("cross_region_delivery") and not has_milestone("pack_beast_acquired"):
+				guide["kind"] = "prove_logistics"
+			elif age < FOOTHOLD_MIN_DWELL_HOURS:
+				guide["kind"] = "foothold_maturing"
+			else:
+				guide["kind"] = "roads_ready"
+		ERA_OPEN_ROADS:
+			if settlement_contact_count() < 3:
+				guide["kind"] = "discover_all_regions"
+			elif not has_milestone("cross_faction_exchange"):
+				guide["kind"] = "establish_exchange"
+			elif not has_milestone("tension_catalyst"):
+				guide["kind"] = "watch_supply_pressure"
+			elif age < OPEN_ROADS_MIN_DWELL_HOURS:
+				guide["kind"] = "roads_maturing"
+			else:
+				guide["kind"] = "fracture_ready"
+		ERA_FRACTURE:
+			if _is_regional_balance():
+				guide["kind"] = "maintain_balance"
+			elif not has_milestone("tension_seen"):
+				guide["kind"] = "observe_tension"
+				guide["target_settlements"] = _settlements_with_conflict(["tense", "war", "raid", "occupied"])
+			elif not has_milestone("war_ready_pressure"):
+				guide["kind"] = "watch_border_pressure"
+			elif age < FRACTURE_MIN_DWELL_HOURS:
+				guide["kind"] = "fracture_maturing"
+			else:
+				guide["kind"] = "warfront_ready"
+		ERA_WARFRONT:
+			var conflict_settlements := _settlements_with_conflict(["war", "raid", "occupied"])
+			if not conflict_settlements.is_empty():
+				guide["kind"] = "active_conflict"
+				guide["target_settlements"] = conflict_settlements
+			elif has_milestone("war_resolved"):
+				guide["kind"] = "postwar_recovery" if age < WARFRONT_RESOLVED_MIN_DWELL_HOURS else "reforging_ready"
+			elif _is_regional_balance():
+				guide["kind"] = "maintain_balance" if age < WARFRONT_BALANCE_MIN_DWELL_HOURS else "reforging_ready"
+			else:
+				guide["kind"] = "shape_region"
+		ERA_REFORGING:
+			guide["kind"] = "open_sandbox"
+	return guide
+
+func _settlements_with_conflict(statuses: Array) -> Array:
+	var result: Array = []
+	if world == null or world.faction_authority == null:
+		return result
+	for settlement_id in ["verdant_mossbridge", "frost_frostmirror", "ember_cinder_ridge"]:
+		if String(world.faction_authority.conflict_status(settlement_id)) in statuses:
+			result.append(settlement_id)
+	return result
+
 func export_state() -> Dictionary:
 	var ids := milestones.keys()
 	ids.sort()
