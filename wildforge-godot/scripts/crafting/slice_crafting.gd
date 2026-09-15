@@ -42,3 +42,30 @@ static func craft(player: SlicePlayer, recipe_id: String) -> bool:
 		player.spend_item(String(item_id), int(need[item_id]))
 	player.add_item(String(recipe["out_id"]), int(recipe["out_n"]))
 	return true
+
+static func recipes_at(station: String) -> Array[String]:
+	var ids: Array[String] = []
+	for id in RECIPES:
+		var required := String(RECIPES[id].get("station", ""))
+		if required == station or (required.is_empty() and station == "workbench"):
+			ids.append(String(id))
+	return ids
+
+static func can_craft_batch(player: SlicePlayer, recipe_id: String, batches: int) -> bool:
+	if batches not in [1, 5] or not can_craft(player, recipe_id):
+		return false
+	var recipe: Dictionary = RECIPES[recipe_id]
+	if bool(recipe.get("unique", false)) and batches != 1:
+		return false
+	for item in recipe["need"]:
+		if player.item_count(String(item)) < int(recipe["need"][item]) * batches:
+			return false
+	return true
+
+static func craft_batch(player: SlicePlayer, recipe_id: String, batches: int) -> bool:
+	if not can_craft_batch(player, recipe_id, batches):
+		return false
+	# Synchronous preflight: no partial batch and no separate materials wallet.
+	for index in range(batches):
+		player.craft(recipe_id)
+	return true

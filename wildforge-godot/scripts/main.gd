@@ -21,6 +21,8 @@ var active_actor_id := ""
 var dialogue_health := 0.0
 var warehouse_transfer: Dictionary = {}
 var road_repair: Dictionary = {}
+var selected_recipe := ""
+var crafting_batches := 1
 var autosave_elapsed := 0.0
 const AUTOSAVE_INTERVAL := 20.0
 
@@ -78,6 +80,8 @@ func _ready() -> void:
 	dialogue_overlay.security_action_requested.connect(_security_action)
 	dialogue_overlay.storage_route_requested.connect(_mark_storage_route)
 	dialogue_overlay.beast_feed_requested.connect(_feed_beast)
+	dialogue_overlay.recipe_selected.connect(_select_recipe)
+	dialogue_overlay.craft_batch_selected.connect(_select_craft_batch)
 	ui_layer.add_child(dialogue_overlay)
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
@@ -138,6 +142,12 @@ func _open_dialogue(payload: Dictionary) -> void:
 	if active_interaction_kind == "route_hazard":
 		presented["security_action"] = "抢修道路 · 4份建材 · 4秒"
 		presented["dialogue"] = [_road_repair_description()]
+	selected_recipe = ""
+	crafting_batches = 1
+	if active_interaction_kind in ["workbench", "campfire"]:
+		presented["recipes"] = SliceCrafting.recipes_at(active_interaction_kind)
+		if not presented["recipes"].is_empty():
+			selected_recipe = String(presented["recipes"][0])
 	presented["storage_routes"] = actor_authority.storage_destinations()
 	if active_interaction_kind == "merchant":
 		for route in world.settlement_authority.route_repair_destinations(active_merchant_settlement):
@@ -147,6 +157,8 @@ func _open_dialogue(payload: Dictionary) -> void:
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(true)
 	dialogue_overlay.open_dialogue(presented)
+	if not selected_recipe.is_empty():
+		_refresh_crafting()
 
 func _close_dialogue() -> void:
 	road_repair.clear()
@@ -377,11 +389,9 @@ func _security_action() -> void:
 			actor_authority.tend_beast(false)
 			dialogue_overlay.security_button.text = _beast_action_label()
 		return
-	if active_interaction_kind == "workbench":
-		if SliceCrafting.craft(player, "storage_box"):
-			dialogue_overlay.close_dialogue()
-		else:
-			dialogue_overlay.body_label.text = "需要靠近工作台，备好8块木板和2块石头。"
+	if active_interaction_kind in ["workbench", "campfire"]:
+		var crafted := SliceCrafting.craft_batch(player, selected_recipe, crafting_batches)
+		_refresh_crafting("制作完成。" if crafted else "材料不足、装备已拥有或离设施太远。")
 		return
 	if active_interaction_kind == "player_storage":
 		if actor_authority.pack_storage(active_actor_id):
@@ -528,3 +538,36 @@ func _update_road_repair(delta: float) -> void:
 		dialogue_overlay.security_button.visible = not bool(result.get("cleared", false))
 	else:
 		dialogue_overlay.body_label.text = _road_repair_description()
+
+func _select_recipe(recipe_id: String) -> void:
+	if recipe_id not in SliceCrafting.recipes_at(active_interaction_kind):
+		return
+	selected_recipe = recipe_id
+	if bool(SliceCrafting.RECIPES[recipe_id].get("unique", false)):
+		crafting_batches = 1
+		dialogue_overlay.craft_batch_picker.select(0)
+	_refresh_crafting()
+
+func _select_craft_batch(batches: int) -> void:
+	if batches not in [1, 5]:
+		return
+	crafting_batches = batches
+	_refresh_crafting()
+
+func _refresh_crafting(feedback := "") -> void:
+	if selected_recipe.is_empty() or not SliceCrafting.RECIPES.has(selected_recipe):
+		return
+	var recipe: Dictionary = SliceCrafting.RECIPES[selected_recipe]
+	var names: Dictionary = SliceDialogueOverlay.GOODS_LABELS
+	var needs: Array[String] = []
+	for item in recipe["need"]:
+		var required := int(recipe["need"][item]) * crafting_batches
+		var have := player.item_count(String(item))
+		needs.append("%s %d/%d%s" % [String(names.get(String(item), String(item))), have, required, "（不足）" if have < required else ""])
+	var unique := bool(recipe.get("unique", false))
+	dialogue_overlay.craft_batch_picker.disabled = unique
+	var out_name := String(names.get(String(recipe["out_id"]), "物品"))
+	dialogue_overlay.body_label.text = "%s产出：%s ×%d\n材料：%s" % [feedback, out_name, int(recipe["out_n"]) * crafting_batches, " · ".join(needs)]
+	dialogue_overlay.security_button.visible = true
+	dialogue_overlay.security_button.disabled = not SliceCrafting.can_craft_batch(player, selected_recipe, crafting_batches)
+	dialogue_overlay.security_button.text = "制作%s ×%d" % [out_name, int(recipe["out_n"]) * crafting_batches]

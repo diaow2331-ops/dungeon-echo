@@ -3,10 +3,12 @@ extends Control
 
 const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
 
-const GOODS_LABELS := {"storage_box": "储物箱", "raw_meat": "鲜肉", "wood": "木材", "ice": "冰块", "snow": "积雪", "ash": "灰烬", "sandstone": "砂岩", "basalt": "玄武岩", "stone": "石块", "soil": "泥土", "plank": "木板", "coal": "煤炭", "copper_ore": "铜矿", "copper_bar": "铜锭", "ancient_core": "远古核心", "trail_ration": "旅行口粮", "wood_pick": "木镐", "stone_pick": "石镐", "stone_blade": "石刃", "copper_pick": "铜镐", "delver_pick": "遗迹镐"}
+const GOODS_LABELS := {"storage_box": "储物箱", "workbench": "工作台", "campfire": "营火", "traveler_hatchet": "旅行手斧", "traveler_sword": "旅行短剑", "raw_meat": "鲜肉", "wood": "木材", "ice": "冰块", "snow": "积雪", "ash": "灰烬", "sandstone": "砂岩", "basalt": "玄武岩", "stone": "石块", "soil": "泥土", "plank": "木板", "coal": "煤炭", "copper_ore": "铜矿", "copper_bar": "铜锭", "ancient_core": "远古核心", "trail_ration": "旅行口粮", "wood_pick": "木镐", "stone_pick": "石镐", "stone_blade": "石刃", "copper_pick": "铜镐", "delver_pick": "遗迹镐"}
 
 const TOWN_LABELS := {"verdant_mossbridge": "苔桥镇", "frost_frostmirror": "霜镜站", "ember_cinder_ridge": "烬脊营"}
 
+signal recipe_selected(recipe_id: String)
+signal craft_batch_selected(batches: int)
 signal beast_feed_requested
 signal storage_route_requested(actor_id: String)
 signal security_action_requested
@@ -17,6 +19,8 @@ signal market_item_selected(item_id: String)
 signal closed
 signal market_sell_requested(settlement_id: String, item_id: String, quantity: int)
 
+var recipe_picker: OptionButton
+var craft_batch_picker: OptionButton
 var beast_feed_button: Button
 var storage_route_picker: OptionButton
 var security_button: Button
@@ -126,6 +130,18 @@ func _ready() -> void:
 	market_sell_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	market_sell_button.pressed.connect(_sell_market_item)
 	trade_row.add_child(market_sell_button)
+	recipe_picker = OptionButton.new()
+	recipe_picker.custom_minimum_size.y = SliceMobileLayout.MIN_TOUCH_TARGET
+	recipe_picker.get_popup().add_theme_constant_override("v_separation", 36)
+	recipe_picker.item_selected.connect(func(index: int): recipe_selected.emit(String(recipe_picker.get_item_metadata(index))))
+	box.add_child(recipe_picker)
+	craft_batch_picker = OptionButton.new()
+	craft_batch_picker.custom_minimum_size.y = SliceMobileLayout.MIN_TOUCH_TARGET
+	craft_batch_picker.add_item("制作1次", 1)
+	craft_batch_picker.add_item("制作5次", 5)
+	craft_batch_picker.get_popup().add_theme_constant_override("v_separation", 36)
+	craft_batch_picker.item_selected.connect(func(index: int): craft_batch_selected.emit(craft_batch_picker.get_item_id(index)))
+	box.add_child(craft_batch_picker)
 	security_button = Button.new()
 	security_button.custom_minimum_size = Vector2(260, SliceMobileLayout.MIN_TOUCH_TARGET)
 	security_button.visible = false
@@ -165,6 +181,13 @@ func _apply_mobile_layout() -> void:
 	dialogue_panel.size = Vector2(rect.size.x, target_height)
 
 func open_dialogue(payload: Dictionary) -> void:
+	recipe_picker.clear()
+	for recipe in payload.get("recipes", []):
+		recipe_picker.add_item(String(GOODS_LABELS.get(String(recipe), String(recipe))))
+		recipe_picker.set_item_metadata(recipe_picker.item_count - 1, String(recipe))
+	recipe_picker.visible = recipe_picker.item_count > 0
+	craft_batch_picker.visible = recipe_picker.visible
+	craft_batch_picker.select(0)
 	beast_feed_button.visible = bool(payload.get("beast_care", false))
 	storage_route_picker.clear()
 	storage_route_picker.add_item("旅行导航 · 选择目的地")
