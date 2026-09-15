@@ -26,6 +26,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var settlement := world.settlement_authority as SliceSettlementAuthority
 	var factions := world.faction_authority as SliceFactionAuthority
 
@@ -71,6 +72,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(restored, snap), "active caravans restore through the normal save authority")
 	var world2 := restored.get_node("World") as SliceWorld
+	world2.progression_authority.restore_legacy_unlocked(world2.absolute_world_hour())
 	var settlement2 := world2.settlement_authority as SliceSettlementAuthority
 	var factions2 := world2.faction_authority as SliceFactionAuthority
 	_check(settlement2.active_caravans() == active, "save round-trip preserves each shipment exactly once")
@@ -112,6 +114,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(legacy_main, legacy27), "schema 27 migrates forward without inventing caravans")
 	var legacy_world := legacy_main.get_node("World") as SliceWorld
+	legacy_world.progression_authority.restore_legacy_unlocked(legacy_world.absolute_world_hour())
 	_check(legacy_world.settlement_authority.active_caravans().is_empty(), "pre-caravan saves start with no synthetic shipments")
 
 	legacy_main.free()

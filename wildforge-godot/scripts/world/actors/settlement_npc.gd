@@ -51,7 +51,24 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	viewport.set_input_as_handled()
 	var request := payload.duplicate(true)
 	request["npc_kind"] = npc_kind
+	var era_line := era_context_line()
+	if not era_line.is_empty():
+		var lines: Array = (request.get("dialogue", []) as Array).duplicate()
+		lines.push_front(era_line)
+		request["dialogue"] = lines
 	dialogue_requested.emit(request)
+
+func era_context_line() -> String:
+	if npc_kind != "merchant" or player == null or not is_instance_valid(player) or player.world == null or player.world.progression_authority == null:
+		return ""
+	match player.world.progression_authority.era:
+		SliceWorldProgressionAuthority.ERA_WANDERER: return "你还是一副刚从荒地里走出来的样子。先安顿下来，镇里的买卖才会真正向你敞开。"
+		SliceWorldProgressionAuthority.ERA_FOOTHOLD: return "至少你已经站稳脚跟了。这里能做买卖，但远方的商路还没有真正连起来。"
+		SliceWorldProgressionAuthority.ERA_OPEN_ROADS: return "最近外地货开始进镇。路一通，不同地方缺什么、盛产什么，价钱就有了意义。"
+		SliceWorldProgressionAuthority.ERA_FRACTURE: return "路还通着，但气氛不对了。商队在变少，越值钱的货越要看清沿途风险。"
+		SliceWorldProgressionAuthority.ERA_WARFRONT: return "战事已经能影响货路和库存。现在每一车补给，都可能改变一座聚落能撑多久。"
+		SliceWorldProgressionAuthority.ERA_REFORGING: return "旧的格局已经不是铁板一块。货物流向哪里，旗帜最后插在哪里，都可能被人改写。"
+	return ""
 
 func _draw() -> void:
 	if npc_kind == "player_storage":
@@ -83,7 +100,8 @@ func _draw() -> void:
 		_draw_market_stock()
 	if player != null and is_instance_valid(player) and player.global_position.distance_to(global_position) <= 118.0:
 		var font := ThemeDB.fallback_font
-		var label := "交易" if npc_kind == "merchant" else "交谈"
+		var market_open := player.world == null or player.world.progression_authority == null or player.world.progression_authority.allows_local_market()
+		var label := ("交易" if market_open else "交谈") if npc_kind == "merchant" else "交谈"
 		draw_rect(Rect2(-26, -78, 52, 24), Color(0.05, 0.09, 0.08, 0.9))
 		draw_string(font, Vector2(-18, -61), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("f2e7c9"))
 

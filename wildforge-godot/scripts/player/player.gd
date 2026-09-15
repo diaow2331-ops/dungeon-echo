@@ -381,6 +381,8 @@ func eat_item(item_id: String) -> bool:
 	starvation_tick = 0.0
 	if world != null:
 		world.feedback_burst(global_position + Vector2(0, -22), Color("d8a45d"), 5, 54.0)
+		if world.progression_authority != null:
+			world.progression_authority.record_milestone("survival_ready")
 	return true
 
 func preferred_food_id() -> String:
@@ -409,6 +411,8 @@ func craft(recipe_id: String) -> bool:
 	camera_trauma = maxf(camera_trauma, 0.025)
 	if world != null:
 		world.feedback_burst(global_position + Vector2(0, -24), Color("d1aa6f"), 6, 62.0)
+		if world.progression_authority != null and recipe_id in ["wood_pick", "stone_pick", "stone_blade", "campfire", "trail_ration"]:
+			world.progression_authority.record_milestone("survival_ready")
 	return true
 
 func context_label() -> String:

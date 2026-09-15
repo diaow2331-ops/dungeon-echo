@@ -27,6 +27,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var player := main.get_node("Player") as SlicePlayer
 	var authority := main.actor_authority as SliceWorldActorAuthority
 	var merchant_ids := authority.actor_ids(SliceWorldActorAuthority.KIND_MERCHANT)
@@ -80,7 +81,10 @@ func _run() -> void:
 	var first_line := overlay.body_label.text
 	overlay.next_button.emit_signal("pressed")
 	_check(overlay.visible and overlay.body_label.text != first_line, "dialogue button advances to the next test line")
-	overlay.next_button.emit_signal("pressed")
+	for _step in range(5):
+		if not overlay.visible:
+			break
+		overlay.next_button.emit_signal("pressed")
 	await process_frame
 	_check(not overlay.visible and not player.interaction_locked, "final dialogue line closes and restores player control")
 	_check(not main.touch_controls.interaction_blocked, "dialogue close restores mobile interaction")

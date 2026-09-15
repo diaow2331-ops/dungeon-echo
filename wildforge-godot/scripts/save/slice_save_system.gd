@@ -1,7 +1,9 @@
 extends RefCounted
 class_name SliceSaveSystem
 
-const SAVE_VERSION := 30
+const SAVE_VERSION := 31
+const LEGACY_POPULATION_SAVE_VERSION := 30
+const LEGACY_POPULATION_SAVE_PATH := "user://wildforge-godot-v030.json"
 const LEGACY_TRAVEL_EVENT_SAVE_VERSION := 29
 const LEGACY_TRAVEL_EVENT_SAVE_PATH := "user://wildforge-godot-v029.json"
 const LEGACY_LOGISTICS_SAVE_VERSION := 28
@@ -16,7 +18,7 @@ const LEGACY_SECURITY_SAVE_VERSION := 24
 const LEGACY_SECURITY_SAVE_PATH := "user://wildforge-godot-v024.json"
 const LEGACY_ECONOMY_SAVE_VERSION := 23
 const LEGACY_ECONOMY_SAVE_PATH := "user://wildforge-godot-v023.json"
-const SAVE_PATH := "user://wildforge-godot-v030.json"
+const SAVE_PATH := "user://wildforge-godot-v031.json"
 const LEGACY_THREE_SETTLEMENT_SAVE_VERSION := 22
 const LEGACY_THREE_SETTLEMENT_SAVE_PATH := "user://wildforge-godot-v022.json"
 const LEGACY_FACTION_SAVE_VERSION := 21
@@ -59,6 +61,7 @@ static func snapshot(main: Node) -> Dictionary:
 		"caravans": world.settlement_authority.export_caravans(),
 		"displacements": world.settlement_authority.export_displacements(),
 		"factions": world.faction_authority.export_state(),
+		"world_progression": world.progression_authority.export_state(),
 		"settlement_security": _actor_authority(main).export_security(),
 		"lost_cargo": _actor_authority(main).export_lost_cargo(),
 		"player_storage": _actor_authority(main).export_storage(),
@@ -82,14 +85,14 @@ static func snapshot(main: Node) -> Dictionary:
 
 static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
-	if version not in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION, LEGACY_FULL_SAVE_VERSION]:
+	if version not in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION, LEGACY_DELTA_SAVE_VERSION, LEGACY_FULL_SAVE_VERSION]:
 		return false
 	var world := main.get_node_or_null("World") as SliceWorld
 	var player := main.get_node_or_null("Player") as SlicePlayer
 	if world == null or player == null:
 		return false
 	var source_seed := SliceWorld.DEFAULT_WORLD_SEED
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION]:
 		if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION or not data.has("world_seed"):
 			return false
 		source_seed = int(data["world_seed"])
@@ -129,25 +132,25 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 		var overrides = data.get("world_overrides", [])
 		if not overrides is Array:
 			return false
-		var restored_overrides := world.restore_cell_overrides(overrides) if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION] else (world.restore_generation3_overrides(overrides) if version in [LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION] else (world.restore_generation2_overrides(overrides) if version in [LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION] else world.restore_cell_overrides(overrides)))
+		var restored_overrides := world.restore_cell_overrides(overrides) if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION] else (world.restore_generation3_overrides(overrides) if version in [LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION] else (world.restore_generation2_overrides(overrides) if version in [LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION] else world.restore_cell_overrides(overrides)))
 		if not restored_overrides:
 			return false
 	else:
 		var legacy_rows = data.get("world_cells", [])
 		if not legacy_rows is Array or not world.restore_legacy_v13_cells(legacy_rows):
 			return false
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION, LEGACY_OWNERSHIP_SAVE_VERSION]:
 		var claims = data.get("ownership_claims", {})
 		if not claims is Dictionary or not world.ownership_authority.restore_claims(claims):
 			return false
 		if version in [LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION]:
 			world.apply_baseline_ownership(SliceWorld.GENERATION4_NEW_SETTLEMENT_IDS)
-		elif version not in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION]:
+		elif version not in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION]:
 			world.apply_baseline_ownership()
 	else:
 		world.ownership_authority.clear()
 		world.apply_baseline_ownership()
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION, LEGACY_VEGETATION_SAVE_VERSION, LEGACY_FLUID_SAVE_VERSION]:
 		var fluids = data.get("fluid_cells", [])
 		if not fluids is Array or not world.fluid_authority.restore_state(fluids):
 			return false
@@ -172,7 +175,7 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	player.health = clampf(float(p.get("health", player.max_health)), 1.0, player.max_health)
 	player.hunger = clampf(float(p.get("hunger", SlicePlayer.HUNGER_START)), 0.0, SlicePlayer.HUNGER_MAX)
 	player.stock = _sanitized_stock(p.get("stock", {}))
-	player.forge_marks = maxi(0, int(p.get("marks", 0))) if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION] else 0
+	player.forge_marks = maxi(0, int(p.get("marks", 0))) if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION] else 0
 	player.equipped_pick_id = _valid_pick(String(p.get("pick", "")))
 	player.equipped_axe_id = _valid_axe(String(p.get("axe", "")))
 	player.equipped_weapon_id = _valid_weapon(String(p.get("weapon", "starter_blade")))
@@ -186,7 +189,7 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	var actor_authority := _actor_authority(main)
 	if actor_authority == null:
 		return false
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION, LEGACY_SEEDED_SAVE_VERSION]:
 		if not actor_authority.restore_vegetation_delta(data.get("vegetation", {})):
 			return false
 	elif version == LEGACY_VEGETATION_SAVE_VERSION:
@@ -198,31 +201,39 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	_restore_actor_presence(main, SliceWorldActorAuthority.KIND_RELIC_CACHE, data.get("caches", []), world, "relic_caches")
 	_restore_actor_presence(main, SliceWorldActorAuthority.KIND_RUIN_GUARD, data.get("guards", []), world, "ruin_guards")
 	world.settlement_authority.register_baseline(world.baseline_settlements)
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION]:
 		if not world.settlement_authority.restore_state(data.get("settlements", [])):
 			return false
 	elif version in [LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION]:
 		if not world.settlement_authority.restore_generation3_state(data.get("settlements", [])):
 			return false
 	world.faction_authority.reset_baseline()
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION]:
 		if not world.faction_authority.restore_state(data.get("factions", {})):
 			return false
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION]:
 		if not world.settlement_authority.restore_caravans(data.get("caravans", {})):
 			return false
 	elif not world.settlement_authority.restore_caravans({}):
 		return false
-	if version == SAVE_VERSION:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION]:
 		if not world.settlement_authority.restore_displacements(data.get("displacements", {})):
 			return false
 	elif not world.settlement_authority.restore_displacements({}):
 		return false
-	if version in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION]:
+	if version in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION, LEGACY_THREE_SETTLEMENT_SAVE_VERSION, LEGACY_FACTION_SAVE_VERSION, LEGACY_SETTLEMENT_SAVE_VERSION, LEGACY_TRAVELER_SAVE_VERSION]:
 		if not world.clock.restore(data.get("world_clock", {})):
 			return false
 	else:
 		world.clock.reset()
+	if world.progression_authority == null:
+		return false
+	if version == SAVE_VERSION:
+		if not world.progression_authority.restore_state(data.get("world_progression", {})):
+			return false
+	else:
+		# Existing worlds already ran unrestricted macro systems; preserve those facts.
+		world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	if not _valid_lost_cargo(data.get("player_storage", []), "player_storage:"):
 		return false
 	actor_authority.restore_storage(data.get("player_storage", []))
@@ -272,7 +283,7 @@ static func load_from_path(main: Node, path := SAVE_PATH) -> bool:
 		if _is_supported_snapshot(candidate) and apply_snapshot(main, candidate):
 			return true
 	if path == SAVE_PATH:
-		for legacy_path in [LEGACY_TRAVEL_EVENT_SAVE_PATH, LEGACY_TRAVEL_EVENT_SAVE_PATH + ".bak", LEGACY_LOGISTICS_SAVE_PATH, LEGACY_LOGISTICS_SAVE_PATH + ".bak", LEGACY_WAR_SAVE_PATH, LEGACY_WAR_SAVE_PATH + ".bak", LEGACY_CARGO_SAVE_PATH, LEGACY_CARGO_SAVE_PATH + ".bak", LEGACY_STORAGE_SAVE_PATH, LEGACY_STORAGE_SAVE_PATH + ".bak", LEGACY_SECURITY_SAVE_PATH, LEGACY_SECURITY_SAVE_PATH + ".bak", LEGACY_ECONOMY_SAVE_PATH, LEGACY_ECONOMY_SAVE_PATH + ".bak", LEGACY_THREE_SETTLEMENT_SAVE_PATH, LEGACY_THREE_SETTLEMENT_SAVE_PATH + ".bak", LEGACY_FACTION_SAVE_PATH, LEGACY_FACTION_SAVE_PATH + ".bak", LEGACY_SETTLEMENT_SAVE_PATH, LEGACY_SETTLEMENT_SAVE_PATH + ".bak", LEGACY_TRAVELER_SAVE_PATH, LEGACY_TRAVELER_SAVE_PATH + ".bak", LEGACY_SEEDED_SAVE_PATH, LEGACY_SEEDED_SAVE_PATH + ".bak", LEGACY_VEGETATION_SAVE_PATH, LEGACY_VEGETATION_SAVE_PATH + ".bak", LEGACY_FLUID_SAVE_PATH, LEGACY_FLUID_SAVE_PATH + ".bak", LEGACY_OWNERSHIP_SAVE_PATH, LEGACY_OWNERSHIP_SAVE_PATH + ".bak", LEGACY_DELTA_SAVE_PATH, LEGACY_DELTA_SAVE_PATH + ".bak", LEGACY_FULL_SAVE_PATH, LEGACY_FULL_SAVE_PATH + ".bak"]:
+		for legacy_path in [LEGACY_POPULATION_SAVE_PATH, LEGACY_POPULATION_SAVE_PATH + ".bak", LEGACY_TRAVEL_EVENT_SAVE_PATH, LEGACY_TRAVEL_EVENT_SAVE_PATH + ".bak", LEGACY_LOGISTICS_SAVE_PATH, LEGACY_LOGISTICS_SAVE_PATH + ".bak", LEGACY_WAR_SAVE_PATH, LEGACY_WAR_SAVE_PATH + ".bak", LEGACY_CARGO_SAVE_PATH, LEGACY_CARGO_SAVE_PATH + ".bak", LEGACY_STORAGE_SAVE_PATH, LEGACY_STORAGE_SAVE_PATH + ".bak", LEGACY_SECURITY_SAVE_PATH, LEGACY_SECURITY_SAVE_PATH + ".bak", LEGACY_ECONOMY_SAVE_PATH, LEGACY_ECONOMY_SAVE_PATH + ".bak", LEGACY_THREE_SETTLEMENT_SAVE_PATH, LEGACY_THREE_SETTLEMENT_SAVE_PATH + ".bak", LEGACY_FACTION_SAVE_PATH, LEGACY_FACTION_SAVE_PATH + ".bak", LEGACY_SETTLEMENT_SAVE_PATH, LEGACY_SETTLEMENT_SAVE_PATH + ".bak", LEGACY_TRAVELER_SAVE_PATH, LEGACY_TRAVELER_SAVE_PATH + ".bak", LEGACY_SEEDED_SAVE_PATH, LEGACY_SEEDED_SAVE_PATH + ".bak", LEGACY_VEGETATION_SAVE_PATH, LEGACY_VEGETATION_SAVE_PATH + ".bak", LEGACY_FLUID_SAVE_PATH, LEGACY_FLUID_SAVE_PATH + ".bak", LEGACY_OWNERSHIP_SAVE_PATH, LEGACY_OWNERSHIP_SAVE_PATH + ".bak", LEGACY_DELTA_SAVE_PATH, LEGACY_DELTA_SAVE_PATH + ".bak", LEGACY_FULL_SAVE_PATH, LEGACY_FULL_SAVE_PATH + ".bak"]:
 			var legacy := _read_snapshot(String(legacy_path))
 			if _is_supported_snapshot(legacy) and apply_snapshot(main, legacy):
 				# Promote any supported legacy save into the current authoritative schema.
@@ -285,13 +296,13 @@ static func validate_snapshot(data: Dictionary) -> bool:
 		return false
 	if not _valid_lost_cargo(data.get("lost_cargo", [])):
 		return false
-	if int(data.get("version", 0)) not in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION]:
+	if int(data.get("version", 0)) not in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION]:
 		return false
-	if int(data.get("version", 0)) in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION] and not _valid_security_payload(data.get("settlement_security", null)):
+	if int(data.get("version", 0)) in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION] and not _valid_security_payload(data.get("settlement_security", null)):
 		return false
-	if int(data.get("version", 0)) in [SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION] and not _valid_caravan_payload(data.get("caravans", null)):
+	if int(data.get("version", 0)) in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION] and not _valid_caravan_payload(data.get("caravans", null)):
 		return false
-	if int(data.get("version", 0)) == SAVE_VERSION and not _valid_displacement_payload(data.get("displacements", null)):
+	if int(data.get("version", 0)) in [SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION] and not _valid_displacement_payload(data.get("displacements", null)):
 		return false
 	if int(data.get("world_generation", 0)) != SliceWorld.WORLD_GENERATION_VERSION:
 		return false
@@ -315,6 +326,11 @@ static func validate_snapshot(data: Dictionary) -> bool:
 		return false
 	if not _valid_faction_payload(data.get("factions", {})):
 		return false
+	if int(data.get("version", 0)) == SAVE_VERSION:
+		if not _valid_progression_payload(data.get("world_progression", null)):
+			return false
+		if not _valid_progression_consistency(data):
+			return false
 	return _validate_common(data, false)
 
 static func validate_legacy_three_settlement_snapshot(data: Dictionary) -> bool:
@@ -523,6 +539,67 @@ static func validate_legacy_full_snapshot(data: Dictionary) -> bool:
 			return false
 	return _validate_common(data)
 
+static func _valid_progression_payload(raw) -> bool:
+	if not raw is Dictionary:
+		return false
+	var era := int(raw.get("era", -1))
+	var entered := int(raw.get("era_entered_hour", -1))
+	var milestone_rows = raw.get("milestones", null)
+	var transition = raw.get("last_transition", {})
+	if era < SliceWorldProgressionAuthority.ERA_WANDERER or era > SliceWorldProgressionAuthority.MAX_ERA or entered < 0 or not milestone_rows is Array or not transition is Dictionary:
+		return false
+	var seen: Dictionary = {}
+	for raw_id in milestone_rows:
+		var id := String(raw_id)
+		if id not in SliceWorldProgressionAuthority.MILESTONE_ALLOWLIST or seen.has(id):
+			return false
+		seen[id] = true
+	if transition.is_empty():
+		return era == SliceWorldProgressionAuthority.ERA_WANDERER
+	var from_era := int(transition.get("from", -1))
+	var to_era := int(transition.get("to", -1))
+	return from_era >= 0 and from_era <= to_era and to_era == era and int(transition.get("hour", -1)) >= 0 and not String(transition.get("cause", "")).is_empty()
+
+static func _valid_progression_consistency(data: Dictionary) -> bool:
+	var progression = data.get("world_progression", {})
+	if not progression is Dictionary:
+		return false
+	var era := int(progression.get("era", -1))
+	var caravans = data.get("caravans", {})
+	var displacements = data.get("displacements", {})
+	var factions = data.get("factions", {})
+	if not caravans is Dictionary or not displacements is Dictionary or not factions is Dictionary:
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_OPEN_ROADS and not (caravans.get("active", []) as Array).is_empty():
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_FRACTURE and not (caravans.get("incident_cooldowns", {}) as Dictionary).is_empty():
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_WARFRONT and not (displacements.get("active", []) as Array).is_empty():
+		return false
+	var relation_rows = factions.get("relations", [])
+	var raid_rows = factions.get("raids", [])
+	var faction_rows = factions.get("factions", [])
+	if not relation_rows is Array or not raid_rows is Array or not faction_rows is Array:
+		return false
+	for row in relation_rows:
+		if not row is Array or row.size() < 3:
+			return false
+		var score := int(row[1])
+		var stance := String(row[2])
+		if era < SliceWorldProgressionAuthority.ERA_OPEN_ROADS and stance == "trade":
+			return false
+		if era < SliceWorldProgressionAuthority.ERA_FRACTURE and score <= -35:
+			return false
+		if era < SliceWorldProgressionAuthority.ERA_WARFRONT and stance == "war":
+			return false
+	if era < SliceWorldProgressionAuthority.ERA_WARFRONT and not raid_rows.is_empty():
+		return false
+	if era < SliceWorldProgressionAuthority.ERA_REFORGING:
+		for row in faction_rows:
+			if row is Dictionary and String((row as Dictionary).get("status", "active")) == "annexed":
+				return false
+	return true
+
 static func _validate_common(data: Dictionary, require_legacy_trees := true) -> bool:
 	var player = data.get("player", {})
 	if not player is Dictionary:
@@ -550,7 +627,7 @@ static func _valid_world_row(row, allow_air: bool, max_tile := SliceWorld.MAX_BL
 static func _is_supported_snapshot(data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
 	match version:
-		SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION: return validate_snapshot(data)
+		SAVE_VERSION, LEGACY_POPULATION_SAVE_VERSION, LEGACY_TRAVEL_EVENT_SAVE_VERSION, LEGACY_LOGISTICS_SAVE_VERSION, LEGACY_WAR_SAVE_VERSION, LEGACY_CARGO_SAVE_VERSION, LEGACY_STORAGE_SAVE_VERSION, LEGACY_SECURITY_SAVE_VERSION, LEGACY_ECONOMY_SAVE_VERSION: return validate_snapshot(data)
 		LEGACY_THREE_SETTLEMENT_SAVE_VERSION: return validate_legacy_three_settlement_snapshot(data)
 		LEGACY_FACTION_SAVE_VERSION: return validate_legacy_faction_snapshot(data)
 		LEGACY_SETTLEMENT_SAVE_VERSION: return validate_legacy_settlement_snapshot(data)

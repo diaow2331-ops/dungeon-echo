@@ -23,6 +23,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var player := main.get_node("Player") as SlicePlayer
 	var settlement := world.settlement_authority as SliceSettlementAuthority
 	var actors := main.actor_authority as SliceWorldActorAuthority
@@ -61,6 +62,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(restored, snap), "heartbeat economy state restores through the existing save authority")
 	var world2 := restored.get_node("World") as SliceWorld
+	world2.progression_authority.restore_legacy_unlocked(world2.absolute_world_hour())
 	var settlement2 := world2.settlement_authority as SliceSettlementAuthority
 	_check(settlement2.item_count(settlement_id, "raw_meat") == saved_stock, "restoring a save does not replay already-consumed settlement stock")
 	var cursor_after_restore := world2.simulation_hour_cursor

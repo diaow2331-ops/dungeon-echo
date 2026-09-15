@@ -23,6 +23,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var authority := world.faction_authority as SliceFactionAuthority
 	_check(authority.ids() == ["ember", "frost", "verdant"], "world political authority is hard-capped to the three canonical factions")
 	var exported := authority.export_state()

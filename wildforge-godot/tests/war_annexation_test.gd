@@ -23,6 +23,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var player := main.get_node("Player") as SlicePlayer
 	var factions := world.faction_authority as SliceFactionAuthority
 	var settlements := world.settlement_authority as SliceSettlementAuthority
@@ -75,6 +76,7 @@ func _run() -> void:
 	await process_frame
 	_check(SliceSaveSystem.apply_snapshot(restored, snap), "active war restores through the normal save authority")
 	var world2 := restored.get_node("World") as SliceWorld
+	world2.progression_authority.restore_legacy_unlocked(world2.absolute_world_hour())
 	var factions2 := world2.faction_authority as SliceFactionAuthority
 	var settlements2 := world2.settlement_authority as SliceSettlementAuthority
 	var actors2 := restored.actor_authority as SliceWorldActorAuthority

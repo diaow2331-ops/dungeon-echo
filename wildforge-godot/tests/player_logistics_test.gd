@@ -17,6 +17,7 @@ func _run() -> void:
 	var p: SlicePlayer = main.player
 	var w: SliceWorld = main.world
 	var a: SliceWorldActorAuthority = main.actor_authority
+	w.progression_authority.restore_legacy_unlocked(w.absolute_world_hour())
 	p.stock.clear()
 	p.add_item("storage_box", 1)
 	var cell := Vector2i.ZERO

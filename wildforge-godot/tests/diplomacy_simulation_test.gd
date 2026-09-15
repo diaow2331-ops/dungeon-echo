@@ -23,6 +23,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var world := main.get_node("World") as SliceWorld
+	world.progression_authority.restore_legacy_unlocked(world.absolute_world_hour())
 	var factions := world.faction_authority as SliceFactionAuthority
 	var settlements := world.settlement_authority as SliceSettlementAuthority
 
@@ -50,6 +51,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var trade_world := trade_main.get_node("World") as SliceWorld
+	trade_world.progression_authority.restore_legacy_unlocked(trade_world.absolute_world_hour())
 	var trade_factions := trade_world.faction_authority as SliceFactionAuthority
 	var trade_settlements := trade_world.settlement_authority as SliceSettlementAuthority
 	var initial_hour := trade_world.absolute_world_hour()
