@@ -72,6 +72,7 @@ run_gate res://tests/caravan_projection_test.gd 'wildforge_caravan_projection=PA
 run_gate res://tests/travel_event_test.gd 'wildforge_travel_event=PASS'
 run_gate res://tests/route_hazard_test.gd 'wildforge_route_hazard=PASS'
 run_gate res://tests/route_repair_test.gd 'wildforge_route_repair=PASS'
+run_gate res://tests/player_route_intervention_test.gd 'wildforge_player_route_intervention=PASS'
 run_gate res://tests/displacement_test.gd 'wildforge_displacement=PASS'
 run_gate res://tests/return_migration_test.gd 'wildforge_return_migration=PASS'
 run_gate res://tests/faction_authority_test.gd 'wildforge_faction_authority=PASS'

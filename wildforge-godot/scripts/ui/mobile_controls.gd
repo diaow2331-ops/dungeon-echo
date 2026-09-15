@@ -98,6 +98,14 @@ func _journey_hint() -> String:
 		return "通缉 · " + " / ".join(wanted) + " · 负重 %d/160 · 卫兵会追捕，商人拒绝交易" % int(player.carried_weight())
 	if player.hunger <= 25.0:
 		return "先补充食物，再赶路 · 中央互动键可进食" if not player.preferred_food_id().is_empty() else "饥饿了：猎取食物，带回营火烹饪"
+	var hazard := player._nearby_route_hazard()
+	if not hazard.is_empty():
+		var material := player._route_repair_material()
+		var remaining := maxi(0, int(hazard.get("until_hour", 0)) - player.world.absolute_world_hour())
+		if not material.is_empty():
+			var material_name: String = String({"wood": "木材", "sandstone": "砂岩", "basalt": "玄武岩"}.get(material, material))
+			return "商路受阻 · 中央键投入1份%s修复 · 约剩%d小时" % [String(material_name), remaining]
+		return "商路受阻 · 带木材、砂岩或玄武岩回来可直接抢修 · 约剩%d小时" % remaining
 	var actors = player.get_parent().get("actor_authority")
 	if travel_destination_id.begins_with("player_storage:") and actors != null:
 		var target: Vector2 = actors.storage_position(travel_destination_id)

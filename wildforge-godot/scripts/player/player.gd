@@ -419,6 +419,8 @@ func context_label() -> String:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return "食"
+	if _can_repair_nearby_route():
+		return "修"
 	if _can_place_carried_storage():
 		return "箱"
 	if world != null and not world.has_workbench():
@@ -456,6 +458,8 @@ func context_action() -> bool:
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return eat_item(food)
+	if _can_repair_nearby_route():
+		return _repair_nearby_route()
 	if _can_place_carried_storage():
 		var target := _placement_cell()
 		var actors = get_parent().get("actor_authority")
@@ -492,6 +496,36 @@ func context_action() -> bool:
 	if can_craft("plank"):
 		return craft("plank")
 	place_once()
+	return true
+
+func _nearby_route_hazard() -> Dictionary:
+	if world == null or world.settlement_authority == null:
+		return {}
+	return world.settlement_authority.nearby_route_hazard(global_position)
+
+func _route_repair_material() -> String:
+	for item_id in SliceSettlementAuthority.ROUTE_REPAIR_MATERIALS:
+		if item_count(item_id) > 0:
+			return item_id
+	return ""
+
+func _can_repair_nearby_route() -> bool:
+	return not _nearby_route_hazard().is_empty() and not _route_repair_material().is_empty()
+
+func _repair_nearby_route() -> bool:
+	var hazard: Dictionary = _nearby_route_hazard()
+	if hazard.is_empty():
+		return false
+	var pair_key := String(hazard.get("pair_key", ""))
+	var result: Dictionary = world.settlement_authority.player_route_repair(self, pair_key)
+	if not bool(result.get("ok", false)):
+		return false
+	if world.progression_authority != null:
+		world.progression_authority.observe_route_hazard(pair_key)
+	world.feedback_burst(global_position + Vector2(0, -18), Color("c9b27a"), 8, 72.0)
+	var actors = get_parent().get("actor_authority")
+	if actors != null:
+		actors.sync_route_hazards(true)
 	return true
 
 func nearby_market_id() -> String:

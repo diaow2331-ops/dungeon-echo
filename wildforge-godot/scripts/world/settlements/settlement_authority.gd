@@ -22,6 +22,8 @@ const SHORTAGE_CRITICAL_RATIO := 0.25
 const SHORTAGE_LOGISTICS_SCORE := 420
 const ROUTE_REPAIR_INTERVAL_HOURS := 4
 const ROUTE_REPAIR_ACCEL_HOURS := 4
+const PLAYER_ROUTE_REPAIR_ACCEL_HOURS := 6
+const PLAYER_ROUTE_REPAIR_RADIUS := 132.0
 const ROUTE_REPAIR_TREASURY_COST := 2
 const ROUTE_REPAIR_MATERIALS := ["wood", "sandstone", "basalt"]
 const RETURN_MIGRATION_INTERVAL_HOURS := 24
@@ -782,6 +784,49 @@ func route_hazard_cell(pair_key: String) -> Vector2i:
 	var bx := market_cell(String(pair[1])).x
 	var x := clampi(roundi((float(ax) + float(bx)) * 0.5), SliceWorld.MIN_X + 2, SliceWorld.MAX_X - 2)
 	return Vector2i(x, world.surface_y_at(x) - 1)
+
+func nearby_route_hazard(at: Vector2, radius := PLAYER_ROUTE_REPAIR_RADIUS) -> Dictionary:
+	var best: Dictionary = {}
+	var best_distance := radius
+	for raw_hazard in active_route_hazards():
+		var hazard: Dictionary = raw_hazard
+		var cell: Vector2i = hazard.get("cell", Vector2i(99999, 99999))
+		var distance := at.distance_to(world.cell_center(cell))
+		if distance <= best_distance:
+			best_distance = distance
+			best = hazard.duplicate(true)
+	if not best.is_empty():
+		best["distance"] = best_distance
+	return best
+
+func player_route_repair(player, pair_key: String) -> Dictionary:
+	if world.progression_authority != null and not world.progression_authority.allows_route_incidents():
+		return {"ok": false, "reason": "era_locked"}
+	if player == null or not _valid_route_pair_key(pair_key):
+		return {"ok": false, "reason": "invalid_route"}
+	var now: int = int(world.absolute_world_hour())
+	var until_hour := int(caravan_incident_cooldowns.get(pair_key, 0))
+	if until_hour <= now:
+		return {"ok": false, "reason": "route_clear"}
+	var hazard_cell: Vector2i = route_hazard_cell(pair_key)
+	if player.global_position.distance_to(world.cell_center(hazard_cell)) > PLAYER_ROUTE_REPAIR_RADIUS:
+		return {"ok": false, "reason": "too_far"}
+	var material: String = ""
+	for item_id in ROUTE_REPAIR_MATERIALS:
+		if player.item_count(item_id) > 0:
+			material = item_id
+			break
+	if material.is_empty():
+		return {"ok": false, "reason": "material_short"}
+	if not player.spend_item(material, 1):
+		return {"ok": false, "reason": "material_short"}
+	var reduced: int = mini(PLAYER_ROUTE_REPAIR_ACCEL_HOURS, maxi(0, until_hour - now))
+	var after_until: int = maxi(now, until_hour - reduced)
+	if after_until <= now:
+		caravan_incident_cooldowns.erase(pair_key)
+	else:
+		caravan_incident_cooldowns[pair_key] = after_until
+	return {"ok": true, "pair_key": pair_key, "material": material, "hours_reduced": reduced, "until_hour": after_until, "cleared": after_until <= now}
 
 func _prune_route_hazards(absolute_hour: int) -> void:
 	for raw_key in caravan_incident_cooldowns.keys().duplicate():
