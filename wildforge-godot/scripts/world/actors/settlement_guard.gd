@@ -60,8 +60,22 @@ func _input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	request["actor_id"] = actor_id
 	request["guard_dead"] = health() <= 0.0
 	request["display_name"] = "倒下的守卫" if health() <= 0.0 else String(payload.get("display_name", "仓库卫兵"))
-	request["dialogue"] = ["搜身或许能找到仓库钥匙。"] if health() <= 0.0 else ["仓库重地。拔刀袭击守卫将遭到本势力永久通缉。", "重甲卫兵 · 生命 420 · 长枪重击。前期正面交战极其危险。"]
+	request["dialogue"] = ["搜身或许能找到仓库钥匙。"] if health() <= 0.0 else _guard_dialogue()
 	dialogue_requested.emit(request)
+
+func _guard_dialogue() -> Array:
+	var lines: Array = []
+	var status := "peace"
+	if player != null and player.world != null and player.world.faction_authority != null:
+		status = player.world.faction_authority.conflict_status(String(payload.get("settlement_id", "")))
+	match status:
+		"tense": lines.append("边境正在升温。守卫已经加强警戒，长途商路风险也在上升。")
+		"war": lines.append("战事已经开始。聚落会优先保留口粮与补给，外运物资受到限制。")
+		"raid": lines.append("敌袭就在附近。击退袭击者会直接削弱这一次进攻。")
+		"occupied": lines.append("这里已经易主。土地和物产没有改变，但税收与主权已归新的控制者。")
+		_: lines.append("仓库重地。拔刀袭击守卫将遭到本势力永久通缉。")
+	lines.append("重甲卫兵 · 生命 420 · 长枪重击。前期正面交战极其危险。")
+	return lines
 
 func _physics_process(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
@@ -151,5 +165,10 @@ func _draw() -> void:
 	if hostile():
 		draw_rect(Rect2(-26, -64, 52, 5), Color("302727"))
 		draw_rect(Rect2(-26, -64, 52 * health() / MAX_HEALTH, 5), Color("d37565"))
+	if player != null and player.world != null and player.world.faction_authority != null:
+		var conflict := player.world.faction_authority.conflict_status(String(payload.get("settlement_id", "")))
+		if conflict in ["tense", "war", "raid", "occupied"]:
+			var indicator := Color("d6aa5f") if conflict == "tense" else (Color("cc6a58") if conflict in ["war", "raid"] else Color("8d83a8"))
+			draw_rect(Rect2(-18, -75, 36, 5), indicator)
 	if attack_phase == 1:
 		draw_line(Vector2(0, -24), Vector2(attack_dir * 100, -24), Color("f0b457"), 3)

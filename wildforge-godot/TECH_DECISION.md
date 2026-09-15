@@ -206,3 +206,7 @@ Annexation intentionally does not call `OwnershipAuthority.transfer_owner()`. Ph
 ### v0.28 contested-war anti-snowball rule
 
 A war relation is not sufficient evidence for annexation. Raid decisiveness is derived from the current authoritative faction power gap: near-equal wars use alternating bounded probes and end in stalemate after two strikes; only a materially stronger side can create a decisive raid. This prevents a tiny deterministic starting-stock difference from becoming an irreversible conquest cascade. War reserve protection is calculated inside `SettlementAuthority.purchase_quote()`, so trade disruption modifies the same inventory facts instead of adding a separate wartime shop.
+
+### v0.28 conflict presentation is projection-only
+
+Settlement banners and guard alert posture are read-only projections. They do not persist status, controller or raid flags and therefore cannot become a second state machine. A banner resolves its current state directly from `FactionAuthority` every time the authoritative political state changes; local actor streaming only decides whether that visualization is instantiated near the player.

@@ -316,3 +316,9 @@ Markets now expose peace/tension/war/raid/occupied status and settlement securit
 Raid strength is now derived from the same faction power facts rather than always spawning a maximum assault. Near-equal powers produce one-unit raids, alternate initiative on successive raid windows, and resolve after two unanswered strikes as a stalemate rather than an annexation. Only a power gap of at least 24 creates a decisive three-unit assault that is eligible to annex a settlement. This keeps deterministic strong-vs-weak collapse while preventing ordinary parity from turning into arbitrary conquest.
 
 War also changes the real market loop. Settlements retain a larger reserve of locally consumed goods as tension escalates (25% peace baseline, 35% tension, 50% war, 75% under active raid), while player deliveries during war restore a small amount of real settlement security. When no raid is active, security recovers gradually and degraded non-annexed factions can recover readiness once the settlement is stable. `war_balance_test.gd` locks these rules into the full headless suite.
+
+### v0.28 world-readable conflict presentation
+
+Each canonical settlement now projects one lightweight live banner from `WorldActorAuthority`. The banner owns no political state: it reads `FactionAuthority.conflict_status()` and the current controller at draw time, so the same physical settlement visibly transitions through peace, tension, war, raid and occupation without rebuilding terrain or duplicating sovereignty. Settlement guards use the same live conflict read for their warning dialogue and a compact alert stripe. This is code-level presentation scaffolding for the later art pass, not a replacement art system.
+
+The visualization gate verifies that one banner per settlement follows war → raid → occupation in place, that guard dialogue reports the same state, and that occupation still leaves the founding physical ownership untouched.

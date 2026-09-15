@@ -8,6 +8,7 @@ const RelicCacheScript = preload("res://scripts/world/relic_cache.gd")
 const TreeScript = preload("res://scripts/world/tree_resource.gd")
 const GuardScript = preload("res://scripts/world/actors/settlement_guard.gd")
 const BeastScript = preload("res://scripts/world/actors/mossback.gd")
+const BannerScript = preload("res://scripts/world/actors/settlement_banner.gd")
 const BEAST_ID := "player_storage:mossback"
 const KIND_PLAYER_STORAGE := "player_storage"
 const STORAGE_CAPACITY := 480.0
@@ -23,6 +24,7 @@ const KIND_RELIC_CACHE := "relic_cache"
 const KIND_TREE := "tree"
 const KIND_MERCHANT := "merchant"
 const KIND_SETTLEMENT_GUARD := "settlement_guard"
+const KIND_SETTLEMENT_BANNER := "settlement_banner"
 
 var host: Node
 var world: SliceWorld
@@ -66,6 +68,10 @@ func register_settlement_npcs(raw_settlements: Array) -> void:
 		var settlement: Dictionary = raw_settlement
 		var settlement_id := String(settlement.get("id", ""))
 		var faction_id := String(settlement.get("founding_faction", ""))
+		var anchor_data = settlement.get("anchor_cell", [])
+		if anchor_data is Array and anchor_data.size() >= 2:
+			var banner_cell := Vector2i(int(anchor_data[0]) - 10, int(anchor_data[1]))
+			_register_actor(settlement_id + ":banner", KIND_SETTLEMENT_BANNER, banner_cell, {"settlement_id": settlement_id, "faction_id": faction_id})
 		var hunter_id := settlement_id + ":hunter"
 		_register_actor(hunter_id, KIND_BOUNTY_HUNTER, world.settlement_authority.market_cell(settlement_id), {"settlement_id": settlement_id, "faction_id": faction_id, "hunter": true, "display_name": "悬赏追捕者", "role": "势力追捕队"})
 		if not (descriptors[hunter_id] as Dictionary).has("security_initialized"):
@@ -437,6 +443,14 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		tree.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE)
 		tree.z_index = 5
 		node = tree
+	elif kind == KIND_SETTLEMENT_BANNER:
+		var banner := BannerScript.new() as SliceSettlementBanner
+		var banner_meta: Dictionary = descriptor.get("meta", {})
+		banner.name = _node_name("SettlementBanner", actor_id)
+		banner.setup(world, String(banner_meta.get("settlement_id", "")))
+		banner.global_position = Vector2(cell.x * SliceWorld.TILE_SIZE + SliceWorld.TILE_SIZE * 0.5, (cell.y + 1) * SliceWorld.TILE_SIZE - 2.0)
+		banner.z_index = 17
+		node = banner
 	elif kind in [KIND_SETTLEMENT_GUARD, KIND_BOUNTY_HUNTER]:
 		var guard := GuardScript.new() as SliceSettlementGuard
 		var meta: Dictionary = descriptor.get("meta", {})
