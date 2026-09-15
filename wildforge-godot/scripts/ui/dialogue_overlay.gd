@@ -305,6 +305,9 @@ func update_market(market: Dictionary, feedback := "") -> void:
 		var route_risk := String(opportunity.get("risk", "peace"))
 		var risk_text := "" if route_risk == "peace" else (" · 风险：%s" % String({"tense":"边境紧张", "war":"交战区", "raid":"袭击中", "occupied":"占领区"}.get(route_risk, "局势异常")))
 		market_route_label.text = "%s需要这批物资 · 向%s约 %d 格%s · 抵达后按当地需求收购" % [destination, "东" if bool(opportunity.get("east", false)) else "西", int(opportunity.get("distance_cells", 0)), risk_text]
+		var preparation := String(opportunity.get("preparation", ""))
+		if not preparation.is_empty():
+			market_route_label.text += "\n" + preparation
 
 func _buy_market_item() -> void:
 	if not bool(active_market.get("enabled", false)) or market_buy_button.disabled:

@@ -373,3 +373,13 @@ Click a nearby route-debris marker to repair the affected trade route. Each four
 A completed repair immediately reconciles the debris projection. Once the cooldown ends, normal demand, supply and diplomatic dispatch rules determine whether caravans resume; repairs do not override war restrictions or create guaranteed trade rewards. Progress persists in the existing cooldown save field, with no additional schema or repair ledger.
 
 Validation this iteration: editor compilation and diff whitespace only. No full regression or PR merge.
+
+### Travel preparation and selectable camp crafting
+
+Merchants list currently disrupted connected routes in the travel navigation picker. Selecting one guides the player to the authoritative debris cell, reports remaining closure time and whether four matching construction materials are carried, and clears the waypoint when the route recovers. Existing storage/companion destinations share that same temporary navigation selection.
+
+Workbench and campfire interactions now expose their existing recipes directly, including ingredient quantities and shortages. Common consumables support one/five crafting batches; unique equipment remains single-batch. Batch preflight checks all required materials before calling the existing player crafting path, preserving equipment activation and feedback. Campfires now support mouse/touch interaction for cooking and smelting. No recipe or inventory copy is persisted in the UI.
+
+Merchant route hints include a rough round-trip duration with a 35% detour allowance, current carrying-speed penalty and a following companion's speed/energy needs. Food estimates account for ration sharing with the beast and a hunger reserve; they are planning guidance, not guaranteed travel times, future prices or reserved cargo. Disrupted routes explicitly suggest carrying repair materials.
+
+All three additions use current world/inventory authority and retain the existing save schema. Validation: Godot editor compilation and whitespace checks only; no full regression or PR activity this iteration.

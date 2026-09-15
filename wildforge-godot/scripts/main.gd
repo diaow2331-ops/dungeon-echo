@@ -191,6 +191,8 @@ func _market_view(settlement_id: String, selected_item := "raw_meat", quantity :
 	quote["player_marks"] = player.forge_marks
 	quote["purchase"] = world.settlement_authority.purchase_quote(settlement_id, item_id, quantity)
 	quote["opportunity"] = world.settlement_authority.export_opportunity(settlement_id, item_id, quantity)
+	if not quote["opportunity"].is_empty():
+		quote["opportunity"]["preparation"] = _travel_preparation(quote["opportunity"])
 	quote["conflict_status"] = world.faction_authority.conflict_status(settlement_id) if world.faction_authority != null else "peace"
 	quote["security"] = world.settlement_authority.security(settlement_id)
 	quote["controller"] = world.faction_authority.controller_for_settlement(settlement_id) if world.faction_authority != null else world.settlement_authority.owner_id(settlement_id)
@@ -571,3 +573,28 @@ func _refresh_crafting(feedback := "") -> void:
 	dialogue_overlay.security_button.visible = true
 	dialogue_overlay.security_button.disabled = not SliceCrafting.can_craft_batch(player, selected_recipe, crafting_batches)
 	dialogue_overlay.security_button.text = "制作%s ×%d" % [out_name, int(recipe["out_n"]) * crafting_batches]
+
+func _travel_preparation(lead: Dictionary) -> String:
+	# Conservative round trip guidance only. No reserved cargo or promised arrival price.
+	var distance := float(lead.get("distance_cells", 0)) * SliceWorld.TILE_SIZE * 2.0 * 1.35
+	var speed := SlicePlayer.SPEED * player.movement_speed_multiplier()
+	var beast := actor_authority.beast_state()
+	var accompanying := not beast.is_empty() and float(beast.get("health", 0)) > 0 and bool(beast.get("following", false))
+	var beast_rations := 0
+	if accompanying:
+		speed = minf(speed, 150.0 * (1.0 - actor_authority.storage_weight(SliceWorldActorAuthority.BEAST_ID) / 1600.0))
+		beast_rations = maxi(0, int(ceil((distance / 900.0 + 15.0 - float(beast.get("food", 0))) / 35.0)))
+	var seconds := distance / maxf(1.0, speed)
+	var rations := player.item_count("trail_ration")
+	var human_food := maxi(0, rations - beast_rations) * player.food_nourish("trail_ration") + player.item_count("raw_meat") * player.food_nourish("raw_meat")
+	var needed := maxf(0.0, seconds * SlicePlayer.HUNGER_DRAIN_PER_SEC + 25.0 - player.hunger - human_food)
+	var extra := maxi(0, beast_rations - rations) + int(ceil(needed / player.food_nourish("trail_ration")))
+	var text := "往返粗估%d分钟（含绕行余量） · %s" % [maxi(1, int(ceil(seconds / 60.0))), "现有补给可覆盖估算" if extra == 0 else "建议再带%d份旅行口粮" % extra]
+	if accompanying:
+		text += " · 含驮兽补给，途中需喂食"
+	elif not beast.is_empty() and float(beast.get("health", 0)) > 0:
+		text += " · 驮兽正在原地等候"
+	for hazard in world.settlement_authority.route_repair_destinations(active_merchant_settlement):
+		if String(hazard["destination"]) == String(lead.get("destination_id", "")):
+			text += " · 商队路线受阻，可带建材前往抢修"
+	return text
