@@ -232,3 +232,9 @@ This is intentionally not a random diplomacy simulator. If the economy and logis
 Travel events do not own a second inventory, quest ledger or reward table. `SettlementAuthority` remains the logistics owner and may emit a causal `caravan_attacked` fact while mutating the real shipment and escrow. `FactionAuthority` receives only the diplomatic consequence. `SliceWorld` forwards simulation facts synchronously, and `WorldActorAuthority` materializes recoverable cargo as a projection/consequence without becoming the source of logistics truth.
 
 Route-pair incident cooldowns are persisted with caravan authority because they constrain future logistics simulation. The spilled cargo itself is persisted by the pre-existing lost-cargo authority. This split keeps one owner for each fact and allows the Phase 4 event layer to increase travel density without inventing a parallel mission system.
+
+### v0.30 population/displacement authority boundary
+
+Population is intentionally coarse at v0.30: one integer per settlement, owned by `SettlementAuthority`, not individual persistent citizens. War pressure may transfer a small bounded group between those integers through one persisted in-transit displacement record. Demand reads that population directly; local traveler nodes are streaming projections only.
+
+This avoids premature citizen simulation while establishing the causal contract needed by Phase 4: warfare can now move people, movement changes real regional demand, and those consequences survive save/load without a refugee quest ledger or second economy.

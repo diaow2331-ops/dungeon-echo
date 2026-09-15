@@ -344,3 +344,9 @@ The causal chain is therefore shared end to end: geography creates production di
 Phase 4 starts by making long-distance travel consequences emerge from existing logistics rather than from a random event table. A real in-transit caravan on a tense or insecure route can suffer one bounded midpoint attack. The lost quantity is removed from the same shipment, the matching escrow is refunded, the canonical faction relation worsens, and a route-pair cooldown prevents repeated spam.
 
 The resulting cargo is materialized through the existing lost-cargo actor authority at the caravan's real route cell. It stays recoverable, survives save/load with provenance, and replaying the same simulation event cannot duplicate goods. Save schema 29 persists route-incident cooldowns while schema 28 migrates with no fabricated incidents.
+
+### v0.30 war displacement is a real population flow
+
+Settlements now keep one coarse population fact alongside security, inventory and treasury. Severe raid pressure can push a bounded group of civilians out of an unsafe settlement; those people are removed from the origin immediately, travel as one authoritative displacement record, and are added to the safest eligible destination only on arrival. Consumable target demand scales from the same population fact, so flight reduces demand at the damaged settlement and increases it at the refuge rather than creating a cosmetic refugee event.
+
+Only one tiny local group is projected when the player approaches the route. The visible travelers own no population state. Save schema 30 persists current population, displacement cooldowns and in-transit groups while schema 29 and earlier supported saves derive deterministic baseline populations and create no synthetic refugees.

@@ -105,7 +105,7 @@ func _run() -> void:
 	_check(actors.actor_ids(SliceWorldActorAuthority.KIND_LOST_CARGO).size() == wreck_count, "replaying the same event cannot duplicate recoverable cargo")
 
 	var snap := SliceSaveSystem.snapshot(main)
-	_check(int(snap.get("version", 0)) == 29 and SliceSaveSystem.validate_snapshot(snap), "schema 29 persists travel incidents through existing world authorities")
+	_check(int(snap.get("version", 0)) == SliceSaveSystem.SAVE_VERSION and SliceSaveSystem.validate_snapshot(snap), "current schema persists travel incidents through existing world authorities")
 	main.free()
 	await process_frame
 	var restored := _new_main()

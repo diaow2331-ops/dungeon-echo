@@ -39,9 +39,9 @@ const SETTLEMENT_DEMAND := {
 }
 
 const SPECS := [
-	{"id":"verdant_mossbridge","faction":"verdant","name":"Mossbridge","biome":"verdant_reach","search_min":-72,"search_max":-48,"target_x":-60,"distance_weight":0.08,"merchant":"米菈","merchant_role":"苔桥集市商人","guard":"洛恩","guard_role":"苔桥守卫"},
-	{"id":"frost_frostmirror","faction":"frost","name":"Frostmirror","biome":"frostglass","search_min":-350,"search_max":-290,"target_x":-320,"distance_weight":0.35,"merchant":"伊芙","merchant_role":"霜镜站商人","guard":"哈尔","guard_role":"霜镜站守卫"},
-	{"id":"ember_cinder_ridge","faction":"ember","name":"Cinder Ridge","biome":"ember_wastes","search_min":270,"search_max":330,"target_x":300,"distance_weight":0.35,"merchant":"萨恩","merchant_role":"烬脊营商人","guard":"凯娅","guard_role":"烬脊营守卫"},
+	{"id":"verdant_mossbridge","faction":"verdant","name":"Mossbridge","biome":"verdant_reach","search_min":-72,"search_max":-48,"target_x":-60,"distance_weight":0.08,"merchant":"米菈","merchant_role":"苔桥集市商人","guard":"洛恩","guard_role":"苔桥守卫","population":30},
+	{"id":"frost_frostmirror","faction":"frost","name":"Frostmirror","biome":"frostglass","search_min":-350,"search_max":-290,"target_x":-320,"distance_weight":0.35,"merchant":"伊芙","merchant_role":"霜镜站商人","guard":"哈尔","guard_role":"霜镜站守卫","population":24},
+	{"id":"ember_cinder_ridge","faction":"ember","name":"Cinder Ridge","biome":"ember_wastes","search_min":270,"search_max":330,"target_x":300,"distance_weight":0.35,"merchant":"萨恩","merchant_role":"烬脊营商人","guard":"凯娅","guard_role":"烬脊营守卫","population":26},
 ]
 
 func generate_all(world) -> Array:
@@ -85,6 +85,7 @@ func _generate_spec(world, spec: Dictionary) -> Dictionary:
 		"local_production": (economy.get("local_production", {}) as Dictionary).duplicate(true),
 		"local_consumption": (economy.get("local_consumption", {}) as Dictionary).duplicate(true),
 		"initial_treasury": 120,
+		"initial_population": maxi(1, int(spec.get("population", 24))),
 	}
 
 func _economy_for(spec: Dictionary) -> Dictionary:
