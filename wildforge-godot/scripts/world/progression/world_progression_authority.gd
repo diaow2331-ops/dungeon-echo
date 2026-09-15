@@ -9,6 +9,14 @@ const ERA_WARFRONT := 4
 const ERA_REFORGING := 5
 const MAX_ERA := ERA_REFORGING
 
+# World time is intentionally fast (24h = 12 real minutes), so era floors must be
+# measured in several world days or the entire macro game would unlock in under an hour.
+const FOOTHOLD_MIN_DWELL_HOURS := 24
+const OPEN_ROADS_MIN_DWELL_HOURS := 120
+const FRACTURE_MIN_DWELL_HOURS := 240
+const WARFRONT_RESOLVED_MIN_DWELL_HOURS := 480
+const WARFRONT_BALANCE_MIN_DWELL_HOURS := 720
+
 const MILESTONE_ALLOWLIST := [
 	"survival_ready",
 	"settlement:verdant_mossbridge",
@@ -213,20 +221,20 @@ func _next_transition(absolute_hour: int) -> Dictionary:
 			if has_milestone("survival_ready") and settlement_contact_count() >= 1:
 				return {"to": ERA_FOOTHOLD, "cause": "first_foothold"}
 		ERA_FOOTHOLD:
-			if age >= 4 and settlement_contact_count() >= 2 and (has_milestone("cross_region_delivery") or has_milestone("pack_beast_acquired")):
+			if age >= FOOTHOLD_MIN_DWELL_HOURS and settlement_contact_count() >= 2 and (has_milestone("cross_region_delivery") or has_milestone("pack_beast_acquired")):
 				return {"to": ERA_OPEN_ROADS, "cause": "open_roads"}
 		ERA_OPEN_ROADS:
-			if age >= 24 and has_milestone("cross_faction_exchange") and has_milestone("tension_catalyst"):
+			if age >= OPEN_ROADS_MIN_DWELL_HOURS and settlement_contact_count() >= 3 and has_milestone("cross_faction_exchange") and has_milestone("tension_catalyst"):
 				return {"to": ERA_FRACTURE, "cause": "first_fracture"}
 		ERA_FRACTURE:
-			if age >= 24 and has_milestone("tension_seen") and has_milestone("war_ready_pressure"):
+			if age >= FRACTURE_MIN_DWELL_HOURS and has_milestone("tension_seen") and has_milestone("war_ready_pressure"):
 				return {"to": ERA_WARFRONT, "cause": "war_ready"}
-			if age >= 24 and _is_regional_balance():
+			if age >= FRACTURE_MIN_DWELL_HOURS and _is_regional_balance():
 				return {"to": ERA_WARFRONT, "cause": "peaceful_maturity"}
 		ERA_WARFRONT:
-			if age >= 24 and has_milestone("war_resolved"):
+			if age >= WARFRONT_RESOLVED_MIN_DWELL_HOURS and has_milestone("war_resolved"):
 				return {"to": ERA_REFORGING, "cause": "war_resolved"}
-			if age >= 48 and _is_regional_balance():
+			if age >= WARFRONT_BALANCE_MIN_DWELL_HOURS and _is_regional_balance():
 				return {"to": ERA_REFORGING, "cause": "regional_balance"}
 	return {}
 

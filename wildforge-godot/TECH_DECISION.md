@@ -260,3 +260,10 @@ Demographic recovery uses the same bounded `SettlementAuthority.displacements` r
 `WorldProgressionAuthority` may answer whether a class of world consequence is currently legal, but it may not store a shadow war, economy, route, population or quest state. The canonical subsystem still owns every fact. Gates therefore sit immediately before the existing mutation: caravan dispatch, negative diplomacy, route incidents, war/raid scheduling, displacement and annexation.
 
 Era transitions are monotonic and evaluated only at the end of a world-hour simulation tick. At most one transition may occur per tick and its new permissions take effect on the next tick. This prevents causal avalanches such as shortage → tension → war → raid → displacement → annexation in one update. Schema 31 stores only the minimal progression facts; schema-30 migration enters Reforging to preserve worlds that already ran unrestricted systems.
+## v0.33 observation is distinct from simulation truth
+
+A world fact is not automatically a player-observed fact. `WorldProgressionAuthority` may infer pressure milestones from canonical economy/diplomacy state, but `tension_seen` is granted only through a player-facing encounter that revalidates the underlying fact: interacting with a genuinely tense settlement or physically approaching an active route hazard. Presentation code cannot fabricate tension because the progression authority rechecks `FactionAuthority` or `SettlementAuthority` before recording observation.
+
+Cross-region delivery is likewise derived rather than trusted from a generic sale callback. The destination must lack local production of the delivered item and at least one already-contacted settlement must canonically produce it. No item-provenance ledger is introduced.
+
+Era dwell constants are explicit production pacing floors. They compensate for the accelerated 720-second world day and prevent knowledgeable players from reaching formal war or annexation in the opening hour. They do not replace milestone requirements and therefore are not a hidden level/XP system.

@@ -32,13 +32,14 @@ func _run() -> void:
 		factions.adjust_relation("verdant", "ember", -20, "unseen_pressure")
 	_check(progression.has_milestone("war_ready_pressure"), "background pressure can become war-ready")
 	_check(not progression.has_milestone("tension_seen"), "background pressure alone is not player observation")
-	var unseen := progression.simulate_hour_end(54, [{"kind": "caravan_attacked", "origin": "verdant_mossbridge", "destination": "ember_cinder_ridge"}])
+	var warfront_floor := 30 + SliceWorldProgressionAuthority.FRACTURE_MIN_DWELL_HOURS
+	var unseen := progression.simulate_hour_end(warfront_floor, [{"kind": "caravan_attacked", "origin": "verdant_mossbridge", "destination": "ember_cinder_ridge"}])
 	_check(unseen.is_empty(), "distant incident cannot unlock Warfront by itself")
 	_check(not progression.has_milestone("tension_seen"), "background caravan attack remains unseen until the player encounters evidence")
 	main._open_dialogue({"npc_kind": "merchant", "actor_id": "verdant_mossbridge:merchant", "settlement_id": "verdant_mossbridge", "dialogue": ["路上不太平。"]})
 	_check(progression.has_milestone("tension_seen"), "speaking inside a genuinely tense settlement records player observation")
 	main.dialogue_overlay.close_dialogue()
-	var seen := progression.simulate_hour_end(55, [])
+	var seen := progression.simulate_hour_end(warfront_floor + 1, [])
 	_check(int(seen.get("to", -1)) == SliceWorldProgressionAuthority.ERA_WARFRONT, "observed sustained tension can finally unlock Warfront")
 	main.free()
 	await process_frame

@@ -32,28 +32,36 @@ func _run() -> void:
 	progression.record_milestone("cross_region_delivery")
 	var same_hour := progression.simulate_hour_end(1, [])
 	_check(same_hour.is_empty() and progression.era == SliceWorldProgressionAuthority.ERA_FOOTHOLD, "same world hour cannot chain into a second era")
-	var too_early := progression.simulate_hour_end(4, [])
+	var too_early := progression.simulate_hour_end(1 + SliceWorldProgressionAuthority.FOOTHOLD_MIN_DWELL_HOURS - 1, [])
 	_check(too_early.is_empty(), "Foothold minimum stay prevents immediate road unlock")
-	var t2 := progression.simulate_hour_end(5, [])
+	var open_roads_hour := 1 + SliceWorldProgressionAuthority.FOOTHOLD_MIN_DWELL_HOURS
+	var t2 := progression.simulate_hour_end(open_roads_hour, [])
 	_check(int(t2.get("to", -1)) == SliceWorldProgressionAuthority.ERA_OPEN_ROADS, "real second-region participation opens the roads")
 	_check(progression.allows_autonomous_caravans() and not progression.allows_tension(), "Open Roads enables logistics before political fracture")
 
 	progression.record_milestone("cross_faction_exchange")
 	progression.record_milestone("tension_catalyst")
-	var t3 := progression.simulate_hour_end(29, [])
-	_check(int(t3.get("to", -1)) == SliceWorldProgressionAuthority.ERA_FRACTURE, "trade plus a real catalyst opens the Fracture era")
+	var fracture_floor := open_roads_hour + SliceWorldProgressionAuthority.OPEN_ROADS_MIN_DWELL_HOURS
+	var unknown_region := progression.simulate_hour_end(fracture_floor, [])
+	_check(unknown_region.is_empty(), "macro fracture waits until the player has discovered all three regional powers")
+	progression.record_settlement_contact("ember_cinder_ridge")
+	var fracture_hour := fracture_floor + 1
+	var t3 := progression.simulate_hour_end(fracture_hour, [])
+	_check(int(t3.get("to", -1)) == SliceWorldProgressionAuthority.ERA_FRACTURE, "three-region awareness plus real trade pressure opens the Fracture era")
 	_check(progression.allows_tension() and progression.allows_route_incidents(), "Fracture enables warning-layer conflict")
 	_check(not progression.allows_war(), "Fracture still forbids formal war")
 	progression.record_milestone("tension_seen")
 	progression.record_milestone("war_ready_pressure")
-	var t4 := progression.simulate_hour_end(53, [])
+	var warfront_hour := fracture_hour + SliceWorldProgressionAuthority.FRACTURE_MIN_DWELL_HOURS
+	var t4 := progression.simulate_hour_end(warfront_hour, [])
 	_check(int(t4.get("to", -1)) == SliceWorldProgressionAuthority.ERA_WARFRONT, "visible sustained tension opens Warfront")
 	_check(progression.allows_war() and progression.allows_raids() and progression.allows_displacement(), "Warfront unlocks destructive conflict together")
 	_check(not progression.allows_annexation(), "Warfront still protects sovereignty from instant collapse")
 	_check(not world.faction_authority.set_status("verdant", "annexed", "ember"), "direct annexation remains blocked in Warfront")
 
 	progression.record_milestone("war_resolved")
-	var t5 := progression.simulate_hour_end(77, [])
+	var reforging_hour := warfront_hour + SliceWorldProgressionAuthority.WARFRONT_RESOLVED_MIN_DWELL_HOURS
+	var t5 := progression.simulate_hour_end(reforging_hour, [])
 	_check(int(t5.get("to", -1)) == SliceWorldProgressionAuthority.ERA_REFORGING, "resolved mature conflict opens Reforging")
 	_check(progression.allows_annexation(), "Reforging finally permits sovereignty changes")
 	_check(world.faction_authority.set_status("verdant", "annexed", "ember"), "annexation becomes legal only after Reforging")

@@ -371,3 +371,11 @@ Population flow is now reversible after war. A peaceful, secure settlement below
 World complexity is now an explicit persistent authority rather than an accidental consequence of every subsystem being live on day one. New worlds begin in `Wanderer` and advance through Foothold, Open Roads, Fracture, Warfront and Reforging. The authority owns only the current era, entry hour, an allowlisted milestone set and the last transition; it never owns economy, diplomacy, population, roads or warfare.
 
 Existing systems are gated at their real mutation boundary: local trade opens in Foothold, autonomous caravans in Open Roads, negative diplomatic tension and route incidents in Fracture, war/raids/displacement in Warfront, and annexation only in Reforging. Time, Forge Marks and kill count cannot advance a new world by themselves. Save schema 31 persists progression; schema 30 and older supported saves migrate fully unlocked so pre-era worlds never lose existing macro state.
+
+## v0.33 lived progression and pacing floors
+
+World progression no longer treats background simulation as player knowledge. Political pressure and caravan attacks may exist off-screen, but `tension_seen` is recorded only when the player actually encounters a tense settlement or approaches a real blocked route. A distant incident therefore cannot silently unlock Warfront while the player is somewhere else.
+
+Regional delivery milestones are also grounded in geography. An ordinary local sale does not count as cross-region circulation; the destination must not produce that good locally and the player must already know another settlement that really does produce it. Fracture additionally waits until all three current regional powers have been discovered.
+
+Because one Wildforge world day is only twelve real minutes, era dwell floors are measured in several world days rather than a few simulation ticks: Foothold 24h, Open Roads 120h, Fracture 240h, and Warfront 480h before conflict resolution can unlock Reforging (720h for the peaceful regional-balance route). These are pacing floors, not XP requirements: the real world milestones are still mandatory, so idling, wealth and kill count cannot advance the macro game by themselves.

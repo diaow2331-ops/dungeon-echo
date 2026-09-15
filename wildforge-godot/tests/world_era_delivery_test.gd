@@ -40,7 +40,7 @@ func _run() -> void:
 	_check(not progression.has_milestone("cross_region_delivery"), "selling Frostmirror's own produced good is not cross-region circulation")
 	main._sell_to_active_merchant(town, "wood", 1)
 	_check(progression.has_milestone("cross_region_delivery"), "delivering a known Mossbridge-produced good into Frostmirror records regional circulation")
-	var transition := progression.simulate_hour_end(5, [])
+	var transition := progression.simulate_hour_end(1 + SliceWorldProgressionAuthority.FOOTHOLD_MIN_DWELL_HOURS, [])
 	_check(int(transition.get("to", -1)) == SliceWorldProgressionAuthority.ERA_OPEN_ROADS, "real regional delivery can open the roads after the Foothold dwell time")
 	main.dialogue_overlay.close_dialogue()
 	main.free()
