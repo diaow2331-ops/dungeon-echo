@@ -391,6 +391,13 @@ func _start_warehouse_transfer(item_id: String, quantity: int, deposit := false)
 		return
 	if not _at_storage(active_merchant_settlement) or (active_interaction_kind == "warehouse" and world.settlement_authority.warehouse_locked(active_merchant_settlement)):
 		return
+	# Reject impossible handling before starting the timer; authority rechecks on completion.
+	if active_interaction_kind in ["player_storage", "lost_cargo"]:
+		var view := actor_authority.cargo_view(active_actor_id, item_id, quantity)
+		var permitted := actor_authority.can_deposit(active_actor_id, item_id, quantity) if deposit else (String(view.get("item_id", "")) == item_id and int(view.get("stock", 0)) >= quantity and player.can_carry(item_id, quantity))
+		if not permitted:
+			dialogue_overlay.update_market(view, "物资不足、载重已满或该物品不能存入，请调整数量。")
+			return
 	warehouse_transfer = {"beast_health": float(actor_authority.beast_state().get("health", 0)), "deposit": deposit, "town": active_merchant_settlement, "item": item_id, "quantity": quantity, "remaining": 1.4 + quantity * 0.35, "position": player.global_position}
 	dialogue_overlay.market_buy_button.disabled = true
 	dialogue_overlay.market_sell_button.disabled = true
