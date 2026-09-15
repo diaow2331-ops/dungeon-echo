@@ -607,7 +607,10 @@ func damage_guard(actor_id: String, damage: float, at: Vector2) -> void:
 	row["meta"] = meta
 	descriptors[actor_id] = row
 	if float(meta["health"]) <= 0.0:
-		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(String(meta.get("settlement_id", ""))), 1000)
+		var settlement_id := String(meta.get("settlement_id", ""))
+		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 1000)
+		if world.settlement_authority != null:
+			world.settlement_authority.apply_player_crime_pressure(settlement_id, 8)
 		var old_key: Vector2i = row["chunk"]
 		(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
 		var cell := world.world_to_cell(at - Vector2(0, 1))

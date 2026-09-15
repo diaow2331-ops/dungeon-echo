@@ -306,6 +306,11 @@ func _observe_world_facts() -> void:
 		return
 	if era >= ERA_OPEN_ROADS and not world.settlement_authority.urgent_shortages().is_empty():
 		record_milestone("tension_catalyst")
+	if era >= ERA_OPEN_ROADS:
+		for faction_id in world.faction_authority.ids():
+			if world.faction_authority.player_bounty(faction_id) >= SliceFactionAuthority.PLAYER_CRIME_CATALYST_BOUNTY:
+				record_milestone("tension_catalyst")
+				break
 	if era >= ERA_FRACTURE:
 		for a in world.faction_authority.ids():
 			for b in world.faction_authority.ids():

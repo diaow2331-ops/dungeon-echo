@@ -494,7 +494,9 @@ func _update_warehouse_transfer(delta: float) -> void:
 	var recovery := active_interaction_kind in ["lost_cargo", "player_storage"]
 	var result: Dictionary = actor_authority.deposit_cargo(active_actor_id, item_id, quantity) if deposit else (actor_authority.recover_cargo(active_actor_id, item_id, quantity) if recovery else world.settlement_authority.loot_warehouse(player, town, item_id, quantity))
 	var messages := {"storage_full": "箱子已满或可存物资不足，装备中的工具会保留。", "overburdened": "背不动了，先运走一批。", "stock_short": "库存不足，减少搬运数量。", "locked": "门锁未打开。"}
-	var success_text := "存入 %d 份物资。" % quantity if deposit else ("取回 %d 份物资。" % quantity if recovery else "取得 %d 份物资 · 悬赏上升，尽快撤离！" % quantity)
+	var security_loss := int(result.get("security_loss", 0))
+	var theft_text := "取得 %d 份物资 · 治安 -%d · 悬赏上升，尽快撤离！" % [quantity, security_loss] if security_loss > 0 else "取得 %d 份物资 · 悬赏上升，尽快撤离！" % quantity
+	var success_text := "存入 %d 份物资。" % quantity if deposit else ("取回 %d 份物资。" % quantity if recovery else theft_text)
 	var feedback := success_text if bool(result.get("ok", false)) else String(messages.get(String(result.get("reason", "")), "搬运中断。"))
 	if recovery and not actor_authority.is_projected(active_actor_id):
 		dialogue_overlay.close_dialogue()
