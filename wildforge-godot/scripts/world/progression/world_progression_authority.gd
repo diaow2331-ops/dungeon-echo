@@ -109,6 +109,21 @@ func observe_route_hazard(pair_key: String) -> bool:
 			return record_milestone("tension_seen")
 	return false
 
+func record_player_delivery(destination_id: String, item_id: String) -> bool:
+	# A delivery milestone must represent regional circulation, not any arbitrary market sale.
+	if era < ERA_FOOTHOLD or world == null or world.settlement_authority == null or not has_milestone("settlement:" + destination_id):
+		return false
+	var destination_production: Dictionary = world.settlement_authority.production_profile(destination_id)
+	if int(destination_production.get(item_id, 0)) > 0:
+		return false
+	for source_id in ["verdant_mossbridge", "frost_frostmirror", "ember_cinder_ridge"]:
+		if source_id == destination_id or not has_milestone("settlement:" + source_id):
+			continue
+		var source_production: Dictionary = world.settlement_authority.production_profile(source_id)
+		if int(source_production.get(item_id, 0)) > 0:
+			return record_milestone("cross_region_delivery")
+	return false
+
 func export_state() -> Dictionary:
 	var ids := milestones.keys()
 	ids.sort()
