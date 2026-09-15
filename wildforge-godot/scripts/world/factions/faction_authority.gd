@@ -16,6 +16,7 @@ const RELATION_TRADE_EXIT := 10
 const RELATION_WAR_ENTER := -60
 const RELATION_WAR_EXIT := -20
 const STALEMATE_RELIEF := 6
+const PLAYER_CRIME_CATALYST_BOUNTY := 500
 const BASELINE := [
 	{"id": "verdant", "biome": "verdant"},
 	{"id": "ember", "biome": "ember"},
@@ -311,7 +312,7 @@ func hostile_to_player(faction_id: String) -> bool:
 
 func pursuit_due(faction_id: String) -> bool:
 	var sovereign := controller_id(faction_id)
-	return factions.has(sovereign) and player_bounty(sovereign) >= 500 and world.absolute_world_hour() >= int((factions[sovereign] as Dictionary).get("pursuit_due_hour", 0))
+	return factions.has(sovereign) and player_bounty(sovereign) >= PLAYER_CRIME_CATALYST_BOUNTY and world.absolute_world_hour() >= int((factions[sovereign] as Dictionary).get("pursuit_due_hour", 0))
 
 func defer_pursuit(faction_id: String) -> void:
 	var sovereign := controller_id(faction_id)
