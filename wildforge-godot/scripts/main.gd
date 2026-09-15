@@ -116,6 +116,8 @@ func _open_dialogue(payload: Dictionary) -> void:
 	var contacted_settlement := String(payload.get("settlement_id", ""))
 	if world != null and world.progression_authority != null and not contacted_settlement.is_empty():
 		world.progression_authority.record_settlement_contact(contacted_settlement)
+		if active_interaction_kind in ["merchant", "guard"]:
+			world.progression_authority.observe_settlement_tension(contacted_settlement)
 	dialogue_health = player.health
 	warehouse_transfer.clear()
 	if active_interaction_kind in ["merchant", "warehouse", "lost_cargo", "player_storage"]:

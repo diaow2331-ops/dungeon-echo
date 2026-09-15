@@ -61,6 +61,7 @@ run_gate res://tests/world_era_baseline_test.gd 'wildforge_world_era_baseline=PA
 run_gate res://tests/world_era_transition_test.gd 'wildforge_world_era_transition=PASS'
 run_gate res://tests/world_era_save_test.gd 'wildforge_world_era_save=PASS'
 run_gate res://tests/world_era_no_backlog_test.gd 'wildforge_world_era_no_backlog=PASS'
+run_gate res://tests/world_era_observation_test.gd 'wildforge_world_era_observation=PASS'
 run_gate res://tests/world_era_paths_test.gd 'wildforge_world_era_paths=PASS'
 run_gate res://tests/world_era_presentation_test.gd 'wildforge_world_era_presentation=PASS'
 run_gate res://tests/caravan_logistics_test.gd 'wildforge_caravan_logistics=PASS'

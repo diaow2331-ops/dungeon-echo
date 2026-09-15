@@ -92,6 +92,23 @@ func settlement_contact_count() -> int:
 			count += 1
 	return count
 
+func observe_settlement_tension(settlement_id: String) -> bool:
+	# Observation is a player-facing fact, not a synonym for background political pressure.
+	if era < ERA_FRACTURE or world == null or world.faction_authority == null or settlement_id.is_empty():
+		return false
+	var status := String(world.faction_authority.conflict_status(settlement_id))
+	if status not in ["tense", "war", "raid", "occupied"]:
+		return false
+	return record_milestone("tension_seen")
+
+func observe_route_hazard(pair_key: String) -> bool:
+	if era < ERA_FRACTURE or world == null or world.settlement_authority == null or pair_key.is_empty():
+		return false
+	for raw_hazard in world.settlement_authority.active_route_hazards():
+		if raw_hazard is Dictionary and String((raw_hazard as Dictionary).get("pair_key", "")) == pair_key:
+			return record_milestone("tension_seen")
+	return false
+
 func export_state() -> Dictionary:
 	var ids := milestones.keys()
 	ids.sort()
@@ -159,10 +176,6 @@ func _observe_event(event: Dictionary) -> void:
 				record_milestone("cross_faction_exchange")
 	elif kind in ["caravan_attacked", "route_repair"]:
 		record_milestone("tension_catalyst")
-		if kind == "caravan_attacked":
-			record_milestone("tension_seen")
-	elif kind == "raid_started":
-		record_milestone("tension_seen")
 
 func _observe_world_facts() -> void:
 	if world == null or world.settlement_authority == null or world.faction_authority == null:
@@ -175,8 +188,6 @@ func _observe_world_facts() -> void:
 				if a >= b:
 					continue
 				var score := int(world.faction_authority.relation(a, b).get("score", 0))
-				if score <= -35:
-					record_milestone("tension_seen")
 				if score <= SliceFactionAuthority.RELATION_WAR_ENTER + 1:
 					record_milestone("war_ready_pressure")
 
