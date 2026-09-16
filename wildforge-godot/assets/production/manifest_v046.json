@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "rule": "crop_and_alpha_only_no_resize",
+  "outputs": [
+    {
+      "path": "assets/production/terrain/dirt.png",
+      "source": "01_terrain_dirt_stone.jpg",
+      "source_sha256": "ea958ed605dda874b8afb369036852f21cab802a7b3a58b1c16f61791592d909",
+      "source_dimensions": [
+        1536,
+        1024
+      ],
+      "source_crop": [
+        30,
+        85,
+        185,
+        240
+      ],
+      "output_dimensions": [
+        155,
+        146
+      ],
+      "resized": false,
+      "format": "PNG"
+    },
+    {
+      "path": "assets/production/terrain/stone.png",
+      "source": "01_terrain_dirt_stone.jpg",
+      "source_sha256": "ea958ed605dda874b8afb369036852f21cab802a7b3a58b1c16f61791592d909",
+      "source_dimensions": [
+        1536,
+        1024
+      ],
+      "source_crop": [
+        30,
+        470,
+        185,
+        625
+      ],
+      "output_dimensions": [
+        155,
+        153
+      ],
+      "resized": false,
+      "format": "PNG"
+    },
+    {
+      "path": "assets/production/terrain/coal_overlay.png",
+      "source": "04_cave_ores.jpg",
+      "source_sha256": "959f3595161c02e7a8f75ceeb6810f962d9af2c9bd347357a0dfa077df3d99e6",
+      "source_dimensions": [
+        1536,
+        1024
+      ],
+      "source_crop": [
+        40,
+        500,
+        180,
+        575
+      ],
+      "output_dimensions": [
+        83,
+        66
+      ],
+      "resized": false,
+      "format": "PNG"
+    },
+    {
+      "path": "assets/production/terrain/copper_overlay.png",
+      "source": "04_cave_ores.jpg",
+      "source_sha256": "959f3595161c02e7a8f75ceeb6810f962d9af2c9bd347357a0dfa077df3d99e6",
+      "source_dimensions": [
+        1536,
+        1024
+      ],
+      "source_crop": [
+        190,
+        500,
+        330,
+        575
+      ],
+      "output_dimensions": [
+        83,
+        71
+      ],
+      "resized": false,
+      "format": "PNG"
+    },
+    {
+      "path": "assets/production/environment/wild_tree.png",
+      "source": "03_forest_trees.jpg",
+      "source_sha256": "76db2c45b7d57bda886ebada917df90548881a81607954ef64c0ae3a534f7618",
+      "source_dimensions": [
+        1536,
+        1024
+      ],
+      "source_crop": [
+        190,
+        690,
+        430,
+        1015
+      ],
+      "output_dimensions": [
+        228,
+        299
+      ],
+      "resized": false,
+      "format": "PNG"
+    }
+  ]
+}

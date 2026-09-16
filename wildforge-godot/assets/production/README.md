@@ -18,3 +18,7 @@ Rules:
 
 Current P0 source order is tracked in `res://data/art_manifest.json`.
 Music is intentionally deferred and does not block this visual pass.
+
+## v0.46 environment batch
+
+`manifest_v046.json` adds source-density, lossless production crops for dirt, stone, coal/copper ore overlays and the canonical wild tree. Runtime presentation scales these assets; files are not pre-downsampled. Unmatched biome materials continue to use their existing safe fallback until dedicated art is available.

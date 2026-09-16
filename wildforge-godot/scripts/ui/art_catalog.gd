@@ -4,6 +4,7 @@ class_name SliceArtCatalog
 const ITEM_ICON_DIR := "res://assets/production/ui/items/"
 const PLAYER_DIR := "res://assets/production/player/"
 const TERRAIN_DIR := "res://assets/production/terrain/"
+const ENVIRONMENT_DIR := "res://assets/production/environment/"
 
 const ITEM_FILES := {
 	"soil":"soil.png", "stone":"stone.png", "ash":"ash.png", "sandstone":"sandstone.png", "basalt":"basalt.png",
@@ -24,6 +25,9 @@ static func player_texture(state: String) -> Texture2D:
 
 static func terrain_texture(tile_name: String) -> Texture2D:
 	return _texture(TERRAIN_DIR + tile_name + ".png")
+
+static func environment_texture(asset_name: String) -> Texture2D:
+	return _texture(ENVIRONMENT_DIR + asset_name + ".png")
 
 static func _texture(path: String) -> Texture2D:
 	if path.is_empty():

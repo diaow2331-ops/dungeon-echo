@@ -1,6 +1,8 @@
 extends Node2D
 class_name SliceTreeResource
 
+const ArtCatalog = preload("res://scripts/ui/art_catalog.gd")
+
 var world: SliceWorld
 var player: SlicePlayer
 var species_id := "wild_tree"
@@ -14,6 +16,7 @@ var world_actor_authority: RefCounted
 func _ready() -> void:
 	add_to_group("harvestables")
 	add_to_group("resource_trees")
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	queue_redraw()
 
 func apply_hit(_damage: float, _force := Vector2.ZERO) -> void:
@@ -35,9 +38,15 @@ func apply_hit(_damage: float, _force := Vector2.ZERO) -> void:
 func _draw() -> void:
 	var lean := float(3 - hp) * 0.035
 	draw_set_transform(Vector2.ZERO, lean, Vector2.ONE)
-	draw_rect(Rect2(-6, -54, 12, 58), Color("805a3c"))
-	draw_rect(Rect2(-3, -50, 4, 45), Color("a4774d"))
-	draw_circle(Vector2(-10, -58), 18.0, Color("547b4d"))
-	draw_circle(Vector2(9, -61), 21.0, Color("5f8754"))
-	draw_circle(Vector2(0, -76), 17.0, Color("668f58"))
+	var texture := ArtCatalog.environment_texture("wild_tree")
+	if texture != null:
+		var height := 128.0
+		var width := height * float(texture.get_width()) / maxf(1.0, float(texture.get_height()))
+		draw_texture_rect(texture, Rect2(-width * 0.5, -height, width, height), false)
+	else:
+		draw_rect(Rect2(-6, -54, 12, 58), Color("805a3c"))
+		draw_rect(Rect2(-3, -50, 4, 45), Color("a4774d"))
+		draw_circle(Vector2(-10, -58), 18.0, Color("547b4d"))
+		draw_circle(Vector2(9, -61), 21.0, Color("5f8754"))
+		draw_circle(Vector2(0, -76), 17.0, Color("668f58"))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

@@ -91,9 +91,10 @@
     }
   ],
   "current_production_batch": {
-    "version": "v0.45",
-    "provenance": "assets/production/manifest_v045.json",
-    "status": "live_first_pass",
-    "music": "deferred"
+    "version": "v0.46",
+    "provenance": "assets/production/manifest_v046.json",
+    "status": "terrain_tree_ore_live_first_pass",
+    "music": "deferred",
+    "previous": "assets/production/manifest_v045.json"
   }
 }

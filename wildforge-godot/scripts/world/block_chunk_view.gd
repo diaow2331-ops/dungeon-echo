@@ -1,6 +1,8 @@
 extends Node2D
 class_name SliceBlockChunkView
 
+const ArtCatalog = preload("res://scripts/ui/art_catalog.gd")
+
 var world: SliceWorld
 var chunk_key := Vector2i.ZERO
 
@@ -8,6 +10,7 @@ func setup(owner_world: SliceWorld, key: Vector2i) -> void:
 	world = owner_world
 	chunk_key = key
 	position = Vector2(key * SliceWorld.CHUNK_SIZE) * SliceWorld.TILE_SIZE
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	queue_redraw()
 
 func _draw() -> void:
@@ -34,6 +37,12 @@ func _draw() -> void:
 				var air_darkness := clampf(1.0 - world.light_level(cell), 0.0, 1.0) * 0.82
 				if air_darkness > 0.01:
 					draw_rect(Rect2(air_pos, Vector2(SliceWorld.TILE_SIZE, SliceWorld.TILE_SIZE)), Color(0.015, 0.025, 0.035, air_darkness))
+				continue
+			var pos := Vector2(lx, ly) * SliceWorld.TILE_SIZE
+			if _draw_production_tile(tile, pos):
+				var live_darkness := clampf(1.0 - world.light_level(cell), 0.0, 1.0) * 0.82
+				if live_darkness > 0.01:
+					draw_rect(Rect2(pos, Vector2(SliceWorld.TILE_SIZE, SliceWorld.TILE_SIZE)), Color(0.015, 0.025, 0.035, live_darkness))
 				continue
 			var color := Color("6d4c37")
 			if tile == SliceWorld.GRASS:
@@ -62,7 +71,6 @@ func _draw() -> void:
 				color = Color("76583b")
 			elif tile == SliceWorld.SETTLEMENT_STONE:
 				color = Color("7a8075")
-			var pos := Vector2(lx, ly) * SliceWorld.TILE_SIZE
 			draw_rect(Rect2(pos + Vector2.ONE, Vector2(SliceWorld.TILE_SIZE - 2, SliceWorld.TILE_SIZE - 2)), color)
 			if tile == SliceWorld.GRASS:
 				draw_rect(Rect2(pos + Vector2(1, 1), Vector2(SliceWorld.TILE_SIZE - 2, 6)), Color("9aad5b"))
@@ -97,3 +105,29 @@ func _draw() -> void:
 			var darkness := clampf(1.0 - world.light_level(cell), 0.0, 1.0) * 0.82
 			if darkness > 0.01:
 				draw_rect(Rect2(pos, Vector2(SliceWorld.TILE_SIZE, SliceWorld.TILE_SIZE)), Color(0.015, 0.025, 0.035, darkness))
+
+func _draw_production_tile(tile: int, pos: Vector2) -> bool:
+	var assets := _production_tile_assets(tile)
+	var base := assets.get("base") as Texture2D
+	var overlay := assets.get("overlay") as Texture2D
+	if base == null:
+		return false
+	var tile_size := float(SliceWorld.TILE_SIZE)
+	draw_texture_rect(base, Rect2(pos, Vector2(tile_size, tile_size)), false)
+	if overlay != null:
+		var overlay_height := tile_size * 0.64
+		var overlay_width := overlay_height * float(overlay.get_width()) / maxf(1.0, float(overlay.get_height()))
+		var overlay_pos := pos + Vector2((tile_size - overlay_width) * 0.5, tile_size - overlay_height - 2.0)
+		draw_texture_rect(overlay, Rect2(overlay_pos, Vector2(overlay_width, overlay_height)), false)
+	return true
+
+func _production_tile_assets(tile: int) -> Dictionary:
+	if tile == SliceWorld.DIRT:
+		return {"base": ArtCatalog.terrain_texture("dirt"), "overlay": null}
+	if tile == SliceWorld.STONE:
+		return {"base": ArtCatalog.terrain_texture("stone"), "overlay": null}
+	if tile == SliceWorld.COAL:
+		return {"base": ArtCatalog.terrain_texture("stone"), "overlay": ArtCatalog.terrain_texture("coal_overlay")}
+	if tile == SliceWorld.COPPER:
+		return {"base": ArtCatalog.terrain_texture("stone"), "overlay": ArtCatalog.terrain_texture("copper_overlay")}
+	return {}

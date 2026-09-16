@@ -22,7 +22,7 @@ Before any faction/economy migration, the slice must make the basic verbs feel g
 
 ## Art policy during the engine proof
 
-Final art is intentionally deferred. The proof uses procedural placeholder shapes so gameplay timing can be evaluated independently of polish. Once the feel gate passes, Godot's 2D pipeline will own production art: nearest-filter pixel atlases, TileSet/TileMapLayer-based presentation over chunk data, AnimatedSprite2D/AnimationPlayer character animation, CanvasItem shaders, 2D lights, particles and themed Control UI. Art assets must never become gameplay authority; world simulation stays data-driven.
+During the engine proof, final art was intentionally deferred so gameplay timing could be evaluated independently of polish. That gate has now passed: production art is being integrated incrementally through nearest-filter local assets while gameplay authority remains data-driven.
 
 ## v0.03 rhythm milestone
 
@@ -30,7 +30,7 @@ Final art is intentionally deferred. The proof uses procedural placeholder shape
 - Melee taps have a short input buffer plus a small grounded attack step; acquisition range stays wider than actual hit range.
 - Touch mining keeps only a 90 ms aim-stick grace so minor thumb jitter does not erase progress.
 - Crawler damage is no longer passive contact damage: chase -> telegraph -> committed lunge -> recovery.
-- Player hits interrupt enemy windup/lunge. Final art remains deferred.
+- Player hits interrupt enemy windup/lunge. This line records the historical v0.03 proof state; production art integration began at v0.45.
 
 ## v0.04 material loop milestone
 
@@ -445,3 +445,9 @@ P0-B begins by making production art a local, presentation-only runtime layer. `
 Inventory and hotbar controls now accept stable `<item_id>.png` production icons with nearest filtering and keep the existing text presentation when art is absent. The player likewise owns one optional `ProductionSprite`: packaged `idle/run/jump/fall/attack` frames can replace the procedural body without touching movement, hitboxes, combat, equipment or save state.
 
 Music is intentionally deferred. This pass is allowed to ship visual assets independently so the first 30-minute experience can stop depending on procedural placeholders before the audio catalog is finalized.
+
+## v0.46 terrain, ore and vegetation art
+
+The second P0-B art pass projects lossless source-density crops onto canonical world facts: dirt and stone use production base textures, coal and copper retain their existing block IDs and receive dedicated ore overlays, and deterministic `wild_tree` actors use a production tree sprite without changing harvest durability, drops, ownership or save deltas.
+
+Only assets with a genuine matching Atlas source are replaced. Snow, ice, basalt, ash and other unmatched materials deliberately keep their prior procedural presentation until their own production art is available; recoloring an unrelated tile is not considered acceptable paid-game art. `tools/art/slice_v046.py` records source dimensions, hashes, crop rectangles and no-resize provenance in `assets/production/manifest_v046.json`.
