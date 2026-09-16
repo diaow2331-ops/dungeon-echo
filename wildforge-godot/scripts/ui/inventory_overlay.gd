@@ -3,6 +3,7 @@ class_name SliceInventoryOverlay
 
 signal open_requested
 signal close_requested
+signal nearby_storage_requested
 
 const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
 const CraftingScript = preload("res://scripts/crafting/slice_crafting.gd")
@@ -18,6 +19,8 @@ const ITEM_NAMES := {
 
 var player: SlicePlayer
 var open_button: Button
+var sort_button: Button
+var storage_button: Button
 var panel: PanelContainer
 var hotbar: HBoxContainer
 var hotbar_buttons: Array[Button] = []
@@ -74,6 +77,16 @@ func _build_panel() -> void:
 	title.add_theme_font_size_override("font_size", 22)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
+	sort_button = Button.new()
+	sort_button.text = "整理快捷栏"
+	sort_button.custom_minimum_size = Vector2(124, SliceMobileLayout.MIN_TOUCH_TARGET)
+	sort_button.pressed.connect(_auto_arrange_hotbar)
+	header.add_child(sort_button)
+	storage_button = Button.new()
+	storage_button.text = "附近储物"
+	storage_button.custom_minimum_size = Vector2(112, SliceMobileLayout.MIN_TOUCH_TARGET)
+	storage_button.pressed.connect(func(): nearby_storage_requested.emit())
+	header.add_child(storage_button)
 	var close_button := Button.new()
 	close_button.text = "关闭"
 	close_button.custom_minimum_size = Vector2(86, SliceMobileLayout.MIN_TOUCH_TARGET)
@@ -178,7 +191,7 @@ func _refresh_equipment() -> void:
 func _refresh_inventory() -> void:
 	_clear_children(inventory_grid)
 	var keys: Array = player.stock.keys()
-	keys.sort()
+	keys.sort_custom(func(a, b): return _item_sort_key(String(a)) < _item_sort_key(String(b)))
 	for raw_id in keys:
 		var item_id := String(raw_id)
 		var count := player.item_count(item_id)
@@ -197,8 +210,14 @@ func _refresh_inventory() -> void:
 
 func _refresh_crafting() -> void:
 	_clear_children(crafting_list)
-	var recipe_ids: Array = SliceCrafting.RECIPES.keys()
-	recipe_ids.sort()
+	var available: Array = []
+	var blocked: Array = []
+	for raw_id in SliceCrafting.RECIPES.keys():
+		var recipe_id := String(raw_id)
+		(available if player.can_craft(recipe_id) else blocked).append(recipe_id)
+	available.sort()
+	blocked.sort()
+	var recipe_ids: Array = available + blocked
 	for raw_id in recipe_ids:
 		var recipe_id := String(raw_id)
 		var recipe: Dictionary = SliceCrafting.RECIPES[recipe_id]
@@ -234,6 +253,44 @@ func _inventory_item_pressed(item_id: String) -> void:
 	player.equip_item(item_id)
 	detail_label.text = _item_detail(item_id)
 	refresh_now()
+func _auto_arrange_hotbar() -> void:
+	if player == null:
+		return
+	var arranged: Array[String] = []
+	for group in [["stone_blade"], ["delver_pick", "copper_pick", "stone_pick", "wood_pick"], ["trail_ration", "raw_meat"], ["storage_box", "workbench", "campfire"], ["stone", "wood", "soil", "basalt", "sandstone", "ice", "snow", "ash"]]:
+		for raw_id in group:
+			var item_id := String(raw_id)
+			if player.item_count(item_id) > 0 and item_id not in arranged:
+				arranged.append(item_id)
+				if group.size() > 1 and group[0] in ["delver_pick", "trail_ration"]:
+					break
+		if arranged.size() >= SLOT_COUNT:
+			break
+	for item_id in hotbar_items:
+		if arranged.size() >= SLOT_COUNT:
+			break
+		if item_id not in arranged:
+			arranged.append(item_id)
+	while arranged.size() < SLOT_COUNT:
+		arranged.append("soil")
+	hotbar_items = arranged.slice(0, SLOT_COUNT)
+	selected_slot = mini(selected_slot, SLOT_COUNT - 1)
+	player.select_quick_item(hotbar_items[selected_slot])
+	detail_label.text = "快捷栏已按装备、食物、设施与常用材料整理。"
+	refresh_now()
+
+func _item_sort_key(item_id: String) -> String:
+	var category := 4
+	if item_id in ["wood_pick", "stone_pick", "copper_pick", "delver_pick", "stone_blade"]: category = 0
+	elif item_id in ["raw_meat", "trail_ration"]: category = 1
+	elif item_id in ["workbench", "campfire", "storage_box"]: category = 2
+	elif item_id in ["soil", "stone", "ash", "sandstone", "basalt", "snow", "ice", "wood", "plank", "coal", "copper_ore", "copper_bar"]: category = 3
+	return "%d:%s" % [category, _item_name(item_id)]
+
+func show_message(text: String) -> void:
+	if detail_label != null:
+		detail_label.text = text
+
 func _craft_recipe(recipe_id: String) -> void:
 	if player == null:
 		return

@@ -1244,6 +1244,27 @@ func storage_destinations() -> Array:
 		entries.append({"id": id, "label": "%s (%d, %d) · %d/%d" % ["驮兽" if id == BEAST_ID else "货栈", cell.x, cell.y, int(storage_weight(id)), int(storage_capacity(id))]})
 	return entries
 
+func nearby_personal_storage(max_distance := 118.0) -> String:
+	var best := ""
+	var best_distance := max_distance
+	for actor_id in actor_ids(KIND_PLAYER_STORAGE):
+		if actor_id == BEAST_ID or not is_projected(actor_id):
+			continue
+		var node := projection_for(actor_id)
+		if node == null:
+			continue
+		var distance := player.global_position.distance_to(node.global_position)
+		if distance <= best_distance:
+			best_distance = distance
+			best = actor_id
+	return best
+
+func storage_dialogue_payload(actor_id: String) -> Dictionary:
+	if not descriptors.has(actor_id) or String(descriptors[actor_id]["kind"]) != KIND_PLAYER_STORAGE or actor_id == BEAST_ID:
+		return {}
+	var meta: Dictionary = descriptors[actor_id]["meta"]
+	return {"npc_kind":"player_storage", "actor_id":actor_id, "display_name":String(meta.get("display_name", "个人储物箱")), "role":String(meta.get("role", "营地仓储")), "dialogue":(meta.get("dialogue", []) as Array).duplicate()}
+
 func storage_position(id: String) -> Vector2:
 	return world.cell_center(descriptors[id]["cell"]) if descriptors.has(id) and String(descriptors[id]["kind"]) == KIND_PLAYER_STORAGE else Vector2.INF
 

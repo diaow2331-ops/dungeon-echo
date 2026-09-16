@@ -293,3 +293,9 @@ Pause/back navigation is presentation and lifecycle control only. It may pause t
 The product inventory UI is not an inventory authority. `SlicePlayer.stock` remains the only player item ledger; the overlay may sort, label, assign transient hotbar preferences and invoke existing crafting/equipment methods, but it may not own item quantities or persist duplicate slot contents.
 
 A hotbar selection is input/presentation state. Consuming food, placing materials, crafting equipment and equipping tools always revalidate current authoritative stock at execution time. Future atlas icons and drag/drop behavior must preserve this boundary.
+
+## v0.44 storage convenience boundary
+
+Inventory convenience may discover and open a nearby projected personal container, but it may not create a fast-transfer ledger or bypass hauling. `WorldActorAuthority` remains the storage authority and exposes only derived proximity/payload helpers; the existing cargo transfer path continues to enforce distance, capacity, batch size and interruption.
+
+Hotbar organization is likewise presentation-only. Reordering chooses references to currently owned item IDs and never mutates `SlicePlayer.stock`.

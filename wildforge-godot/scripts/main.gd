@@ -76,6 +76,7 @@ func _ready() -> void:
 	inventory_overlay.player = player
 	inventory_overlay.open_requested.connect(_open_inventory)
 	inventory_overlay.close_requested.connect(_close_inventory)
+	inventory_overlay.nearby_storage_requested.connect(_open_nearby_storage)
 	ui_layer.add_child(inventory_overlay)
 	dialogue_overlay = DialogueScript.new() as SliceDialogueOverlay
 	dialogue_overlay.name = "DialogueOverlay"
@@ -413,6 +414,19 @@ func _open_inventory() -> void:
 	if touch_controls != null:
 		touch_controls.set_interaction_blocked(true)
 	inventory_overlay.open_for(player)
+
+func _open_nearby_storage() -> void:
+	if inventory_overlay == null or not inventory_overlay.is_open() or actor_authority == null:
+		return
+	var actor_id := actor_authority.nearby_personal_storage()
+	if actor_id.is_empty():
+		inventory_overlay.show_message("附近没有可用的个人储物箱。靠近箱子后可直接进入真实搬运面板。")
+		return
+	var payload := actor_authority.storage_dialogue_payload(actor_id)
+	if payload.is_empty():
+		return
+	_close_inventory()
+	_open_dialogue(payload)
 
 func _close_inventory() -> void:
 	if inventory_overlay == null or not inventory_overlay.is_open():
