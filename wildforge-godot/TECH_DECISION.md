@@ -299,3 +299,11 @@ A hotbar selection is input/presentation state. Consuming food, placing material
 Inventory convenience may discover and open a nearby projected personal container, but it may not create a fast-transfer ledger or bypass hauling. `WorldActorAuthority` remains the storage authority and exposes only derived proximity/payload helpers; the existing cargo transfer path continues to enforce distance, capacity, batch size and interruption.
 
 Hotbar organization is likewise presentation-only. Reordering chooses references to currently owned item IDs and never mutates `SlicePlayer.stock`.
+
+## v0.45 production art is projection, never authority
+
+Art Atlas sheets are source material only. Production builds may package cropped sprites, icons, terrain slices and backgrounds under `res://assets/production`, but those files can never define inventory counts, equipment stats, collision, economy, faction state or progression. `data/art_manifest.json` is an ingestion inventory, not gameplay state.
+
+`SliceArtCatalog` is the single presentation resolver for this first pass. Missing assets must degrade to the existing procedural/text view, which allows art integration to proceed incrementally without branching gameplay logic. All pixel-facing controls and sprites use nearest filtering. Source resolution is preserved by default: sourceboards remain masters, runtime crops prefer lossless PNG, and no asset may be downscaled merely to reduce package size. Some Drive sourceboards expose JPEG MIME even when their filename ends in `.png`; these must not receive another lossy JPEG encode. A reduced derivative is permitted only after measured device memory, load-time or frame-time evidence identifies that specific asset as a bottleneck, and the original master remains retained.
+
+Player production sprites may select a visual state from existing movement/combat facts (`idle/run/jump/fall/attack`), but the sprite state cannot feed back into movement or combat. Collision shapes and timing remain in `SlicePlayer` authority. Music remains deferred and introduces no blocker for the visual migration.

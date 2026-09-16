@@ -5,6 +5,7 @@ const GRAVITY := 980.0
 const MAGNET_RANGE := 138.0
 const COLLECT_RANGE := 24.0
 const MAGNET_SPEED := 310.0
+const ArtCatalog = preload("res://scripts/ui/art_catalog.gd")
 
 var item_id := "soil"
 var count := 1
@@ -13,6 +14,7 @@ var age := 0.0
 var collected := false
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	collision_layer = 8
 	collision_mask = 1
 	add_to_group("pickups")
@@ -81,6 +83,13 @@ func _material_color() -> Color:
 
 func _draw() -> void:
 	var bob := sin(age * 8.0) * 1.5
+	var texture := ArtCatalog.item_icon(item_id)
+	if texture != null:
+		var target := 22.0
+		var ratio := float(texture.get_width()) / maxf(1.0, float(texture.get_height()))
+		var size := Vector2(target * ratio, target)
+		draw_texture_rect(texture, Rect2(Vector2(-size.x * 0.5, -size.y * 0.5 + bob), size), false)
+		return
 	var c := _material_color()
 	draw_rect(Rect2(-5, -5 + bob, 10, 10), c)
 	draw_rect(Rect2(-3, -3 + bob, 6, 2), c.lightened(0.24))

@@ -39,3 +39,5 @@ service-account*.json
 service_account*.json
 cookies*.json
 cookies*.txt
+# Wildforge Art Atlas masters stay in Google Drive / local staging; only lossless production crops ship.
+wildforge-godot/assets/source_masters/

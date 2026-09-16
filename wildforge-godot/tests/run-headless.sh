@@ -45,6 +45,7 @@ run_gate res://tests/bounty_resolution_test.gd 'wildforge_bounty_resolution=PASS
 run_gate res://tests/mobile_ui_test.gd 'wildforge_mobile_ui=PASS'
 run_gate res://tests/pause_menu_test.gd 'wildforge_pause_menu=PASS'
 run_gate res://tests/inventory_shell_test.gd 'wildforge_inventory_shell=PASS'
+run_gate res://tests/art_runtime_test.gd 'wildforge_art_runtime=PASS'
 run_gate res://tests/vegetation_test.gd 'wildforge_vegetation_authority=PASS'
 run_gate res://tests/structure_test.gd 'wildforge_structure_authority=PASS'
 run_gate res://tests/lighting_test.gd 'wildforge_chunk_lighting=PASS'

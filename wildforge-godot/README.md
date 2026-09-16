@@ -437,3 +437,11 @@ Hotbar assignment never moves or duplicates goods. Selecting owned food or place
 P0-A now adds player-facing organization without changing inventory authority. The inventory groups owned items into readable categories, craftable recipes surface before blocked ones, and a thumb-sized organize action repopulates the six-slot hotbar from owned equipment, food, facilities and common materials without moving a single item count.
 
 A nearby-storage shortcut opens the existing physical personal-storage interaction instead of teleporting cargo. Deposits and withdrawals therefore keep the same range, carrying capacity, 1/5/20 batch sizes, timed handling and interruption rules already owned by `WorldActorAuthority` and `main.gd`.
+
+## v0.45 production-art runtime boundary
+
+P0-B begins by making production art a local, presentation-only runtime layer. `data/art_manifest.json` records the authoritative source-atlas handoff order from Google Drive, while `SliceArtCatalog` resolves only packaged `res://assets/production/...` files. Drive is never a runtime dependency.
+
+Inventory and hotbar controls now accept stable `<item_id>.png` production icons with nearest filtering and keep the existing text presentation when art is absent. The player likewise owns one optional `ProductionSprite`: packaged `idle/run/jump/fall/attack` frames can replace the procedural body without touching movement, hitboxes, combat, equipment or save state.
+
+Music is intentionally deferred. This pass is allowed to ship visual assets independently so the first 30-minute experience can stop depending on procedural placeholders before the audio catalog is finalized.

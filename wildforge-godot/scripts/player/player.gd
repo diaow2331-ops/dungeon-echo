@@ -2,6 +2,7 @@ extends CharacterBody2D
 class_name SlicePlayer
 
 const CraftingScript = preload("res://scripts/crafting/slice_crafting.gd")
+const ArtCatalogScript = preload("res://scripts/ui/art_catalog.gd")
 
 const SPEED := 285.0
 const GROUND_ACCEL := 2500.0
@@ -82,6 +83,8 @@ var selected_quick_item_id := ""
 var imprisoned_until_hour := -1
 var imprisoned_faction_id := ""
 var imprisoned_settlement_id := ""
+var production_sprite: Sprite2D
+var production_visual_state := ""
 
 func _ready() -> void:
 	stock = {"soil": 0, "stone": 0, "ash": 0, "sandstone": 0, "basalt": 0, "snow": 0, "ice": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "wood_pick": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
@@ -94,7 +97,40 @@ func _ready() -> void:
 	collider.shape = shape
 	collider.position = Vector2(0, -3)
 	add_child(collider)
+	production_sprite = Sprite2D.new()
+	production_sprite.name = "ProductionSprite"
+	production_sprite.position = Vector2(0, -7)
+	production_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	production_sprite.visible = false
+	add_child(production_sprite)
+	_update_production_sprite()
 	queue_redraw()
+
+
+func _process(_delta: float) -> void:
+	_update_production_sprite()
+
+func _update_production_sprite() -> void:
+	if production_sprite == null:
+		return
+	var state := "idle"
+	if attack_timer > 0.0:
+		state = "attack"
+	elif not is_on_floor():
+		state = "jump" if velocity.y < 0.0 else "fall"
+	elif absf(velocity.x) > 22.0:
+		state = "run"
+	var texture := ArtCatalogScript.player_texture(state)
+	if texture == null and state != "idle":
+		texture = ArtCatalogScript.player_texture("idle")
+	production_sprite.texture = texture
+	production_sprite.visible = texture != null
+	if texture != null:
+		var texture_height := maxf(1.0, float(texture.get_height()))
+		var display_scale := 58.0 / texture_height
+		production_sprite.scale = Vector2(display_scale, display_scale)
+	production_sprite.flip_h = facing < 0.0
+	production_visual_state = state if texture != null else ""
 
 func set_touch_move(v: Vector2) -> void:
 	touch_move = v
@@ -835,6 +871,8 @@ func _update_camera() -> void:
 	cam.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 9.0 * power
 
 func _draw() -> void:
+	if production_sprite != null and production_sprite.visible:
+		return
 	var squash := clampf(landing_squash * 3.6, 0.0, 0.22)
 	var sx := 1.0 + squash
 	var sy := 1.0 - squash * 0.72
