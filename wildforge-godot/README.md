@@ -431,3 +431,9 @@ Opening survival is protected by a bounded hostile-free radius, and Bramble Boar
 The first commercialization pass now exposes a six-slot hotbar plus one inventory/crafting/equipment surface. The UI is deliberately projection-only: item counts still live exclusively in `SlicePlayer.stock`, crafting still executes `SliceCrafting`, and equipment selection still writes the existing equipped tool/weapon fields.
 
 Hotbar assignment never moves or duplicates goods. Selecting owned food or placeable materials only changes the transient quick-use preference; the normal player context action consumes or places the same authoritative stock. Mobile inventory, hotbar and close controls respect the shared touch-target floor, while Android/keyboard back closes the inventory before pause or exit.
+
+## v0.44 inventory usability completion
+
+P0-A now adds player-facing organization without changing inventory authority. The inventory groups owned items into readable categories, craftable recipes surface before blocked ones, and a thumb-sized organize action repopulates the six-slot hotbar from owned equipment, food, facilities and common materials without moving a single item count.
+
+A nearby-storage shortcut opens the existing physical personal-storage interaction instead of teleporting cargo. Deposits and withdrawals therefore keep the same range, carrying capacity, 1/5/20 batch sizes, timed handling and interruption rules already owned by `WorldActorAuthority` and `main.gd`.

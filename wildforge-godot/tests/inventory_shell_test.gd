@@ -25,6 +25,8 @@ func _run() -> void:
 	_check(overlay.open_button.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET, "inventory button meets mobile touch floor")
 	_check(overlay.hotbar_buttons.size() == SliceInventoryOverlay.SLOT_COUNT, "hotbar exposes the bounded six-slot product surface")
 	_check(overlay.hotbar_buttons.all(func(b): return b.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET), "every hotbar slot is thumb-sized")
+	_check(overlay.sort_button.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET, "hotbar organize action meets the mobile touch floor")
+	_check(overlay.storage_button.custom_minimum_size.y >= SliceMobileLayout.MIN_TOUCH_TARGET, "nearby storage shortcut meets the mobile touch floor")
 	main._open_inventory()
 	_check(overlay.is_open(), "inventory button path opens the product inventory")
 	_check(player.interaction_locked and controls.interaction_blocked, "inventory opening blocks world movement and live touch sticks")
@@ -36,6 +38,12 @@ func _run() -> void:
 	_check(overlay.hotbar_items[0] == "wood", "inventory item can be assigned to the active hotbar slot")
 	_check(player.selected_quick_item_id == "wood", "hotbar selection is projected onto the player quick-use preference")
 	_check(player.item_count("wood") == wood_before_assign, "hotbar assignment never copies or consumes authoritative stock")
+	player.add_item("stone_pick", 1)
+	player.add_item("trail_ration", 1)
+	var stock_before_sort := player.stock.duplicate(true)
+	overlay._auto_arrange_hotbar()
+	_check(overlay.hotbar_items.has("stone_pick") and overlay.hotbar_items.has("trail_ration"), "organize promotes owned equipment and food into the bounded hotbar")
+	_check(player.stock == stock_before_sort, "organizing hotbar never mutates authoritative item quantities")
 
 	var planks_before := player.item_count("plank")
 	var wood_before_craft := player.item_count("wood")
@@ -58,6 +66,25 @@ func _run() -> void:
 	main._close_inventory()
 	_check(not overlay.is_open(), "inventory closes without leaving a hidden modal")
 	_check(not player.interaction_locked and not controls.interaction_blocked, "closing inventory restores movement and touch controls")
+	var world := main.world as SliceWorld
+	var actors := main.actor_authority as SliceWorldActorAuthority
+	player.add_item("storage_box", 1)
+	var storage_cell := Vector2i.ZERO
+	var storage_found := false
+	for x in range(-12, 13):
+		storage_cell = Vector2i(x, world.surface_y_at(x) - 1)
+		player.global_position = world.cell_center(storage_cell)
+		world.refresh_streaming(true)
+		if actors.can_place_storage(storage_cell):
+			storage_found = true
+			break
+	_check(storage_found and actors.place_storage(storage_cell), "fixture places one real personal storage box")
+	_check(actors.nearby_personal_storage() == "player_storage:0", "inventory shortcut discovers only a real nearby projected storage box")
+	main._open_inventory()
+	main._open_nearby_storage()
+	_check(not overlay.is_open() and main.dialogue_overlay.visible, "nearby storage shortcut transitions into the existing storage panel")
+	_check(main.active_interaction_kind == "player_storage" and main.active_actor_id == "player_storage:0", "shortcut reuses the canonical storage interaction identity")
+	main.dialogue_overlay.close_dialogue()
 	main._open_inventory()
 	main._handle_back_request()
 	_check(not overlay.is_open(), "back closes inventory before opening pause")
