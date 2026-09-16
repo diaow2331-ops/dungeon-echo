@@ -51,6 +51,11 @@ func _run() -> void:
 	var player := main.get_node("Player") as SlicePlayer
 	_check(player.item_count("wood") == 0 and player.item_count("stone") == 0 and player.item_count("plank") == 0, "fresh traveler begins with zero injected building resources")
 	_check(player.equipped_axe_id == "traveler_hatchet" and player.equipped_pick_id.is_empty(), "fresh traveler has a travel hatchet but no mining tool")
+	var nearest_threat_cells := 9999.0
+	for threat in main.get_tree().get_nodes_in_group("enemies"):
+		if threat is Node2D:
+			nearest_threat_cells = minf(nearest_threat_cells, absf((threat as Node2D).global_position.x - player.global_position.x) / SliceWorld.TILE_SIZE)
+	_check(nearest_threat_cells >= float(main.START_SAFE_RADIUS_CELLS), "starter gathering space keeps hostile actors outside the opening safe radius")
 
 	var trees: Array = main.get_tree().get_nodes_in_group("resource_trees")
 	trees.sort_custom(func(a, b): return (a as Node2D).global_position.x < (b as Node2D).global_position.x)
@@ -82,6 +87,9 @@ func _run() -> void:
 
 	var boars: Array = main.get_tree().get_nodes_in_group("hunt_targets")
 	_check(not boars.is_empty(), "starter region exposes one real food animal")
+	if not boars.is_empty():
+		var hunt_distance_cells := absf(((boars[0] as Node2D).global_position.x - player.global_position.x) / SliceWorld.TILE_SIZE)
+		_check(hunt_distance_cells <= 30.0, "first food animal remains within a short deliberate hunt from the safe starter area")
 	if not boars.is_empty():
 		var boar := boars[0] as SliceBrambleBoar
 		boar.loot_min = 1

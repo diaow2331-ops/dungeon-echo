@@ -17,6 +17,7 @@ const KIND_PLAYER_STORAGE := "player_storage"
 const STORAGE_CAPACITY := 480.0
 const KIND_LOST_CARGO := "lost_cargo"
 const KIND_WAREHOUSE := "warehouse"
+const KIND_BOUNTY_BOARD := "bounty_board"
 const KIND_BOUNTY_HUNTER := "bounty_hunter"
 const KIND_RAIDER := "war_raider"
 const KIND_CARAVAN := "trade_caravan"
@@ -91,6 +92,8 @@ func register_settlement_npcs(raw_settlements: Array) -> void:
 		if not (descriptors[hunter_id] as Dictionary).has("security_initialized"):
 			(descriptors[hunter_id] as Dictionary)["present"] = false
 			(descriptors[hunter_id] as Dictionary)["security_initialized"] = true
+		var board_cell := world.settlement_authority.market_cell(settlement_id) + Vector2i(-5, 0)
+		_register_actor(settlement_id + ":bounty_board", KIND_BOUNTY_BOARD, board_cell, {"settlement_id": settlement_id, "faction_id": faction_id, "display_name": "势力悬赏榜", "role": "战争与通缉告示", "dialogue": ["悬赏只认具体的人，不认后来接替同一职位的人。"]})
 		var warehouse_cell: Vector2i = world.settlement_authority.warehouse_door(settlement_id)
 		_register_actor(settlement_id + ":warehouse_access", KIND_WAREHOUSE, warehouse_cell, {"settlement_id": settlement_id, "faction_id": faction_id, "display_name": "势力仓库", "role": "受卫兵保护的物资库", "dialogue": ["这座仓库供应当地集市和居民。"]})
 		var raw_npcs = settlement.get("npcs", [])
@@ -108,12 +111,20 @@ func register_settlement_npcs(raw_settlements: Array) -> void:
 			var kind := KIND_MERCHANT if declared_kind == "merchant" else KIND_SETTLEMENT_GUARD if declared_kind == "guard" else ""
 			if kind.is_empty():
 				continue
+			var person: Dictionary = world.npc_roster_authority.person(actor_id) if world.npc_roster_authority != null else {}
+			var dialogue: Array = (npc.get("dialogue", []) as Array).duplicate()
+			if world.npc_roster_authority != null:
+				var voice_line := world.npc_roster_authority.voice_line(actor_id)
+				if not voice_line.is_empty():
+					dialogue.append(voice_line)
 			_register_actor(actor_id, kind, Vector2i(int(raw_cell[0]), int(raw_cell[1])), {
 				"settlement_id": settlement_id,
 				"faction_id": faction_id,
-				"display_name": String(npc.get("display_name", actor_id)),
-				"role": String(npc.get("role", "")),
-				"dialogue": (npc.get("dialogue", []) as Array).duplicate(),
+				"person_id": String(person.get("person_id", actor_id)),
+				"personality": String(person.get("personality", "")),
+				"display_name": String(person.get("display_name", npc.get("display_name", actor_id))),
+				"role": String(person.get("role_title", npc.get("role", ""))),
+				"dialogue": dialogue,
 			})
 
 func register_vegetation_baseline(sites: Array) -> void:
@@ -379,7 +390,7 @@ func mark_removed(actor_id: String) -> bool:
 func _register_actor(actor_id: String, kind: String, cell: Vector2i, metadata: Dictionary) -> void:
 	if actor_id.is_empty() or descriptors.has(actor_id):
 		return
-	if kind in [KIND_SETTLEMENT_GUARD, KIND_BOUNTY_HUNTER]:
+	if kind in [KIND_MERCHANT, KIND_SETTLEMENT_GUARD, KIND_BOUNTY_HUNTER]:
 		metadata["home_cell"] = [cell.x, cell.y]
 	var key := world.chunk_key_for(cell)
 	descriptors[actor_id] = {
@@ -510,15 +521,18 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		beast.dialogue_requested.connect(_forward_dialogue)
 		beast.z_index = 18
 		node = beast
-	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
+	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_BOUNTY_BOARD, KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
 		var npc := SettlementNpcScript.new() as SliceSettlementNpc
 		var meta: Dictionary = descriptor.get("meta", {})
 		npc.name = _node_name("SettlementNpc", actor_id)
 		npc.player = player
-		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("lost_cargo" if kind == KIND_LOST_CARGO else ("player_storage" if kind == KIND_PLAYER_STORAGE else "warehouse")), {
+		npc.authority = self
+		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("bounty_board" if kind == KIND_BOUNTY_BOARD else ("lost_cargo" if kind == KIND_LOST_CARGO else ("player_storage" if kind == KIND_PLAYER_STORAGE else "warehouse"))), {
 			"actor_id": actor_id,
 			"settlement_id": String(meta.get("settlement_id", "")),
 			"faction_id": String(meta.get("faction_id", "")),
+			"person_id": String(meta.get("person_id", "")),
+			"personality": String(meta.get("personality", "")),
 			"display_name": String(meta.get("display_name", actor_id)),
 			"role": String(meta.get("role", "")),
 			"dialogue": (meta.get("dialogue", []) as Array).duplicate(),
@@ -595,11 +609,52 @@ func _planted_tree_actor_id(cell: Vector2i) -> String:
 func _node_name(prefix: String, actor_id: String) -> String:
 	return "%s_%s" % [prefix, actor_id.replace(":", "_")]
 
+func npc_health(actor_id: String) -> float:
+	if world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		return world.npc_roster_authority.health(actor_id)
+	return float(((descriptors.get(actor_id, {}) as Dictionary).get("meta", {}) as Dictionary).get("health", 0.0))
+
+func npc_alive(actor_id: String) -> bool:
+	if world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		return world.npc_roster_authority.is_alive(actor_id)
+	return npc_health(actor_id) > 0.0
+
 func guard_health(actor_id: String) -> float:
+	if world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		return world.npc_roster_authority.health(actor_id)
 	return float(((descriptors.get(actor_id, {}) as Dictionary).get("meta", {}) as Dictionary).get("health", 420.0))
+
+func damage_settlement_npc(actor_id: String, damage: float, at: Vector2) -> Dictionary:
+	if not descriptors.has(actor_id) or damage <= 0.0 or world == null or world.npc_roster_authority == null or not world.npc_roster_authority.has_slot(actor_id):
+		return {"ok": false}
+	var result: Dictionary = world.npc_roster_authority.damage(actor_id, damage, world.absolute_world_hour())
+	if not bool(result.get("ok", false)):
+		return result
+	if bool(result.get("died", false)):
+		if world.faction_authority != null:
+			world.faction_authority.record_npc_death(String(result.get("person_id", "")), true)
+		var meta: Dictionary = (descriptors[actor_id] as Dictionary).get("meta", {})
+		var settlement_id := String(meta.get("settlement_id", ""))
+		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 600)
+		if world.settlement_authority != null:
+			world.settlement_authority.apply_player_crime_pressure(settlement_id, 6)
+		_move_npc_corpse(actor_id, at)
+	return result
 
 func damage_guard(actor_id: String, damage: float, at: Vector2) -> void:
 	if not descriptors.has(actor_id) or guard_health(actor_id) <= 0.0:
+		return
+	var kind := String((descriptors[actor_id] as Dictionary).get("kind", ""))
+	if kind == KIND_SETTLEMENT_GUARD and world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+		var result: Dictionary = world.npc_roster_authority.damage(actor_id, damage, world.absolute_world_hour())
+		if bool(result.get("died", false)):
+			if world.faction_authority != null:
+				world.faction_authority.record_npc_death(String(result.get("person_id", "")), true)
+			var settlement_id := String(((descriptors[actor_id] as Dictionary).get("meta", {}) as Dictionary).get("settlement_id", ""))
+			world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 1000)
+			if world.settlement_authority != null:
+				world.settlement_authority.apply_player_crime_pressure(settlement_id, 8)
+			_move_npc_corpse(actor_id, at)
 		return
 	var row: Dictionary = descriptors[actor_id]
 	var meta: Dictionary = row["meta"]
@@ -607,19 +662,59 @@ func damage_guard(actor_id: String, damage: float, at: Vector2) -> void:
 	row["meta"] = meta
 	descriptors[actor_id] = row
 	if float(meta["health"]) <= 0.0:
-		var settlement_id := String(meta.get("settlement_id", ""))
-		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 1000)
-		if world.settlement_authority != null:
-			world.settlement_authority.apply_player_crime_pressure(settlement_id, 8)
-		var old_key: Vector2i = row["chunk"]
+		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(String(meta.get("settlement_id", ""))), 1000)
+		_move_npc_corpse(actor_id, at)
+
+func _move_npc_corpse(actor_id: String, at: Vector2) -> void:
+	if not descriptors.has(actor_id):
+		return
+	var row: Dictionary = descriptors[actor_id]
+	var old_key: Vector2i = row["chunk"]
+	if ids_by_chunk.has(old_key):
 		(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
-		var cell := world.world_to_cell(at - Vector2(0, 1))
-		row["cell"] = cell
-		row["chunk"] = world.chunk_key_for(cell)
+	var cell := world.world_to_cell(at - Vector2(0, 1))
+	row["cell"] = cell
+	row["chunk"] = world.chunk_key_for(cell)
+	descriptors[actor_id] = row
+	if not ids_by_chunk.has(row["chunk"]):
+		ids_by_chunk[row["chunk"]] = {}
+	(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+
+func sync_npc_roster(force := false) -> void:
+	if world == null or world.npc_roster_authority == null:
+		return
+	for actor_id in actor_ids(KIND_MERCHANT) + actor_ids(KIND_SETTLEMENT_GUARD):
+		if not world.npc_roster_authority.has_slot(actor_id):
+			continue
+		var person: Dictionary = world.npc_roster_authority.person(actor_id)
+		var row: Dictionary = descriptors[actor_id]
+		var meta: Dictionary = row["meta"]
+		var changed := force or String(meta.get("person_id", "")) != String(person.get("person_id", ""))
+		if not changed:
+			continue
+		if is_projected(actor_id):
+			_unload_projection(actor_id)
+		var person_changed := String(meta.get("person_id", "")) != String(person.get("person_id", ""))
+		meta["person_id"] = String(person.get("person_id", actor_id))
+		meta["personality"] = String(person.get("personality", ""))
+		meta["display_name"] = String(person.get("display_name", actor_id))
+		meta["role"] = String(person.get("role_title", meta.get("role", "")))
+		if person_changed:
+			meta["key_taken"] = false
+		if bool(person.get("alive", true)):
+			var home_cell: Array = meta.get("home_cell", [row["cell"].x, row["cell"].y])
+			var old_key: Vector2i = row["chunk"]
+			if ids_by_chunk.has(old_key):
+				(ids_by_chunk[old_key] as Dictionary).erase(actor_id)
+			row["cell"] = Vector2i(int(home_cell[0]), int(home_cell[1]))
+			row["chunk"] = world.chunk_key_for(row["cell"])
+			if not ids_by_chunk.has(row["chunk"]):
+				ids_by_chunk[row["chunk"]] = {}
+			(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+		row["present"] = true
+		row["meta"] = meta
 		descriptors[actor_id] = row
-		if not ids_by_chunk.has(row["chunk"]):
-			ids_by_chunk[row["chunk"]] = {}
-		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
+	_reconcile_current_stream()
 
 func claim_guard_key(actor_id: String) -> bool:
 	if not descriptors.has(actor_id) or guard_health(actor_id) > 0.0 or not is_projected(actor_id):
@@ -645,7 +740,7 @@ func export_security() -> Array:
 		rows.append({"id": actor_id, "health": guard_health(actor_id), "key_taken": bool(meta.get("key_taken", false)), "present": bool(row.get("present", true)), "cell": [cell.x, cell.y]})
 	return rows
 
-func restore_security(raw) -> bool:
+func restore_security(raw, migrate_roster := false) -> bool:
 	if not raw is Array:
 		return false
 	var seen: Dictionary = {}
@@ -678,7 +773,14 @@ func restore_security(raw) -> bool:
 		(ids_by_chunk[row["chunk"]] as Dictionary)[actor_id] = true
 		for entry in raw:
 			if String(entry["id"]) == actor_id:
-				meta["health"] = float(entry["health"])
+				var restored_hp := float(entry["health"])
+				if String(row.get("kind", "")) == KIND_SETTLEMENT_GUARD and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
+					if migrate_roster:
+						if not world.npc_roster_authority.restore_legacy_health(actor_id, restored_hp, world.absolute_world_hour()):
+							return false
+					elif absf(world.npc_roster_authority.health(actor_id) - restored_hp) > 0.01:
+						return false
+				meta["health"] = restored_hp
 				meta["key_taken"] = bool(entry.get("key_taken", false))
 				row["present"] = bool(entry.get("present", true))
 				var old_key: Vector2i = row["chunk"]

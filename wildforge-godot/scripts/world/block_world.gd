@@ -24,6 +24,7 @@ const SettlementGeneratorScript = preload("res://scripts/world/settlements/settl
 const SettlementAuthorityScript = preload("res://scripts/world/settlements/settlement_authority.gd")
 const FactionAuthorityScript = preload("res://scripts/world/factions/faction_authority.gd")
 const WorldProgressionAuthorityScript = preload("res://scripts/world/progression/world_progression_authority.gd")
+const NpcRosterAuthorityScript = preload("res://scripts/world/npcs/npc_roster_authority.gd")
 const TILE_SIZE := 32.0
 const CHUNK_SIZE := 16
 const WORLD_GENERATION_VERSION := 5
@@ -69,6 +70,7 @@ var structure_authority: SliceStructureAuthority
 var settlement_authority: SliceSettlementAuthority
 var faction_authority: SliceFactionAuthority
 var progression_authority: SliceWorldProgressionAuthority
+var npc_roster_authority: SliceNpcRosterAuthority
 var fluid_tick_accumulator := 0.0
 var simulation_hour_cursor := -1
 var simulation_event_count := 0
@@ -106,6 +108,8 @@ func _ready() -> void:
 	settlement_authority.register_baseline(baseline_settlements)
 	faction_authority = FactionAuthorityScript.new(self) as SliceFactionAuthority
 	progression_authority = WorldProgressionAuthorityScript.new(self) as SliceWorldProgressionAuthority
+	npc_roster_authority = NpcRosterAuthorityScript.new(self) as SliceNpcRosterAuthority
+	npc_roster_authority.register_baseline(baseline_settlements)
 	apply_baseline_ownership()
 	reset_simulation_cursor()
 	lighting_authority = LightingAuthorityScript.new(self) as SliceLightingAuthority
@@ -134,6 +138,8 @@ func rebuild_for_seed(new_seed: int) -> bool:
 	settlement_authority.register_baseline(baseline_settlements)
 	faction_authority = FactionAuthorityScript.new(self) as SliceFactionAuthority
 	progression_authority = WorldProgressionAuthorityScript.new(self) as SliceWorldProgressionAuthority
+	npc_roster_authority = NpcRosterAuthorityScript.new(self) as SliceNpcRosterAuthority
+	npc_roster_authority.register_baseline(baseline_settlements)
 	apply_baseline_ownership()
 	reset_simulation_cursor()
 	if lighting_authority != null:
@@ -185,6 +191,8 @@ func _sync_world_simulation() -> int:
 			var faction_events = faction_result.get("events", [])
 			if faction_events is Array:
 				hour_events.append_array(faction_events)
+		if npc_roster_authority != null:
+			hour_events.append_array(npc_roster_authority.simulate_hour(simulation_hour_cursor))
 		for event in hour_events:
 			if event is Dictionary:
 				world_event.emit((event as Dictionary).duplicate(true))

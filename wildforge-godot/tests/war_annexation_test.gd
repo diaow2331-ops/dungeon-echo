@@ -103,8 +103,11 @@ func _run() -> void:
 	var controller_before := settlements2.treasury(controller_settlement)
 	var taxes := settlements2.apply_annexation_taxes()
 	var expected_tax := mini(6, subject_before)
-	_check(not taxes.is_empty() and settlements2.treasury(target_id) == subject_before - expected_tax, "occupied settlement pays from its real treasury")
-	_check(settlements2.treasury(controller_settlement) == controller_before + expected_tax, "occupation tax reaches the controller settlement treasury")
+	if expected_tax > 0:
+		_check(not taxes.is_empty() and settlements2.treasury(target_id) == subject_before - expected_tax, "funded occupied settlement pays from its real treasury")
+	else:
+		_check(taxes.is_empty() and settlements2.treasury(target_id) == 0, "bankrupt occupied settlement cannot fabricate occupation tax")
+	_check(settlements2.treasury(controller_settlement) == controller_before + expected_tax, "occupation tax conserves real treasury value")
 
 	restored.free()
 	print("wildforge_war_annexation=", "FAIL" if failed else "PASS")

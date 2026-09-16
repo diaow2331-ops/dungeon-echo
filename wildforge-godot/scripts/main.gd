@@ -8,12 +8,14 @@ const TouchScript = preload("res://scripts/ui/mobile_controls.gd")
 const WorldActorAuthorityScript = preload("res://scripts/world/actors/world_actor_authority.gd")
 const SaveScript = preload("res://scripts/save/slice_save_system.gd")
 const DialogueScript = preload("res://scripts/ui/dialogue_overlay.gd")
+const PauseScript = preload("res://scripts/ui/pause_overlay.gd")
 
 var world: SliceWorld
 var player: SlicePlayer
 var actor_authority: SliceWorldActorAuthority
 var dialogue_overlay: SliceDialogueOverlay
 var touch_controls: SliceTouchControls
+var pause_overlay: SlicePauseOverlay
 var defeats := 0
 var active_merchant_settlement := ""
 var active_interaction_kind := ""
@@ -22,6 +24,9 @@ var dialogue_health := 0.0
 var warehouse_transfer: Dictionary = {}
 var autosave_elapsed := 0.0
 const AUTOSAVE_INTERVAL := 20.0
+const START_SAFE_RADIUS_CELLS := 20
+const STARTER_CRAWLER_CELLS := [-34, 32]
+const STARTER_BOAR_CELL := -24
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(Color("0b171d"))
@@ -44,9 +49,7 @@ func _ready() -> void:
 	camera.limit_top = -800
 	camera.limit_bottom = int((SliceWorld.MAX_Y + 2) * SliceWorld.TILE_SIZE)
 	player.add_child(camera)
-	_spawn_enemy(-10)
-	_spawn_enemy(8)
-	_spawn_boar(-18)
+	_spawn_starting_threats()
 	actor_authority = WorldActorAuthorityScript.new(self, world, player) as SliceWorldActorAuthority
 	actor_authority.register_exploration_sites(world.exploration_sites)
 	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
@@ -78,6 +81,12 @@ func _ready() -> void:
 	dialogue_overlay.storage_route_requested.connect(_mark_storage_route)
 	dialogue_overlay.beast_feed_requested.connect(_feed_beast)
 	ui_layer.add_child(dialogue_overlay)
+	pause_overlay = PauseScript.new() as SlicePauseOverlay
+	pause_overlay.name = "PauseOverlay"
+	pause_overlay.resume_requested.connect(_resume_from_pause)
+	pause_overlay.save_requested.connect(_save_from_pause)
+	pause_overlay.quit_requested.connect(_save_and_quit)
+	ui_layer.add_child(pause_overlay)
 	if not SaveScript.is_test_run():
 		call_deferred("_load_persistent_state")
 
@@ -101,9 +110,7 @@ func reconfigure_world_seed(new_seed: int) -> bool:
 	actor_authority.register_vegetation_baseline(world.vegetation_baseline())
 	actor_authority.register_settlement_npcs(world.baseline_settlements)
 	actor_authority.sync_active(world.chunk_streamer.active_keys)
-	_spawn_enemy(-10)
-	_spawn_enemy(8)
-	_spawn_boar(-18)
+	_spawn_starting_threats()
 	return true
 
 func _open_dialogue(payload: Dictionary) -> void:
@@ -130,8 +137,19 @@ func _open_dialogue(payload: Dictionary) -> void:
 		presented["market"] = _market_view(active_merchant_settlement)
 		if active_interaction_kind == "merchant" and world.settlement_authority.market_closed_to_player(active_merchant_settlement):
 			presented["dialogue"] = ["你的名字在通缉令上。这里不会与你交易。"]
+	if active_interaction_kind == "bounty_board":
+		active_merchant_settlement = contacted_settlement
+		var bounty := world.faction_authority.bounty_for_settlement(contacted_settlement)
+		if bounty.is_empty():
+			presented["dialogue"] = ["目前没有对外发布的人物悬赏。战争并不意味着财政能无限开价。"]
+		else:
+			var status := String(bounty.get("status", ""))
+			presented["dialogue"] = ["目标：%s · %s。赏金 %d◆。这份悬赏绑定此人的身份，继任者不是同一个目标。" % [String(bounty.get("target_name", "未知")), String(bounty.get("target_role", "敌对人员")), int(bounty.get("reward", 0))]]
+			presented["bounty_id"] = String(bounty.get("id", ""))
+			presented["security_action"] = "领取赏金 · %d◆" % int(bounty.get("reward", 0)) if status == "fulfilled" else ("接受人物悬赏" if status == "posted" else "已接受 · 追踪该目标")
 	if active_interaction_kind == "guard":
-		presented["security_action"] = "搜取仓库钥匙" if bool(payload.get("guard_dead", false)) else "拔刀挑战守卫（将被通缉）"
+		var player_bounty := int(payload.get("bounty", 0))
+		presented["security_action"] = "搜取仓库钥匙" if bool(payload.get("guard_dead", false)) else ("缴纳悬赏 · %d◆" % player_bounty if player_bounty > 0 else "拔刀挑战守卫（将被通缉）")
 	elif active_interaction_kind == "warehouse":
 		presented["security_action"] = "用钥匙开锁" if world.settlement_authority.warehouse_locked(active_merchant_settlement) else ""
 	if active_interaction_kind == "player_storage":
@@ -279,7 +297,7 @@ func _sell_to_active_merchant(settlement_id: String, item_id: String, quantity: 
 			feedback += " · 补给使当地安全 +%d" % security_recovered
 		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), feedback)
 	else:
-		var messages := {"wanted": "你已被本势力通缉，商人拒绝交易。", "demand_filled": "当前不需要这么多货物，请减少数量。", "overburdened": "负重已满，先卸下或出售部分货物。", "not_at_market": "请靠近商人后再交易。", "insufficient_goods": "携带的货物不足。", "treasury_short": "城库暂不足，请稍后再来。", "not_bought_here": "这里不收购这种货物。", "era_locked": "你刚刚抵达这里。先在聚落中站稳脚跟，市场会很快向你开放。"}
+		var messages := {"wanted": "你已被本势力通缉，商人拒绝交易。", "stolen_goods": "这里认得这批失窃物资。先把赃物带离本地，或等待失窃缺口被真实补回。", "demand_filled": "当前不需要这么多货物，请减少数量。", "overburdened": "负重已满，先卸下或出售部分货物。", "not_at_market": "请靠近商人后再交易。", "insufficient_goods": "携带的货物不足。", "treasury_short": "城库暂不足，请稍后再来。", "not_bought_here": "这里不收购这种货物。", "era_locked": "你刚刚抵达这里。先在聚落中站稳脚跟，市场会很快向你开放。"}
 		dialogue_overlay.update_market(_market_view(settlement_id, item_id, quantity), String(messages.get(String(trade.get("reason", "")), "交易未完成，请重试。")))
 
 func _on_world_event(event: Dictionary) -> void:
@@ -287,6 +305,10 @@ func _on_world_event(event: Dictionary) -> void:
 	if kind == "world_era_changed":
 		if touch_controls != null:
 			touch_controls.show_world_notice(_era_transition_notice(event))
+		return
+	if kind == "npc_succeeded":
+		if actor_authority != null:
+			actor_authority.sync_npc_roster(true)
 		return
 	if actor_authority == null:
 		return
@@ -337,9 +359,60 @@ func save_now() -> bool:
 	return SaveScript.save_to_path(self)
 
 func _notification(what: int) -> void:
-	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST]:
+	if what == NOTIFICATION_APPLICATION_PAUSED:
 		if not SaveScript.is_test_run() and world != null and player != null:
 			SaveScript.save_to_path(self)
+		return
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_handle_back_request()
+		return
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if not SaveScript.is_test_run() and world != null and player != null:
+			SaveScript.save_to_path(self)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and (pause_overlay == null or not pause_overlay.visible):
+		_handle_back_request()
+		get_viewport().set_input_as_handled()
+
+func _handle_back_request() -> void:
+	if dialogue_overlay != null and dialogue_overlay.visible:
+		dialogue_overlay.close_dialogue()
+		return
+	if pause_overlay != null and pause_overlay.visible:
+		_resume_from_pause()
+		return
+	_show_pause_menu()
+
+func _show_pause_menu() -> void:
+	if pause_overlay == null or pause_overlay.visible:
+		return
+	if touch_controls != null:
+		touch_controls.set_interaction_blocked(true)
+	pause_overlay.open("当前进度已受自动保存保护。")
+	get_tree().paused = true
+
+func _resume_from_pause() -> void:
+	get_tree().paused = false
+	if pause_overlay != null:
+		pause_overlay.close()
+	if touch_controls != null:
+		touch_controls.set_interaction_blocked(false)
+
+func _save_from_pause() -> void:
+	if pause_overlay != null:
+		pause_overlay.show_save_result(save_now())
+
+func _save_and_quit() -> void:
+	if not SaveScript.is_test_run():
+		save_now()
+	get_tree().paused = false
+	get_tree().quit()
+
+func _spawn_starting_threats() -> void:
+	for x in STARTER_CRAWLER_CELLS:
+		_spawn_enemy(int(x))
+	_spawn_boar(STARTER_BOAR_CELL)
 
 func _spawn_enemy(x: int, loot_item_id := "", loot_min := 0, loot_max := 0) -> void:
 	var enemy := EnemyScript.new()
@@ -400,6 +473,27 @@ func _add_mouse(action: StringName, button: MouseButton) -> void:
 func _security_action() -> void:
 	if dialogue_overlay == null or not dialogue_overlay.visible:
 		return
+	if active_interaction_kind == "bounty_board":
+		var bounty := world.faction_authority.bounty_for_settlement(active_merchant_settlement)
+		if bounty.is_empty():
+			dialogue_overlay.body_label.text = "榜上暂时没有有效悬赏。"
+			dialogue_overlay.security_button.visible = false
+			return
+		var bounty_id := String(bounty.get("id", ""))
+		var status := String(bounty.get("status", ""))
+		if status == "posted":
+			var accepted := world.faction_authority.accept_npc_bounty(bounty_id, active_merchant_settlement)
+			dialogue_overlay.body_label.text = "悬赏已接下。要找的是这个具体的人，不是他的职位。" if bool(accepted.get("ok", false)) else "悬赏状态已经变化。"
+			dialogue_overlay.security_button.text = "已接受 · 追踪该目标"
+			dialogue_overlay.security_button.disabled = true
+		elif status == "fulfilled":
+			var claim := world.faction_authority.claim_npc_bounty(player, bounty_id, active_merchant_settlement)
+			dialogue_overlay.body_label.text = "确认目标死亡，领取 %d◆。" % int(claim.get("reward", 0)) if bool(claim.get("ok", false)) else "无法领取这份赏金。"
+			dialogue_overlay.security_button.visible = false
+		else:
+			dialogue_overlay.body_label.text = "这份悬赏已经在你手上。找到并击杀目标本人。"
+			dialogue_overlay.security_button.disabled = true
+		return
 	if active_interaction_kind == "merchant":
 		var bought := actor_authority.buy_beast(active_merchant_settlement)
 		if bought and world != null and world.progression_authority != null:
@@ -439,6 +533,23 @@ func _security_action() -> void:
 			var taken := actor_authority.claim_guard_key(active_actor_id)
 			dialogue_overlay.body_label.text = "取得仓库钥匙。通缉不会因离开城镇而解除。" if taken else "钥匙已经被取走了。"
 			dialogue_overlay.security_button.disabled = true
+		elif guard.hostile():
+			var settlement_id := String(guard.payload.get("settlement_id", ""))
+			var bounty := world.faction_authority.player_bounty(world.faction_authority.controller_for_settlement(settlement_id))
+			var payment := mini(bounty, player.forge_marks)
+			var result: Dictionary = world.settlement_authority.pay_player_bounty(player, settlement_id, payment)
+			if bool(result.get("ok", false)):
+				var remaining := int(result.get("remaining", 0))
+				if remaining <= 0:
+					dialogue_overlay.body_label.text = "已缴纳 %d◆。本势力悬赏已清除。" % int(result.get("paid", 0))
+					dialogue_overlay.security_button.visible = false
+				else:
+					dialogue_overlay.body_label.text = "已缴纳 %d◆，尚欠悬赏 %d◆。拒捕仍可能导致监禁。" % [int(result.get("paid", 0)), remaining]
+					dialogue_overlay.security_button.text = "继续缴纳 · %d◆" % remaining
+					dialogue_overlay.security_button.disabled = player.forge_marks <= 0
+			else:
+				dialogue_overlay.body_label.text = "你身上没有可缴纳的钱币。当前悬赏 %d◆；拒捕后被击倒会被收监。" % bounty
+				dialogue_overlay.security_button.disabled = true
 		else:
 			guard.provoke()
 			dialogue_overlay.close_dialogue()

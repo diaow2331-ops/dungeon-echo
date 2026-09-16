@@ -279,3 +279,11 @@ Player roadwork may consume carried construction material, but it cannot create 
 Player crisis aid follows the same rule. A qualifying external-shortage delivery adds stock through the existing market transaction and may recover a bounded amount of canonical settlement security. The effect is unavailable before Fracture and does not apply to locally produced goods. No aid score, faction reputation meter or delivery ledger is introduced.
 
 Intervention hints are derived projection. `WorldProgressionAuthority` may expose the most urgent active route blockage or external shortage through `guidance_snapshot()`, but reading the hint cannot mutate world state. The player must still travel, carry real resources and complete the underlying action for anything to change.
+
+## v0.42 crime, custody and contract authority boundary
+
+Player criminal liability remains one fact: `FactionAuthority.player_bounty`. Guard payment, pursuit, arrest, imprisonment and jailbreak consequences must read or mutate that same bounty rather than introduce reputation, wanted-level or sentence debt ledgers. Payment transfers real Forge Marks to `SettlementAuthority` treasury. Custody stores only the player's physical sentence/location facts required for save/resume; release and escape return immediately to the same faction-bounty authority.
+
+Wartime NPC bounties also remain inside faction authority, but are distinct contracts tied to immutable NPC person identity and funded from real settlement treasury. A role successor is not the previous target. Contract presentation and bounty-board UI may project this state but may not own contract truth or reward balances.
+
+Pause/back navigation is presentation and lifecycle control only. It may pause the tree, clear touch input and request the existing save authority, but it owns no gameplay state. Android back must close transient dialogue first, then enter the same pause surface; process exit is always explicit and save-aware.

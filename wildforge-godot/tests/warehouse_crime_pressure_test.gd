@@ -51,6 +51,14 @@ func _run() -> void:
 	_check(int(critical_theft.get("security_loss", 0)) == 3, "stealing critical stock hurts local stability more but remains bounded")
 	_check(economy.security(town) == 96, "critical theft still mutates only canonical security")
 
+	var stolen_before := int(((economy.settlements[town] as Dictionary).get("stolen_deficit", {}) as Dictionary).get("wood", 0))
+	factions.settle_player_bounty("verdant", 1000000)
+	world.progression_authority.era = SliceWorldProgressionAuthority.ERA_FOOTHOLD
+	player.global_position = world.cell_center(economy.market_cell(town))
+	var laundering := economy.sell_from_player(player, town, "wood", 1)
+	_check(not bool(laundering.get("ok", false)) and String(laundering.get("reason", "")) == "stolen_goods", "victim market refuses goods still recorded as stolen from its own warehouse")
+	_check(int(((economy.settlements[town] as Dictionary).get("stolen_deficit", {}) as Dictionary).get("wood", 0)) == stolen_before, "failed laundering does not erase the real theft deficit")
+
 	main.free()
 	print("wildforge_warehouse_crime_pressure=", "FAIL" if failed else "PASS")
 	quit(1 if failed else 0)

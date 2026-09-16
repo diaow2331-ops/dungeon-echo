@@ -30,6 +30,8 @@ const ROUTE_REPAIR_TREASURY_COST := 2
 const ROUTE_REPAIR_MATERIALS := ["wood", "sandstone", "basalt"]
 const RETURN_MIGRATION_INTERVAL_HOURS := 24
 const RETURN_MIGRATION_SECURITY := 85
+const MERCHANT_REPLACEMENT_TREASURY_COST := 8
+const GUARD_REPLACEMENT_TREASURY_COST := 12
 const CARAVAN_INCIDENT_COOLDOWN_HOURS := 24
 const CARAVAN_INCIDENT_TENSION_SCORE := -35
 const CARAVAN_INCIDENT_SECURITY_THRESHOLD := 65
@@ -64,6 +66,7 @@ func register_baseline(raw_settlements: Array) -> int:
 			"founding_faction": String(spec.get("founding_faction", "")),
 			"anchor_cell": _decode_cell(spec.get("anchor_cell", [])),
 			"market_cell": _decode_cell(spec.get("market_cell", [])),
+			"jail_cell": _decode_cell(spec.get("jail_cell", [])),
 			"structures": (spec.get("structures", []) as Array).duplicate(),
 			"inventory": _clean_counts(spec.get("initial_inventory", {})),
 			"stolen_deficit": {},
@@ -104,6 +107,11 @@ func market_cell(settlement_id: String) -> Vector2i:
 	if not settlements.has(settlement_id):
 		return Vector2i(99999, 99999)
 	return (settlements[settlement_id] as Dictionary)["market_cell"]
+
+func jail_cell(settlement_id: String) -> Vector2i:
+	if not settlements.has(settlement_id):
+		return Vector2i(99999, 99999)
+	return (settlements[settlement_id] as Dictionary)["jail_cell"]
 
 func nearby_market(at: Vector2, radius := 102.4) -> String:
 	var best := ""
@@ -319,6 +327,9 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 		return {"ok": false, "reason": "wanted"}
 	if player.item_count(item_id) < quantity:
 		return {"ok": false, "reason": "insufficient_goods"}
+	var local_stolen := int(((settlements[settlement_id] as Dictionary).get("stolen_deficit", {}) as Dictionary).get(item_id, 0))
+	if local_stolen > 0:
+		return {"ok": false, "reason": "stolen_goods", "stolen_quantity": local_stolen}
 	var shortage_before: String = shortage_severity(settlement_id, item_id)
 	var external_need: bool = int(production_profile(settlement_id).get(item_id, 0)) <= 0
 	var conflict_before: String = String(world.faction_authority.conflict_status(settlement_id)) if world.faction_authority != null else "peace"
@@ -1234,6 +1245,33 @@ func recover_security(settlement_id: String, amount: int) -> int:
 	settlements[settlement_id] = row
 	return int(row["security"])
 
+func spend_treasury(settlement_id: String, amount: int) -> bool:
+	if not settlements.has(settlement_id) or amount <= 0 or treasury(settlement_id) < amount:
+		return false
+	var row: Dictionary = settlements[settlement_id]
+	row["treasury"] = int(row.get("treasury", 0)) - amount
+	settlements[settlement_id] = row
+	return true
+
+func credit_treasury(settlement_id: String, amount: int) -> int:
+	if not settlements.has(settlement_id) or amount <= 0:
+		return treasury(settlement_id)
+	var row: Dictionary = settlements[settlement_id]
+	row["treasury"] = int(row.get("treasury", 0)) + amount
+	settlements[settlement_id] = row
+	return int(row["treasury"])
+
+func fund_npc_replacement(settlement_id: String, role_kind: String) -> bool:
+	if not settlements.has(settlement_id):
+		return false
+	var cost := GUARD_REPLACEMENT_TREASURY_COST if role_kind == "guard" else MERCHANT_REPLACEMENT_TREASURY_COST
+	var row: Dictionary = settlements[settlement_id]
+	if int(row.get("treasury", 0)) < cost:
+		return false
+	row["treasury"] = int(row.get("treasury", 0)) - cost
+	settlements[settlement_id] = row
+	return true
+
 func apply_player_crime_pressure(settlement_id: String, amount: int) -> int:
 	if not settlements.has(settlement_id) or amount <= 0:
 		return 0
@@ -1322,6 +1360,28 @@ func _decode_cell(raw) -> Vector2i:
 
 func market_closed_to_player(settlement_id: String) -> bool:
 	return world.faction_authority != null and world.faction_authority.hostile_to_player(world.faction_authority.controller_for_settlement(settlement_id))
+
+func pay_player_bounty(player, settlement_id: String, amount: int) -> Dictionary:
+	if player == null or not has(settlement_id) or world.faction_authority == null or amount <= 0:
+		return {"ok": false, "reason": "invalid_payment"}
+	var faction_id: String = world.faction_authority.controller_for_settlement(settlement_id)
+	var outstanding: int = world.faction_authority.player_bounty(faction_id)
+	if outstanding <= 0:
+		return {"ok": false, "reason": "not_wanted"}
+	var paid := mini(amount, mini(outstanding, player.forge_marks))
+	if paid <= 0:
+		return {"ok": false, "reason": "marks_short", "remaining": outstanding}
+	var settled: Dictionary = world.faction_authority.settle_player_bounty(faction_id, paid)
+	var applied := int(settled.get("paid", 0))
+	if applied <= 0:
+		return {"ok": false, "reason": "invalid_payment", "remaining": outstanding}
+	player.forge_marks -= applied
+	var row: Dictionary = settlements[settlement_id]
+	row["treasury"] = int(row.get("treasury", 0)) + applied
+	settlements[settlement_id] = row
+	settled["ok"] = true
+	settled["treasury"] = int(row["treasury"])
+	return settled
 
 func warehouse_key_id(settlement_id: String) -> String:
 	return "warehouse_key:" + settlement_id

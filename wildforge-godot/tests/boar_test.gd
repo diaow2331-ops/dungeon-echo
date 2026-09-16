@@ -32,6 +32,7 @@ func _run() -> void:
 	_check(SliceBrambleBoar.KNOCKBACK_RESIST > 0.20, "boar has materially higher commitment than light crawler")
 	_check(SliceBrambleBoar.CHARGE_TELL >= 0.28, "boar charge has a readable tell")
 	_check(SliceBrambleBoar.CHARGE_RECOVERY > SliceBrambleBoar.CHARGE_TIME, "boar leaves a punishable recovery window")
+	_check(SliceBrambleBoar.CHARGE_CRASH_RECOVERY > SliceBrambleBoar.CHARGE_RECOVERY, "terrain crash creates a larger punish window than an ordinary completed charge")
 
 	player.health = 100.0
 	boar.attack_state = 0
@@ -50,7 +51,13 @@ func _run() -> void:
 	_check(absf(boar.velocity.x) >= SliceBrambleBoar.CHARGE_SPEED * 0.95, "committed charge has meaningful forward speed")
 	boar.apply_hit(1.0, Vector2(-100, 0))
 	_check(boar.attack_state == 2, "light hit does not cancel an already committed boar charge")
+	boar.stun = 0.0
+	boar._crash_charge()
+	_check(boar.attack_state == 3 and boar.attack_timer >= SliceBrambleBoar.CHARGE_CRASH_RECOVERY - 0.001, "committed charge crashing into terrain enters the longer recovery window")
+	_check(absf(boar.velocity.x) < SliceBrambleBoar.CHARGE_SPEED * 0.5, "terrain crash kills most forward charge momentum")
 
+	boar._start_charge(150.0)
+	boar._update_attack(SliceBrambleBoar.CHARGE_TELL + 0.01)
 	boar.attack_timer = 0.01
 	boar._update_attack(0.02)
 	_check(boar.attack_state == 3, "boar charge always enters explicit recovery")

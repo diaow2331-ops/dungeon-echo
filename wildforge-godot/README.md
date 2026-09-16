@@ -401,3 +401,27 @@ Player crime now changes the same local stability facts used by the rest of the 
 High-impact crime can act as the `tension_catalyst` for Open Roads only after the regional trade layer exists. The existing 500-bounty pursuit threshold is reused as the trigger; ordinary crime below it does not advance macro progression, and even severe crime cannot bypass era dwell time, fabricate relation loss or declare war directly.
 
 Warehouse UI now exposes current local security and completed theft feedback reports the real security loss. This gives the criminal route visible consequences without adding a crime XP bar, destabilization meter or parallel political state.
+
+## v0.37 NPC identity, death and succession
+
+Settlement NPCs are no longer immortal service fixtures. `NpcRosterAuthority` separates a persistent role slot from the person currently holding it. Names and personality are generated deterministically from world seed, role slot and succession generation, so the same save reproduces the same person while a successor is guaranteed to be a new identity with a different name and speaking temperament.
+
+Merchants and settlement guards are now valid deliberate melee targets. Killing one permanently kills that person's identity, applies the existing crime/bounty and local-security consequences, and leaves the role vacant. The vacancy cannot refill immediately: merchant and guard roles wait different world-time delays, require minimum population/security, and spend real settlement treasury before a successor can take the same job.
+
+Succession reuses the same physical role slot but never revives the deceased person. Save schema 32 persists generation, life state, health, death hour and replacement deadline. Schema 31 remains loadable; legacy dead guards migrate into roster death, while older saves never invent deaths they did not previously record.
+
+## v0.38 bounty resolution foundation
+
+Player crime is no longer a one-way permanent hostility flag. `SliceFactionAuthority.settle_player_bounty()` reduces the existing sovereign bounty directly, including controller-linked annexed factions, and clears pursuit timing when the debt reaches zero. No pardon/reputation/debt subsystem is introduced: hostility, pursuit and crime progression continue to read the same canonical bounty value. This foundation is ready for a later physical guard/authority interaction that spends real player currency or accepts surrender; this change deliberately does not add remote menu forgiveness.
+
+## v0.39–v0.41 crime-resolution completion
+
+Wanted status is now reversible through a physical law interaction instead of remaining permanent. Living settlement guards expose the current sovereign bounty, and payment spends only the Forge Marks the player actually owns. Partial payments reduce the same canonical faction bounty; full payment clears hostility and pursuit timing. Paid value is credited into the real settlement treasury, so no money disappears into a detached UI sink.
+
+Warehouse theft also keeps a physical economic consequence. A settlement will not buy back a good while its own `stolen_deficit` still records that item as missing, preventing immediate victim-market laundering without adding per-item stolen flags or a second inventory authority.
+
+## v0.42 unified world-consequence baseline
+
+The server development line and the v0.41 repository line are consolidated here. Wartime NPC bounties are identity-bound contracts funded from real settlement treasury; killing a successor cannot satisfy a contract for the deceased predecessor. Serious player crime can end in physical arrest, fine payment and a real jail cell, while escaping jail creates another crime on the existing faction-bounty authority rather than a separate escape meter.
+
+Opening survival is protected by a bounded hostile-free radius, and Bramble Boar charge collisions create a larger punishable recovery window. Android back navigation is now owned by the game: dialogue closes first, otherwise a pause surface offers resume, explicit save and save-and-exit. The mobile HUD also begins the product-facing presentation pass by replacing engineering shorthand with player-readable day, health, hunger, currency and market language.

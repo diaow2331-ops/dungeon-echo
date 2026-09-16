@@ -64,6 +64,7 @@ func _generate_spec(world, spec: Dictionary) -> Dictionary:
 	var structures: Array = []
 	structures.append(_warehouse(world, settlement_id, anchor_x, ground_y, timber, stone))
 	structures.append(_market(world, settlement_id, anchor_x, ground_y, timber, stone))
+	structures.append(_jail(world, settlement_id, anchor_x, ground_y, timber, stone))
 	structures.append(_gate(world, settlement_id + ":west_gate", anchor_x - HALF_WIDTH, ground_y, timber, stone))
 	structures.append(_gate(world, settlement_id + ":east_gate", anchor_x + HALF_WIDTH, ground_y, timber, stone))
 	for row in structures:
@@ -76,6 +77,7 @@ func _generate_spec(world, spec: Dictionary) -> Dictionary:
 		"biome": String(spec["biome"]),
 		"anchor_cell": [anchor_x, ground_y - 1],
 		"market_cell": [anchor_x + 5, ground_y - 1],
+		"jail_cell": [anchor_x + 12, ground_y - 1],
 		"territory": [anchor_x - HALF_WIDTH - 1, ground_y - 9, HALF_WIDTH * 2 + 3, 18],
 		"structures": structures.map(func(s): return String((s as Dictionary)["id"])),
 		"npcs": _npc_specs(spec, settlement_id, faction_id, anchor_x, ground_y),
@@ -162,6 +164,19 @@ func _market(world, settlement_id: String, anchor_x: int, ground_y: int, timber:
 	for y in range(roof_y + 1, ground_y): _place(world, rows, Vector2i(left, y), timber); _place(world, rows, Vector2i(right, y), timber)
 	for x in range(anchor_x + 4, anchor_x + 7): _place(world, rows, Vector2i(x, ground_y - 1), timber)
 	return {"id":settlement_id+":market","kind":"market","blueprint":rows}
+
+func _jail(world, settlement_id: String, anchor_x: int, ground_y: int, timber: int, stone: int) -> Dictionary:
+	var rows: Array = []
+	var left := anchor_x + 10
+	var right := anchor_x + 14
+	var roof_y := ground_y - 5
+	for x in range(left, right + 1):
+		_place(world, rows, Vector2i(x, roof_y), stone)
+		_place(world, rows, Vector2i(x, ground_y), stone)
+	for y in range(roof_y + 1, ground_y):
+		_place(world, rows, Vector2i(left, y), stone)
+		_place(world, rows, Vector2i(right, y), stone)
+	return {"id": settlement_id + ":jail", "kind": "jail", "blueprint": rows}
 
 func _gate(world, id: String, x: int, ground_y: int, timber: int, stone: int) -> Dictionary:
 	var rows: Array = []
