@@ -9,6 +9,7 @@ const WorldActorAuthorityScript = preload("res://scripts/world/actors/world_acto
 const SaveScript = preload("res://scripts/save/slice_save_system.gd")
 const DialogueScript = preload("res://scripts/ui/dialogue_overlay.gd")
 const PauseScript = preload("res://scripts/ui/pause_overlay.gd")
+const InventoryScript = preload("res://scripts/ui/inventory_overlay.gd")
 
 var world: SliceWorld
 var player: SlicePlayer
@@ -16,6 +17,7 @@ var actor_authority: SliceWorldActorAuthority
 var dialogue_overlay: SliceDialogueOverlay
 var touch_controls: SliceTouchControls
 var pause_overlay: SlicePauseOverlay
+var inventory_overlay: SliceInventoryOverlay
 var defeats := 0
 var active_merchant_settlement := ""
 var active_interaction_kind := ""
@@ -69,6 +71,12 @@ func _ready() -> void:
 	touch_controls.name = "TouchControls"
 	touch_controls.player = player
 	ui_layer.add_child(touch_controls)
+	inventory_overlay = InventoryScript.new() as SliceInventoryOverlay
+	inventory_overlay.name = "InventoryOverlay"
+	inventory_overlay.player = player
+	inventory_overlay.open_requested.connect(_open_inventory)
+	inventory_overlay.close_requested.connect(_close_inventory)
+	ui_layer.add_child(inventory_overlay)
 	dialogue_overlay = DialogueScript.new() as SliceDialogueOverlay
 	dialogue_overlay.name = "DialogueOverlay"
 	dialogue_overlay.closed.connect(_close_dialogue)
@@ -115,6 +123,8 @@ func reconfigure_world_seed(new_seed: int) -> bool:
 
 func _open_dialogue(payload: Dictionary) -> void:
 	if dialogue_overlay == null or player == null:
+		return
+	if inventory_overlay != null and inventory_overlay.is_open():
 		return
 	var presented := payload.duplicate(true)
 	active_merchant_settlement = ""
@@ -371,6 +381,13 @@ func _notification(what: int) -> void:
 			SaveScript.save_to_path(self)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("inventory") and (pause_overlay == null or not pause_overlay.visible):
+		if inventory_overlay != null and inventory_overlay.is_open():
+			_close_inventory()
+		else:
+			_open_inventory()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_cancel") and (pause_overlay == null or not pause_overlay.visible):
 		_handle_back_request()
 		get_viewport().set_input_as_handled()
@@ -379,10 +396,32 @@ func _handle_back_request() -> void:
 	if dialogue_overlay != null and dialogue_overlay.visible:
 		dialogue_overlay.close_dialogue()
 		return
+	if inventory_overlay != null and inventory_overlay.is_open():
+		_close_inventory()
+		return
 	if pause_overlay != null and pause_overlay.visible:
 		_resume_from_pause()
 		return
 	_show_pause_menu()
+
+func _open_inventory() -> void:
+	if inventory_overlay == null or inventory_overlay.is_open() or player == null:
+		return
+	if (dialogue_overlay != null and dialogue_overlay.visible) or (pause_overlay != null and pause_overlay.visible):
+		return
+	player.interaction_locked = true
+	if touch_controls != null:
+		touch_controls.set_interaction_blocked(true)
+	inventory_overlay.open_for(player)
+
+func _close_inventory() -> void:
+	if inventory_overlay == null or not inventory_overlay.is_open():
+		return
+	inventory_overlay.close()
+	if player != null:
+		player.interaction_locked = false
+	if touch_controls != null:
+		touch_controls.set_interaction_blocked(false)
 
 func _show_pause_menu() -> void:
 	if pause_overlay == null or pause_overlay.visible:
@@ -442,6 +481,7 @@ func _configure_input() -> void:
 	_add_keys("move_left", [KEY_A, KEY_LEFT])
 	_add_keys("move_right", [KEY_D, KEY_RIGHT])
 	_add_keys("jump", [KEY_SPACE, KEY_W, KEY_UP])
+	_add_keys("inventory", [KEY_I, KEY_TAB])
 	_add_mouse("primary", MOUSE_BUTTON_LEFT)
 	_add_mouse("place", MOUSE_BUTTON_RIGHT)
 
