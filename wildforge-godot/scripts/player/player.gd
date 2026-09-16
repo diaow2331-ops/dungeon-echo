@@ -78,6 +78,7 @@ var starvation_tick := 0.0
 var equipped_pick_id := ""
 var equipped_axe_id := "traveler_hatchet"
 var equipped_weapon_id := "starter_blade"
+var selected_quick_item_id := ""
 var imprisoned_until_hour := -1
 var imprisoned_faction_id := ""
 var imprisoned_settlement_id := ""
@@ -396,6 +397,59 @@ func preferred_food_id() -> String:
 		return "raw_meat"
 	return ""
 
+func select_quick_item(item_id: String) -> void:
+	selected_quick_item_id = item_id
+	equip_item(item_id)
+
+func equip_item(item_id: String) -> bool:
+	if item_count(item_id) <= 0:
+		return false
+	if item_id in ["wood_pick", "stone_pick", "copper_pick", "delver_pick"]:
+		equipped_pick_id = item_id
+		return true
+	if item_id == "stone_blade":
+		equipped_weapon_id = item_id
+		return true
+	return false
+
+func quick_item_action_label() -> String:
+	if selected_quick_item_id.is_empty() or item_count(selected_quick_item_id) <= 0:
+		return ""
+	if food_nourish(selected_quick_item_id) > 0.0 and hunger < HUNGER_MAX - 1.0:
+		return "食"
+	if selected_quick_item_id == "workbench": return "台"
+	if selected_quick_item_id == "campfire": return "火"
+	if selected_quick_item_id == "storage_box" and _can_place_carried_storage(): return "箱"
+	if selected_quick_item_id in ["soil", "stone", "ash", "sandstone", "basalt", "snow", "ice"]: return "放"
+	return ""
+
+func _selected_block_tile() -> int:
+	match selected_quick_item_id:
+		"soil": return SliceWorld.DIRT
+		"stone": return SliceWorld.STONE
+		"ash": return SliceWorld.ASH
+		"sandstone": return SliceWorld.SANDSTONE
+		"basalt": return SliceWorld.BASALT
+		"snow": return SliceWorld.SNOW
+		"ice": return SliceWorld.ICE
+		_: return SliceWorld.AIR
+
+func _use_selected_quick_item() -> bool:
+	if selected_quick_item_id.is_empty() or item_count(selected_quick_item_id) <= 0:
+		return false
+	if food_nourish(selected_quick_item_id) > 0.0:
+		return eat_item(selected_quick_item_id)
+	if selected_quick_item_id == "workbench": return place_workbench_once()
+	if selected_quick_item_id == "campfire": return place_campfire_once()
+	if selected_quick_item_id == "storage_box" and _can_place_carried_storage():
+		var actors = get_parent().get("actor_authority")
+		return actors != null and actors.place_storage(_placement_cell())
+	var tile := _selected_block_tile()
+	if tile != SliceWorld.AIR:
+		var cell := _placement_cell()
+		return cell != Vector2i(99999, 99999) and place_material_at(cell, tile)
+	return false
+
 func can_craft(recipe_id: String) -> bool:
 	return CraftingScript.can_craft(self, recipe_id)
 
@@ -420,6 +474,9 @@ func craft(recipe_id: String) -> bool:
 	return true
 
 func context_label() -> String:
+	var quick_label := quick_item_action_label()
+	if not quick_label.is_empty():
+		return quick_label
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return "食"
@@ -459,6 +516,8 @@ func context_label() -> String:
 	return "置"
 
 func context_action() -> bool:
+	if _use_selected_quick_item():
+		return true
 	var food := preferred_food_id()
 	if hunger <= 25.0 and not food.is_empty():
 		return eat_item(food)

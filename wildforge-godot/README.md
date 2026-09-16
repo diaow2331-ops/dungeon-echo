@@ -425,3 +425,9 @@ Warehouse theft also keeps a physical economic consequence. A settlement will no
 The server development line and the v0.41 repository line are consolidated here. Wartime NPC bounties are identity-bound contracts funded from real settlement treasury; killing a successor cannot satisfy a contract for the deceased predecessor. Serious player crime can end in physical arrest, fine payment and a real jail cell, while escaping jail creates another crime on the existing faction-bounty authority rather than a separate escape meter.
 
 Opening survival is protected by a bounded hostile-free radius, and Bramble Boar charge collisions create a larger punishable recovery window. Android back navigation is now owned by the game: dialogue closes first, otherwise a pause surface offers resume, explicit save and save-and-exit. The mobile HUD also begins the product-facing presentation pass by replacing engineering shorthand with player-readable day, health, hunger, currency and market language.
+
+## v0.43 product interaction shell
+
+The first commercialization pass now exposes a six-slot hotbar plus one inventory/crafting/equipment surface. The UI is deliberately projection-only: item counts still live exclusively in `SlicePlayer.stock`, crafting still executes `SliceCrafting`, and equipment selection still writes the existing equipped tool/weapon fields.
+
+Hotbar assignment never moves or duplicates goods. Selecting owned food or placeable materials only changes the transient quick-use preference; the normal player context action consumes or places the same authoritative stock. Mobile inventory, hotbar and close controls respect the shared touch-target floor, while Android/keyboard back closes the inventory before pause or exit.

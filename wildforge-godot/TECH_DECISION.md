@@ -287,3 +287,9 @@ Player criminal liability remains one fact: `FactionAuthority.player_bounty`. Gu
 Wartime NPC bounties also remain inside faction authority, but are distinct contracts tied to immutable NPC person identity and funded from real settlement treasury. A role successor is not the previous target. Contract presentation and bounty-board UI may project this state but may not own contract truth or reward balances.
 
 Pause/back navigation is presentation and lifecycle control only. It may pause the tree, clear touch input and request the existing save authority, but it owns no gameplay state. Android back must close transient dialogue first, then enter the same pause surface; process exit is always explicit and save-aware.
+
+## v0.43 inventory presentation boundary
+
+The product inventory UI is not an inventory authority. `SlicePlayer.stock` remains the only player item ledger; the overlay may sort, label, assign transient hotbar preferences and invoke existing crafting/equipment methods, but it may not own item quantities or persist duplicate slot contents.
+
+A hotbar selection is input/presentation state. Consuming food, placing materials, crafting equipment and equipping tools always revalidate current authoritative stock at execution time. Future atlas icons and drag/drop behavior must preserve this boundary.
