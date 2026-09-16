@@ -9,6 +9,7 @@ const CHARGE_HIT_RANGE := 43.0
 const CHARGE_TELL := 0.30
 const CHARGE_TIME := 0.34
 const CHARGE_RECOVERY := 0.52
+const CHARGE_CRASH_RECOVERY := 0.78
 const CHARGE_SPEED := 338.0
 const DAMAGE := 11.0
 const KNOCKBACK_RESIST := 0.28
@@ -52,6 +53,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		_update_stalk(delta, dx)
 	move_and_slide()
+	if attack_state == 2 and is_on_wall():
+		_crash_charge()
 	queue_redraw()
 
 func _update_stalk(delta: float, dx: float) -> void:
@@ -85,13 +88,23 @@ func _update_attack(delta: float) -> void:
 				attack_connected = true
 				player.take_damage(DAMAGE, Vector2(attack_dir * 275.0, -118.0))
 			if attack_timer <= 0.0:
-				attack_state = 3
-				attack_timer = CHARGE_RECOVERY
-				velocity.x *= 0.22
+				_enter_recovery(CHARGE_RECOVERY)
 		3:
 			velocity.x = move_toward(velocity.x, 0.0, 760.0 * delta)
 			if attack_timer <= 0.0:
 				attack_state = 0
+
+func _enter_recovery(duration: float) -> void:
+	attack_state = 3
+	attack_timer = duration
+	attack_connected = false
+	velocity.x *= 0.22
+
+func _crash_charge() -> void:
+	if attack_state != 2:
+		return
+	_enter_recovery(CHARGE_CRASH_RECOVERY)
+	hit_flash = maxf(hit_flash, 0.10)
 
 func apply_hit(damage: float, force: Vector2) -> void:
 	hp -= damage

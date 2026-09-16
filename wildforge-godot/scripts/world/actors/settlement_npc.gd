@@ -114,6 +114,13 @@ func _draw() -> void:
 	if npc_kind == "warehouse":
 		_draw_warehouse()
 		return
+	if npc_kind == "bounty_board":
+		draw_rect(Rect2(-22, -48, 44, 45), Color("674b35"))
+		draw_rect(Rect2(-19, -45, 38, 32), Color("d3c3a1"))
+		draw_line(Vector2(-12, -36), Vector2(12, -36), Color("7b332f"), 2)
+		draw_line(Vector2(-12, -29), Vector2(8, -29), Color("51443a"), 2)
+		draw_string(ThemeDB.fallback_font, Vector2(-27, -56), "悬赏榜", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("e2c68e"))
+		return
 	if npc_kind == "merchant" and not alive():
 		draw_rect(Rect2(-22, -9, 44, 9), Color("705d50"))
 		draw_string(ThemeDB.fallback_font, Vector2(-34, -18), "职位空缺", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("c8b49a"))

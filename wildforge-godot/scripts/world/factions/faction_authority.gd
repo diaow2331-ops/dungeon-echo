@@ -17,6 +17,10 @@ const RELATION_WAR_ENTER := -60
 const RELATION_WAR_EXIT := -20
 const STALEMATE_RELIEF := 6
 const PLAYER_CRIME_CATALYST_BOUNTY := 500
+const NPC_BOUNTY_GUARD_REWARD := 72
+const NPC_BOUNTY_MERCHANT_REWARD := 48
+const NPC_BOUNTY_TREASURY_RESERVE := 24
+const VALID_BOUNTY_STATUS := ["posted", "accepted", "fulfilled", "claimed", "cancelled"]
 const BASELINE := [
 	{"id": "verdant", "biome": "verdant"},
 	{"id": "ember", "biome": "ember"},
@@ -27,6 +31,8 @@ var world
 var factions: Dictionary = {}
 var relations: Dictionary = {}
 var raids: Dictionary = {}
+var npc_bounties: Dictionary = {}
+var bounty_serial := 0
 
 func _init(owner_world) -> void:
 	world = owner_world
@@ -36,6 +42,8 @@ func reset_baseline() -> void:
 	factions.clear()
 	relations.clear()
 	raids.clear()
+	npc_bounties.clear()
+	bounty_serial = 0
 	for raw in BASELINE:
 		var id := String(raw["id"])
 		factions[id] = {
@@ -184,7 +192,12 @@ func export_state() -> Dictionary:
 			"decisive": bool(raid.get("decisive", false)),
 			"defeated_slots": (raid.get("defeated_slots", []) as Array).duplicate(),
 		})
-	return {"factions": faction_rows, "relations": relation_rows, "raids": raid_rows}
+	var bounty_rows: Array = []
+	var bounty_ids := npc_bounties.keys()
+	bounty_ids.sort()
+	for raw_id in bounty_ids:
+		bounty_rows.append((npc_bounties[raw_id] as Dictionary).duplicate(true))
+	return {"factions": faction_rows, "relations": relation_rows, "raids": raid_rows, "npc_bounties": bounty_rows, "bounty_serial": bounty_serial}
 
 func restore_state(raw) -> bool:
 	if not raw is Dictionary:
@@ -279,9 +292,37 @@ func restore_state(raw) -> bool:
 		raid["max_strength"] = max_strength
 		raid["defeated_slots"] = defeated.duplicate()
 		staged_raids[raid_id] = raid
+	var staged_bounties: Dictionary = {}
+	var raw_bounties = raw.get("npc_bounties", [])
+	if not raw_bounties is Array or raw_bounties.size() > 12:
+		return false
+	var max_serial := -1
+	for entry in raw_bounties:
+		if not entry is Dictionary:
+			return false
+		var bounty: Dictionary = (entry as Dictionary).duplicate(true)
+		var bounty_id := String(bounty.get("id", ""))
+		var issuer := String(bounty.get("issuer_faction", ""))
+		var target_faction := String(bounty.get("target_faction", ""))
+		var target_person := String(bounty.get("target_person_id", ""))
+		var target_slot := String(bounty.get("target_slot_id", ""))
+		var status := String(bounty.get("status", ""))
+		var reward := int(bounty.get("reward", 0))
+		if not bounty_id.begins_with("npc_bounty:") or staged_bounties.has(bounty_id) or not staged_factions.has(issuer) or not staged_factions.has(target_faction) or issuer == target_faction or target_person.is_empty() or target_slot.is_empty() or status not in VALID_BOUNTY_STATUS or reward <= 0:
+			return false
+		var suffix := bounty_id.trim_prefix("npc_bounty:")
+		if not suffix.is_valid_int():
+			return false
+		max_serial = maxi(max_serial, int(suffix))
+		staged_bounties[bounty_id] = bounty
+	var restored_serial := int(raw.get("bounty_serial", 0))
+	if restored_serial < max_serial + 1:
+		return false
 	factions = staged_factions
 	relations = staged_relations
 	raids = staged_raids
+	npc_bounties = staged_bounties
+	bounty_serial = restored_serial
 	_drop_invalid_raids()
 	return true
 
@@ -314,19 +355,17 @@ func settle_player_bounty(faction_id: String, amount: int) -> Dictionary:
 	var outstanding := player_bounty(sovereign)
 	if outstanding <= 0:
 		return {"ok": false, "reason": "clear"}
-	var paid := mini(amount, outstanding)
-	# Annexed factions share one sovereign bounty. Reduce canonical rows in stable order
-	# instead of inventing a second debt ledger.
+	var remaining_payment := mini(amount, outstanding)
 	for id in ids():
-		if paid <= 0:
+		if remaining_payment <= 0:
 			break
 		if controller_id(id) != sovereign:
 			continue
 		var row: Dictionary = factions[id]
 		var local := int(row.get("player_bounty", 0))
-		var reduction := mini(local, paid)
+		var reduction := mini(local, remaining_payment)
 		row["player_bounty"] = local - reduction
-		paid -= reduction
+		remaining_payment -= reduction
 		factions[id] = row
 	var remaining := player_bounty(sovereign)
 	if remaining == 0:
@@ -335,6 +374,38 @@ func settle_player_bounty(faction_id: String, amount: int) -> Dictionary:
 
 func hostile_to_player(faction_id: String) -> bool:
 	return player_bounty(faction_id) > 0
+
+func record_prison_escape(faction_id: String) -> int:
+	# Escape is another real crime on the same canonical bounty authority.
+	# Reuse the existing pursuit threshold instead of inventing an escape meter.
+	return record_player_crime(faction_id, PLAYER_CRIME_CATALYST_BOUNTY)
+
+func resolve_player_arrest(player, faction_id: String) -> Dictionary:
+	var sovereign := controller_id(faction_id)
+	var bounty := player_bounty(sovereign)
+	if player == null or bounty <= 0 or world == null or world.settlement_authority == null:
+		return {"ok": false}
+	var settlement_id := _settlement_for_faction(sovereign)
+	if settlement_id.is_empty():
+		return {"ok": false}
+	var fine_due := maxi(5, ceili(float(bounty) / 12.0))
+	var paid := mini(maxi(0, int(player.forge_marks)), fine_due)
+	player.forge_marks -= paid
+	world.settlement_authority.credit_treasury(settlement_id, paid)
+	var confiscated_keys := 0
+	for raw_id in player.stock.keys():
+		var item_id := String(raw_id)
+		if item_id.begins_with("warehouse_key:"):
+			confiscated_keys += maxi(0, int(player.stock.get(item_id, 0)))
+			player.stock[item_id] = 0
+	for id in ids():
+		if controller_id(id) == sovereign:
+			var row: Dictionary = factions[id]
+			row["player_bounty"] = 0
+			row["pursuit_due_hour"] = 0
+			factions[id] = row
+	var sentence_hours := clampi(4 + ceili(float(bounty) / 300.0) + (2 if paid < fine_due else 0), 4, 12)
+	return {"ok": true, "faction_id": sovereign, "settlement_id": settlement_id, "jail_cell": world.settlement_authority.jail_cell(settlement_id), "bounty_cleared": bounty, "fine_due": fine_due, "fine_paid": paid, "confiscated_keys": confiscated_keys, "sentence_hours": sentence_hours, "release_hour": world.absolute_world_hour() + sentence_hours}
 
 func pursuit_due(faction_id: String) -> bool:
 	var sovereign := controller_id(faction_id)
@@ -345,6 +416,126 @@ func defer_pursuit(faction_id: String) -> void:
 	if factions.has(sovereign):
 		(factions[sovereign] as Dictionary)["pursuit_due_hour"] = world.absolute_world_hour() + 12
 
+func bounty_for_settlement(settlement_id: String) -> Dictionary:
+	var issuer := controller_for_settlement(settlement_id)
+	for bounty_id in _sorted_bounty_ids():
+		var row: Dictionary = npc_bounties[bounty_id]
+		if String(row.get("issuer_faction", "")) == issuer and String(row.get("status", "")) in ["posted", "accepted", "fulfilled"]:
+			return row.duplicate(true)
+	return {}
+
+func accept_npc_bounty(bounty_id: String, issuer_settlement: String) -> Dictionary:
+	if not npc_bounties.has(bounty_id) or controller_for_settlement(issuer_settlement) != String((npc_bounties[bounty_id] as Dictionary).get("issuer_faction", "")):
+		return {"ok": false}
+	var row: Dictionary = npc_bounties[bounty_id]
+	if String(row.get("status", "")) != "posted":
+		return {"ok": false}
+	row["status"] = "accepted"
+	row["accepted_hour"] = world.absolute_world_hour()
+	npc_bounties[bounty_id] = row
+	return {"ok": true, "bounty": row.duplicate(true)}
+
+func record_npc_death(person_id: String, player_caused := false) -> Array:
+	var changed: Array = []
+	for bounty_id in _sorted_bounty_ids():
+		var row: Dictionary = npc_bounties[bounty_id]
+		if String(row.get("target_person_id", "")) != person_id or String(row.get("status", "")) not in ["posted", "accepted"]:
+			continue
+		if player_caused:
+			row["status"] = "fulfilled"
+			row["fulfilled_hour"] = world.absolute_world_hour()
+		else:
+			row["status"] = "cancelled"
+			_refund_bounty(row)
+		npc_bounties[bounty_id] = row
+		changed.append(row.duplicate(true))
+	return changed
+
+func claim_npc_bounty(player, bounty_id: String, issuer_settlement: String) -> Dictionary:
+	if player == null or not npc_bounties.has(bounty_id):
+		return {"ok": false}
+	var row: Dictionary = npc_bounties[bounty_id]
+	if String(row.get("status", "")) != "fulfilled" or controller_for_settlement(issuer_settlement) != String(row.get("issuer_faction", "")):
+		return {"ok": false}
+	var reward := int(row.get("reward", 0))
+	player.forge_marks += reward
+	row["status"] = "claimed"
+	row["claimed_hour"] = world.absolute_world_hour()
+	npc_bounties[bounty_id] = row
+	return {"ok": true, "reward": reward, "bounty": row.duplicate(true)}
+
+func _sorted_bounty_ids() -> Array[String]:
+	var result: Array[String] = []
+	for raw_id in npc_bounties.keys():
+		result.append(String(raw_id))
+	result.sort()
+	return result
+
+func _ensure_npc_bounties(absolute_hour: int, events: Array) -> void:
+	if world == null or world.progression_authority == null or not world.progression_authority.allows_war() or world.npc_roster_authority == null or world.settlement_authority == null:
+		return
+	_cancel_peace_bounties(events)
+	for issuer in ids():
+		var sovereign: String = controller_id(issuer)
+		if sovereign != issuer or not at_war(issuer) or _has_live_bounty_for_issuer(issuer):
+			continue
+		var target_faction: String = _war_enemy(issuer)
+		if target_faction.is_empty():
+			continue
+		var target: Dictionary = _pick_bounty_target(target_faction)
+		if target.is_empty():
+			continue
+		var issuer_settlement: String = world.settlement_authority.settlement_for_faction(issuer)
+		var role_kind := String(target.get("role_kind", ""))
+		var requested: int = NPC_BOUNTY_GUARD_REWARD if role_kind == "guard" else NPC_BOUNTY_MERCHANT_REWARD
+		var reward: int = mini(requested, maxi(0, world.settlement_authority.treasury(issuer_settlement) - NPC_BOUNTY_TREASURY_RESERVE))
+		if reward < 24 or not world.settlement_authority.spend_treasury(issuer_settlement, reward):
+			continue
+		var bounty_id := "npc_bounty:%d" % bounty_serial
+		bounty_serial += 1
+		var row := {"id": bounty_id, "issuer_faction": issuer, "issuer_settlement": issuer_settlement, "target_faction": target_faction, "target_slot_id": String(target.get("slot_id", "")), "target_person_id": String(target.get("person_id", "")), "target_name": String(target.get("display_name", "")), "target_role": String(target.get("role_title", "")), "reward": reward, "status": "posted", "posted_hour": absolute_hour, "accepted_hour": -1, "fulfilled_hour": -1, "claimed_hour": -1}
+		npc_bounties[bounty_id] = row
+		events.append({"kind": "npc_bounty_posted", "bounty": row.duplicate(true)})
+
+func _cancel_peace_bounties(events: Array) -> void:
+	for bounty_id in _sorted_bounty_ids():
+		var row: Dictionary = npc_bounties[bounty_id]
+		if String(row.get("status", "")) not in ["posted", "accepted"]:
+			continue
+		if String(relation(String(row.get("issuer_faction", "")), String(row.get("target_faction", ""))).get("stance", "neutral")) == "war":
+			continue
+		row["status"] = "cancelled"
+		_refund_bounty(row)
+		npc_bounties[bounty_id] = row
+		events.append({"kind": "npc_bounty_cancelled", "bounty_id": bounty_id})
+
+func _refund_bounty(row: Dictionary) -> void:
+	if world != null and world.settlement_authority != null:
+		world.settlement_authority.credit_treasury(String(row.get("issuer_settlement", "")), int(row.get("reward", 0)))
+
+func _has_live_bounty_for_issuer(issuer: String) -> bool:
+	for row in npc_bounties.values():
+		if row is Dictionary and String(row.get("issuer_faction", "")) == issuer and String(row.get("status", "")) in ["posted", "accepted", "fulfilled"]:
+			return true
+	return false
+
+func _war_enemy(issuer: String) -> String:
+	for other in ids():
+		if other != issuer and controller_id(other) == other and String(relation(issuer, other).get("stance", "neutral")) == "war":
+			return other
+	return ""
+
+func _pick_bounty_target(target_faction: String) -> Dictionary:
+	var fallback: Dictionary = {}
+	for slot_id in world.npc_roster_authority.all_slots():
+		var row: Dictionary = world.npc_roster_authority.person(slot_id)
+		if String(row.get("faction_id", "")) != target_faction or not bool(row.get("alive", false)):
+			continue
+		if String(row.get("role_kind", "")) == "guard":
+			return row
+		if fallback.is_empty():
+			fallback = row
+	return fallback
 
 func adjust_relation(a: String, b: String, delta: int, reason := "world_pressure") -> Dictionary:
 	var ca := controller_id(a)
@@ -514,6 +705,7 @@ func simulate_hour(absolute_hour: int) -> Dictionary:
 	var events: Array = []
 	_drop_invalid_raids()
 	_ensure_scheduled_raids(absolute_hour, events)
+	_ensure_npc_bounties(absolute_hour, events)
 	events.append_array(_simulate_diplomacy(absolute_hour))
 	var raid_ids := raids.keys()
 	raid_ids.sort()

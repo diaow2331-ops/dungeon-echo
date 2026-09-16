@@ -78,6 +78,9 @@ static func snapshot(main: Node) -> Dictionary:
 			"pick": player.equipped_pick_id,
 			"axe": player.equipped_axe_id,
 			"weapon": player.equipped_weapon_id,
+			"imprisoned_until_hour": player.imprisoned_until_hour,
+			"imprisoned_faction_id": player.imprisoned_faction_id,
+			"imprisoned_settlement_id": player.imprisoned_settlement_id,
 		},
 		"workbenches": _station_cells(main, "workbenches"),
 		"campfires": _station_cells(main, "campfires"),
@@ -182,6 +185,9 @@ static func apply_snapshot(main: Node, data: Dictionary) -> bool:
 	player.equipped_pick_id = _valid_pick(String(p.get("pick", "")))
 	player.equipped_axe_id = _valid_axe(String(p.get("axe", "")))
 	player.equipped_weapon_id = _valid_weapon(String(p.get("weapon", "starter_blade")))
+	player.imprisoned_until_hour = int(p.get("imprisoned_until_hour", -1))
+	player.imprisoned_faction_id = String(p.get("imprisoned_faction_id", ""))
+	player.imprisoned_settlement_id = String(p.get("imprisoned_settlement_id", ""))
 
 	_clear_group(main, "workbenches")
 	_clear_group(main, "campfires")
@@ -666,6 +672,15 @@ static func _validate_common(data: Dictionary, require_legacy_trees := true) -> 
 			return false
 	if not player.get("stock", {}) is Dictionary:
 		return false
+	var prison_until := int(player.get("imprisoned_until_hour", -1))
+	var prison_faction := String(player.get("imprisoned_faction_id", ""))
+	var prison_settlement := String(player.get("imprisoned_settlement_id", ""))
+	if prison_until < -1:
+		return false
+	if prison_until >= 0 and (prison_faction not in ["verdant", "frost", "ember"] or prison_settlement not in ["verdant_mossbridge", "frost_frostmirror", "ember_cinder_ridge"]):
+		return false
+	if prison_until < 0 and (not prison_faction.is_empty() or not prison_settlement.is_empty()):
+		return false
 	for key in ["workbenches", "campfires", "caches", "guards"]:
 		if not data.get(key, []) is Array:
 			return false
@@ -838,6 +853,30 @@ static func _valid_faction_payload(raw) -> bool:
 				return false
 			slots[slot] = true
 		raid_seen[raid_id] = true
+	var bounties = raw.get("npc_bounties", [])
+	var bounty_serial := int(raw.get("bounty_serial", 0))
+	if not bounties is Array or bounties.size() > 12 or bounty_serial < 0:
+		return false
+	var bounty_seen: Dictionary = {}
+	var max_bounty_serial := -1
+	for entry in bounties:
+		if not entry is Dictionary:
+			return false
+		var bounty_id := String(entry.get("id", ""))
+		var issuer := String(entry.get("issuer_faction", ""))
+		var target_faction := String(entry.get("target_faction", ""))
+		var target_person := String(entry.get("target_person_id", ""))
+		var target_slot := String(entry.get("target_slot_id", ""))
+		var status := String(entry.get("status", ""))
+		if not bounty_id.begins_with("npc_bounty:") or bounty_seen.has(bounty_id) or not allowed.has(issuer) or not allowed.has(target_faction) or issuer == target_faction or target_person.is_empty() or target_slot.is_empty() or status not in SliceFactionAuthority.VALID_BOUNTY_STATUS or int(entry.get("reward", 0)) <= 0:
+			return false
+		var suffix := bounty_id.trim_prefix("npc_bounty:")
+		if not suffix.is_valid_int():
+			return false
+		max_bounty_serial = maxi(max_bounty_serial, int(suffix))
+		bounty_seen[bounty_id] = true
+	if bounty_serial < max_bounty_serial + 1:
+		return false
 	return seen.size() == allowed.size() and relation_seen.size() == relation_keys.size()
 
 static func _valid_caravan_payload(raw) -> bool:

@@ -41,7 +41,7 @@ func _run() -> void:
 		var row_anchor: Vector2i = row.get("anchor_cell", Vector2i.ZERO)
 		_check(authority.owner_id(String(sid)) == String(expected_factions[sid]), "settlement sovereignty matches founding faction: " + String(sid))
 		_check(world.biome_at(row_anchor.x) == String(expected_biomes[sid]), "settlement occupies its intended macro biome: " + String(sid))
-		_check((row.get("structures", []) as Array).size() == 4, "settlement owns one warehouse market and two gates: " + String(sid))
+		_check((row.get("structures", []) as Array).size() == 5, "settlement owns warehouse, market, jail and two gates: " + String(sid))
 	var trees_inside := 0
 	for tree_site in world.vegetation_baseline():
 		var tree_cell: Vector2i = (tree_site as Dictionary).get("cell", Vector2i.ZERO)
@@ -58,7 +58,7 @@ func _run() -> void:
 			stale_veins += 1
 	_check(stale_veins == 0, "remote resource index contains no veins overwritten by settlement construction")
 	var structure_ids: Array = state.get("structures", [])
-	_check(structure_ids.size() == 4, "settlement baseline contains warehouse market and two gates")
+	_check(structure_ids.size() == 5, "settlement baseline contains warehouse, market, jail and two gates")
 	for raw_id in structure_ids:
 		var structure_id := String(raw_id)
 		_check(world.structure_authority.has(structure_id), "settlement structure is registered: " + structure_id)

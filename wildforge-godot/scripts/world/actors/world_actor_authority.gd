@@ -17,6 +17,7 @@ const KIND_PLAYER_STORAGE := "player_storage"
 const STORAGE_CAPACITY := 480.0
 const KIND_LOST_CARGO := "lost_cargo"
 const KIND_WAREHOUSE := "warehouse"
+const KIND_BOUNTY_BOARD := "bounty_board"
 const KIND_BOUNTY_HUNTER := "bounty_hunter"
 const KIND_RAIDER := "war_raider"
 const KIND_CARAVAN := "trade_caravan"
@@ -91,6 +92,8 @@ func register_settlement_npcs(raw_settlements: Array) -> void:
 		if not (descriptors[hunter_id] as Dictionary).has("security_initialized"):
 			(descriptors[hunter_id] as Dictionary)["present"] = false
 			(descriptors[hunter_id] as Dictionary)["security_initialized"] = true
+		var board_cell := world.settlement_authority.market_cell(settlement_id) + Vector2i(-5, 0)
+		_register_actor(settlement_id + ":bounty_board", KIND_BOUNTY_BOARD, board_cell, {"settlement_id": settlement_id, "faction_id": faction_id, "display_name": "势力悬赏榜", "role": "战争与通缉告示", "dialogue": ["悬赏只认具体的人，不认后来接替同一职位的人。"]})
 		var warehouse_cell: Vector2i = world.settlement_authority.warehouse_door(settlement_id)
 		_register_actor(settlement_id + ":warehouse_access", KIND_WAREHOUSE, warehouse_cell, {"settlement_id": settlement_id, "faction_id": faction_id, "display_name": "势力仓库", "role": "受卫兵保护的物资库", "dialogue": ["这座仓库供应当地集市和居民。"]})
 		var raw_npcs = settlement.get("npcs", [])
@@ -518,13 +521,13 @@ func _ensure_projection(actor_id: String) -> Node2D:
 		beast.dialogue_requested.connect(_forward_dialogue)
 		beast.z_index = 18
 		node = beast
-	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
+	elif kind in [KIND_MERCHANT, KIND_WAREHOUSE, KIND_BOUNTY_BOARD, KIND_LOST_CARGO, KIND_PLAYER_STORAGE]:
 		var npc := SettlementNpcScript.new() as SliceSettlementNpc
 		var meta: Dictionary = descriptor.get("meta", {})
 		npc.name = _node_name("SettlementNpc", actor_id)
 		npc.player = player
 		npc.authority = self
-		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("lost_cargo" if kind == KIND_LOST_CARGO else ("player_storage" if kind == KIND_PLAYER_STORAGE else "warehouse")), {
+		npc.setup(actor_id, "merchant" if kind == KIND_MERCHANT else ("bounty_board" if kind == KIND_BOUNTY_BOARD else ("lost_cargo" if kind == KIND_LOST_CARGO else ("player_storage" if kind == KIND_PLAYER_STORAGE else "warehouse"))), {
 			"actor_id": actor_id,
 			"settlement_id": String(meta.get("settlement_id", "")),
 			"faction_id": String(meta.get("faction_id", "")),
@@ -628,6 +631,8 @@ func damage_settlement_npc(actor_id: String, damage: float, at: Vector2) -> Dict
 	if not bool(result.get("ok", false)):
 		return result
 	if bool(result.get("died", false)):
+		if world.faction_authority != null:
+			world.faction_authority.record_npc_death(String(result.get("person_id", "")), true)
 		var meta: Dictionary = (descriptors[actor_id] as Dictionary).get("meta", {})
 		var settlement_id := String(meta.get("settlement_id", ""))
 		world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 600)
@@ -643,6 +648,8 @@ func damage_guard(actor_id: String, damage: float, at: Vector2) -> void:
 	if kind == KIND_SETTLEMENT_GUARD and world != null and world.npc_roster_authority != null and world.npc_roster_authority.has_slot(actor_id):
 		var result: Dictionary = world.npc_roster_authority.damage(actor_id, damage, world.absolute_world_hour())
 		if bool(result.get("died", false)):
+			if world.faction_authority != null:
+				world.faction_authority.record_npc_death(String(result.get("person_id", "")), true)
 			var settlement_id := String(((descriptors[actor_id] as Dictionary).get("meta", {}) as Dictionary).get("settlement_id", ""))
 			world.faction_authority.record_player_crime(world.faction_authority.controller_for_settlement(settlement_id), 1000)
 			if world.settlement_authority != null:

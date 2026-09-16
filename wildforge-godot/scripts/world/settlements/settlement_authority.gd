@@ -66,6 +66,7 @@ func register_baseline(raw_settlements: Array) -> int:
 			"founding_faction": String(spec.get("founding_faction", "")),
 			"anchor_cell": _decode_cell(spec.get("anchor_cell", [])),
 			"market_cell": _decode_cell(spec.get("market_cell", [])),
+			"jail_cell": _decode_cell(spec.get("jail_cell", [])),
 			"structures": (spec.get("structures", []) as Array).duplicate(),
 			"inventory": _clean_counts(spec.get("initial_inventory", {})),
 			"stolen_deficit": {},
@@ -106,6 +107,11 @@ func market_cell(settlement_id: String) -> Vector2i:
 	if not settlements.has(settlement_id):
 		return Vector2i(99999, 99999)
 	return (settlements[settlement_id] as Dictionary)["market_cell"]
+
+func jail_cell(settlement_id: String) -> Vector2i:
+	if not settlements.has(settlement_id):
+		return Vector2i(99999, 99999)
+	return (settlements[settlement_id] as Dictionary)["jail_cell"]
 
 func nearby_market(at: Vector2, radius := 102.4) -> String:
 	var best := ""
@@ -321,9 +327,6 @@ func sell_from_player(player, settlement_id: String, item_id: String, quantity :
 		return {"ok": false, "reason": "wanted"}
 	if player.item_count(item_id) < quantity:
 		return {"ok": false, "reason": "insufficient_goods"}
-	# A settlement will not buy back goods that are still recorded as stolen from
-	# its own warehouse. This reuses the existing physical theft deficit instead
-	# of adding a separate stolen-item flag to player inventory.
 	var local_stolen := int(((settlements[settlement_id] as Dictionary).get("stolen_deficit", {}) as Dictionary).get(item_id, 0))
 	if local_stolen > 0:
 		return {"ok": false, "reason": "stolen_goods", "stolen_quantity": local_stolen}
@@ -1241,6 +1244,22 @@ func recover_security(settlement_id: String, amount: int) -> int:
 	row["security"] = mini(100, security(settlement_id) + amount)
 	settlements[settlement_id] = row
 	return int(row["security"])
+
+func spend_treasury(settlement_id: String, amount: int) -> bool:
+	if not settlements.has(settlement_id) or amount <= 0 or treasury(settlement_id) < amount:
+		return false
+	var row: Dictionary = settlements[settlement_id]
+	row["treasury"] = int(row.get("treasury", 0)) - amount
+	settlements[settlement_id] = row
+	return true
+
+func credit_treasury(settlement_id: String, amount: int) -> int:
+	if not settlements.has(settlement_id) or amount <= 0:
+		return treasury(settlement_id)
+	var row: Dictionary = settlements[settlement_id]
+	row["treasury"] = int(row.get("treasury", 0)) + amount
+	settlements[settlement_id] = row
+	return int(row["treasury"])
 
 func fund_npc_replacement(settlement_id: String, role_kind: String) -> bool:
 	if not settlements.has(settlement_id):

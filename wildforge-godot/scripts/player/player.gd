@@ -78,6 +78,9 @@ var starvation_tick := 0.0
 var equipped_pick_id := ""
 var equipped_axe_id := "traveler_hatchet"
 var equipped_weapon_id := "starter_blade"
+var imprisoned_until_hour := -1
+var imprisoned_faction_id := ""
+var imprisoned_settlement_id := ""
 
 func _ready() -> void:
 	stock = {"soil": 0, "stone": 0, "ash": 0, "sandstone": 0, "basalt": 0, "snow": 0, "ice": 0, "wood": 0, "plank": 0, "workbench": 0, "campfire": 0, "raw_meat": 0, "trail_ration": 0, "wood_pick": 0, "stone_pick": 0, "stone_blade": 0, "coal": 0, "copper_ore": 0, "ancient_core": 0, "copper_bar": 0, "copper_pick": 0, "delver_pick": 0}
@@ -101,6 +104,7 @@ func set_touch_aim(v: Vector2, active: bool) -> void:
 	touch_primary = active
 
 func _physics_process(delta: float) -> void:
+	_update_imprisonment()
 	_update_survival(delta)
 	invuln = maxf(0.0, invuln - delta)
 	hurt_flash = maxf(0.0, hurt_flash - delta)
@@ -685,7 +689,7 @@ func place_campfire_once() -> bool:
 		return false
 	return place_campfire_at(cell)
 
-func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
+func take_damage(amount: float, knockback := Vector2.ZERO, arrest_faction_id := "") -> void:
 	if invuln > 0.0:
 		return
 	health = maxf(0.0, health - amount)
@@ -697,7 +701,56 @@ func take_damage(amount: float, knockback := Vector2.ZERO) -> void:
 	if world != null:
 		world.feedback_burst(global_position, Color("ef8b73"), 9, 135.0)
 	if health <= 0.0:
+		if not arrest_faction_id.is_empty() and _arrest_after_defeat(arrest_faction_id):
+			return
 		_respawn_after_death()
+
+func is_imprisoned() -> bool:
+	return imprisoned_until_hour >= 0
+
+func _arrest_after_defeat(faction_id: String) -> bool:
+	if world == null or world.faction_authority == null:
+		return false
+	var result: Dictionary = world.faction_authority.resolve_player_arrest(self, faction_id)
+	if not bool(result.get("ok", false)):
+		return false
+	health = max_health
+	hunger = maxf(35.0, hunger)
+	starvation_tick = 0.0
+	imprisoned_until_hour = int(result.get("release_hour", world.absolute_world_hour()))
+	imprisoned_faction_id = String(result.get("faction_id", ""))
+	imprisoned_settlement_id = String(result.get("settlement_id", ""))
+	var cell: Vector2i = result.get("jail_cell", Vector2i.ZERO)
+	global_position = world.cell_center(cell) + Vector2(0, -28)
+	velocity = Vector2.ZERO
+	invuln = 1.0
+	return true
+
+func _update_imprisonment() -> void:
+	if not is_imprisoned() or world == null:
+		return
+	if world.absolute_world_hour() < imprisoned_until_hour:
+		if world.settlement_authority != null and not imprisoned_settlement_id.is_empty():
+			var jail := world.settlement_authority.jail_cell(imprisoned_settlement_id)
+			if jail != Vector2i(99999, 99999):
+				var cell := world.world_to_cell(global_position)
+				var inside := absi(cell.x - jail.x) <= 1 and cell.y >= jail.y - 3 and cell.y <= jail.y
+				if not inside:
+					var escaped_faction := imprisoned_faction_id
+					imprisoned_until_hour = -1
+					imprisoned_faction_id = ""
+					imprisoned_settlement_id = ""
+					if world.faction_authority != null and not escaped_faction.is_empty():
+						world.faction_authority.record_prison_escape(escaped_faction)
+					world.feedback_burst(global_position, Color("f2b36b"), 12, 150.0)
+		return
+	var release_settlement := imprisoned_settlement_id
+	imprisoned_until_hour = -1
+	imprisoned_faction_id = ""
+	imprisoned_settlement_id = ""
+	if world.settlement_authority != null and not release_settlement.is_empty():
+		global_position = world.cell_center(world.settlement_authority.market_cell(release_settlement)) + Vector2(0, -52)
+	velocity = Vector2.ZERO
 
 func _respawn_after_death() -> void:
 	if get_parent() != null and get_parent().has_method("drop_death_cargo"):

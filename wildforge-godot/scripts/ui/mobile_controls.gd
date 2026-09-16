@@ -32,7 +32,9 @@ func _ready() -> void:
 	status_label = Label.new()
 	status_label.position = Vector2(14, 10)
 	status_label.add_theme_font_size_override("font_size", 15)
-	status_label.modulate = Color(0.92, 0.96, 0.94, 0.88)
+	status_label.add_theme_constant_override("outline_size", 3)
+	status_label.add_theme_color_override("font_outline_color", Color(0.01, 0.03, 0.03, 0.92))
+	status_label.modulate = Color(0.92, 0.96, 0.94, 0.94)
 	add_child(status_label)
 	hint_label = Label.new()
 	hint_label.text = "左侧移动/上推跳跃 · 右侧瞄准战斗 · 中央键按情境互动"
@@ -40,7 +42,9 @@ func _ready() -> void:
 	hint_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	hint_label.position = Vector2(0, 10)
 	hint_label.add_theme_font_size_override("font_size", 13)
-	hint_label.modulate = Color(0.88, 0.91, 0.88, 0.52)
+	hint_label.add_theme_constant_override("outline_size", 3)
+	hint_label.add_theme_color_override("font_outline_color", Color(0.01, 0.03, 0.03, 0.9))
+	hint_label.modulate = Color(0.9, 0.93, 0.9, 0.78)
 	add_child(hint_label)
 	_apply_safe_layout()
 	queue_redraw()
@@ -71,13 +75,11 @@ func _process(delta: float) -> void:
 	if world_notice_remaining <= 0.0:
 		world_notice = ""
 	if player != null and is_instance_valid(player):
-		var relic := " · 芯%d 铜%d" % [player.item_count("ancient_core"), player.item_count("copper_ore")] if player.item_count("ancient_core") + player.item_count("copper_ore") > 0 else ""
-		var pick_label := "无" if player.equipped_pick_id.is_empty() else ("遗" if player.equipped_pick_id == "delver_pick" else ("Ⅲ" if player.equipped_pick_id == "copper_pick" else ("Ⅱ" if player.equipped_pick_id == "stone_pick" else "Ⅰ")))
 		var day := player.world.clock.day_index + 1 if player.world != null else 1
 		var hour := int(floor(player.world.clock.hour_24())) if player.world != null else 0
 		var market := player.nearby_market_id()
-		var market_note := " · 市场" if not market.is_empty() else ""
-		status_label.text = "D%d %02d:00 · HP %d · 饱食 %d · ◆%d · 镐%s 刃%s%s%s" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, pick_label, "Ⅱ" if player.equipped_weapon_id == "stone_blade" else "Ⅰ", relic, market_note]
+		var market_note := " · 集市" if not market.is_empty() else ""
+		status_label.text = "第%d天 %02d:00 · 生命 %d · 饱食 %d · ◆%d%s" % [day, hour, int(ceil(player.health)), int(ceil(player.hunger)), player.forge_marks, market_note]
 		hint_label.text = world_notice if world_notice_remaining > 0.0 and not world_notice.is_empty() else _journey_hint()
 	queue_redraw()
 

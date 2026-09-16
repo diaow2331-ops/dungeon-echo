@@ -83,7 +83,7 @@ func _guard_dialogue() -> Array:
 			SliceWorldProgressionAuthority.ERA_REFORGING: lines.append("现在连一面旗帜归谁都不再是永远的。这里的土地没变，控制它的人却可能会变。")
 	if hostile() and player != null and player.world != null:
 		var faction_id: String = player.world.faction_authority.controller_for_settlement(String(payload.get("settlement_id", "")))
-		lines.append("你在本势力的悬赏是 %d◆。缴清后守卫与追捕会停止。" % player.world.faction_authority.player_bounty(faction_id))
+		lines.append("你在本势力的悬赏是 %d◆。可以缴纳现有钱币，或拒捕后承担监禁后果。" % player.world.faction_authority.player_bounty(faction_id))
 	match status:
 		"tense": lines.append("边境正在升温。守卫已经加强警戒，长途商路风险也在上升。")
 		"war": lines.append("战事已经开始。聚落会优先保留口粮与补给，外运物资受到限制。")
@@ -123,7 +123,8 @@ func _physics_process(delta: float) -> void:
 			velocity.x = attack_dir * 290.0
 			if not attack_hit and offset.length() < 100.0 and offset.x * attack_dir > -10.0 and _clear_strike():
 				attack_hit = true
-				player.take_damage(DAMAGE, Vector2(attack_dir * 380.0, -180.0))
+				var arrest_faction := player.world.faction_authority.controller_for_settlement(String(payload.get("settlement_id", ""))) if player.world != null and player.world.faction_authority != null else ""
+				player.take_damage(DAMAGE, Vector2(attack_dir * 380.0, -180.0), arrest_faction)
 			if attack_time <= 0.0:
 				attack_phase = 3
 				attack_time = 1.05

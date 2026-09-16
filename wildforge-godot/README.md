@@ -413,3 +413,15 @@ Succession reuses the same physical role slot but never revives the deceased per
 ## v0.38 bounty resolution foundation
 
 Player crime is no longer a one-way permanent hostility flag. `SliceFactionAuthority.settle_player_bounty()` reduces the existing sovereign bounty directly, including controller-linked annexed factions, and clears pursuit timing when the debt reaches zero. No pardon/reputation/debt subsystem is introduced: hostility, pursuit and crime progression continue to read the same canonical bounty value. This foundation is ready for a later physical guard/authority interaction that spends real player currency or accepts surrender; this change deliberately does not add remote menu forgiveness.
+
+## v0.39–v0.41 crime-resolution completion
+
+Wanted status is now reversible through a physical law interaction instead of remaining permanent. Living settlement guards expose the current sovereign bounty, and payment spends only the Forge Marks the player actually owns. Partial payments reduce the same canonical faction bounty; full payment clears hostility and pursuit timing. Paid value is credited into the real settlement treasury, so no money disappears into a detached UI sink.
+
+Warehouse theft also keeps a physical economic consequence. A settlement will not buy back a good while its own `stolen_deficit` still records that item as missing, preventing immediate victim-market laundering without adding per-item stolen flags or a second inventory authority.
+
+## v0.42 unified world-consequence baseline
+
+The server development line and the v0.41 repository line are consolidated here. Wartime NPC bounties are identity-bound contracts funded from real settlement treasury; killing a successor cannot satisfy a contract for the deceased predecessor. Serious player crime can end in physical arrest, fine payment and a real jail cell, while escaping jail creates another crime on the existing faction-bounty authority rather than a separate escape meter.
+
+Opening survival is protected by a bounded hostile-free radius, and Bramble Boar charge collisions create a larger punishable recovery window. Android back navigation is now owned by the game: dialogue closes first, otherwise a pause surface offers resume, explicit save and save-and-exit. The mobile HUD also begins the product-facing presentation pass by replacing engineering shorthand with player-readable day, health, hunger, currency and market language.
