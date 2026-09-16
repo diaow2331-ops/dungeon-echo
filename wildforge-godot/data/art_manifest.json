@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "policy": {
+    "runtime_local_only": true,
+    "texture_filter": "nearest",
+    "authority": "presentation_only",
+    "music_deferred": true,
+    "preserve_source_resolution": true,
+    "downscale_by_default": false,
+    "runtime_export": "lossless_png_preferred",
+    "keep_master_sources": true,
+    "performance_downscale_requires_measurement": true
+  },
+  "sources": [
+    {
+      "id": "terrain_core",
+      "drive_id": "12noipiJDbQAKImRFvaePMiF9lGudqbNm",
+      "file": "01_terrain_dirt_stone.jpg",
+      "priority": "P0",
+      "target": "assets/production/terrain"
+    },
+    {
+      "id": "trees",
+      "drive_id": "1ROiI8z9W-zhEwzAy9RxmvC344apiSyVl",
+      "file": "03_forest_trees.jpg",
+      "priority": "P0",
+      "target": "assets/production/environment"
+    },
+    {
+      "id": "ores",
+      "drive_id": "1_4fR-Aer_k3gXp8fYiHz0Y_AvTBfcwUg",
+      "file": "04_cave_ores.jpg",
+      "priority": "P0",
+      "target": "assets/production/terrain"
+    },
+    {
+      "id": "furniture_core",
+      "drive_id": "1kmIzTTPnppKxvihjH6tI-hiO6xGrLaPg",
+      "file": "06_furniture_crafting_trade.jpg",
+      "priority": "P0",
+      "target": "assets/production/ui/items"
+    },
+    {
+      "id": "inventory_icons",
+      "drive_id": "1hPpArx-yTKpD6VKybqnW6SzrMvEad2LC",
+      "file": "07_inventory_icons.jpg",
+      "priority": "P0",
+      "target": "assets/production/ui/items"
+    },
+    {
+      "id": "tools_weapons",
+      "drive_id": "19139JPXs_O6Src_OSWEp6DptzIUmeIVJ",
+      "file": "08_tools_weapons.jpg",
+      "priority": "P0",
+      "target": "assets/production/ui/items"
+    },
+    {
+      "id": "player_base",
+      "drive_id": "19jxUelDx-bNIMJLRolWyOF9MR6B5iiII",
+      "file": "09_male_character_base.jpg",
+      "priority": "P0",
+      "target": "assets/production/player"
+    },
+    {
+      "id": "player_anim",
+      "drive_id": "1cQR0H98LL71-iOhll93NNrPN3cWQN6u4",
+      "file": "10_player_animation_master.jpg",
+      "priority": "P0",
+      "target": "assets/production/player"
+    },
+    {
+      "id": "ui_core",
+      "drive_id": "12nzGhIjWb4ZS3Zjn4LVpdx9YO45bhRRs",
+      "file": "14_ui_assets.jpg",
+      "priority": "P0",
+      "target": "assets/production/ui"
+    },
+    {
+      "id": "mobile_hud",
+      "drive_id": "1R2rxuuZndoNjJmMMkUTswmb3iOVOwy-M",
+      "file": "34_mobile_hud_touch_controls.png",
+      "priority": "P0",
+      "target": "assets/production/ui"
+    },
+    {
+      "id": "surface_bg",
+      "drive_id": "18TvOrFw9oZKRx-d3SmjrIsi52sGWvTwC",
+      "file": "35_surface_biome_parallax_master.png",
+      "priority": "P1",
+      "target": "assets/production/backgrounds"
+    }
+  ],
+  "current_production_batch": {
+    "version": "v0.45",
+    "provenance": "assets/production/manifest_v045.json",
+    "status": "live_first_pass",
+    "music": "deferred"
+  }
+}

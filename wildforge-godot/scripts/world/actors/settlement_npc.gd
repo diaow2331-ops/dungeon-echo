@@ -1,6 +1,8 @@
 class_name SliceSettlementNpc
 extends Area2D
 
+const ArtCatalog = preload("res://scripts/ui/art_catalog.gd")
+
 signal dialogue_requested(payload: Dictionary)
 
 var actor_id := ""
@@ -19,6 +21,7 @@ func setup(id: String, kind: String, data: Dictionary) -> void:
 	body_tint = Color("ad8059") if kind == "merchant" else Color("66829a")
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	collision_layer = 16
 	collision_mask = 0
 	input_pickable = true
@@ -99,11 +102,17 @@ func era_context_line() -> String:
 
 func _draw() -> void:
 	if npc_kind == "player_storage":
-		draw_rect(Rect2(-20, -28, 40, 28), Color("8c623f"))
-		draw_rect(Rect2(-20, -28, 40, 28), Color("c7a26a"), false, 2)
-		draw_line(Vector2(-20, -18), Vector2(20, -18), Color("c7a26a"), 2)
-		draw_rect(Rect2(-3, -20, 6, 9), Color("d9c176"))
-		draw_string(ThemeDB.fallback_font, Vector2(-30, -38), "储物箱", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e1c996"))
+		var storage_texture := ArtCatalog.item_icon("storage_box")
+		if storage_texture != null:
+			var height := 48.0
+			var width := height * float(storage_texture.get_width()) / maxf(1.0, float(storage_texture.get_height()))
+			draw_texture_rect(storage_texture, Rect2(-width * 0.5, -height, width, height), false)
+		else:
+			draw_rect(Rect2(-20, -28, 40, 28), Color("8c623f"))
+			draw_rect(Rect2(-20, -28, 40, 28), Color("c7a26a"), false, 2)
+			draw_line(Vector2(-20, -18), Vector2(20, -18), Color("c7a26a"), 2)
+			draw_rect(Rect2(-3, -20, 6, 9), Color("d9c176"))
+		draw_string(ThemeDB.fallback_font, Vector2(-30, -58 if storage_texture != null else -38), "储物箱", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("e1c996"))
 		return
 	if npc_kind == "lost_cargo":
 		draw_rect(Rect2(-16, -23, 32, 23), Color("9b8052"))

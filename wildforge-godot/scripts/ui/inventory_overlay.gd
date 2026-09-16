@@ -7,6 +7,7 @@ signal nearby_storage_requested
 
 const MobileLayoutScript = preload("res://scripts/ui/mobile_layout.gd")
 const CraftingScript = preload("res://scripts/crafting/slice_crafting.gd")
+const ArtCatalog = preload("res://scripts/ui/art_catalog.gd")
 const SLOT_COUNT := 6
 const ITEM_NAMES := {
 	"soil":"土块", "stone":"石块", "ash":"灰烬", "sandstone":"砂岩", "basalt":"玄武岩",
@@ -180,7 +181,8 @@ func _refresh_hotbar() -> void:
 		var item_id := hotbar_items[i]
 		var count := player.item_count(item_id)
 		var prefix := "▶ " if i == selected_slot else ""
-		hotbar_buttons[i].text = "%s%s\n%d" % [prefix, _item_name(item_id), count]
+		var has_icon := ArtCatalog.apply_button_icon(hotbar_buttons[i], item_id)
+		hotbar_buttons[i].text = "%s%s\n%d" % [prefix, _item_name(item_id), count] if not has_icon else "%s%s  %d" % [prefix, _item_name(item_id), count]
 		hotbar_buttons[i].tooltip_text = _item_detail(item_id)
 func _refresh_equipment() -> void:
 	equipment_label.text = "装备 · 武器 %s · 镐 %s · 斧 旅行斧" % [
@@ -199,8 +201,9 @@ func _refresh_inventory() -> void:
 			continue
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(128, SliceMobileLayout.MIN_TOUCH_TARGET)
+		var has_icon := ArtCatalog.apply_button_icon(button, item_id)
 		button.text = "%s ×%d" % [_item_name(item_id), count]
-		button.tooltip_text = _item_detail(item_id)
+		button.tooltip_text = _item_detail(item_id) + (" · 已接入生产图标" if has_icon else "")
 		button.pressed.connect(_inventory_item_pressed.bind(item_id))
 		inventory_grid.add_child(button)
 	if inventory_grid.get_child_count() == 0:
@@ -230,6 +233,7 @@ func _refresh_crafting() -> void:
 		row.add_child(label)
 		var button := Button.new()
 		button.text = "制造"
+		ArtCatalog.apply_button_icon(button, String(recipe.get("out_id", recipe_id)))
 		button.custom_minimum_size = Vector2(78, SliceMobileLayout.MIN_TOUCH_TARGET)
 		button.disabled = not player.can_craft(recipe_id)
 		button.pressed.connect(_craft_recipe.bind(recipe_id))

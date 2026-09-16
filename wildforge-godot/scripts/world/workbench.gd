@@ -1,9 +1,12 @@
 extends Node2D
 class_name SliceWorkbench
 
+const ArtCatalog = preload("res://scripts/ui/art_catalog.gd")
+
 var cell := Vector2i.ZERO
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_to_group("workbenches")
 	var area := Area2D.new()
 	area.collision_layer = 16
@@ -18,6 +21,12 @@ func _ready() -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	var texture := ArtCatalog.item_icon("workbench")
+	if texture != null:
+		var height := 62.0
+		var width := height * float(texture.get_width()) / maxf(1.0, float(texture.get_height()))
+		draw_texture_rect(texture, Rect2(-width * 0.5, 20.0 - height, width, height), false)
+		return
 	draw_rect(Rect2(-20, -12, 40, 12), Color("9d7048"))
 	draw_rect(Rect2(-17, 0, 6, 20), Color("735036"))
 	draw_rect(Rect2(11, 0, 6, 20), Color("735036"))
