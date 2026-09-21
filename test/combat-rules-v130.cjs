@@ -47,4 +47,23 @@ assert.equal(rules.thornsDamage(4, 3), 7);
 assert.equal(rules.killHeal(3, 3, 0), 6);
 assert.equal(rules.killHeal(3, 3, 2), 3);
 
+// v1.9.2 atomic transfer: ordinary-monster pressure tuning is owned here.
+assert.equal(rules.monsterThreatScale(1, false, false), 1.10);
+assert.equal(Number(rules.monsterThreatScale(100, false, false).toFixed(2)), 1.36);
+assert.equal(Number(rules.monsterThreatScale(100, true, false).toFixed(2)), 1.42);
+assert.equal(rules.monsterThreatScale(100, true, true), 1, 'boss-like actors keep authored stats');
+assert.equal(rules.monsterHpPressure(1), 1.75);
+assert.equal(Number(rules.monsterHpPressure(100).toFixed(4)), 2.1658);
+assert.equal(rules.monsterHpPressure(50, true), 1, 'guardian HP pressure stays neutral');
+assert.equal(rules.monsterDefDepthBonus(11), 0);
+assert.equal(rules.monsterDefDepthBonus(12), 1);
+assert.equal(rules.monsterDefDepthBonus(96), 8);
+
+const coreSrc = fs.readFileSync(path.join(root, 'game/core/game.js'), 'utf8');
+assert(coreSrc.includes('COMBAT_RULES.monsterThreatScale(d, elite, bossLike)'), 'core delegates threat tuning to the combat rules authority');
+assert(coreSrc.includes('COMBAT_RULES.monsterHpPressure(depth, bossLike)'), 'core delegates HP pressure to the combat rules authority');
+assert(coreSrc.includes('COMBAT_RULES.monsterDefDepthBonus(depth)'), 'core delegates the DEF depth bonus to the combat rules authority');
+assert(!/0\.10 \+ Math\.min\(0\.26/.test(coreSrc) && !/Math\.floor\(depth \/ 12\)/.test(coreSrc),
+  'core no longer duplicates the pressure formulas after the atomic transfer');
+
 console.log('combat_rules_v130=PASS');

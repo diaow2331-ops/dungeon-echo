@@ -6,7 +6,7 @@
     "gameplayState": "game/core/game.js",
     "turnFlow": "game/core/game.js",
     "combat": "game/core/game.js",
-    "monsterThreatTuning": "game/core/game.js",
+    "monsterThreatTuning": "game/domain/combat/combat-rules-v130.js",
     "economy": "game/core/game.js",
     "progression": "game/core/game.js",
     "townGameplay": "game/core/game.js",

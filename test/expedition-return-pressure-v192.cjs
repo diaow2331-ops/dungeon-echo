@@ -132,13 +132,19 @@ ok(core.includes('TOWN_RULES.townConvalescenceHp(player.hp, pMaxHp())'), 'core c
 ok(core.includes('meta.hpPct') && core.includes('base.hpPct = clamp(num(raw.hpPct, 100), 1, 100)'),
   'meta.hpPct is an additive sanitized field on the existing meta blob (no schema/version change)');
 ok(core.includes('((depth - returnOffset) % 20 === 0)'), 'return-scroll guarantee is halved in the core spawn owner');
-ok(core.includes('0.10 + Math.min(0.26') && core.includes('Math.floor(depth / 12)'), 'steeper threat/DEF curves live in the core tuning owner');
+ok(core.includes('COMBAT_RULES.monsterThreatScale(d, elite, bossLike)') &&
+  core.includes('COMBAT_RULES.monsterHpPressure(depth, bossLike)') && core.includes('COMBAT_RULES.monsterDefDepthBonus(depth)'),
+  'core delegates monster pressure tuning to the combat rules authority (v1.9.2 atomic transfer)');
+const combatSrc = fs.readFileSync(path.join(root, 'game/domain/combat/combat-rules-v130.js'), 'utf8');
+ok(combatSrc.includes('0.10 + Math.min(0.26') && combatSrc.includes('/ 12'), 'steeper threat/DEF curves live in the combat rules authority');
 ok(core.includes('regen:1, attackGain:2') && core.includes('regen:2, attackGain:1'), 'halved passive Mana regen lives in the core mana rules');
 ok(core.includes("turns % (player.fastRegen ? 4 : 9)"), 'natural HP regen interval is 9 turns in core (fastRegen talent cadence preserved)');
 ok(core.includes('pMaxHp() * 0.30 * healMult()') && core.includes('pMaxHp() * 0.35 * healMult()'), 'rest-camp and shrine-water heals are reduced in core');
 const authority = JSON.parse(fs.readFileSync(path.join(root, 'docs/authority-map-v130.json'), 'utf8'));
 ok(authority.authorities.townReturnConvalescencePolicy === 'game/domain/town/town-rules-v130.js',
   'authority map keeps return convalescence under the existing town policy owner (no second authority)');
+ok(authority.authorities.monsterThreatTuning === 'game/domain/combat/combat-rules-v130.js',
+  'authority map records the monster-threat tuning transfer to combat rules (single owner)');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);

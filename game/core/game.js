@@ -2546,14 +2546,10 @@ function randomFloorIn(rooms, minDistFromPlayer) {
   return pickSpawn(minDistFromPlayer || 1);
 }
 
-function monsterThreatScale(d, elite=false, bossLike=false) {
-  if (bossLike) return 1;
-  // v1.7 threat pass: keep ordinary enemies relevant through the whole descent
-  // without touching authored guardian/final-boss ATK.
-  // v1.9.2 pressure pass: deeper curve and higher floor so attrition is real.
-  const depthThreat = 0.10 + Math.min(0.26, Math.max(0, Number(d) - 1) * 0.002625);
-  return 1 + depthThreat + (elite ? 0.06 : 0);
-}
+// v1.9.2 atomic authority transfer: ordinary-monster pressure tuning now lives in
+// game/domain/combat/combat-rules-v130.js. Core keeps RNG, elite rolls, spawn
+// composition, damage application and turn flow; the formulas stay pure and testable.
+const monsterThreatScale = (d, elite=false, bossLike=false) => COMBAT_RULES.monsterThreatScale(d, elite, bossLike);
 function makeMonster(base, p, options={}) {
   const FR = RUN_PROFILE.floorRules;
   const traits = (base.traits || []).slice();
@@ -2572,10 +2568,10 @@ function makeMonster(base, p, options={}) {
   const contractAtk = !bossLike ? EXPEDITION_RULES.monsterAtkMultiplier(contractId) * EXPEDITION_RULES.monsterAtkEscalation(contractId, depth) : 1;
   const threatScale = monsterThreatScale(depth, elite, bossLike);
   const atkValue = Math.round(base.atk * (elite ? FR.eliteAtkMult : 1) * scale * contractAtk * threatScale);
-  const normalPressure = base.boss || base.midBoss ? 1 : 1.75 + Math.min(0.42, Math.max(0, depth - 1) * 0.0042);
+  const normalPressure = COMBAT_RULES.monsterHpPressure(depth, bossLike);
   const hpPressure = elite ? normalPressure * 0.86 : normalPressure;
-  const defPressure = base.boss || base.midBoss ? Number(base.def) || 0 :
-    Math.max(0, Math.round((Number(base.def) || 0) * scale * (elite ? 1.22 : 1) + Math.floor(depth / 12)));
+  const defPressure = bossLike ? Number(base.def) || 0 :
+    Math.max(0, Math.round((Number(base.def) || 0) * scale * (elite ? 1.22 : 1) + COMBAT_RULES.monsterDefDepthBonus(depth)));
   const m = {
     ...base,
     traits,

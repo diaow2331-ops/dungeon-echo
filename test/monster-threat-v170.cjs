@@ -25,6 +25,10 @@ assert(late.atk>early.atk,'late normal enemy attack must exceed early pressure')
 const guardian=T.makeMonster({sprite:'boss',name:'guardian',color:'#fff',hp:100,atk:40,def:5,xp:10,midBoss:true},{x:5,y:5});
 assert.equal(guardian.atk,40,'guardian authored ATK stays unchanged by normal-monster pressure');
 const source=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
+const combatRules=require(path.join(root,'game/domain/combat/combat-rules-v130.js'));
+assert.equal(T.monsterThreatScale(100,false,false),combatRules.monsterThreatScale(100,false,false),
+  'core threat scale is a pure delegation to the combat rules authority (v1.9.2 transfer)');
+assert(source.includes('COMBAT_RULES.monsterThreatScale(d, elite, bossLike)'),'core consumes threat tuning from combat rules');
 assert(source.includes("const pressureScale = (m.boss || m.midBoss) ? 0.66 : m.elite ? 0.74 : 0.60;"));
 const heavyThreatNames=['裂隙龙裔','熔岩龙裔','深渊执行者','熔核龙裔','深渊宰执','终焉龙裔'];
 const profile=window.DE_PROFILES['classic-100'];
