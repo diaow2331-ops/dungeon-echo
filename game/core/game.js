@@ -2179,7 +2179,8 @@ function genEquip(d, minRarity = 0) {
   const namedSet = namedRoll < SET_RULES.namedChance(
     rarity,
     TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()),
-    EXPEDITION_RULES.namedRelicChanceBonus(currentExpeditionContractId()))
+    EXPEDITION_RULES.namedRelicChanceBonus(currentExpeditionContractId()) +
+      EXPEDITION_RULES.namedRelicEscalation(currentExpeditionContractId(), d))
     ? SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics')) : null;
   // Ordinary gear keeps the classic weighted slot mix. Once a named relic is rolled, however,
   // its six authored pieces are peers: do not make the amulet a hidden 5% bottleneck merely
@@ -2564,7 +2565,7 @@ function makeMonster(base, p, options={}) {
     scale *= 1 + (depth - MAX_DEPTH) * 0.08;
   }
   const bossLike = !!(base.boss || base.midBoss);
-  const contractAtk = !bossLike ? EXPEDITION_RULES.monsterAtkMultiplier(contractId) : 1;
+  const contractAtk = !bossLike ? EXPEDITION_RULES.monsterAtkMultiplier(contractId) * EXPEDITION_RULES.monsterAtkEscalation(contractId, depth) : 1;
   const threatScale = monsterThreatScale(depth, elite, bossLike);
   const atkValue = Math.round(base.atk * (elite ? FR.eliteAtkMult : 1) * scale * contractAtk * threatScale);
   const normalPressure = base.boss || base.midBoss ? 1 : 1.70 + Math.min(0.30, Math.max(0, depth - 1) * 0.0031);
@@ -2580,7 +2581,7 @@ function makeMonster(base, p, options={}) {
     atk: atkValue,
     atkOrigin: atkValue,
     xp: Math.round(base.xp * (elite ? 2 : 1) * (player && player.echoMode ? 1.2 : 1) *
-      ((!base.boss && !base.midBoss) ? EXPEDITION_RULES.monsterXpMultiplier(contractId) : 1)),
+      ((!base.boss && !base.midBoss) ? EXPEDITION_RULES.monsterXpMultiplier(contractId) * EXPEDITION_RULES.monsterXpEscalation(contractId, depth) : 1)),
     elite, boss: !!base.boss, midBoss: !!base.midBoss,
     regen: !!base.regen || traits.includes('regen'),
     boom: !!base.boom || traits.includes('boom'),
@@ -2732,7 +2733,8 @@ function spawnShrine(rooms) {
 function spawnTraps() {
   const FR = RUN_PROFILE.floorRules || {};
   const n = ri(FR.trapCountLo || 0, FR.trapCountHi || 0) +
-    EXPEDITION_RULES.trapBonus(currentExpeditionContractId());
+    EXPEDITION_RULES.trapBonus(currentExpeditionContractId()) +
+    EXPEDITION_RULES.trapEscalation(currentExpeditionContractId(), depth);
   for (let i = 0; i < n; i++) {
     const p = pickSpawn(5);
     if (!p) break;
@@ -3279,7 +3281,8 @@ function killMonster(m) {
       dropAt(m.x, m.y, { type: 'equip', item: genEquip(depth), emoji: '', name: '装备' });
   }
   if (m.elite) {
-    const bounty = EXPEDITION_RULES.eliteBounty(depth, currentExpeditionContractId());
+    const bounty = EXPEDITION_RULES.eliteBounty(depth, currentExpeditionContractId()) +
+      EXPEDITION_RULES.eliteBountyEscalation(depth, currentExpeditionContractId());
     if (bounty > 0) {
       player.gold += bounty;
       msg(ui(`猎杀号令赏金 +${bounty} G。`, `Elite Hunt bounty +${bounty} Gold.`), 'gold');
@@ -3704,10 +3707,29 @@ function useSkill() {
   if ((Number(p.hp)||0)>beforeHp) msg(ui('技能进化触发了额外续航。','Skill evolution triggered extra sustain.'),'good');
 }
 
+function announceContractEscalation(prevDepth) {
+  if (!player) return;
+  const contractId = currentExpeditionContractId();
+  if (!EXPEDITION_RULES.contractEscalates(contractId)) return;
+  if (EXPEDITION_RULES.escalationStep(depth) <= EXPEDITION_RULES.escalationStep(prevDepth)) return;
+  const fx = EXPEDITION_RULES.escalationEffects(contractId, depth);
+  if (contractId === 'oath') {
+    msg(ui(`誓约随深度收紧：普通敌人攻击 ×${fx.monsterAtkMultiplier}、经验 ×${fx.monsterXpMultiplier}。继续深入前，掂量一下要不要先用回城卷轴保住战利品。`,
+      `The Oath tightens with depth: normal enemy ATK ×${fx.monsterAtkMultiplier}, XP ×${fx.monsterXpMultiplier}. Weigh a Return Scroll before pushing on.`), 'bad');
+  } else if (contractId === 'relic') {
+    msg(ui(`搜掠契约进入更深处：具名遗物几率再 +${Math.round(fx.namedRelicChanceBonus * 100)}%，但每层陷阱 +${fx.trapBonus}。`,
+      `Relic Sweep reaches deeper: named relic chance +${Math.round(fx.namedRelicChanceBonus * 100)}% more, but +${fx.trapBonus} traps per floor.`), 'epic');
+  } else if (contractId === 'hunt') {
+    msg(ui(`猎杀号令升级：本段起每只精英的赏金额外 +${fx.eliteBountyBonus} G。`,
+      `Elite Hunt escalates: from this segment each elite pays +${fx.eliteBountyBonus} extra Gold bounty.`), 'gold');
+  }
+}
+
 function descend() {
   if (state !== 'playing') return;
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
   if (map[player.y][player.x] !== STAIRS) { msg(ui('这里没有向下的楼梯。站上去再按 Enter。','There are no stairs here. Stand on them and press Enter.')); return; }
+  const prevDepth = depth;
   depth++;
   recordDepth();
   buildThemeTex(depth);
@@ -3719,6 +3741,7 @@ function descend() {
       ? ui(`回响第 ${depth} 层——${themeName}。怪物随着深度一同苏醒。`, `Echo Floor ${depth} — ${themeName}. The monsters awaken with the depth.`)
       : ui(`你沿着螺旋阶梯下到了第 ${depth} 层——${themeName}。`, `You descended the spiral stairs to Floor ${depth} — ${themeName}.`), 'gold');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
+  announceContractEscalation(prevDepth);
   renderBag(); updateHud();
   persistRun();
   openPendingSkillEvolution();
@@ -3742,6 +3765,7 @@ function quickDive(n) {
     return;
   }
   player.gold -= cost;
+  const prevDepth = depth;
   depth += skip;
   recordDepth();
   buildThemeTex(depth);
@@ -3750,6 +3774,7 @@ function quickDive(n) {
     ? fmtText(runText('maxDepthArrive'))
     : ui(`你向回响支付了 ${cost} G，沿捷径直坠 ${skip} 层——来到第 ${depth} 层。`, `You paid the Echo ${cost} G and plunged ${skip} floors — arriving at Floor ${depth}.`), 'gold');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
+  announceContractEscalation(prevDepth);
   renderBag(); updateHud();
   persistRun();
   openPendingSkillEvolution();
