@@ -66,6 +66,17 @@
     });
   }
 
+  /* Return convalescence policy (v1.9.2): a safe return patches wounds only up to
+   * half of max HP. Anything beyond that is a deliberate town spend (tavern),
+   * so arriving wounded is no longer a free full heal on the next departure.
+   */
+  function townConvalescenceHp(currentHp, maxHp) {
+    const max = positiveInt(maxHp);
+    const hp = Math.max(0, Math.floor(Number(currentHp) || 0));
+    const patched = Math.ceil(max * 0.5);
+    return Math.max(1, Math.min(max, Math.max(hp, patched)));
+  }
+
   const api = Object.freeze({
     version: 'v1.6.0-production',
     authority: 'town-checkpoint-readiness-policy',
@@ -78,6 +89,7 @@
     checkpointUnlockedByGuardian,
     expeditionSupplyNeeds,
     expeditionReadiness,
+    townConvalescenceHp,
   });
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

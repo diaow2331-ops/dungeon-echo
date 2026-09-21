@@ -57,10 +57,11 @@ const HAPTICS_DEFAULT = true;
 const RUN_MODE_CLASSIC = 'classic';
 const RUN_MODE_GREEDY = 'greedy';
 const MANA_RULES = Object.freeze({
-  warrior:  Object.freeze({ max:60, cost:30, regen:2, attackGain:2, focusGain:3 }),
-  ranger:   Object.freeze({ max:70, cost:32, regen:2, attackGain:3, focusGain:4 }),
-  mage:     Object.freeze({ max:100, cost:42, regen:3, attackGain:1, focusGain:10 }),
-  assassin: Object.freeze({ max:65, cost:34, regen:2, attackGain:3, focusGain:4 }),
+  // v1.9.2：被动回蓝减半，技能节奏改由进攻回蓝驱动——站桩等蓝不再划算
+  warrior:  Object.freeze({ max:60, cost:30, regen:1, attackGain:2, focusGain:3 }),
+  ranger:   Object.freeze({ max:70, cost:32, regen:1, attackGain:3, focusGain:4 }),
+  mage:     Object.freeze({ max:100, cost:42, regen:2, attackGain:1, focusGain:10 }),
+  assassin: Object.freeze({ max:65, cost:34, regen:1, attackGain:3, focusGain:4 }),
 });
 const manaRuleFor = cid => MANA_RULES[cid] || MANA_RULES.warrior;
 
@@ -138,6 +139,7 @@ function defaultMeta(classId) {
     gold: 0,
     lvl: 1, xp: 0,
     hpBase: c.hpBase, atkBase: c.atkBase,
+    hpPct: 100,
     manaMax: manaRuleFor(c.id).max, mana: manaRuleFor(c.id).max,
     critBase: 0, leechBase: 0, skillHaste: 0, goldFind: 0, flatDr: 0, grievous: 0,
     thornsBase: 0, regenBase: 0, potionBoost: 0, critPower: 0, grivResist: 0,
@@ -177,6 +179,7 @@ function sanitizeMeta(raw) {
   base.lvl = Math.max(1, num(raw.lvl, 1, 1));
   base.xp = num(raw.xp, 0);
   base.hpBase = Math.max(1, num(raw.hpBase, base.hpBase, 1));
+  base.hpPct = clamp(num(raw.hpPct, 100), 1, 100);
   base.atkBase = num(raw.atkBase, base.atkBase);
   base.manaMax = manaRuleFor(base.classId).max;
   base.mana = clamp(num(raw.mana, base.manaMax), 0, base.manaMax);
@@ -2547,7 +2550,8 @@ function monsterThreatScale(d, elite=false, bossLike=false) {
   if (bossLike) return 1;
   // v1.7 threat pass: keep ordinary enemies relevant through the whole descent
   // without touching authored guardian/final-boss ATK.
-  const depthThreat = 0.07 + Math.min(0.17, Math.max(0, Number(d) - 1) * 0.00175);
+  // v1.9.2 pressure pass: deeper curve and higher floor so attrition is real.
+  const depthThreat = 0.10 + Math.min(0.26, Math.max(0, Number(d) - 1) * 0.002625);
   return 1 + depthThreat + (elite ? 0.06 : 0);
 }
 function makeMonster(base, p, options={}) {
@@ -2568,10 +2572,10 @@ function makeMonster(base, p, options={}) {
   const contractAtk = !bossLike ? EXPEDITION_RULES.monsterAtkMultiplier(contractId) * EXPEDITION_RULES.monsterAtkEscalation(contractId, depth) : 1;
   const threatScale = monsterThreatScale(depth, elite, bossLike);
   const atkValue = Math.round(base.atk * (elite ? FR.eliteAtkMult : 1) * scale * contractAtk * threatScale);
-  const normalPressure = base.boss || base.midBoss ? 1 : 1.70 + Math.min(0.30, Math.max(0, depth - 1) * 0.0031);
+  const normalPressure = base.boss || base.midBoss ? 1 : 1.75 + Math.min(0.42, Math.max(0, depth - 1) * 0.0042);
   const hpPressure = elite ? normalPressure * 0.86 : normalPressure;
   const defPressure = base.boss || base.midBoss ? Number(base.def) || 0 :
-    Math.max(0, Math.round((Number(base.def) || 0) * scale * (elite ? 1.22 : 1) + Math.floor(depth / 16)));
+    Math.max(0, Math.round((Number(base.def) || 0) * scale * (elite ? 1.22 : 1) + Math.floor(depth / 12)));
   const m = {
     ...base,
     traits,
@@ -2670,7 +2674,7 @@ function spawnItems(rooms) {
     put({ type: 'scroll', icon: C.scroll.icon, name: C.scroll.name });
   const returnChance = clamp(Number(RUN_PROFILE.floorRules.returnScrollChance) || 0.16, 0, 1);
   const returnOffset = Math.max(1, Math.min(9, Math.floor(Number(RUN_PROFILE.floorRules.returnScrollGuaranteeOffset) || 3)));
-  const guaranteedReturn = greedyMode && ((depth - returnOffset) % 10 === 0);
+  const guaranteedReturn = greedyMode && ((depth - returnOffset) % 20 === 0);
   if (greedyMode && (guaranteedReturn || rng() < returnChance))
     put({ type: 'escape', icon: C.scroll.icon, name: '回城卷轴' });
   if (rng() < LC.equip1)
@@ -3797,7 +3801,7 @@ function triggerTrap(x, y) {
 function useRest(npc) {
   if (npc.used) { msg(ui('余烬已经冷了。','The embers have gone cold.')); return; }
   npc.used = true;
-  const heal = Math.min(pMaxHp() - player.hp, Math.max(4, Math.floor(pMaxHp() * 0.45 * healMult())));
+  const heal = Math.min(pMaxHp() - player.hp, Math.max(4, Math.floor(pMaxHp() * 0.30 * healMult())));
   player.hp = Math.min(pMaxHp(), player.hp + heal);
   player.poison = 0;
   floater(player, `+${heal}`, '#7dd87d');
@@ -3833,7 +3837,7 @@ function applyShrine() {
   npc.used = true;
   const roll = rng();
   if (roll < 0.28) {
-    const heal = Math.min(pMaxHp() - player.hp, Math.floor(pMaxHp() * 0.5 * healMult()));
+    const heal = Math.min(pMaxHp() - player.hp, Math.floor(pMaxHp() * 0.35 * healMult()));
     player.hp = Math.min(pMaxHp(), player.hp + heal);
     player.poison = 0;
     msg(ui(`神龛涌出温水，你恢复了 ${heal} 点生命。`, `Warm water flows from the shrine. You recover ${heal} HP.`), 'good');
@@ -4260,7 +4264,7 @@ function endTurn(manaBonus=0, announceFocus=false) {
   turns++;
   if (player.skillCd > 0) player.skillCd--;
   recoverMana(manaBonus, announceFocus);
-  if (turns % (player.fastRegen ? 4 : 6) === 0 && !(player.grievous > 0) && player.hp > 0 && player.hp < pMaxHp()) player.hp++;
+  if (turns % (player.fastRegen ? 4 : 9) === 0 && !(player.grievous > 0) && player.hp > 0 && player.hp < pMaxHp()) player.hp++;
   if (player.grievous > 0) player.grievous--;
   if (player.poison > 0) {
     player.poison--;
@@ -5814,6 +5818,7 @@ function drinkAtTavern(rewardId = '') {
   }
   meta.gold -= cost;
   reward.apply(meta);
+  meta.hpPct = 100; // 祝酒同时把伤口彻底包扎好——这是回满血的唯一城镇途径
   meta.tavernVisits = (meta.tavernVisits || 0) + 1;
   meta.tavernLastRun = Math.max(0, Math.floor(Number(meta.runs) || 0));
   meta.tavernHistory = [...(meta.tavernHistory || []), reward.id].slice(-4);
@@ -5821,6 +5826,7 @@ function drinkAtTavern(rewardId = '') {
   saveMeta();
   sfx.levelup();
   msg(ui(`你举杯喝下【${reward.zh}】：${reward.zhEffect}。`, `You raise [${reward.en}]: ${reward.enEffect}.`), 'gold');
+  msg(ui('热酒下肚，旧伤也被仔细包扎——生命完全恢复。', 'The warm drink goes down and your wounds are dressed — HP fully restored.'), 'good');
   renderTown();
   return true;
 }
@@ -6176,12 +6182,15 @@ function syncMetaFromPlayer(died) {
     // 保险符结算：同步消耗品与穿戴，但保留背包；随身金币不入账（坠入深渊）
     meta.bag = JSON.parse(JSON.stringify(player.inv));
     meta.deaths = (meta.deaths || 0) + 1;
+    meta.hpPct = 100; // 死而复返，小镇把你从鬼门关完整捞回
   }
-  else if (died) { meta.bag = []; meta.deaths = (meta.deaths || 0) + 1; }
+  else if (died) { meta.bag = []; meta.deaths = (meta.deaths || 0) + 1; meta.hpPct = 100; }
   else {
     meta.bag = JSON.parse(JSON.stringify(player.inv));
     // 回城结算：随身金币存入金库（死亡则全部丢失，不入账）
     meta.gold = (meta.gold || 0) + (player.gold || 0);
+    // 平安归来只包扎到半血——完全恢复是城镇服务（酒馆），不再免费
+    meta.hpPct = Math.ceil(100 * TOWN_RULES.townConvalescenceHp(player.hp, pMaxHp()) / Math.max(1, pMaxHp()));
   }
 }
 // ================= 远征录：跨局档案 + 成就 =================
@@ -7656,7 +7665,9 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   };
   ensurePlayerMana(player, classId);
   // 注意：pMaxHp 读取全局 player，必须在 player 赋值完成之后再计算生命
-  player.hp = pMaxHp();
+  // v1.9.2：伤势跨远征持续（与法力一致）——回城不再等于免费满血
+  player.hp = clamp(Math.round(pMaxHp() * (clamp(Number(meta.hpPct) || 100, 1, 100) / 100)), 1, pMaxHp());
+  const departedWounded = player.hp < pMaxHp();
   meta.runs = (meta.runs || 0) + 1;
   recordRunStart();
   // 每次远征使用独立派生种子，保证同一次数可复现
@@ -7674,6 +7685,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   msg(ui(`第 ${meta.runs} 次下潜：从第 ${startDepth} 层出发。搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, `Descent ${meta.runs}: departing from Floor ${startDepth}. Loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!`), 'gold');
   const contract = EXPEDITION_RULES.CONTRACTS.find(row => row.id === player.contractId);
   if (contract && contract.id !== 'none') msg(ui(`本次委托：${contract.zh}。${contract.zhDesc}`, `Expedition contract: ${contract.en}. ${contract.enDesc}`), 'epic');
+  if (departedWounded) msg(ui(`旧伤未愈：你带着 ${player.hp}/${pMaxHp()} 生命出发。回镇后去酒馆祝酒可以完全恢复。`, `Old wounds linger: you depart at ${player.hp}/${pMaxHp()} HP. A tavern toast back in town restores you fully.`), 'bad');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
@@ -7682,7 +7694,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
 function useEscape() {
   if (!greedyMode || state !== 'playing') return;
   if ((player.escapes || 0) <= 0) {
-    msg(ui('没有回城卷轴了——地牢每个十层区段都有保底来源，商人和中层守卫也能补充。','No Return Scrolls left — every ten-floor band has a guaranteed source, and merchants/guardians provide more.'), 'bad');
+    msg(ui('没有回城卷轴了——地牢只在每隔一个十层区段才有保底来源，商人和中层守卫也能补充。','No Return Scrolls left — only every other ten-floor band has a guaranteed source, and merchants/guardians provide more.'), 'bad');
     return;
   }
   player.escapes--;

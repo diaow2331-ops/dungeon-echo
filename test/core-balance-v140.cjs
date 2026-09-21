@@ -37,17 +37,17 @@ npcSweep:for(let seed=0;seed<24;seed++)for(let d=1;d<=10;d++){T.setSeed(`v140-np
 ok(npcSafe,'service NPC placement preserves every generated floor route'+npcFailure);
 
 // Movement never auto-fires; J explicitly fires Ranger line attack.
-T.newGame('ranger'); clearMobs(); T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10;T.player.facing=[1,0];floorLine(10,10,15,10);let m=dummy(14,10,2);T.monsters.push(m);T.player.mana=20;let hp=m.hp,turn=T.turns;T.tryMove(1,0);ok(T.player.x===11&&m.hp===hp&&T.turns===turn+1,'Ranger movement toward a distant target moves only and never auto-fires');ok(T.player.mana===22,'ordinary Ranger movement restores only base Mana');
-T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10;T.player.facing=[1,0];T.player.mana=20;hp=m.hp;turn=T.turns;ok(T.directionalAttack()===true&&m.hp<hp&&T.turns===turn+1,'Ranger J directional action attacks a line target up to range');ok(T.player.mana===25,'successful Ranger basic attack restores base + attack Mana');
+T.newGame('ranger'); clearMobs(); T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10;T.player.facing=[1,0];floorLine(10,10,15,10);let m=dummy(14,10,2);T.monsters.push(m);T.player.mana=20;let hp=m.hp,turn=T.turns;T.tryMove(1,0);ok(T.player.x===11&&m.hp===hp&&T.turns===turn+1,'Ranger movement toward a distant target moves only and never auto-fires');ok(T.player.mana===21,'ordinary Ranger movement restores only base Mana');
+T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10;T.player.facing=[1,0];T.player.mana=20;hp=m.hp;turn=T.turns;ok(T.directionalAttack()===true&&m.hp<hp&&T.turns===turn+1,'Ranger J directional action attacks a line target up to range');ok(T.player.mana===24,'successful Ranger basic attack restores base + attack Mana');
 
 // Mage has an explicit ranged basic attack with its own resource pacing.
-T.newGame('mage'); clearMobs();T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10;T.player.facing=[1,0];floorLine(10,10,14,10);m=dummy(14,10,12);T.monsters.push(m);T.player.mana=20;hp=m.hp;turn=T.turns;ok(T.directionalAttack()===true&&m.hp<hp&&T.turns===turn+1,'Arcanist J directional action performs a ranged staff basic attack');ok(T.player.mana===24,'Arcanist ranged basic restores base + attack Mana');
+T.newGame('mage'); clearMobs();T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10;T.player.facing=[1,0];floorLine(10,10,14,10);m=dummy(14,10,12);T.monsters.push(m);T.player.mana=20;hp=m.hp;turn=T.turns;ok(T.directionalAttack()===true&&m.hp<hp&&T.turns===turn+1,'Arcanist J directional action performs a ranged staff basic attack');ok(T.player.mana===23,'Arcanist ranged basic restores base + attack Mana');
 
 // Mana skill economy: invalid/no-resource casts are free; valid cast spends then receives normal turn regen.
 T.newGame('warrior');clearMobs();T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10;floorLine(10,10,11,10);T.player.mana=60;turn=T.turns;T.useSkill();ok(T.turns===turn&&T.player.mana===60,'invalid Cleave with no adjacent target spends neither turn nor Mana');
 m=dummy(11,10,0);T.monsters.push(m);T.player.mana=10;turn=T.turns;T.useSkill();ok(T.turns===turn&&T.player.mana===10&&m.hp===999,'insufficient Mana blocks skill before damage or turn spend');
-T.player.mana=60;T.player.skillCd=0;turn=T.turns;T.useSkill();ok(T.turns===turn+1&&T.player.mana===32,'successful Warrior skill costs 30 Mana then receives 2 normal turn regen');
-T.player.mana=10;turn=T.turns;T.waitTurn();ok(T.turns===turn+1&&T.player.mana===15,'waiting restores base Mana plus class focus bonus');
+T.player.mana=60;T.player.skillCd=0;turn=T.turns;T.useSkill();ok(T.turns===turn+1&&T.player.mana===31,'successful Warrior skill costs 30 Mana then receives 1 normal turn regen');
+T.player.mana=10;turn=T.turns;T.waitTurn();ok(T.turns===turn+1&&T.player.mana===14,'waiting restores base Mana plus class focus bonus');
 
 // Mana save migration and exact persistence.
 T.player.mana=17;ok(T.persistRun()===true,'run with Mana persists through canonical save owner');let raw=JSON.parse(localStorage.getItem('de-run-v6'));T.player.mana=1;T.restoreRun(raw);ok(T.player.mana===17&&T.player.manaMax===60,'restore preserves canonical Mana state');

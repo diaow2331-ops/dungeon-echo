@@ -13,10 +13,10 @@ vm.runInThisContext(fs.readFileSync(path.join(root,'profiles/classic-100.profile
 for(const rel of ['game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js','game/domain/inventory/set-rules-v180.js','game/domain/economy/economy-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/town/town-growth-rules-v180.js','game/domain/expedition/expedition-rules-v170.js','game/domain/progression/progression-rules-v130.js','game/domain/combat/combat-rules-v130.js']) vm.runInThisContext(fs.readFileSync(path.join(root,rel),'utf8'),{filename:rel});
 vm.runInThisContext(fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'),{filename:'game/core/game.js'});
 const T=window.DE_TEST;
-assert.equal(T.monsterThreatScale(1,false,false),1.07);
-assert(T.monsterThreatScale(50,false,false)>1.15 && T.monsterThreatScale(50,false,false)<1.17);
-assert.equal(Number(T.monsterThreatScale(100,false,false).toFixed(2)),1.24);
-assert.equal(Number(T.monsterThreatScale(100,true,false).toFixed(2)),1.30);
+assert.equal(T.monsterThreatScale(1,false,false),1.10);
+assert(T.monsterThreatScale(50,false,false)>1.22 && T.monsterThreatScale(50,false,false)<1.24);
+assert.equal(Number(T.monsterThreatScale(100,false,false).toFixed(2)),1.36);
+assert.equal(Number(T.monsterThreatScale(100,true,false).toFixed(2)),1.42);
 assert.equal(T.monsterThreatScale(100,true,true),1);
 T.newGame('warrior');
 T.depth=1; const early=T.makeMonster({sprite:'rat',name:'rat',color:'#fff',hp:10,atk:10,def:0,xp:1,min:1,max:100},{x:5,y:5});
