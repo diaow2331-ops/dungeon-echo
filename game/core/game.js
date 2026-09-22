@@ -5450,6 +5450,7 @@ function clearRun() {
 }
 function restoreRun(raw) {
   skillFollowup = null;
+  escapeWarnedAt = -1;
   buildSprites();
   classId = raw.classId in CLASSES ? raw.classId : 'warrior';
   setSeed(raw.seed);
@@ -7649,6 +7650,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   const requested = Math.max(1, Math.floor(Number(targetDepth) || 1));
   const startDepth = unlocked.includes(requested) ? requested : 1;
   selectedTownCheckpoint = startDepth;
+  escapeWarnedAt = -1;
   buildSprites();
   depth = startDepth; turns = 0; state = 'playing';
   buildThemeTex(depth);
@@ -7706,6 +7708,14 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   openPendingSkillEvolution();
 }
 function escapeChannelActive() { return !!(player && (player.escapeChannel || 0) > 0); }
+// 回城前风险预警（易失，不入存档）：同一回合内第二次按 T 才确认撕开卷轴
+let escapeWarnedAt = -1;
+function escapeRiskNow() {
+  const summaries = monsters
+    .filter(m => m && (Number(m.hp) || 0) > 0)
+    .map(m => ({ x: m.x, y: m.y, ranged: !!m.ranged, inSight: !!m.ranged && canSeePlayer(m) }));
+  return EXPEDITION_RULES.escapeChannelRisk(player.x, player.y, summaries);
+}
 function channelEscapeTick() {
   // 引导期间的任何指令都等于"继续专注引导"：回合照常推进
   msg(ui(`你正在引导回城法术——还需 ${player.escapeChannel} 回合不受到伤害。`, `Channeling the Return Scroll — ${player.escapeChannel} more turn(s) without taking damage.`), 'epic');
@@ -7717,6 +7727,19 @@ function useEscape() {
   if ((player.escapes || 0) <= 0) {
     msg(ui('没有回城卷轴了——地牢只在每隔一个十层区段才有保底来源，商人和中层守卫也能补充。','No Return Scrolls left — only every other ten-floor band has a guaranteed source, and merchants/guardians provide more.'), 'bad');
     return;
+  }
+  // v1.9.3：有威胁时先预警再确认——卷轴一撕就消耗，引导被打断就白白烧毁
+  if (escapeWarnedAt !== turns) {
+    if ((player.poison || 0) > 0) {
+      escapeWarnedAt = turns;
+      msg(ui('毒素正在体内发作，必定会打断引导、烧毁卷轴！再按一次 T 执意引导。','Poison is ticking — it will break the channel and burn the scroll for sure! Press T again to channel anyway.'), 'bad');
+      return;
+    }
+    if (escapeRiskNow()) {
+      escapeWarnedAt = turns;
+      msg(ui('有敌人能在引导窗口内摸到你——仪式很可能被打断、卷轴将白白烧毁！再按一次 T 执意撕开卷轴。','Enemies can reach you inside the channel window — the ritual will likely break and burn the scroll! Press T again to commit.'), 'bad');
+      return;
+    }
   }
   // v1.9.3：回城卷轴改为引导制——卷轴立即消耗，引导期间受到任何伤害都会打断
   player.escapes--;

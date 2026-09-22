@@ -6,9 +6,11 @@
  *
  * Now: the scroll is spent up front and channels for ESCAPE_CHANNEL_TURNS
  * full turns; any HP loss breaks the ritual (scroll lost). Commands during
- * the channel keep focus (they just advance the turn). Policy lives in the
- * expedition authority (pure data); core owns turns, damage and the town
- * transition.
+ * the channel keep focus (they just advance the turn). When enemies can
+ * reach the player inside the channel window (or poison is ticking), the
+ * first T press warns instead of silently burning the scroll; a second
+ * press commits. Policy lives in the expedition authority (pure data);
+ * core owns turns, damage and the town transition.
  *
  * Run: node test/expedition-escape-channel-v193.cjs   (exit 0 = pass)
  */
@@ -22,6 +24,11 @@ const ok = (cond, name) => { if (cond) { pass++; console.log('  PASS ' + name); 
 
 // ---------- 1. Pure policy ----------
 ok(rules.ESCAPE_CHANNEL_TURNS === 2 && rules.escapeChannelTurns() === 2, 'channel ritual lasts exactly 2 full turns');
+ok(rules.escapeChannelRisk(5, 5, [{ x: 7, y: 5 }]) === true, 'melee monster 2 tiles away can close inside the ritual window');
+ok(rules.escapeChannelRisk(5, 5, [{ x: 8, y: 5 }]) === false, 'melee monster 3 tiles away is outside the ritual window');
+ok(rules.escapeChannelRisk(5, 5, [{ x: 9, y: 5, ranged: true, inSight: true }]) === true, 'a ranged monster with line of sight threatens from any distance');
+ok(rules.escapeChannelRisk(5, 5, [{ x: 9, y: 5, ranged: true, inSight: false }]) === false, 'a ranged monster without line of sight cannot interrupt');
+ok(rules.escapeChannelRisk(5, 5, []) === false && rules.escapeChannelRisk(5, 5, null) === false, 'no monsters means no interruption risk');
 const rulesSrc = fs.readFileSync(path.join(root, 'game/domain/expedition/expedition-rules-v170.js'), 'utf8');
 ok(!/localStorage|addEventListener|querySelector|document\.|Math\.random|Date\.now/.test(rulesSrc),
   'channel policy adds no storage, input, DOM or RNG ownership to the expedition module');
@@ -67,8 +74,13 @@ T.player.escapes = 2;
 const brute = T.makeMonster({ sprite: 'x', name: 'brute', color: '#fff', hp: 999, atk: 6, def: 0, xp: 0, min: 1, max: 100 }, { x: T.player.x + 1, y: T.player.y });
 T.monsters.push(brute);
 const hpBefore = T.player.hp;
-T.useEscape();
-ok(T.player.hp < hpBefore, 'the adjacent brute landed a hit during the first channel turn');
+const turnsWarn = T.turns;
+T.useEscape(); // adjacent threat: pre-flight warning first, nothing is spent
+ok(T.state === 'playing' && (T.player.escapeChannel || 0) === 0, 'a threatened escape warns instead of starting the ritual');
+ok(T.player.escapes === 2 && T.turns === turnsWarn, 'the warning neither spends the scroll nor passes a turn');
+ok(el('log').innerHTML.includes('打断'), 'the threat warning explains the interruption risk');
+T.useEscape(); // second press in the same turn commits to the ritual
+ok(T.player.escapes === 1 && T.player.hp < hpBefore, 'after confirming, the adjacent brute lands a hit during the first channel turn');
 ok(T.state === 'playing' && (T.player.escapeChannel || 0) === 0, 'taking damage breaks the channel and leaves you in the dungeon');
 ok(T.player.escapes === 1, 'the interrupted scroll is lost');
 ok(el('log').innerHTML.includes('打断'), 'interruption is announced');
@@ -121,13 +133,29 @@ const deaths0 = T.meta.deaths || 0, vault0 = T.meta.gold || 0;
 const killer = T.makeMonster({ sprite: 'x', name: 'killer', color: '#fff', hp: 999, atk: 5, def: 0, xp: 0, min: 1, max: 100 }, { x: T.player.x + 1, y: T.player.y });
 T.monsters.push(killer);
 T.player.hp = 3; if (T.player.grievous) T.player.grievous = 0;
+T.useEscape(); // warning first (adjacent killer), then commit
 T.useEscape();
 ok(T.state === 'town' && (T.meta.deaths || 0) === deaths0 + 1, 'dying mid-channel routes through the death settlement, not the safe return');
 ok((T.meta.gold || 0) === vault0, 'carried Gold is lost on death even with a scroll in hand');
 
+// ---------- 6b. Poisoned pre-flight: self-damage also warns, insisting burns the scroll ----------
+T.departTown(1);
+T.monsters.splice(0, T.monsters.length);
+T.player.escapes = 1; T.player.poison = 3;
+const turnsP = T.turns;
+T.useEscape();
+ok(T.player.escapes === 1 && T.turns === turnsP && (T.player.escapeChannel || 0) === 0,
+  'poison warns instead of silently burning the scroll');
+ok(el('log').innerHTML.includes('毒素'), 'the poison warning is announced');
+T.useEscape(); // insist: channel starts, poison ticks, ritual breaks instantly
+ok(T.player.escapes === 0 && T.state === 'playing' && (T.player.escapeChannel || 0) === 0,
+  'insisting while poisoned starts the ritual and poison breaks it (scroll lost)');
+T.player.poison = 0;
+
 // ---------- 7. Authority boundary ----------
 const core = fs.readFileSync(path.join(root, 'game/core/game.js'), 'utf8');
 ok(core.includes('EXPEDITION_RULES.escapeChannelTurns()'), 'core reads the channel length from the expedition authority');
+ok(core.includes('EXPEDITION_RULES.escapeChannelRisk('), 'core delegates the pre-flight interruption risk check to the expedition authority');
 ok(core.includes('function completeEscape()') && core.includes('function useEscape()'),
   'channel start (useEscape) and settlement (completeEscape) stay split in core');
 ok(core.includes('if (escapeChannelActive()) { channelEscapeTick(); return; }'),

@@ -98,6 +98,23 @@
     return ESCAPE_CHANNEL_TURNS;
   }
 
+  /* Escape pre-flight risk policy (v1.9.3): a melee monster within Chebyshev
+   * distance ESCAPE_CHANNEL_TURNS can land a hit inside the ritual window, and
+   * a ranged monster with line of sight can hit immediately. Pure: callers
+   * supply plain { x, y, ranged, inSight } summaries; core owns LOS and the
+   * live entity lists.
+   */
+  function escapeChannelRisk(px, py, monsterSummaries) {
+    if (!Array.isArray(monsterSummaries)) return false;
+    const cx = Number(px) || 0, cy = Number(py) || 0;
+    return monsterSummaries.some(m => {
+      if (!m) return false;
+      const d = Math.max(Math.abs((Number(m.x) || 0) - cx), Math.abs((Number(m.y) || 0) - cy));
+      if (d <= ESCAPE_CHANNEL_TURNS) return true;
+      return !!(m.ranged && m.inSight);
+    });
+  }
+
   function escalationStep(depth) {
     const d = positiveInt(depth);
     return clamp(Math.floor((d - 1) / ESCALATION_STEP_FLOORS), 0, ESCALATION_MAX_STEP);
@@ -202,6 +219,7 @@
     ESCALATION_MAX_STEP,
     ESCAPE_CHANNEL_TURNS,
     escapeChannelTurns,
+    escapeChannelRisk,
     escalationStep,
     contractEscalates,
     monsterAtkEscalation,
