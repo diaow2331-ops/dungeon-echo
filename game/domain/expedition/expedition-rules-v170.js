@@ -87,6 +87,17 @@
   const ESCALATION_STEP_FLOORS = 10;
   const ESCALATION_MAX_STEP = 9;
 
+  /* Return-scroll channel policy (v1.9.3): escaping is a ritual, not an instant
+   * teleport. The scroll is spent up front; the channel must survive this many
+   * full turns, and any HP loss breaks it (scroll lost). Core owns the turn
+   * engine, damage events and the actual town transition; this stays pure data.
+   */
+  const ESCAPE_CHANNEL_TURNS = 2;
+
+  function escapeChannelTurns() {
+    return ESCAPE_CHANNEL_TURNS;
+  }
+
   function escalationStep(depth) {
     const d = positiveInt(depth);
     return clamp(Math.floor((d - 1) / ESCALATION_STEP_FLOORS), 0, ESCALATION_MAX_STEP);
@@ -189,6 +200,8 @@
     eliteBounty,
     ESCALATION_STEP_FLOORS,
     ESCALATION_MAX_STEP,
+    ESCAPE_CHANNEL_TURNS,
+    escapeChannelTurns,
     escalationStep,
     contractEscalates,
     monsterAtkEscalation,

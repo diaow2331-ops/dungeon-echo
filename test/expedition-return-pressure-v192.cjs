@@ -57,18 +57,20 @@ T.setGreedy(true); T.newGame('warrior'); T.departTown(1);
 ok(T.state === 'playing' && T.player.hp === T.pMaxHp() && T.meta.hpPct === 100, 'fresh legacy-free meta departs at full HP (save-compatible default)');
 T.player.hp = 5; T.player.mana = 7; T.player.gold = 120; T.player.potions = 4;
 const metaGold0 = T.meta.gold || 0, escapes0 = T.meta.escapes;
-T.useEscape();
+// v1.9.3: escape is a channel ritual — clear the floor so it cannot be interrupted here.
+function settleEscape() { T.monsters.splice(0, T.monsters.length); T.useEscape(); let g = 0; while (T.state === 'playing' && g++ < 6) T.endTurn(); }
+settleEscape();
 ok(T.state === 'town', 'return scroll lands in town');
 ok(T.meta.gold - metaGold0 === 120, 'carried Gold is banked exactly once on return');
 ok(T.meta.escapes === escapes0 - 1, 'return consumes exactly one scroll');
 ok(T.meta.hpPct === 50, 'FIX: wounded return convalesces to 50% instead of a free full heal');
-ok(T.meta.mana === 7, 'Mana persistence behavior is unchanged (regression)');
+ok(T.meta.mana === 9, 'Mana persistence is unchanged: 7 carried Mana plus 2 channel-turn regen ticks (warrior +1) banks as 9');
 T.departTown(1);
 ok(T.player.hp === 19 && T.player.hp < T.pMaxHp(), 'FIX: departure carries the wound (19/38) — town return no longer erases attrition');
 ok(el('log').innerHTML.includes('旧伤未愈'), 'wounded departure is announced with the tavern remedy hint');
 
 // Tavern toast is the deliberate full-heal spend.
-T.useEscape();
+settleEscape();
 T.meta.gold = 500;
 ok(T.tavernAvailable() && T.drinkAtTavern() === true, 'tavern toast remains available after a return');
 ok(T.meta.hpPct === 100, 'tavern toast fully restores HP — Gold now buys the recovery that used to be free');

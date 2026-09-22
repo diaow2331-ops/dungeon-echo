@@ -3118,6 +3118,7 @@ function playerRangedAttack(m, attackClass=classId) {
 
 function directionalAttack() {
   if (state !== 'playing' || !player) return false;
+  if (escapeChannelActive()) { channelEscapeTick(); return true; }
   const facing = Array.isArray(player.facing) ? player.facing : [1, 0];
   const dx = Math.sign(Number(facing[0]) || 0), dy = Math.sign(Number(facing[1]) || 0);
   if (Math.abs(dx) + Math.abs(dy) !== 1) return false;
@@ -3471,6 +3472,7 @@ function pickupHere() {
 }
 function usePotion() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (player.potions <= 0) { msg(ui('你没有药水了。','You have no potions left.')); return; }
   if (player.hp >= pMaxHp()) { msg(ui('你现在状态很好，不需要喝药水。','You are already healthy enough; no potion needed.')); return; }
   player.potions--;
@@ -3495,6 +3497,7 @@ function usePotion() {
 }
 function useScroll() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (player.scrolls <= 0) { msg(ui('你没有卷轴了。','You have no scrolls left.')); return; }
   player.scrolls--;
   for (let t = 0; t < 300; t++) {
@@ -3649,6 +3652,7 @@ function skillEvolutionMageSplash(vis) {
 }
 function useSkill() {
   if (state !== 'playing' || !player) return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const cid=classId;
   const hasAny=(player.talents||[]).some(id=>String(id).startsWith(`se_${cid[0]}`));
   ensurePlayerMana();
@@ -3727,6 +3731,7 @@ function announceContractEscalation(prevDepth) {
 
 function descend() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
   if (map[player.y][player.x] !== STAIRS) { msg(ui('这里没有向下的楼梯。站上去再按 Enter。','There are no stairs here. Stand on them and press Enter.')); return; }
   const prevDepth = depth;
@@ -3754,6 +3759,7 @@ function quickDiveCost(fromDepth, n) {
 }
 function quickDive(n) {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
   if (!map || map[player.y][player.x] !== STAIRS) { msg(ui('站到楼梯上才能快速下潜（Enter 是下一层）。','Stand on the stairs before descending.')); return; }
   let skip = Math.floor(Number(n) || QUICK_DIVE_STEP);
@@ -4191,6 +4197,7 @@ function hideTooltip() { const t = $('tooltip'); if (t) t.classList.add('hidden'
 
 function tryMove(dx, dy) {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const nx = player.x + dx, ny = player.y + dy;
   player.facing = [dx, dy];
   let manaBonus = 0;
@@ -4225,6 +4232,7 @@ function tryMove(dx, dy) {
 
 function waitTurn() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const brace = mechanicPower('brace');
   if (brace) {
     player.braceTurn = turns + 1;
@@ -4274,6 +4282,16 @@ function endTurn(manaBonus=0, announceFocus=false) {
   buildFlow();
   monstersTurn();
   if (state !== 'playing') { updateHud(); return; }
+  // 回城引导结算：引导期间任何生命损失都会打断仪式（卷轴已消耗）；坚持满回合数则完成回城
+  if (player && (player.escapeChannel || 0) > 0) {
+    if ((Number(player.hp) || 0) < (Number(player.escapeChannelHp) || 0)) {
+      player.escapeChannel = 0;
+      msg(ui('回城引导被打断——卷轴已经化为灰烬！', 'The return channel is broken — the scroll crumbles to ash!'), 'bad');
+    } else {
+      player.escapeChannel--;
+      if (player.escapeChannel <= 0) { completeEscape(); return; }
+    }
+  }
   computeFov();
   updateHud();
   if (turns % 4 === 0) persistRun();
@@ -7687,13 +7705,29 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   persistRun();
   openPendingSkillEvolution();
 }
+function escapeChannelActive() { return !!(player && (player.escapeChannel || 0) > 0); }
+function channelEscapeTick() {
+  // 引导期间的任何指令都等于"继续专注引导"：回合照常推进
+  msg(ui(`你正在引导回城法术——还需 ${player.escapeChannel} 回合不受到伤害。`, `Channeling the Return Scroll — ${player.escapeChannel} more turn(s) without taking damage.`), 'epic');
+  endTurn();
+}
 function useEscape() {
   if (!greedyMode || state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if ((player.escapes || 0) <= 0) {
     msg(ui('没有回城卷轴了——地牢只在每隔一个十层区段才有保底来源，商人和中层守卫也能补充。','No Return Scrolls left — only every other ten-floor band has a guaranteed source, and merchants/guardians provide more.'), 'bad');
     return;
   }
+  // v1.9.3：回城卷轴改为引导制——卷轴立即消耗，引导期间受到任何伤害都会打断
   player.escapes--;
+  player.escapeChannel = EXPEDITION_RULES.escapeChannelTurns();
+  player.escapeChannelHp = Math.max(1, Number(player.hp) || 1);
+  msg(ui(`你撕开回城卷轴，开始引导回城法术——${player.escapeChannel} 个回合内受到任何伤害都会打断它！`, `You tear open a Return Scroll and begin channeling — any damage within ${player.escapeChannel} turns interrupts it!`), 'epic');
+  endTurn();
+}
+function completeEscape() {
+  if (!greedyMode || !player) return;
+  player.escapeChannel = 0;
   const banked = player.gold;
   const residentsBefore = new Set(activeTownResidents().map(resident => resident.id));
   recordSafeReturn();

@@ -44,6 +44,7 @@ const tests = [
   'expedition-contract-roles-v180.cjs',
   'expedition-contract-escalation-v191.cjs',
   'expedition-return-pressure-v192.cjs',
+  'expedition-escape-channel-v193.cjs',
   'progression-cap-runtime-v180.cjs',
   'skill-evolution-delivery-v180.cjs',
   'monster-threat-v170.cjs',

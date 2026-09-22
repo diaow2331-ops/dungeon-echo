@@ -101,7 +101,7 @@ T.setSeed('weapon-diversity'); T.newGame('assassin'); const fam=new Set(); for(l
 // 4: greedy return scroll supply + T settlement
 T.setGreedy(true); T.setSeed('return'); T.newGame('assassin'); ok(T.player.escapes>=1,'greedy expedition carries a usable Return Scroll resource');
 T.depth=3; T.genLevel(); ok(T.items.some(it=>it.type==='escape'),'floor 3 guarantees a world Return Scroll source');
-const beforeEsc=T.player.escapes; T.useEscape(); ok(T.state==='town'&&T.getMeta().escapes===beforeEsc-1,'T consumes one Return Scroll and returns to town');
+const beforeEsc=T.player.escapes; T.monsters.splice(0,T.monsters.length); T.useEscape(); let chGuard=0; while(T.state==='playing'&&chGuard++<5)T.endTurn(); ok(T.state==='town'&&T.getMeta().escapes===beforeEsc-1,'T consumes one Return Scroll and returns to town after the channel ritual');
 // 5: dungeon merchant sells backpack gear
 T.setGreedy(false); T.setSeed('merchant'); T.newGame('warrior'); T.npcs.splice(0,T.npcs.length); const sx=T.player.x+1, sy=T.player.y; T.mapGrid[sy][sx]=1; T.npcs.push({type:'shop',x:sx,y:sy,fx:sx,fy:sy,name:'商人'}); T.tryMove(1,0); ok(T.state==='shop','walking into dungeon merchant opens shop state');
 const loot=T.genEquip(8,1); T.player.inv.push(loot); const g0=T.player.gold, count=T.player.inv.length; const price=T.sellPrice(loot); ok(T.sellDungeonShopItem(count-1)===true && T.player.inv.length===count-1 && T.player.gold===g0+price,'dungeon merchant buys backpack gear at canonical sellPrice');

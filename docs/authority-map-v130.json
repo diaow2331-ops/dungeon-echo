@@ -61,6 +61,7 @@
     "expeditionContractPolicy": "game/domain/expedition/expedition-rules-v170.js",
     "expeditionContractRolePolicy": "game/domain/expedition/expedition-rules-v170.js",
     "expeditionContractEscalationPolicy": "game/domain/expedition/expedition-rules-v170.js",
+    "expeditionReturnChannelPolicy": "game/domain/expedition/expedition-rules-v170.js",
     "dungeonEventPolicy": "game/domain/expedition/expedition-rules-v170.js",
     "eliteAffixPolicy": "game/domain/expedition/expedition-rules-v170.js"
   },
