@@ -4,8 +4,10 @@
  * defense/combat-pressure work. Production ownership: the canonical critical-damage
  * multiplier AND (since v1.9.2, atomic transfer from game/core/game.js) the
  * ordinary-monster pressure tuning curve — threat scale, HP pressure and the flat
- * DEF depth bonus. Guardians/final boss keep their authored profile stats; core
- * still owns RNG, elite rolls, spawn composition, damage application and turns.
+ * DEF depth bonus — AND (since v1.9.3) the guardian fury soft-enrage curve.
+ * Guardians/final boss keep their authored profile base stats; core still owns
+ * RNG, elite rolls, fury engagement counters, spawn composition, damage
+ * application and turns.
  * All other helpers remain dormant pure exports.
  *
  * Boundary rule: combat rules calculate from caller-supplied values only. They do not
@@ -81,6 +83,25 @@
     return Math.floor(Math.max(1, number(depth) || 1) / 12);
   }
 
+  /* Guardian fury soft-enrage (v1.9.3): boss-like actors keep authored base
+   * stats, but while a guardian stays ENGAGED it gains +FURY_RATE attack every
+   * FURY_STEP_TURNS engaged turns, up to FURY_MAX_STACKS stacks. Slow poke and
+   * risk-free kiting stop being free; killing pace becomes the decision.
+   * Core owns engagement detection, the per-guardian counter, RNG and damage
+   * application; this stays pure arithmetic. */
+  const GUARDIAN_FURY_STEP_TURNS = 4;
+  const GUARDIAN_FURY_RATE = 0.06;
+  const GUARDIAN_FURY_MAX_STACKS = 8;
+
+  function guardianFuryStacks(engagedTurns=0) {
+    return Math.min(GUARDIAN_FURY_MAX_STACKS,
+      Math.floor(nonNegative(engagedTurns) / GUARDIAN_FURY_STEP_TURNS));
+  }
+
+  function guardianFuryScale(engagedTurns=0) {
+    return 1 + guardianFuryStacks(engagedTurns) * GUARDIAN_FURY_RATE;
+  }
+
   const api = Object.freeze({
     version: 'v1.3.0-production',
     authority: 'critical-damage-multiplier',
@@ -99,6 +120,11 @@
     monsterThreatScale,
     monsterHpPressure,
     monsterDefDepthBonus,
+    GUARDIAN_FURY_STEP_TURNS,
+    GUARDIAN_FURY_RATE,
+    GUARDIAN_FURY_MAX_STACKS,
+    guardianFuryStacks,
+    guardianFuryScale,
   });
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

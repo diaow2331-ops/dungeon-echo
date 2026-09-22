@@ -2589,6 +2589,7 @@ function makeMonster(base, p, options={}) {
     enraged: false,
     armorBreak: !!base.armorBreak || traits.includes('armorBreak'),
     armorBreakCharge: 0, armorBreakMode: null, armorBreakCooldown: 0,
+    furyTurns: 0,
     alert: 0, skip: 0,
     hurtT: 0, lungeT: 0, ldx: 0, ldy: 0,
   };
@@ -3137,6 +3138,10 @@ function directionalAttack() {
   endTurn(manaRuleFor(classId).attackGain, false);
   return true;
 }
+function guardianFuryOf(m) {
+  // v1.9.3：守卫软狂暴——纯曲线在 combat-rules，core 只提供交战回合计数
+  return (m && (m.boss || m.midBoss)) ? COMBAT_RULES.guardianFuryScale(m.furyTurns || 0) : 1;
+}
 function monsterAttack(m, armorBreak = false, damageScale = 1) {
   lunge(m, player.x, player.y);
   // 游侠被动「灵巧」：一成几率闪开近战攻击（不挡远程——远程是游侠的克制面）
@@ -3146,7 +3151,7 @@ function monsterAttack(m, armorBreak = false, damageScale = 1) {
     sfx.dodge(); haptic(10);
     return;
   }
-  const raw = Math.max(1, Math.round((m.atk + ri(-1, 1)) * Math.max(0.1, Number(damageScale) || 1)));
+  const raw = Math.max(1, Math.round((m.atk * guardianFuryOf(m) + ri(-1, 1)) * Math.max(0.1, Number(damageScale) || 1)));
   let dmg = mitigatePlayerHit(raw, 1, armorBreak);
   dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
@@ -4331,7 +4336,7 @@ function randomStep(m) {
 }
 function monsterRangedAttack(m, armorBreak = false) {
   fireArrow(m.x, m.y, player.x, player.y);
-  const raw = Math.round(m.atk * 0.8) + ri(-1, 1);
+  const raw = Math.round(m.atk * guardianFuryOf(m) * 0.8) + ri(-1, 1);
   let dmg = mitigatePlayerHit(raw, .5, armorBreak);
   dmg = applyDirectHitMechanic(dmg);
   if (armorBreak) {
@@ -4573,6 +4578,20 @@ function drawGuardianTelegraph(m,now) {
 
 function monstersTurn() {
   for (const m of [...monsters]) {
+    // v1.9.3：守卫狂怒计时——交战期间（看见你/被惊动/贴身）每回合累积，升档时昭告
+    if ((m.boss || m.midBoss) && m.hp > 0) {
+      const engaged = Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1 || canSeePlayer(m) || (m.alert || 0) > 0;
+      if (engaged) {
+        const stacksBefore = COMBAT_RULES.guardianFuryStacks(m.furyTurns || 0);
+        m.furyTurns = (m.furyTurns || 0) + 1;
+        const stacksAfter = COMBAT_RULES.guardianFuryStacks(m.furyTurns);
+        if (stacksAfter > stacksBefore) {
+          const pct = Math.round(stacksAfter * COMBAT_RULES.GUARDIAN_FURY_RATE * 100);
+          floater(m, ui(`狂怒 +${pct}%`, `FURY +${pct}%`), '#e05a65', 1.15);
+          msg(ui(`${m.name} 的怒意升腾——攻势 +${pct}%！拖延只会让它更危险。`, `${visibleWorldName(m.name)}'s fury rises — attack +${pct}%! Stalling only makes it deadlier.`), 'bad');
+        }
+      }
+    }
     if (guardianAction(m)) {
       if (state !== 'playing') return;
       continue;
