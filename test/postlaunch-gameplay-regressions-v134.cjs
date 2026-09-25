@@ -87,7 +87,7 @@ function ok(cond, name) {
 T.setSeed('v134-enemy'); T.newGame('warrior'); let m=T.monsters.find(x=>!x.midBoss&&!x.boss)||T.monsters[0]; T.monsters.splice(0,T.monsters.length,m);
 T.player.x=10;T.player.y=10;T.player.fx=10;T.player.fy=10; for(let x=10;x<=12;x++)T.mapGrid[10][x]=1;
 m.x=12;m.y=10;m.fx=12;m.fy=10;m.slow=false;m.ranged=0;m.armorBreak=false;m.erratic=false;m.hp=Math.max(m.hp,50);m.maxHp=Math.max(m.maxHp||0,50);m.atk=Math.max(5,m.atk||0);
-let hp=T.player.hp; T.waitTurn(); ok(T.player.hp<hp && m.x===11,'pursuer entering adjacency applies engagement pressure');
+let hp=T.player.hp; T.waitTurn(); ok(T.player.hp===hp && m.x===11,'pursuer entering adjacency moves once and does not also full-attack');
 hp=T.player.hp; T.waitTurn(); ok(T.player.hp<hp,'already-adjacent enemy performs full active attack');
 // 2: four-direction ranger dash through a surviving blocker
 for(const [name,dx,dy] of [['right',1,0],['left',-1,0],['down',0,1],['up',0,-1]]){
