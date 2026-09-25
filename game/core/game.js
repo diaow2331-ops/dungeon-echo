@@ -1358,15 +1358,51 @@ function playerImpactCue(severe=false) {
 }
 
 // ================= 消息 =================
+const logPerf = { fullRenders:0, prepends:0, headUpdates:0 };
+function applyLogLineElement(el, row) {
+  if (!el || !row) return false;
+  el.textContent = String(row.text || '');
+  el.className = row.cls ? String(row.cls) : '';
+  return true;
+}
 function renderLog() {
   const logEl = $('log');
-  if (logEl) logEl.innerHTML = logLines
+  if (!logEl) return false;
+  logEl.innerHTML = logLines
     .map(l => `<div${l.cls ? ` class="${esc(l.cls)}"` : ''}>${esc(l.text)}</div>`).join('');
+  logPerf.fullRenders++;
+  return true;
+}
+function prependLogLine(row) {
+  const logEl = $('log');
+  if (!logEl || typeof document === 'undefined' || typeof document.createElement !== 'function' ||
+      typeof logEl.prepend !== 'function') return renderLog();
+  const el = document.createElement('div');
+  applyLogLineElement(el, row);
+  logEl.prepend(el);
+  while (logEl.children && logEl.children.length > logLines.length && logEl.lastElementChild) {
+    if (typeof logEl.lastElementChild.remove === 'function') logEl.lastElementChild.remove();
+    else break;
+  }
+  logPerf.prepends++;
+  return true;
+}
+function updateLogHead(row) {
+  const logEl = $('log');
+  const el = logEl && logEl.firstElementChild;
+  if (!el) return renderLog();
+  applyLogLineElement(el, row);
+  logPerf.headUpdates++;
+  return true;
+}
+function resetLogPerf() {
+  logPerf.fullRenders = 0; logPerf.prepends = 0; logPerf.headUpdates = 0;
 }
 function msg(text, cls, meta=null) {
-  logLines.unshift({ text, cls, ...(meta || {}) });
+  const row = { text, cls, ...(meta || {}) };
+  logLines.unshift(row);
   if (logLines.length > 30) logLines.pop();
-  renderLog();
+  prependLogLine(row);
 }
 function incomingCombatMsg(text, damage) {
   const head = logLines[0];
@@ -1379,7 +1415,7 @@ function incomingCombatMsg(text, damage) {
       `Enemies hit ${head.count} times this turn for ${head.damage} total damage.`
     );
     head.cls = 'combat-danger';
-    renderLog();
+    updateLogHead(head);
     return;
   }
   msg(text, 'combat-danger', { kind:'incoming-combat', turn:turns, count:1, damage:dmg });
@@ -8951,6 +8987,9 @@ if (typeof window !== 'undefined') {
     updateHud,
     hudPerfSnapshot: () => ({ ...hudPerf, cached:Object.keys(hudElementCache).length }),
     resetHudPerf,
+    logPerfSnapshot: () => ({ ...logPerf }),
+    resetLogPerf,
+    renderLog, incomingCombatMsg,
     draw, drawTownScene,
     renderCacheSnapshot: () => ({ ...renderCachePerf }),
     resetRenderCachePerf,
