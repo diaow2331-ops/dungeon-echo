@@ -1,14 +1,14 @@
-/* Dungeon Echo v1.9.8 — reusable dynamic glow sprite cache contract. */
+/* Dungeon Echo v1.9.8 — reusable dynamic CanvasGradient cache contract. */
 'use strict';
 const assert=require('assert'),fs=require('fs'),path=require('path'),vm=require('vm');
 const root=path.resolve(__dirname,'..');
 const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
 
-assert(core.includes('function cachedDungeonDynamicSprite(key, width, height, paint)'));
-assert(core.includes('function cachedEquipmentAura(color)'));
-assert(core.includes('function cachedAmuletAura()'));
-assert(core.includes('function cachedTorchAura(fl)'));
-assert(core.includes("cachedDungeonDynamicSprite('torch-aura|'"));
+assert(core.includes('function cachedDungeonDynamicGradient(key, create)'));
+assert(core.includes('function cachedEquipmentAuraGradient(px, py, color)'));
+assert(core.includes('function cachedAmuletAuraGradient(px, py)'));
+assert(core.includes('function cachedTorchAuraGradient(cx, cy, fl)'));
+assert(core.includes("const key = ['torch-aura', cx, cy, bucket].join('|')"));
 assert(!core.includes('const rg = ctx.createRadialGradient(px, py + 7, 1, px, py + 7, 21)'));
 assert(!core.includes('const g2 = ctx.createRadialGradient(px, py, 2, px, py, TILE)'));
 assert(!core.includes('const g2 = ctx.createRadialGradient(cx2, cy2, 4, cx2, cy2, TILE * 2.8 * fl)'));
@@ -58,29 +58,31 @@ const T=window.DE_TEST;
 
 T.newGame('warrior');
 T.resetRenderCachePerf(true);radialCalls=0;
-const eq1=T.cachedEquipmentAura('#ffaa33');
-const am1=T.cachedAmuletAura();
-const t1=T.cachedTorchAura(.80);
-const t2=T.cachedTorchAura(.81);
+const eq1=T.cachedEquipmentAuraGradient(100.2,120.1,'#ffaa33');
+const eq2=T.cachedEquipmentAuraGradient(100.4,120.4,'#ffaa33');
+const am1=T.cachedAmuletAuraGradient(100.2,120.1);
+const t1=T.cachedTorchAuraGradient(64,64,.80);
+const t2=T.cachedTorchAuraGradient(64,64,.81);
 let first=T.renderCacheSnapshot();
-assert(eq1&&am1&&t1&&t2,'dynamic cache creates reusable glow sprites');
-assert(first.dynamicSpriteMisses===3,'equipment, amulet and same torch bucket create three sprites');
-assert(first.dynamicSpriteHits===1,'nearby torch flicker values share one quantized sprite bucket');
-assert.equal(radialCalls,3,'three unique sprite builds create three native radial gradients');
+assert(eq1&&am1&&t1&&t2,'dynamic cache creates reusable CanvasGradient objects');
+assert.strictEqual(eq2,eq1,'subpixel equipment bob within one pixel bucket reuses its gradient');
+assert(first.dynamicGradientMisses===3,'equipment, amulet and same torch bucket create three gradients');
+assert(first.dynamicGradientHits===2,'subpixel equipment bob and nearby torch flicker share cached gradients');
+assert.equal(radialCalls,3,'three unique cache entries create three native radial gradients');
 
 T.resetRenderCachePerf(false);radialCalls=0;
-assert.strictEqual(T.cachedEquipmentAura('#ffaa33'),eq1);
-assert.strictEqual(T.cachedAmuletAura(),am1);
-assert.strictEqual(T.cachedTorchAura(.80),t1);
+assert.strictEqual(T.cachedEquipmentAuraGradient(100.3,120.3,'#ffaa33'),eq1);
+assert.strictEqual(T.cachedAmuletAuraGradient(100.2,120.1),am1);
+assert.strictEqual(T.cachedTorchAuraGradient(64,64,.80),t1);
 let second=T.renderCacheSnapshot();
-assert(second.dynamicSpriteHits===3&&second.dynamicSpriteMisses===0,'stable dynamic glows are all cache hits');
+assert(second.dynamicGradientHits===3&&second.dynamicGradientMisses===0,'stable dynamic glows are all cache hits');
 assert.equal(radialCalls,0,'stable dynamic glows create no new native gradients');
 
 T.resetRenderCachePerf(true);radialCalls=0;
-for(let i=0;i<240;i++) T.cachedTorchAura(.8+.2*Math.abs(Math.sin(i*.17)));
+for(let i=0;i<240;i++) T.cachedTorchAuraGradient(64,64,.8+.2*Math.abs(Math.sin(i*.17)));
 const torch=T.renderCacheSnapshot();
-assert(torch.dynamicSpriteMisses<=9,'torch flicker uses at most nine cached radius buckets');
-assert(torch.dynamicSpriteHits>=231,'long torch animation reuses the quantized glow sprites');
+assert(torch.dynamicGradientMisses<=9,'torch flicker uses at most nine cached radius buckets');
+assert(torch.dynamicGradientHits>=231,'long torch animation reuses quantized native gradients');
 assert(radialCalls<=9,'long torch animation constructs at most nine native gradients');
 
 console.log('performance_dynamic_cache_v198=PASS');
