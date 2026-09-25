@@ -2981,7 +2981,9 @@ function los(x0, y0, x1, y1) {
   }
   return true;
 }
+let fovRevision = 0;
 function computeFov() {
+  fovRevision++;
   visible = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
   for (let y = player.y - FOV_R; y <= player.y + FOV_R; y++) {
     for (let x = player.x - FOV_R; x <= player.x + FOV_R; x++) {
@@ -4328,6 +4330,7 @@ function endTurn(manaBonus=0, announceFocus=false) {
   computeFov();
   updateHud();
   if (turns % 4 === 0) persistRun();
+  wakeFrame();
 }
 function canSeePlayer(m) {
   const d = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
@@ -5090,8 +5093,16 @@ const trapPropForDepth = d => d >= 75 ? DUNGEON_PROP_ART.voidRift
 const dungeonNpcProp = type => type === 'shrine' ? DUNGEON_PROP_ART.angelShrine
   : type === 'event' ? DUNGEON_PROP_ART.voidRift
   : type === 'rest' ? DUNGEON_PROP_ART.campfire : type === 'shop' ? DUNGEON_PROP_ART.marketStall : -1;
-function drawMinimap() {
-  if (!mctx || !map || !player) return;
+let minimapPaintKey = '';
+function minimapStateKey() {
+  if (!mini || !player) return '';
+  return [depth, fovRevision, player.x, player.y, monsters.length, items.length, npcs.length, mini.width, mini.height].join('|');
+}
+function drawMinimap(force = false) {
+  if (!mctx || !map || !player) return false;
+  const paintKey = minimapStateKey();
+  if (!force && paintKey === minimapPaintKey) return false;
+  minimapPaintKey = paintKey;
   const cw = mini.width, ch = mini.height;
   const tw = cw / MAP_W, th = ch / MAP_H;
   mctx.fillStyle = '#070504';
@@ -5119,6 +5130,7 @@ function drawMinimap() {
   }
   mctx.fillStyle = '#f2d27b';
   mctx.fillRect(player.x * tw, player.y * th, tw, th);
+  return true;
 }
 function draw(now) {
   if (!player || !map) return;
@@ -5412,12 +5424,46 @@ function draw(now) {
   drawMinimap();
 }
 
-let lastT = 0, rafId = null;
-function scheduleFrame() {
-  if (rafId === null && !document.hidden) rafId = raf(frame);
+let lastT = 0, rafId = null, frameTimerId = null;
+const DUNGEON_IDLE_FRAME_MS = reducedMotion ? 160 : 66;
+function dungeonEntityAnimating(e) {
+  if (!e) return false;
+  return Math.abs((Number(e.x) || 0) - (Number(e.fx) || 0)) > .01 ||
+    Math.abs((Number(e.y) || 0) - (Number(e.fy) || 0)) > .01 ||
+    (Number(e.lungeT) || 0) > .01 || (Number(e.hurtT) || 0) > .01;
+}
+function dungeonVisualsActive() {
+  if (state !== 'playing' || !player || !map) return false;
+  if (hitstop > 0 || classSkillFxT > .01 || trauma > .01 || hurtFlash > .01 ||
+      floaters.length || particles.length || impactFx.length || arrows.length) return true;
+  if (dungeonEntityAnimating(player)) return true;
+  return (monsters || []).some(dungeonEntityAnimating) || (npcs || []).some(dungeonEntityAnimating);
+}
+function cancelFrameTimer() {
+  if (frameTimerId !== null) {
+    clearTimeout(frameTimerId);
+    frameTimerId = null;
+  }
+}
+function scheduleFrame(immediate = false) {
+  if (document.hidden || state !== 'playing' || rafId !== null || frameTimerId !== null) return false;
+  if (immediate || dungeonVisualsActive()) {
+    rafId = raf(frame);
+    return true;
+  }
+  frameTimerId = setTimeout(() => {
+    frameTimerId = null;
+    if (!document.hidden && state === 'playing' && rafId === null) rafId = raf(frame);
+  }, DUNGEON_IDLE_FRAME_MS);
+  return true;
+}
+function wakeFrame() {
+  cancelFrameTimer();
+  return state === 'playing' ? scheduleFrame(true) : false;
 }
 function frame(t) {
   rafId = null;
+  if (document.hidden || state !== 'playing') return;
   const dt = Math.min(.05, (t - lastT) / 1000 || 0);
   lastT = t;
   if (hitstop > 0) {
@@ -5464,11 +5510,12 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     if (rafId !== null) caf(rafId);
     rafId = null;
+    cancelFrameTimer();
     if (state === 'playing') persistRun();
   } else {
     lastT = 0;
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    scheduleFrame();
+    wakeFrame();
   }
 });
 
