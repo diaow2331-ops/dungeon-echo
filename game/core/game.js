@@ -6813,7 +6813,8 @@ function startWheelKick() {
 
 // ---- 城镇场景：夜色小镇横幅（星空/远山/五座功能建筑/灯火/篝火动画） ----
 let townStars = null;
-let townRafId = 0, townTimerId = 0;
+let townRafId = 0, townTimerId = 0, townLastPaint = 0;
+const TOWN_ACTIVE_FRAME_MS = reducedMotion ? 66 : 33;
 const TOWN_IDLE_FRAME_MS = reducedMotion ? 220 : 80;
 function townTierForArt() {
   return ECONOMY_RULES.townTier(meta && meta.bestDepth);
@@ -7243,14 +7244,21 @@ function cancelTownTimer() {
 }
 function scheduleTownFrame(immediate = false) {
   if (document.hidden || state !== 'town' || townRafId || townTimerId) return false;
-  if (immediate || townMotionActive()) {
+  if (immediate) {
+    townRafId = requestAnimationFrame(townFrame);
+    return true;
+  }
+  const interval = townMotionActive() ? TOWN_ACTIVE_FRAME_MS : TOWN_IDLE_FRAME_MS;
+  const elapsed = townLastPaint ? Math.max(0, performance.now() - townLastPaint) : interval;
+  const delay = Math.max(0, interval - elapsed);
+  if (delay <= 4) {
     townRafId = requestAnimationFrame(townFrame);
     return true;
   }
   townTimerId = setTimeout(() => {
     townTimerId = 0;
     if (!document.hidden && state === 'town' && !townRafId) townRafId = requestAnimationFrame(townFrame);
-  }, TOWN_IDLE_FRAME_MS);
+  }, delay);
   return true;
 }
 function wakeTownFrame() {
@@ -7260,6 +7268,7 @@ function wakeTownFrame() {
 function townFrame(now) {
   townRafId = 0;
   if (document.hidden || state !== 'town') return;
+  townLastPaint = Number(now) || performance.now();
   try { advanceTownAvatar(now || 0); drawTownScene(now || 0); drawWheel(now || 0); } catch (e) { /* 绘制异常不阻塞游戏 */ }
   scheduleTownFrame();
 }
@@ -7274,6 +7283,7 @@ document.addEventListener('visibilitychange', () => {
     cancelTownTimer();
   } else {
     townLastFrame = 0;
+    townLastPaint = 0;
     wakeTownFrame();
   }
 });
@@ -8593,7 +8603,8 @@ if (typeof window !== 'undefined') {
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
       minimapKey:minimapStateKey(), fovRevision,
-      townIdleMs:TOWN_IDLE_FRAME_MS, townActive:state === 'town' ? townMotionActive() : false,
+      townActiveMs:TOWN_ACTIVE_FRAME_MS, townIdleMs:TOWN_IDLE_FRAME_MS,
+      townActive:state === 'town' ? townMotionActive() : false,
     }),
     drawMinimap,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
