@@ -10,7 +10,7 @@ assert(core.includes('function cachedDungeonVignette()'));
 assert(core.includes('function cachedTownGradient(context, key, create)'));
 assert(core.includes('ctx.fillStyle = cachedStairsGradient(px, py);'));
 assert(core.includes('cachedMeasureTextWidth(ctx, label)'));
-assert(core.includes("cachedTownGradient(ctx, 'backdrop-shade|'"));
+assert(core.includes('function cachedTownBackdropLayer(W, H, townBackdrop)'));
 assert(core.includes("cachedTownGradient(ctx, 'fire-glow|'"));
 
 const gradient={addColorStop(){}};
@@ -35,7 +35,7 @@ const elements=new Map(),el=id=>{if(!elements.has(id))elements.set(id,elem(id));
 global.document={hidden:false,getElementById:id=>el(id),createElement:t=>t==='canvas'?{width:0,height:0,getContext:()=>ctx(),toDataURL:()=>''}:elem('created'),querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){},documentElement:{dataset:{},classList:classList()}};
 global.window={innerWidth:1280,innerHeight:800,addEventListener(){},dispatchEvent(){},DE_PROFILES:{}};
 global.localStorage={_m:new Map(),getItem(k){return this._m.has(k)?this._m.get(k):null},setItem(k,v){this._m.set(k,String(v))},removeItem(k){this._m.delete(k)}};
-global.requestAnimationFrame=()=>1;global.cancelAnimationFrame=()=>{};global.Image=class{set src(_v){}};global.matchMedia=()=>({matches:false});global.performance={now:()=>1000};global.location={search:'?profile=classic-100'};
+global.requestAnimationFrame=()=>1;global.cancelAnimationFrame=()=>{};global.Image=class{constructor(){this.complete=true;this.naturalWidth=1120;this.naturalHeight=640}set src(_v){}};global.matchMedia=()=>({matches:false});global.performance={now:()=>1000};global.location={search:'?profile=classic-100'};
 for(const id of ['classic-10','classic-20','classic-30','classic-40','classic-50','classic-60','classic-100'])
   vm.runInThisContext(fs.readFileSync(path.join(root,'profiles',id+'.profile.js'),'utf8'),{filename:id});
 for(const rel of ['game/domain/content/content-rules-v130.js','game/domain/inventory/equipment-rules-v130.js','game/domain/inventory/set-rules-v180.js','game/domain/economy/economy-rules-v130.js','game/domain/town/town-rules-v130.js','game/domain/town/town-growth-rules-v180.js','game/domain/expedition/expedition-rules-v170.js','game/domain/progression/progression-rules-v130.js','game/domain/combat/combat-rules-v130.js'])
@@ -62,14 +62,17 @@ T.resetRenderCachePerf(true);measureCalls=radialCalls=linearCalls=0;
 T.drawTownScene(1000);
 const townFirst=T.renderCacheSnapshot(), firstMeasure=measureCalls, firstLinear=linearCalls, firstRadial=radialCalls;
 assert(townFirst.textMeasureMisses>=5,'first town draw should measure authored NPC labels');
-assert(townFirst.townGradientMisses>=2,'first town draw should build stable town gradients');
+assert(townFirst.townLayerMisses===1,'first town draw should build the static authored backdrop layer');
+assert(townFirst.townGradientMisses>=1,'first town draw should build remaining stable dynamic-layer gradients');
 T.resetRenderCachePerf(false);measureCalls=radialCalls=linearCalls=0;
 T.drawTownScene(1100);
 const townSecond=T.renderCacheSnapshot();
 assert.equal(townSecond.textMeasureMisses,0,'second unchanged town draw must not re-measure labels');
 assert(townSecond.textMeasureHits>=5,'second unchanged town draw must reuse label widths');
-assert.equal(townSecond.townGradientMisses,0,'second unchanged town draw must not rebuild stable town gradients');
-assert(townSecond.townGradientHits>=2,'second unchanged town draw must reuse stable town gradients');
+assert.equal(townSecond.townLayerMisses,0,'second unchanged town draw must not rebuild authored backdrop layer');
+assert(townSecond.townLayerHits>=1,'second unchanged town draw must reuse authored backdrop layer');
+assert.equal(townSecond.townGradientMisses,0,'second unchanged town draw must not rebuild remaining stable town gradients');
+assert(townSecond.townGradientHits>=1,'second unchanged town draw must reuse remaining stable town gradients');
 assert(measureCalls<firstMeasure,'cached town draw should make fewer native measureText calls');
 assert(linearCalls<firstLinear,'cached town draw should make fewer native linear-gradient calls');
 assert(radialCalls<=firstRadial,'cached town draw should not increase native radial-gradient calls');

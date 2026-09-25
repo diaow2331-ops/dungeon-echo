@@ -1325,6 +1325,7 @@ function resetAudioMix() {
 
 // ================= 状态 =================
 let map, explored, visible;
+let dungeonMapRevision = 0;
 let player, monsters = [], items = [], npcs = [], traps = [], secrets = [];
 let depth, turns, state;
 let classId = 'warrior';
@@ -2528,6 +2529,7 @@ function genLevel() {
     spawnSecret(rooms);
     ensureFloorContent(rooms);
     snapAll();
+    dungeonMapRevision++;
     return;
   }
   throw new Error('地图生成失败');
@@ -4918,12 +4920,20 @@ const renderCachePerf = {
   textMeasureHits:0, textMeasureMisses:0,
   dungeonGradientHits:0, dungeonGradientMisses:0,
   townGradientHits:0, townGradientMisses:0,
+  dungeonLayerHits:0, dungeonLayerMisses:0,
+  visibilityLayerHits:0, visibilityLayerMisses:0,
+  sceneFilterHits:0, sceneFilterMisses:0,
+  townLayerHits:0, townLayerMisses:0,
 };
 let textWidthCaches = new WeakMap();
 let townGradientCaches = new WeakMap();
 let stairsGradientCache = new Map();
 let dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
 let dungeonVignetteCache = { key:'', gradient:null };
+let dungeonStaticLayerCache = { key:'', canvas:null };
+let dungeonVisibilityLayerCache = { key:'', canvas:null };
+let dungeonSceneFilterCache = { key:'', scene:null };
+let townBackdropLayerCache = { key:'', canvas:null };
 function cachedMeasureTextWidth(context, text) {
   let cache = textWidthCaches.get(context);
   if (!cache) { cache = new Map(); textWidthCaches.set(context, cache); }
@@ -4986,6 +4996,150 @@ function cachedDungeonVignette() {
   renderCachePerf.dungeonGradientMisses++;
   return gradient;
 }
+function makeRenderLayer(width, height) {
+  const layer = document.createElement('canvas');
+  layer.width = width; layer.height = height;
+  return layer;
+}
+function dungeonTextureSignature(T) {
+  const rows = [T && T.wall, ...((T && T.floors) || [])];
+  return rows.map(img => img ? [img.naturalWidth || img.width || 0, img.naturalHeight || img.height || 0].join('x') : '0x0').join(',');
+}
+function cachedDungeonStaticLayer() {
+  if (!map) return null;
+  const T = texFor(depth);
+  const key = [dungeonMapRevision, depth, dungeonTextureSignature(T)].join('|');
+  if (dungeonStaticLayerCache.key === key && dungeonStaticLayerCache.canvas) {
+    renderCachePerf.dungeonLayerHits++;
+    return dungeonStaticLayerCache.canvas;
+  }
+  const layer = makeRenderLayer(MAP_W * TILE, MAP_H * TILE);
+  const g = layer.getContext('2d');
+  if (!g) return null;
+  g.imageSmoothingEnabled = false;
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      const px = x * TILE, py = y * TILE, t = map[y][x];
+      if (t === WALL) {
+        g.drawImage(T.wall, px, py);
+        if (y + 1 < MAP_H && map[y + 1][x] !== WALL) {
+          g.fillStyle = 'rgba(0,0,0,.38)';
+          g.fillRect(px, py + TILE - 7, TILE, 7);
+        }
+      } else {
+        g.drawImage(T.floors[(x * 7 + y * 13) % 4], px, py);
+        if (y > 0 && map[y - 1][x] === WALL) {
+          g.fillStyle = 'rgba(0,0,0,.30)'; g.fillRect(px, py, TILE, 9);
+          g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(px, py, TILE, 4);
+        }
+        if (x > 0 && map[y][x - 1] === WALL) {
+          g.fillStyle = 'rgba(0,0,0,.16)'; g.fillRect(px, py, 6, TILE);
+        }
+      }
+    }
+  }
+  dungeonStaticLayerCache = { key, canvas:layer };
+  renderCachePerf.dungeonLayerMisses++;
+  return layer;
+}
+function cachedDungeonVisibilityLayer() {
+  if (!map || !explored || !visible) return null;
+  const key = [dungeonMapRevision, fovRevision, view.x, view.y, view.cols, view.rows].join('|');
+  if (dungeonVisibilityLayerCache.key === key && dungeonVisibilityLayerCache.canvas) {
+    renderCachePerf.visibilityLayerHits++;
+    return dungeonVisibilityLayerCache.canvas;
+  }
+  const layer = makeRenderLayer(view.cols * TILE, view.rows * TILE);
+  const g = layer.getContext('2d');
+  if (!g) return null;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, layer.width, layer.height);
+  for (let y = view.y; y < view.y + view.rows; y++) {
+    for (let x = view.x; x < view.x + view.cols; x++) {
+      if (!explored[y][x]) continue;
+      const lx = (x - view.x) * TILE, ly = (y - view.y) * TILE;
+      g.clearRect(lx, ly, TILE, TILE);
+      if (!visible[y][x]) {
+        g.fillStyle = 'rgba(2,3,6,.78)';
+        g.fillRect(lx, ly, TILE, TILE);
+      }
+    }
+  }
+  dungeonVisibilityLayerCache = { key, canvas:layer };
+  renderCachePerf.visibilityLayerMisses++;
+  return layer;
+}
+function dungeonCellInView(x, y, margin = 1) {
+  return x >= view.x - margin && y >= view.y - margin &&
+    x < view.x + view.cols + margin && y < view.y + view.rows + margin;
+}
+function cachedDungeonScene() {
+  const key = [
+    dungeonMapRevision, fovRevision, turns, depth, floorCleared ? 1 : 0,
+    player ? player.x : -1, player ? player.y : -1,
+    view.x, view.y, view.cols, view.rows,
+    decals.length, monsters.length, items.length, npcs.length, traps.length, secrets.length,
+  ].join('|');
+  if (dungeonSceneFilterCache.key === key && dungeonSceneFilterCache.scene) {
+    renderCachePerf.sceneFilterHits++;
+    return dungeonSceneFilterCache.scene;
+  }
+  const isVisible = row => row && dungeonCellInView(row.x, row.y) &&
+    !!(visible[row.y] && visible[row.y][row.x]);
+  const scene = {
+    decals:decals.filter(d => isVisible(d) && explored[d.y] && explored[d.y][d.x]),
+    traps:(traps || []).filter(t => t.armed && isVisible(t) &&
+      (floorCleared || Math.abs(t.x - player.x) + Math.abs(t.y - player.y) <= 1)),
+    secrets:(secrets || []).filter(row => !row.revealed && isVisible(row) &&
+      explored[row.y] && explored[row.y][row.x] &&
+      Math.abs(row.x - player.x) + Math.abs(row.y - player.y) <= 1),
+    npcs:(npcs || []).filter(isVisible),
+    items:(items || []).filter(isVisible),
+    monsters:(monsters || []).filter(isVisible),
+    torches:[],
+    stairs:[],
+  };
+  for (let y = view.y; y < view.y + view.rows; y++) {
+    for (let x = view.x; x < view.x + view.cols; x++) {
+      if (!explored[y][x]) continue;
+      if (map[y][x] === STAIRS) scene.stairs.push([x * TILE, y * TILE]);
+      if (map[y][x] === WALL && visible[y][x] && y + 1 < MAP_H && map[y + 1][x] !== WALL &&
+          (x * 13 + y * 7) % 9 === 0) {
+        scene.torches.push([x * TILE, y * TILE, x * 3.1 + y]);
+      }
+    }
+  }
+  dungeonSceneFilterCache = { key, scene };
+  renderCachePerf.sceneFilterMisses++;
+  return scene;
+}
+function cachedTownBackdropLayer(W, H, townBackdrop) {
+  if (!imageReady(townBackdrop)) return null;
+  const sourceId = townBackdrop === townBackdropV190 ? 'v190' : townBackdrop === townBackdropV11 ? 'v11' : 'other';
+  const key = [sourceId, W, H, townBackdrop.naturalWidth || 0, townBackdrop.naturalHeight || 0].join('|');
+  if (townBackdropLayerCache.key === key && townBackdropLayerCache.canvas) {
+    renderCachePerf.townLayerHits++;
+    return townBackdropLayerCache.canvas;
+  }
+  const layer = makeRenderLayer(W, H);
+  const g = layer.getContext('2d');
+  if (!g) return null;
+  const iw = townBackdrop.naturalWidth, ih = townBackdrop.naturalHeight;
+  const sh = Math.min(ih, iw * H / W);
+  const sy = townBackdrop === townBackdropV190
+    ? Math.max(0, Math.min(ih - sh, (ih - sh) * .38))
+    : Math.max(0, Math.min(ih - sh, ih * .31));
+  g.imageSmoothingEnabled = true;
+  g.drawImage(townBackdrop, 0, sy, iw, sh, 0, 0, W, H);
+  const shade = g.createLinearGradient(0, 0, 0, H);
+  shade.addColorStop(0, 'rgba(5,8,20,.08)');
+  shade.addColorStop(.7, 'rgba(5,4,8,.03)');
+  shade.addColorStop(1, 'rgba(5,3,4,.36)');
+  g.fillStyle = shade; g.fillRect(0, 0, W, H);
+  townBackdropLayerCache = { key, canvas:layer };
+  renderCachePerf.townLayerMisses++;
+  return layer;
+}
 function resetRenderCachePerf(clearCaches = false) {
   for (const key of Object.keys(renderCachePerf)) renderCachePerf[key] = 0;
   if (!clearCaches) return;
@@ -4994,6 +5148,10 @@ function resetRenderCachePerf(clearCaches = false) {
   stairsGradientCache = new Map();
   dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
   dungeonVignetteCache = { key:'', gradient:null };
+  dungeonStaticLayerCache = { key:'', canvas:null };
+  dungeonVisibilityLayerCache = { key:'', canvas:null };
+  dungeonSceneFilterCache = { key:'', scene:null };
+  townBackdropLayerCache = { key:'', canvas:null };
 }
 function drawStairs(px, py, now) {
   ctx.fillStyle = '#04060b';
@@ -5218,7 +5376,7 @@ function drawMinimap(force = false) {
 }
 function draw(now) {
   if (!player || !map) return;
-  const T = texFor(depth);
+  const scene = cachedDungeonScene();
   ctx.save();
   if (trauma > 0 && state === 'playing' && !reducedMotion) {
     const sh = trauma * trauma;
@@ -5230,44 +5388,18 @@ function draw(now) {
   ctx.save();
   ctx.translate(-view.x * TILE, -view.y * TILE);
 
-  const torches = [];
-  for (let y = view.y; y < view.y + view.rows; y++) {
-    for (let x = view.x; x < view.x + view.cols; x++) {
-      if (!explored[y][x]) continue;
-      const px = x * TILE, py = y * TILE;
-      const t = map[y][x];
-      if (t === WALL) {
-        ctx.drawImage(T.wall, px, py);
-        if (y + 1 < MAP_H && map[y + 1][x] !== WALL) {
-          ctx.fillStyle = 'rgba(0,0,0,.38)';
-          ctx.fillRect(px, py + TILE - 7, TILE, 7);
-        }
-        if (visible[y][x] && y + 1 < MAP_H && map[y + 1][x] !== WALL &&
-            (x * 13 + y * 7) % 9 === 0) {
-          torches.push([px, py, x * 3.1 + y]);
-          drawTorch(px, py, now);
-        }
-      } else {
-        ctx.drawImage(T.floors[(x * 7 + y * 13) % 4], px, py);
-        if (y > 0 && map[y - 1][x] === WALL) {
-          ctx.fillStyle = 'rgba(0,0,0,.30)'; ctx.fillRect(px, py, TILE, 9);
-          ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(px, py, TILE, 4);
-        }
-        if (x > 0 && map[y][x - 1] === WALL) {
-          ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.fillRect(px, py, 6, TILE);
-        }
-        if (t === STAIRS) drawStairs(px, py, now);
-      }
-      if (!visible[y][x]) {
-        ctx.fillStyle = 'rgba(2,3,6,.78)';
-        ctx.fillRect(px, py, TILE, TILE);
-      }
-    }
+  const staticLayer = cachedDungeonStaticLayer();
+  if (staticLayer) {
+    const vx = view.x * TILE, vy = view.y * TILE, vw = view.cols * TILE, vh = view.rows * TILE;
+    ctx.drawImage(staticLayer, vx, vy, vw, vh, vx, vy, vw, vh);
   }
+  for (const [sx, sy] of scene.stairs) drawStairs(sx, sy, now);
+  for (const [tx, ty] of scene.torches) drawTorch(tx, ty, now);
+  const visibilityLayer = cachedDungeonVisibilityLayer();
+  if (visibilityLayer) ctx.drawImage(visibilityLayer, view.x * TILE, view.y * TILE);
 
   ctx.globalAlpha = .6;
-  for (const d of decals) {
-    if (!explored[d.y][d.x] || !visible[d.y][d.x]) continue;
+  for (const d of scene.decals) {
     ctx.save();
     ctx.translate(d.x * TILE + TILE / 2, d.y * TILE + TILE / 2);
     ctx.rotate(d.rot);
@@ -5276,10 +5408,7 @@ function draw(now) {
   }
   ctx.globalAlpha = 1;
 
-  for (const t of traps || []) {
-    if (!t.armed || !visible[t.y] || !visible[t.y][t.x]) continue;
-    const near = Math.abs(t.x - player.x) + Math.abs(t.y - player.y) <= 1;
-    if (!near && !floorCleared) continue;
+  for (const t of scene.traps) {
     const px = t.x * TILE, py = t.y * TILE;
     const cx = px + TILE / 2, cy = py + TILE / 2;
     if (!drawDungeonProp(trapPropForDepth(depth), cx, cy, 28, 28, .92)) {
@@ -5289,10 +5418,7 @@ function draw(now) {
       ctx.moveTo(px + TILE - 10, py + 10); ctx.lineTo(px + 10, py + TILE - 10); ctx.stroke();
     }
   }
-  for (const s of secrets || []) {
-    if (s.revealed || !explored[s.y] || !explored[s.y][s.x]) continue;
-    const near = Math.abs(s.x - player.x) + Math.abs(s.y - player.y) <= 1;
-    if (!near) continue;
+  for (const s of scene.secrets) {
     const px = s.x * TILE, py = s.y * TILE;
     ctx.strokeStyle = 'rgba(242,210,123,.7)';
     ctx.lineWidth = 2;
@@ -5301,8 +5427,7 @@ function draw(now) {
     ctx.stroke();
   }
 
-  for (const n of npcs) {
-    if (!visible[n.y][n.x]) continue;
+  for (const n of scene.npcs) {
     const spr = n.type === 'shrine' || n.type === 'event' ? SPRITES.shrine : n.type === 'rest' ? SPRITES.camp : SPRITES.merchant;
     const prop = dungeonNpcProp(n.type);
     const px = n.fx * TILE + TILE / 2, py = n.fy * TILE + TILE / 2;
@@ -5311,8 +5436,7 @@ function draw(now) {
       drawEntity(n, spr || SPRITES.merchant, 30, now);
   }
 
-  for (const it of items) {
-    if (!visible[it.y][it.x]) continue;
+  for (const it of scene.items) {
     const iconId = it.type === 'equip' ? it.item.icon : it.type === 'chest' ? null : it.icon;
     const key = it.type === 'equip' ? it.item.spr
       : it.type === 'amulet' ? 'heart'
@@ -5374,8 +5498,7 @@ function draw(now) {
     }
   }
 
-  for (const m of monsters) {
-    if (!visible[m.y][m.x]) continue;
+  for (const m of scene.monsters) {
     const baseSize = (m.boss || m.midBoss) ? 66 : (m.elite ? 40 : 35);
     if (m.elite || m.boss || m.midBoss) {
       const c = m.boss ? 'rgba(255,90,60,' : 'rgba(224,179,77,';
@@ -5457,7 +5580,7 @@ function draw(now) {
   ctx.globalAlpha = 1;
 
   ctx.globalCompositeOperation = 'lighter';
-  for (const [tx, ty, seed] of torches) {
+  for (const [tx, ty, seed] of scene.torches) {
     const fl = .8 + .2 * Math.sin(now * 9 + seed * 7);
     const cx2 = tx + TILE / 2, cy2 = ty + TILE * .45;
     const g2 = ctx.createRadialGradient(cx2, cy2, 4, cx2, cy2, TILE * 2.8 * fl);
@@ -5849,6 +5972,7 @@ function restoreRun(raw) {
   player = raw.player;
   ensurePlayerMana(player, classId);
   map = raw.map; explored = raw.explored;
+  dungeonMapRevision++;
   monsters = raw.monsters || []; items = raw.items || []; npcs = raw.npcs || [];
   shopStock = raw.shopStock || [];
   traps = raw.traps || []; secrets = raw.secrets || [];
@@ -7260,20 +7384,10 @@ function drawTownScene(now) {
   const G = H * .78;
   const townBackdrop = imageReady(townBackdropV190) ? townBackdropV190 : townBackdropV11;
   if (imageReady(townBackdrop)) {
-    const iw = townBackdrop.naturalWidth, ih = townBackdrop.naturalHeight;
-    const sh = Math.min(ih, iw * H / W);
-    const sy = townBackdrop === townBackdropV190
-      ? Math.max(0, Math.min(ih - sh, (ih - sh) * .38))
-      : Math.max(0, Math.min(ih - sh, ih * .31));
+    const backdropLayer = cachedTownBackdropLayer(W, H, townBackdrop);
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(townBackdrop, 0, sy, iw, sh, 0, 0, W, H);
-    const shade = cachedTownGradient(ctx, 'backdrop-shade|' + W + '|' + H, () => {
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, 'rgba(5,8,20,.08)'); g.addColorStop(.7, 'rgba(5,4,8,.03)'); g.addColorStop(1, 'rgba(5,3,4,.36)');
-      return g;
-    });
-    ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
+    if (backdropLayer) ctx.drawImage(backdropLayer, 0, 0);
     drawTownGrowthVisual(ctx, now, W, H, G);
     drawTownFire(ctx, now, G);
     ctx.restore();
@@ -8811,6 +8925,7 @@ if (typeof window !== 'undefined') {
     draw, drawTownScene,
     renderCacheSnapshot: () => ({ ...renderCachePerf }),
     resetRenderCachePerf,
+    cachedDungeonStaticLayer, cachedDungeonVisibilityLayer, cachedDungeonScene, cachedTownBackdropLayer,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
       minimapKey:minimapStateKey(), fovRevision,

@@ -37,10 +37,10 @@ for (const file of expected) {
   ok(fs.existsSync(path.join(root,file)), `production script exists: ${file}`);
   ok(manifest.includes(file), `production script ships: ${file}`);
 }
-ok([...zh.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=196$/.test(m[1])), 'Chinese synchronous scripts use cache generation 196');
-ok([...en.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=196$/.test(m[1])), 'English synchronous scripts use cache generation 196');
+ok([...zh.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=197$/.test(m[1])), 'Chinese synchronous scripts use cache generation 197');
+ok([...en.matchAll(/<script\s+src="([^"]+)"/g)].every(m => /\?v=197$/.test(m[1])), 'English synchronous scripts use cache generation 197');
 ok(/classic-100/.test(productionBootstrap), 'production bootstrap forces the classic-100 public profile');
-ok(/assetVersion = '196'/.test(runtime) && /version:'v38'/.test(runtime), 'late presentation graph is generation 196 / runtime v38');
+ok(/assetVersion = '197'/.test(runtime) && /version:'v39'/.test(runtime), 'late presentation graph is generation 197 / runtime v39');
 
 const retired = [
   'game/core/save-integrity-system.js',
