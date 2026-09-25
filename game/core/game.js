@@ -6063,6 +6063,7 @@ const TOWN_RESIDENT_VISUALS = Object.freeze({
   alchemist:{ cell:TOWN_NPC_ART.alchemist, x:.66, y:.90, face:1, scale:.70 },
 });
 let selectedTownCheckpoint = 1;
+let lastTownOutcome = null; // transient decision recap; never persisted
 let townActiveService = 'plaza';
 let townPendingHotspot = '';
 let townLastFrame = 0;
@@ -6268,7 +6269,63 @@ function selectTownContract(id) {
   meta.contractId = normalized;
   saveMeta();
   renderTown();
+  if (normalized !== 'none') guideOnce('contract',
+    '委托不是一次性固定数值：每深入一个十层区段，风险与对应奖励都会继续加码。出发页会显示当前起点的实际风险。',
+    'Contracts are not flat one-time modifiers: each deeper 10-floor segment raises both its risk and matching reward. The Depart page shows the actual pressure at your selected checkpoint.');
   return true;
+}
+function townDepartureDecisionSnapshot() {
+  if (!meta) return null;
+  const unlocked = unlockedTownCheckpoints();
+  const startDepth = unlocked.includes(selectedTownCheckpoint) ? selectedTownCheckpoint : 1;
+  const contractId = EXPEDITION_RULES.normalizeContractId(meta.contractId);
+  const contract = EXPEDITION_RULES.CONTRACTS.find(row => row.id === contractId) || EXPEDITION_RULES.CONTRACTS[0];
+  const effects = EXPEDITION_RULES.escalationEffects(contractId, startDepth);
+  let contractDetailZh = '无额外风险或奖励';
+  let contractDetailEn = 'No extra risk or reward';
+  if (contractId === 'hunt') {
+    const bounty = EXPEDITION_RULES.eliteBounty(startDepth, contractId) + effects.eliteBountyBonus;
+    contractDetailZh = `精英率 +8% · 每只精英额外赏金 ${bounty} G`;
+    contractDetailEn = `Elite chance +8% · ${bounty} G bonus per elite`;
+  } else if (contractId === 'relic') {
+    const traps = 1 + effects.trapBonus;
+    const namedPct = Math.round((0.16 + effects.namedRelicChanceBonus) * 1000) / 10;
+    contractDetailZh = `额外陷阱 +${traps}/层 · 具名遗物概率 +${namedPct}%`;
+    contractDetailEn = `+${traps} trap(s)/floor · named relic chance +${namedPct}%`;
+  } else if (contractId === 'oath') {
+    const atkPct = Math.round((1.12 * effects.monsterAtkMultiplier - 1) * 100);
+    const xpPct = Math.round((1.18 * effects.monsterXpMultiplier - 1) * 100);
+    contractDetailZh = `普通敌人攻击 +${atkPct}% · 经验 +${xpPct}%`;
+    contractDetailEn = `Normal enemy ATK +${atkPct}% · XP +${xpPct}%`;
+  }
+  const readiness = townReadinessPlan();
+  return Object.freeze({
+    startDepth,
+    hpPct:clamp(Number(meta.hpPct) || 100, 1, 100),
+    potions:Math.max(0, Number(meta.potions) || 0),
+    escapes:Math.max(0, Number(meta.escapes) || 0),
+    keys:Math.max(0, Number(meta.keys) || 0),
+    contractId, contractZh:contract.zh, contractEn:contract.en,
+    contractDetailZh, contractDetailEn,
+    ready:!!readiness.ready,
+  });
+}
+function townDepartureDecisionHtml() {
+  const row = townDepartureDecisionSnapshot();
+  if (!row) return '';
+  const hpState = row.hpPct >= 75 ? ui('状态良好','Healthy') : row.hpPct >= 50 ? ui('带伤','Wounded') : ui('重伤','Badly Wounded');
+  return `<section class="town-decision-summary" aria-live="polite"><header><b>${ui('出发风险摘要','Departure Risk Brief')}</b><small>${row.ready ? ui('基础补给齐备','Core kit ready') : ui('补给不足，仍可冒险出发','Low supplies — departure still allowed')}</small></header><div class="town-decision-grid">` +
+    `<span><small>${ui('起点','Start')}</small><strong>${ui(`第 ${row.startDepth} 层`,`Floor ${row.startDepth}`)}</strong></span>` +
+    `<span><small>${ui('伤势','Condition')}</small><strong>${hpState} · ${row.hpPct}%</strong></span>` +
+    `<span><small>${ui('补给','Supplies')}</small><strong>${ui(`药 ${row.potions} · 回城 ${row.escapes} · 钥匙 ${row.keys}`,`Potions ${row.potions} · Return ${row.escapes} · Keys ${row.keys}`)}</strong></span>` +
+    `<span><small>${ui('委托','Contract')}</small><strong>${esc(ui(row.contractZh,row.contractEn))}</strong></span></div>` +
+    `<p>${esc(ui(row.contractDetailZh,row.contractDetailEn))}</p><p class="danger">${ui('死亡：背包与随身金币丢失；穿戴装备、仓库与金库安全。回城卷轴需连续引导 2 回合，受到任何伤害都会中断并消耗卷轴。','Death: backpack loot and carried Gold are lost; equipped gear, stash and vault stay safe. A Return Scroll channels for 2 full turns; any damage interrupts it and consumes the scroll.')}</p></section>`;
+}
+function townOutcomeHtml() {
+  const row = lastTownOutcome;
+  if (!row) return '';
+  if (row.kind === 'death') return `<section class="town-outcome danger"><b>${ui('上次远征 · 阵亡结算','Last Expedition · Death')}</b><span>${ui(`第 ${row.depth} 层阵亡 · 丢失背包 ${row.lostInv} 件 · 丢失 ${row.lostGold} G`,`Fell on Floor ${row.depth} · lost ${row.lostInv} backpack item(s) · lost ${row.lostGold} G`)}</span></section>`;
+  return `<section class="town-outcome safe"><b>${ui('上次远征 · 安全回城','Last Expedition · Safe Return')}</b><span>${ui(`第 ${row.depth} 层撤离 · 入库 ${row.gold} G · 新登记遗物 ${row.relics} 件 · 新完整套装 ${row.sets} 套 · 当前生命 ${row.hpPct}%`,`Returned from Floor ${row.depth} · banked ${row.gold} G · ${row.relics} new relic(s) · ${row.sets} newly completed set(s) · current HP ${row.hpPct}%`)}</span></section>`;
 }
 function renderTownContracts() {
   const panel = $('town-contracts');
