@@ -48,6 +48,7 @@ const tests = [
   'escape-channel-hardening-v194.cjs',
   'monster-tactics-v194.cjs',
   'decision-summary-v194.cjs',
+  'performance-lifecycle-v195.cjs',
   'progression-cap-runtime-v180.cjs',
   'skill-evolution-delivery-v180.cjs',
   'monster-threat-v170.cjs',
