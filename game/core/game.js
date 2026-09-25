@@ -5522,65 +5522,121 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+const hudElementCache = Object.create(null);
+const hudPerf = { queries:0, writes:0, skips:0 };
+function hudEl(id) {
+  if (hudElementCache[id]) return hudElementCache[id];
+  hudPerf.queries++;
+  const el = $(id);
+  if (el) hudElementCache[id] = el;
+  return el;
+}
+function hudText(el, value) {
+  if (!el) return false;
+  const next = String(value);
+  if (el.textContent === next) { hudPerf.skips++; return false; }
+  el.textContent = next; hudPerf.writes++; return true;
+}
+function hudStyle(el, key, value) {
+  if (!el || !el.style) return false;
+  const next = String(value);
+  if (el.style[key] === next) { hudPerf.skips++; return false; }
+  el.style[key] = next; hudPerf.writes++; return true;
+}
+function hudProp(el, key, value) {
+  if (!el) return false;
+  if (el[key] === value) { hudPerf.skips++; return false; }
+  el[key] = value; hudPerf.writes++; return true;
+}
+function hudClass(el, name, enabled) {
+  if (!el || !el.classList) return false;
+  const next = !!enabled, current = el.classList.contains(name);
+  if (current === next) { hudPerf.skips++; return false; }
+  el.classList.toggle(name, next); hudPerf.writes++; return true;
+}
+function hudClassName(el, value) {
+  if (!el) return false;
+  const next = String(value);
+  if (el.className === next) { hudPerf.skips++; return false; }
+  el.className = next; hudPerf.writes++; return true;
+}
+function resetHudPerf(clearCache = false) {
+  hudPerf.queries = 0; hudPerf.writes = 0; hudPerf.skips = 0;
+  if (clearCache) for (const key of Object.keys(hudElementCache)) delete hudElementCache[key];
+}
 function updateHud() {
-  if (!player || !$('st-depth')) return;
-  $('st-depth').textContent = player && player.echoMode ? depth + '∞' : depth;
-  const themeEl = $('st-theme');
-  if (themeEl) themeEl.textContent = ' · ' + (THEMES[themeIdx(depth)] ? visibleWorldName(THEMES[themeIdx(depth)].name) : '');
-  $('st-hptext').textContent = `${Math.max(0, player.hp)}/${pMaxHp()}`;
-  $('st-hpfill').style.width = Math.max(0, player.hp / pMaxHp() * 100) + '%';
+  const depthEl = hudEl('st-depth');
+  if (!player || !depthEl) return false;
+  const maxHp = pMaxHp();
+  const safeHp = Math.max(0, player.hp);
+  const hpRatio = maxHp > 0 ? safeHp / maxHp : 0;
   ensurePlayerMana();
-  if ($('st-manatext')) $('st-manatext').textContent = `${player.mana}/${player.manaMax}`;
-  if ($('st-manafill')) $('st-manafill').style.width = (player.manaMax ? player.mana / player.manaMax * 100 : 0) + '%';
-  const lowHp = state === 'playing' && player.hp > 0 && player.hp / pMaxHp() <= 0.25;
-  $('lowhp-vignette').classList.toggle('hidden', !lowHp);
-  if ($('st-potion-wrap')) {
-    $('st-potion-wrap').classList.toggle('urgent', lowHp && player.potions > 0);
-    $('st-potion-wrap').title = lowHp && player.potions > 0
-      ? ui(`生命危险：按 Q 或点击这里使用治疗药水（剩余 ${player.potions}）`, `Critical HP: press Q or click here to use a Healing Potion (${player.potions} left)`)
-      : ui('使用治疗药水（Q）', 'Use Healing Potion (Q)');
-  }
-  $('st-lvl').textContent = player.lvl;
-  $('st-xp').textContent = player.lvl >= progressionLevelCap()
+
+  hudText(depthEl, player.echoMode ? depth + '∞' : depth);
+  const theme = THEMES[themeIdx(depth)];
+  hudText(hudEl('st-theme'), ' · ' + (theme ? visibleWorldName(theme.name) : ''));
+  hudText(hudEl('st-hptext'), `${safeHp}/${maxHp}`);
+  hudStyle(hudEl('st-hpfill'), 'width', Math.max(0, hpRatio * 100) + '%');
+  hudText(hudEl('st-manatext'), `${player.mana}/${player.manaMax}`);
+  hudStyle(hudEl('st-manafill'), 'width', (player.manaMax ? player.mana / player.manaMax * 100 : 0) + '%');
+
+  const lowHp = state === 'playing' && player.hp > 0 && hpRatio <= 0.25;
+  hudClass(hudEl('lowhp-vignette'), 'hidden', !lowHp);
+  const potionWrap = hudEl('st-potion-wrap');
+  const potionUrgent = lowHp && player.potions > 0;
+  hudClass(potionWrap, 'urgent', potionUrgent);
+  hudProp(potionWrap, 'title', potionUrgent
+    ? ui(`生命危险：按 Q 或点击这里使用治疗药水（剩余 ${player.potions}）`, `Critical HP: press Q or click here to use a Healing Potion (${player.potions} left)`)
+    : ui('使用治疗药水（Q）', 'Use Healing Potion (Q)'));
+
+  hudText(hudEl('st-lvl'), player.lvl);
+  hudText(hudEl('st-xp'), player.lvl >= progressionLevelCap()
     ? ui('(永久等级 MAX)','(Permanent Level MAX)')
-    : `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
-  $('st-atk').textContent = pAtk();
-  $('st-def').textContent = pDef();
-  $('st-crit').textContent = pCrit() + '%';
-  $('st-gold').textContent = player.gold;
-  $('st-potion').textContent = player.potions;
-  $('st-scroll').textContent = player.scrolls;
-  if ($('st-key')) $('st-key').textContent = player.keys || 0;
-  if ($('st-escape')) $('st-escape').textContent = player.escapes || 0;
-  if ($('st-escape-wrap')) $('st-escape-wrap').style.display = greedyMode ? '' : 'none';
-  if ($('st-mobs')) {
-    const mobsEl = $('st-mobs');
-    const bossHere = monsters && monsters.some(m => m.boss || m.midBoss);
-    mobsEl.textContent = (monsters ? monsters.length : 0) + (bossHere ? ' ⚑' : '');
-    mobsEl.classList.toggle('boss-here', !!bossHere);
-  }
-  const skEl = $('st-skill');
+    : `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`);
+  hudText(hudEl('st-atk'), pAtk());
+  hudText(hudEl('st-def'), pDef());
+  hudText(hudEl('st-crit'), pCrit() + '%');
+  hudText(hudEl('st-gold'), player.gold);
+  hudText(hudEl('st-potion'), player.potions);
+  hudText(hudEl('st-scroll'), player.scrolls);
+  hudText(hudEl('st-key'), player.keys || 0);
+  hudText(hudEl('st-escape'), player.escapes || 0);
+  hudStyle(hudEl('st-escape-wrap'), 'display', greedyMode ? '' : 'none');
+
+  const mobsEl = hudEl('st-mobs');
+  const bossHere = !!(monsters && monsters.some(m => m.boss || m.midBoss));
+  hudText(mobsEl, (monsters ? monsters.length : 0) + (bossHere ? ' ⚑' : ''));
+  hudClass(mobsEl, 'boss-here', bossHere);
+
+  const skEl = hudEl('st-skill');
   if (skEl) {
     const manaCost = skillManaCost();
+    let skillText, skillClass;
     if (player.skillCd > 0) {
-      skEl.textContent = ui(`${player.skillCd}回合 · ${manaCost}蓝`, `CD ${player.skillCd} · ${manaCost} MP`);
-      skEl.className = 'cd';
+      skillText = ui(`${player.skillCd}回合 · ${manaCost}蓝`, `CD ${player.skillCd} · ${manaCost} MP`);
+      skillClass = 'cd';
     } else if (player.mana < manaCost) {
-      skEl.textContent = ui(`蓝量 ${player.mana}/${manaCost}`, `Mana ${player.mana}/${manaCost}`);
-      skEl.className = 'mana-low';
+      skillText = ui(`蓝量 ${player.mana}/${manaCost}`, `Mana ${player.mana}/${manaCost}`);
+      skillClass = 'mana-low';
     } else {
-      skEl.textContent = ui(`${classDef().skill.name} · ${manaCost}蓝`, `${classDef().skill.name} · ${manaCost} MP`);
-      skEl.className = 'ready';
+      skillText = ui(`${classDef().skill.name} · ${manaCost}蓝`, `${classDef().skill.name} · ${manaCost} MP`);
+      skillClass = 'ready';
     }
+    hudText(skEl, skillText);
+    hudClassName(skEl, skillClass);
   }
-  const onStairs = map && map[player.y][player.x] === STAIRS;
+
+  const onStairs = !!(map && map[player.y] && map[player.y][player.x] === STAIRS);
   if (state === 'playing' && onStairs) guideOnce('stairs',
     'Enter 正常下潜；Shift+Enter 是满足条件时的付费快速下潜。J 始终是主动攻击。',
     'Enter descends normally. Shift+Enter is the paid Quick Dive when available. J always means basic attack.');
-  const shopHere = npcAt(player.x + (player.facing ? player.facing[0] : 0), player.y + (player.facing ? player.facing[1] : 0));
-  $('hint').classList.toggle('active', onStairs);
-  $('hint').textContent = onStairs
-    ? (canDescendNow() ? ui(`> Enter 下潜 · Shift+Enter 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, `> Enter Descend · Shift+Enter Quick Dive (${quickDiveCost(depth, QUICK_DIVE_STEP)} G for ${QUICK_DIVE_STEP} floors)`) : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
+  const facing = player.facing || [0,0];
+  const shopHere = npcAt(player.x + facing[0], player.y + facing[1]);
+  const canDescend = onStairs && canDescendNow();
+  const hint = hudEl('hint');
+  hudClass(hint, 'active', onStairs);
+  hudText(hint, onStairs
+    ? (canDescend ? ui(`> Enter 下潜 · Shift+Enter 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, `> Enter Descend · Shift+Enter Quick Dive (${quickDiveCost(depth, QUICK_DIVE_STEP)} G for ${QUICK_DIVE_STEP} floors)`) : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
     : shopHere && shopHere.type === 'shop'
       ? ui('> 撞向商人即可交易','> Walk into the merchant to trade')
       : shopHere && shopHere.type === 'shrine'
@@ -5589,11 +5645,12 @@ function updateHud() {
           ? ui('> 撞向异常回响，决定是否接受交易','> Walk into the echo event to consider its bargain')
           : shopHere && shopHere.type === 'rest'
             ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
-          : ui('> J 主动攻击 · K 技能（C 兼容）· 点击已探索地块移动','> J Basic Attack · K Skill (C alias) · click explored tiles to move');
-  const fab = $('descend-fab');
-  if (fab) fab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
-  const qfab = $('quickdive-fab');
-  if (qfab) qfab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
+            : ui('> J 主动攻击 · K 技能（C 兼容）· 点击已探索地块移动','> J Basic Attack · K Skill (C alias) · click explored tiles to move'));
+
+  const descendReady = canDescend && state === 'playing';
+  hudClass(hudEl('descend-fab'), 'hidden', !descendReady);
+  hudClass(hudEl('quickdive-fab'), 'hidden', !descendReady);
+  return true;
 }
 
 function loadBest() {
@@ -8629,6 +8686,9 @@ if (typeof window !== 'undefined') {
     weaponBaseForDrop, starterWeaponForClass, weaponClassOf, canEquipForClass, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,
+    updateHud,
+    hudPerfSnapshot: () => ({ ...hudPerf, cached:Object.keys(hudElementCache).length }),
+    resetHudPerf,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
       minimapKey:minimapStateKey(), fovRevision,
