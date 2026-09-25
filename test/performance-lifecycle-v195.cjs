@@ -16,9 +16,10 @@ assert(core.includes('function townSceneMotionActive()'));
 assert(core.includes('function wheelMotionActive('));
 assert(core.includes('if (sceneDue) {') && core.includes('if (wheelDue) {'));
 assert(core.includes('wakeTownFrame();'));
-assert(core.includes('let minimapPaintKey ='));
-assert(core.includes('function minimapStateKey()'));
-assert(core.includes('if (!force && paintKey === minimapPaintKey) return false'));
+assert(core.includes('let minimapPaintState = null;'));
+assert(core.includes('function minimapStateChanged()'));
+assert(core.includes('function rememberMinimapState()'));
+assert(core.includes('if (!force && !minimapStateChanged()) return false'));
 
 const gradient={addColorStop(){}};
 function ctx(){return new Proxy({}, {get(_t,k){if(k==='canvas')return{width:32,height:32};if(typeof k==='string'&&k.startsWith('create'))return()=>gradient;if(k==='measureText')return()=>({width:10});return()=>{}},set(){return true}})}
@@ -38,7 +39,7 @@ const T=window.DE_TEST;
 T.newGame('warrior');
 let perf=T.visualPerfSnapshot();
 assert.equal(perf.dungeonIdleMs,66);
-assert(perf.minimapKey.length>0);
+assert.equal(typeof perf.minimapKey,'string','minimap debug snapshot remains serializable; repaint behavior is asserted below');
 
 assert.equal(T.drawMinimap(true),true,'forced minimap paint must render');
 assert.equal(T.drawMinimap(),false,'unchanged minimap state must skip a duplicate paint');
