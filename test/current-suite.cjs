@@ -45,6 +45,8 @@ const tests = [
   'expedition-contract-escalation-v191.cjs',
   'expedition-return-pressure-v192.cjs',
   'expedition-escape-channel-v193.cjs',
+  'escape-channel-hardening-v194.cjs',
+  'monster-tactics-v194.cjs',
   'progression-cap-runtime-v180.cjs',
   'skill-evolution-delivery-v180.cjs',
   'monster-threat-v170.cjs',
