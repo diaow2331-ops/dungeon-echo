@@ -4924,7 +4924,7 @@ const renderCachePerf = {
   visibilityLayerHits:0, visibilityLayerMisses:0,
   sceneFilterHits:0, sceneFilterMisses:0,
   townLayerHits:0, townLayerMisses:0,
-  dynamicSpriteHits:0, dynamicSpriteMisses:0,
+  dynamicGradientHits:0, dynamicGradientMisses:0,
 };
 let textWidthCaches = new WeakMap();
 let townGradientCaches = new WeakMap();
@@ -4935,7 +4935,7 @@ let dungeonStaticLayerCache = { key:'', canvas:null };
 let dungeonVisibilityLayerCache = { key:'', canvas:null };
 let dungeonSceneFilterCache = { key:'', scene:null };
 let townBackdropLayerCache = { key:'', canvas:null };
-let dungeonDynamicSpriteCache = new Map();
+let dungeonDynamicGradientCache = new Map();
 function cachedMeasureTextWidth(context, text) {
   let cache = textWidthCaches.get(context);
   if (!cache) { cache = new Map(); textWidthCaches.set(context, cache); }
@@ -5115,48 +5115,51 @@ function cachedDungeonScene() {
   renderCachePerf.sceneFilterMisses++;
   return scene;
 }
-function cachedDungeonDynamicSprite(key, width, height, paint) {
-  if (dungeonDynamicSpriteCache.has(key)) {
-    renderCachePerf.dynamicSpriteHits++;
-    return dungeonDynamicSpriteCache.get(key);
+function cachedDungeonDynamicGradient(key, create) {
+  if (dungeonDynamicGradientCache.has(key)) {
+    renderCachePerf.dynamicGradientHits++;
+    return dungeonDynamicGradientCache.get(key);
   }
-  const layer = makeRenderLayer(width, height);
-  const g = layer.getContext('2d');
-  if (!g) return null;
-  paint(g, width, height);
-  dungeonDynamicSpriteCache.set(key, layer);
-  renderCachePerf.dynamicSpriteMisses++;
-  return layer;
+  const gradient = create();
+  dungeonDynamicGradientCache.set(key, gradient);
+  renderCachePerf.dynamicGradientMisses++;
+  return gradient;
 }
-function cachedEquipmentAura(color) {
-  return cachedDungeonDynamicSprite('equip-aura|' + color, 46, 46, (g, w, h) => {
-    const rg = g.createRadialGradient(w / 2, h / 2, 1, w / 2, h / 2, 21);
+function dynamicPixelBucket(value) {
+  return Math.round(Number(value) || 0);
+}
+function cachedEquipmentAuraGradient(px, py, color) {
+  const cx = dynamicPixelBucket(px), cy = dynamicPixelBucket(py + 7);
+  const key = ['equip-aura', color, cx, cy].join('|');
+  return cachedDungeonDynamicGradient(key, () => {
+    const rg = ctx.createRadialGradient(cx, cy, 1, cx, cy, 21);
     rg.addColorStop(0, color);
     rg.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, w, h);
+    return rg;
   });
 }
-function cachedAmuletAura() {
-  const size = TILE * 2;
-  return cachedDungeonDynamicSprite('amulet-aura|' + TILE, size, size, (g, w, h) => {
-    const rg = g.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, TILE);
+function cachedAmuletAuraGradient(px, py) {
+  const cx = dynamicPixelBucket(px), cy = dynamicPixelBucket(py);
+  const key = ['amulet-aura', cx, cy].join('|');
+  return cachedDungeonDynamicGradient(key, () => {
+    const rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, TILE);
     rg.addColorStop(0, 'rgba(255,120,90,.35)');
     rg.addColorStop(1, 'rgba(255,120,90,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, w, h);
+    return rg;
   });
 }
 function torchAuraBucket(fl) {
   return Math.max(0, Math.min(8, Math.round((fl - .8) / .025)));
 }
-function cachedTorchAura(fl) {
+function cachedTorchAuraGradient(cx, cy, fl) {
   const bucket = torchAuraBucket(fl);
   const scale = .8 + bucket * .025;
-  const size = TILE * 6;
-  return cachedDungeonDynamicSprite('torch-aura|' + TILE + '|' + bucket, size, size, (g, w, h) => {
-    const rg = g.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, TILE * 2.8 * scale);
+  const key = ['torch-aura', cx, cy, bucket].join('|');
+  return cachedDungeonDynamicGradient(key, () => {
+    const rg = ctx.createRadialGradient(cx, cy, 4, cx, cy, TILE * 2.8 * scale);
     rg.addColorStop(0, 'rgba(255,150,60,.16)');
     rg.addColorStop(1, 'rgba(255,150,60,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, w, h);
+    return rg;
   });
 }
 function cachedTownBackdropLayer(W, H, townBackdrop) {
@@ -5198,7 +5201,7 @@ function resetRenderCachePerf(clearCaches = false) {
   dungeonVisibilityLayerCache = { key:'', canvas:null };
   dungeonSceneFilterCache = { key:'', scene:null };
   townBackdropLayerCache = { key:'', canvas:null };
-  dungeonDynamicSpriteCache = new Map();
+  dungeonDynamicGradientCache = new Map();
 }
 function drawStairs(px, py, now) {
   ctx.fillStyle = '#04060b';
@@ -5507,16 +5510,16 @@ function draw(now) {
     if (it.type === 'equip') {
       const glow = .34 + .18 * Math.sin(now * 3.5 + it.x);
       const rarityColor = RARITIES[it.item.rarity].color;
-      const aura = cachedEquipmentAura(rarityColor);
+      const aura = cachedEquipmentAuraGradient(px, py, rarityColor);
       ctx.save();
       ctx.globalAlpha = Math.max(.12, glow * .42);
-      if (aura) ctx.drawImage(aura, px - 23, py - 16);
+      ctx.fillStyle = aura; ctx.fillRect(px - 23, py - 16, 46, 46);
       ctx.globalAlpha = .38 + glow * .45; ctx.strokeStyle = rarityColor; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.ellipse(px, py + 12, 13, 4, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
     if (it.type === 'amulet') {
-      const aura = cachedAmuletAura();
-      if (aura) ctx.drawImage(aura, px - TILE, py - TILE);
+      ctx.fillStyle = cachedAmuletAuraGradient(px, py);
+      ctx.fillRect(px - TILE, py - TILE, TILE * 2, TILE * 2);
     }
     if (it.type === 'chest') {
       if (!drawDungeonProp(DUNGEON_PROP_ART.treasureChest, px, py, 30, 28, .98) && spr)
@@ -5626,8 +5629,8 @@ function draw(now) {
   for (const [tx, ty, seed] of scene.torches) {
     const fl = .8 + .2 * Math.sin(now * 9 + seed * 7);
     const cx2 = tx + TILE / 2, cy2 = ty + TILE * .45;
-    const aura = cachedTorchAura(fl);
-    if (aura) ctx.drawImage(aura, cx2 - TILE * 3, cy2 - TILE * 3);
+    ctx.fillStyle = cachedTorchAuraGradient(cx2, cy2, fl);
+    ctx.fillRect(cx2 - TILE * 3, cy2 - TILE * 3, TILE * 6, TILE * 6);
   }
   const plx = player.fx * TILE + TILE / 2, ply = player.fy * TILE + TILE / 2;
   const dungeonGradients = cachedDungeonPlayerGradients(plx, ply);
@@ -8966,7 +8969,7 @@ if (typeof window !== 'undefined') {
     renderCacheSnapshot: () => ({ ...renderCachePerf }),
     resetRenderCachePerf,
     cachedDungeonStaticLayer, cachedDungeonVisibilityLayer, cachedDungeonScene, cachedTownBackdropLayer,
-    cachedEquipmentAura, cachedAmuletAura, cachedTorchAura,
+    cachedEquipmentAuraGradient, cachedAmuletAuraGradient, cachedTorchAuraGradient,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
       minimapKey:minimapStateKey(), fovRevision,
