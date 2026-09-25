@@ -5525,10 +5525,10 @@ document.addEventListener('visibilitychange', () => {
 const hudElementCache = Object.create(null);
 const hudPerf = { queries:0, writes:0, skips:0 };
 function hudEl(id) {
-  if (hudElementCache[id]) return hudElementCache[id];
+  if (Object.prototype.hasOwnProperty.call(hudElementCache, id)) return hudElementCache[id];
   hudPerf.queries++;
-  const el = $(id);
-  if (el) hudElementCache[id] = el;
+  const el = $(id) || null;
+  hudElementCache[id] = el;
   return el;
 }
 function hudText(el, value) {
