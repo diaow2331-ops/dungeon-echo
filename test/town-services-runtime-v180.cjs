@@ -15,7 +15,10 @@ vm.runInThisContext(fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'),
 const T=window.DE_TEST;
 
 T.setGreedy(true); T.newGame('warrior');
-T.player.escapes=1; assert.equal(T.useEscape(),undefined); assert.equal(T.state,'town');
+T.player.escapes=1; T.monsters.splice(0,T.monsters.length);
+assert.equal(T.useEscape(),undefined); assert.equal(T.state,'playing','v1.9.3: return scroll starts a channel instead of teleporting instantly');
+{ let g=0; while(T.state==='playing'&&g++<5)T.endTurn(); }
+assert.equal(T.state,'town','channel completes into town after surviving the ritual');
 const meta=T.meta;
 meta.gold=99999;
 

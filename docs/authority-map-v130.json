@@ -1,12 +1,12 @@
 {
-  "version": "1.9.0",
-  "cacheGeneration": 190,
+  "version": "1.9.4",
+  "cacheGeneration": 194,
   "policy": "one-responsibility-one-production-authority",
   "authorities": {
     "gameplayState": "game/core/game.js",
     "turnFlow": "game/core/game.js",
     "combat": "game/core/game.js",
-    "monsterThreatTuning": "game/core/game.js",
+    "monsterThreatTuning": "game/domain/combat/combat-rules-v130.js",
     "economy": "game/core/game.js",
     "progression": "game/core/game.js",
     "townGameplay": "game/core/game.js",
@@ -40,6 +40,7 @@
     "criticalDamageMultiplier": "game/domain/combat/combat-rules-v130.js",
     "townCheckpointPolicy": "game/domain/town/town-rules-v130.js",
     "townReadinessPolicy": "game/domain/town/town-rules-v130.js",
+    "townReturnConvalescencePolicy": "game/domain/town/town-rules-v130.js",
     "townGrowthPolicy": "game/domain/town/town-growth-rules-v180.js",
     "townProjectDefinitions": "game/domain/town/town-growth-rules-v180.js",
     "townServiceUpgradePolicy": "game/domain/town/town-growth-rules-v180.js",
@@ -59,6 +60,8 @@
     "wheelPricing": "game/domain/economy/economy-rules-v130.js",
     "expeditionContractPolicy": "game/domain/expedition/expedition-rules-v170.js",
     "expeditionContractRolePolicy": "game/domain/expedition/expedition-rules-v170.js",
+    "expeditionContractEscalationPolicy": "game/domain/expedition/expedition-rules-v170.js",
+    "expeditionReturnChannelPolicy": "game/domain/expedition/expedition-rules-v170.js",
     "dungeonEventPolicy": "game/domain/expedition/expedition-rules-v170.js",
     "eliteAffixPolicy": "game/domain/expedition/expedition-rules-v170.js"
   },

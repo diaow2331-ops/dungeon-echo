@@ -5,18 +5,20 @@ This package extends the existing play.91hwl.cn release tree. It preserves
 the existing /srv/91hwl-play/current symlink atomically, and rolls back on failed checks.
 
 Server usage:
-  unzip 91hwl-play-dungeon-echo-v1.9.0.zip -d /tmp/91hwl-play-dungeon-echo-v1.9.0
-  cd /tmp/91hwl-play-dungeon-echo-v1.9.0
+  unzip 91hwl-play-dungeon-echo-v1.9.4.zip -d /tmp/91hwl-play-dungeon-echo-v1.9.4
+  cd /tmp/91hwl-play-dungeon-echo-v1.9.4
   sudo ./ops/deploy.sh
 
-v1.9.0 publishes cache generation 190 as the Living Town + Authored Environment release:
-- Safe-return town business expands from three to six deterministic events.
-- Smithy, Trade Road and Tavern construction now unlock ordinary town-side consequences.
-- State-aware street rumors and matching NPC news make expedition returns visible.
-- Echo Town gains a new authored plaza plus Smithy, Market, Ember Tavern and Relic Hall scenes.
-- The main town backdrop is preloaded; service scenes remain lazy and mobile-cropped.
-- Existing construction sprites, NPC atlases and six-piece named relic art remain authoritative.
-- game/core/game.js remains the sole runtime owner for RNG, state mutation, combat execution,
+v1.9.4 publishes cache generation 194 as the Gameplay Depth + Decision Clarity release:
+- Expedition contracts escalate by ten-floor segment so risk and reward grow together.
+- Safe return preserves attrition; Return Scrolls channel for two full turns and any damage interrupts them.
+- Return-channel inventory loopholes are closed, including equip, unequip and drop commands.
+- Ordinary monsters use bounded last-seen memory instead of tracking the hidden live player through walls.
+- Ranged enemies seek/hold firing distance, melee pursuit respects crowding, and erratic enemies stay purposeful.
+- Explicit ranged J attacks gain a narrow deterministic aim assist that never shoots through walls or behind the player.
+- Departure risk briefs and return/death summaries expose the consequences behind push-or-bank decisions.
+- Guardian/final-boss authored pressure remains frozen; the rejected Guardian Fury escalation does not ship.
+- game/core/game.js remains the sole runtime owner for RNG, mutable gameplay state, turn execution,
   rewards, persistence, Canvas rendering and gameplay input.
 - Storage epoch remains v130; existing saves are preserved.
 

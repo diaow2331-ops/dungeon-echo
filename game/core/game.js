@@ -49,7 +49,7 @@ const RECORD_VERSION = 1;
 const GREEDY_KEY = 'de-greedy-on-v1';
 const GUIDE_KEY = 'de-guide-v1';
 const GUIDE_VERSION = 1;
-const GUIDE_IDS = Object.freeze(['move', 'combat', 'gear', 'stairs', 'return']);
+const GUIDE_IDS = Object.freeze(['move', 'combat', 'gear', 'stairs', 'return', 'aim', 'contract']);
 const AUDIO_PREF_KEY = 'de-audio-v1';
 const AUDIO_PREF_VERSION = 1;
 const AUDIO_DEFAULTS = Object.freeze({ music:0.60, sfx:0.78, muted:false });
@@ -57,10 +57,11 @@ const HAPTICS_DEFAULT = true;
 const RUN_MODE_CLASSIC = 'classic';
 const RUN_MODE_GREEDY = 'greedy';
 const MANA_RULES = Object.freeze({
-  warrior:  Object.freeze({ max:60, cost:30, regen:2, attackGain:2, focusGain:3 }),
-  ranger:   Object.freeze({ max:70, cost:32, regen:2, attackGain:3, focusGain:4 }),
-  mage:     Object.freeze({ max:100, cost:42, regen:3, attackGain:1, focusGain:10 }),
-  assassin: Object.freeze({ max:65, cost:34, regen:2, attackGain:3, focusGain:4 }),
+  // v1.9.2：被动回蓝减半，技能节奏改由进攻回蓝驱动——站桩等蓝不再划算
+  warrior:  Object.freeze({ max:60, cost:30, regen:1, attackGain:2, focusGain:3 }),
+  ranger:   Object.freeze({ max:70, cost:32, regen:1, attackGain:3, focusGain:4 }),
+  mage:     Object.freeze({ max:100, cost:42, regen:2, attackGain:1, focusGain:10 }),
+  assassin: Object.freeze({ max:65, cost:34, regen:1, attackGain:3, focusGain:4 }),
 });
 const manaRuleFor = cid => MANA_RULES[cid] || MANA_RULES.warrior;
 
@@ -138,6 +139,7 @@ function defaultMeta(classId) {
     gold: 0,
     lvl: 1, xp: 0,
     hpBase: c.hpBase, atkBase: c.atkBase,
+    hpPct: 100,
     manaMax: manaRuleFor(c.id).max, mana: manaRuleFor(c.id).max,
     critBase: 0, leechBase: 0, skillHaste: 0, goldFind: 0, flatDr: 0, grievous: 0,
     thornsBase: 0, regenBase: 0, potionBoost: 0, critPower: 0, grivResist: 0,
@@ -177,6 +179,7 @@ function sanitizeMeta(raw) {
   base.lvl = Math.max(1, num(raw.lvl, 1, 1));
   base.xp = num(raw.xp, 0);
   base.hpBase = Math.max(1, num(raw.hpBase, base.hpBase, 1));
+  base.hpPct = clamp(num(raw.hpPct, 100), 1, 100);
   base.atkBase = num(raw.atkBase, base.atkBase);
   base.manaMax = manaRuleFor(base.classId).max;
   base.mana = clamp(num(raw.mana, base.manaMax), 0, base.manaMax);
@@ -2179,7 +2182,8 @@ function genEquip(d, minRarity = 0) {
   const namedSet = namedRoll < SET_RULES.namedChance(
     rarity,
     TOWN_GROWTH_RULES.relicChanceBonus(currentTownWorks()),
-    EXPEDITION_RULES.namedRelicChanceBonus(currentExpeditionContractId()))
+    EXPEDITION_RULES.namedRelicChanceBonus(currentExpeditionContractId()) +
+      EXPEDITION_RULES.namedRelicEscalation(currentExpeditionContractId(), d))
     ? SET_RULES.chooseSet(d, namedHash, meta && meta.relicFocusSet, townWorkLevel('relics')) : null;
   // Ordinary gear keeps the classic weighted slot mix. Once a named relic is rolled, however,
   // its six authored pieces are peers: do not make the amulet a hidden 5% bottleneck merely
@@ -2542,13 +2546,10 @@ function randomFloorIn(rooms, minDistFromPlayer) {
   return pickSpawn(minDistFromPlayer || 1);
 }
 
-function monsterThreatScale(d, elite=false, bossLike=false) {
-  if (bossLike) return 1;
-  // v1.7 threat pass: keep ordinary enemies relevant through the whole descent
-  // without touching authored guardian/final-boss ATK.
-  const depthThreat = 0.07 + Math.min(0.17, Math.max(0, Number(d) - 1) * 0.00175);
-  return 1 + depthThreat + (elite ? 0.06 : 0);
-}
+// v1.9.2 atomic authority transfer: ordinary-monster pressure tuning now lives in
+// game/domain/combat/combat-rules-v130.js. Core keeps RNG, elite rolls, spawn
+// composition, damage application and turn flow; the formulas stay pure and testable.
+const monsterThreatScale = (d, elite=false, bossLike=false) => COMBAT_RULES.monsterThreatScale(d, elite, bossLike);
 function makeMonster(base, p, options={}) {
   const FR = RUN_PROFILE.floorRules;
   const traits = (base.traits || []).slice();
@@ -2564,13 +2565,13 @@ function makeMonster(base, p, options={}) {
     scale *= 1 + (depth - MAX_DEPTH) * 0.08;
   }
   const bossLike = !!(base.boss || base.midBoss);
-  const contractAtk = !bossLike ? EXPEDITION_RULES.monsterAtkMultiplier(contractId) : 1;
+  const contractAtk = !bossLike ? EXPEDITION_RULES.monsterAtkMultiplier(contractId) * EXPEDITION_RULES.monsterAtkEscalation(contractId, depth) : 1;
   const threatScale = monsterThreatScale(depth, elite, bossLike);
   const atkValue = Math.round(base.atk * (elite ? FR.eliteAtkMult : 1) * scale * contractAtk * threatScale);
-  const normalPressure = base.boss || base.midBoss ? 1 : 1.70 + Math.min(0.30, Math.max(0, depth - 1) * 0.0031);
+  const normalPressure = COMBAT_RULES.monsterHpPressure(depth, bossLike);
   const hpPressure = elite ? normalPressure * 0.86 : normalPressure;
-  const defPressure = base.boss || base.midBoss ? Number(base.def) || 0 :
-    Math.max(0, Math.round((Number(base.def) || 0) * scale * (elite ? 1.22 : 1) + Math.floor(depth / 16)));
+  const defPressure = bossLike ? Number(base.def) || 0 :
+    Math.max(0, Math.round((Number(base.def) || 0) * scale * (elite ? 1.22 : 1) + COMBAT_RULES.monsterDefDepthBonus(depth)));
   const m = {
     ...base,
     traits,
@@ -2580,7 +2581,7 @@ function makeMonster(base, p, options={}) {
     atk: atkValue,
     atkOrigin: atkValue,
     xp: Math.round(base.xp * (elite ? 2 : 1) * (player && player.echoMode ? 1.2 : 1) *
-      ((!base.boss && !base.midBoss) ? EXPEDITION_RULES.monsterXpMultiplier(contractId) : 1)),
+      ((!base.boss && !base.midBoss) ? EXPEDITION_RULES.monsterXpMultiplier(contractId) * EXPEDITION_RULES.monsterXpEscalation(contractId, depth) : 1)),
     elite, boss: !!base.boss, midBoss: !!base.midBoss,
     regen: !!base.regen || traits.includes('regen'),
     boom: !!base.boom || traits.includes('boom'),
@@ -2588,6 +2589,8 @@ function makeMonster(base, p, options={}) {
     enraged: false,
     armorBreak: !!base.armorBreak || traits.includes('armorBreak'),
     armorBreakCharge: 0, armorBreakMode: null, armorBreakCooldown: 0,
+    // Ordinary-monster perception memory. Guardians keep their legacy pursuit path.
+    lastSeenX: null, lastSeenY: null,
     alert: 0, skip: 0,
     hurtT: 0, lungeT: 0, ldx: 0, ldy: 0,
   };
@@ -2669,7 +2672,7 @@ function spawnItems(rooms) {
     put({ type: 'scroll', icon: C.scroll.icon, name: C.scroll.name });
   const returnChance = clamp(Number(RUN_PROFILE.floorRules.returnScrollChance) || 0.16, 0, 1);
   const returnOffset = Math.max(1, Math.min(9, Math.floor(Number(RUN_PROFILE.floorRules.returnScrollGuaranteeOffset) || 3)));
-  const guaranteedReturn = greedyMode && ((depth - returnOffset) % 10 === 0);
+  const guaranteedReturn = greedyMode && ((depth - returnOffset) % 20 === 0);
   if (greedyMode && (guaranteedReturn || rng() < returnChance))
     put({ type: 'escape', icon: C.scroll.icon, name: '回城卷轴' });
   if (rng() < LC.equip1)
@@ -2732,7 +2735,8 @@ function spawnShrine(rooms) {
 function spawnTraps() {
   const FR = RUN_PROFILE.floorRules || {};
   const n = ri(FR.trapCountLo || 0, FR.trapCountHi || 0) +
-    EXPEDITION_RULES.trapBonus(currentExpeditionContractId());
+    EXPEDITION_RULES.trapBonus(currentExpeditionContractId()) +
+    EXPEDITION_RULES.trapEscalation(currentExpeditionContractId(), depth);
   for (let i = 0; i < n; i++) {
     const p = pickSpawn(5);
     if (!p) break;
@@ -3082,6 +3086,26 @@ function findRangedTarget(dx, dy) {
   }
   return null;
 }
+function findAssistedRangedTarget(dx, dy) {
+  const range = classDef().rangedRange || 0;
+  if (!range || Math.abs(dx) + Math.abs(dy) !== 1) return null;
+  const candidates = monsters
+    .filter(m => m && m.hp > 0)
+    .map(m => {
+      const rx = m.x - player.x, ry = m.y - player.y;
+      const forward = dx ? rx * dx : ry * dy;
+      const lateral = dx ? Math.abs(ry) : Math.abs(rx);
+      const dist = Math.max(Math.abs(rx), Math.abs(ry));
+      return { m, forward, lateral, dist };
+    })
+    // Bounded aim assist: only a one-tile-wide forward corridor, never behind
+    // the player, never outside range, never through terrain.
+    .filter(row => row.forward > 0 && row.lateral <= 1 && row.dist <= range &&
+      los(player.x, player.y, row.m.x, row.m.y))
+    .sort((a,b) => a.lateral - b.lateral || a.dist - b.dist ||
+      a.m.y - b.m.y || a.m.x - b.m.x);
+  return candidates.length ? candidates[0].m : null;
+}
 function playerRangedAttack(m, attackClass=classId) {
   const arcane = attackClass === 'mage';
   fireArrow(player.x, player.y, m.x, m.y, arcane ? 'arcane' : 'arrow');
@@ -3116,11 +3140,13 @@ function playerRangedAttack(m, attackClass=classId) {
 
 function directionalAttack() {
   if (state !== 'playing' || !player) return false;
+  if (escapeChannelActive()) { channelEscapeTick(); return true; }
   const facing = Array.isArray(player.facing) ? player.facing : [1, 0];
   const dx = Math.sign(Number(facing[0]) || 0), dy = Math.sign(Number(facing[1]) || 0);
   if (Math.abs(dx) + Math.abs(dy) !== 1) return false;
   const ranged = classDef().rangedRange || 0;
-  const target = ranged ? findRangedTarget(dx, dy) : monsterAt(player.x + dx, player.y + dy);
+  const directTarget = ranged ? findRangedTarget(dx, dy) : null;
+  const target = ranged ? (directTarget || findAssistedRangedTarget(dx, dy)) : monsterAt(player.x + dx, player.y + dy);
   if (!target) {
     msg(ranged
       ? ui('当前朝向的射程内没有敌人。', 'No enemy is in range along your current facing.')
@@ -3128,6 +3154,9 @@ function directionalAttack() {
     return false;
   }
   guideCombatOnce();
+  if (ranged && !directTarget) guideOnce('aim',
+    '远程普攻会在当前朝向前方一格宽的窄通道内辅助锁定；不会穿墙、不会打身后目标，也不会在没有合法目标时消耗回合。',
+    'Ranged basics can assist within a one-tile-wide corridor in front of you; they never shoot through walls, target behind you, or spend a turn without a legal target.');
   if (ranged) playerRangedAttack(target, classId);
   else playerAttack(target);
   if (state !== 'playing') { updateHud(); return true; }
@@ -3279,7 +3308,8 @@ function killMonster(m) {
       dropAt(m.x, m.y, { type: 'equip', item: genEquip(depth), emoji: '', name: '装备' });
   }
   if (m.elite) {
-    const bounty = EXPEDITION_RULES.eliteBounty(depth, currentExpeditionContractId());
+    const bounty = EXPEDITION_RULES.eliteBounty(depth, currentExpeditionContractId()) +
+      EXPEDITION_RULES.eliteBountyEscalation(depth, currentExpeditionContractId());
     if (bounty > 0) {
       player.gold += bounty;
       msg(ui(`猎杀号令赏金 +${bounty} G。`, `Elite Hunt bounty +${bounty} Gold.`), 'gold');
@@ -3371,8 +3401,8 @@ function pickupHere() {
       player.escapes = (player.escapes || 0) + 1;
       msg(ui('你捡起了一张回城卷轴。','Picked up a Return Scroll.'), 'gold');
       if (greedyMode) guideOnce('return',
-        '按 T 回城会把背包与随身金币安全带回小镇；死在远征里会失去未保全的背包与金币。',
-        'Press T to return safely with your backpack and carried Gold; dying on an expedition loses unsecured backpack loot and Gold.', 'gold');
+        '按 T 使用回城卷轴会先引导 2 个完整回合；期间受到任何伤害都会中断并烧毁卷轴。成功回城后背包与随身金币才会安全入镇。',
+        'Press T to channel a Return Scroll for 2 full turns; any damage interrupts it and burns the scroll. Backpack loot and carried Gold are secured only after the return completes.', 'gold');
       break;
     case 'key':
       player.keys++; msg(ui('你捡起了一把锈蚀钥匙。','Picked up a Rusty Key.'), 'gold'); break;
@@ -3468,6 +3498,7 @@ function pickupHere() {
 }
 function usePotion() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (player.potions <= 0) { msg(ui('你没有药水了。','You have no potions left.')); return; }
   if (player.hp >= pMaxHp()) { msg(ui('你现在状态很好，不需要喝药水。','You are already healthy enough; no potion needed.')); return; }
   player.potions--;
@@ -3492,6 +3523,7 @@ function usePotion() {
 }
 function useScroll() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (player.scrolls <= 0) { msg(ui('你没有卷轴了。','You have no scrolls left.')); return; }
   player.scrolls--;
   for (let t = 0; t < 300; t++) {
@@ -3646,6 +3678,7 @@ function skillEvolutionMageSplash(vis) {
 }
 function useSkill() {
   if (state !== 'playing' || !player) return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const cid=classId;
   const hasAny=(player.talents||[]).some(id=>String(id).startsWith(`se_${cid[0]}`));
   ensurePlayerMana();
@@ -3704,10 +3737,30 @@ function useSkill() {
   if ((Number(p.hp)||0)>beforeHp) msg(ui('技能进化触发了额外续航。','Skill evolution triggered extra sustain.'),'good');
 }
 
+function announceContractEscalation(prevDepth) {
+  if (!player) return;
+  const contractId = currentExpeditionContractId();
+  if (!EXPEDITION_RULES.contractEscalates(contractId)) return;
+  if (EXPEDITION_RULES.escalationStep(depth) <= EXPEDITION_RULES.escalationStep(prevDepth)) return;
+  const fx = EXPEDITION_RULES.escalationEffects(contractId, depth);
+  if (contractId === 'oath') {
+    msg(ui(`誓约随深度收紧：普通敌人攻击 ×${fx.monsterAtkMultiplier}、经验 ×${fx.monsterXpMultiplier}。继续深入前，掂量一下要不要先用回城卷轴保住战利品。`,
+      `The Oath tightens with depth: normal enemy ATK ×${fx.monsterAtkMultiplier}, XP ×${fx.monsterXpMultiplier}. Weigh a Return Scroll before pushing on.`), 'bad');
+  } else if (contractId === 'relic') {
+    msg(ui(`搜掠契约进入更深处：具名遗物几率再 +${Math.round(fx.namedRelicChanceBonus * 100)}%，但每层陷阱 +${fx.trapBonus}。`,
+      `Relic Sweep reaches deeper: named relic chance +${Math.round(fx.namedRelicChanceBonus * 100)}% more, but +${fx.trapBonus} traps per floor.`), 'epic');
+  } else if (contractId === 'hunt') {
+    msg(ui(`猎杀号令升级：本段起每只精英的赏金额外 +${fx.eliteBountyBonus} G。`,
+      `Elite Hunt escalates: from this segment each elite pays +${fx.eliteBountyBonus} extra Gold bounty.`), 'gold');
+  }
+}
+
 function descend() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
   if (map[player.y][player.x] !== STAIRS) { msg(ui('这里没有向下的楼梯。站上去再按 Enter。','There are no stairs here. Stand on them and press Enter.')); return; }
+  const prevDepth = depth;
   depth++;
   recordDepth();
   buildThemeTex(depth);
@@ -3719,6 +3772,7 @@ function descend() {
       ? ui(`回响第 ${depth} 层——${themeName}。怪物随着深度一同苏醒。`, `Echo Floor ${depth} — ${themeName}. The monsters awaken with the depth.`)
       : ui(`你沿着螺旋阶梯下到了第 ${depth} 层——${themeName}。`, `You descended the spiral stairs to Floor ${depth} — ${themeName}.`), 'gold');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
+  announceContractEscalation(prevDepth);
   renderBag(); updateHud();
   persistRun();
   openPendingSkillEvolution();
@@ -3731,6 +3785,7 @@ function quickDiveCost(fromDepth, n) {
 }
 function quickDive(n) {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (!canDescendNow()) { msg(fmtText(runText('bossGate')), 'bad'); return; }
   if (!map || map[player.y][player.x] !== STAIRS) { msg(ui('站到楼梯上才能快速下潜（Enter 是下一层）。','Stand on the stairs before descending.')); return; }
   let skip = Math.floor(Number(n) || QUICK_DIVE_STEP);
@@ -3742,6 +3797,7 @@ function quickDive(n) {
     return;
   }
   player.gold -= cost;
+  const prevDepth = depth;
   depth += skip;
   recordDepth();
   buildThemeTex(depth);
@@ -3750,6 +3806,7 @@ function quickDive(n) {
     ? fmtText(runText('maxDepthArrive'))
     : ui(`你向回响支付了 ${cost} G，沿捷径直坠 ${skip} 层——来到第 ${depth} 层。`, `You paid the Echo ${cost} G and plunged ${skip} floors — arriving at Floor ${depth}.`), 'gold');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
+  announceContractEscalation(prevDepth);
   renderBag(); updateHud();
   persistRun();
   openPendingSkillEvolution();
@@ -3772,7 +3829,7 @@ function triggerTrap(x, y) {
 function useRest(npc) {
   if (npc.used) { msg(ui('余烬已经冷了。','The embers have gone cold.')); return; }
   npc.used = true;
-  const heal = Math.min(pMaxHp() - player.hp, Math.max(4, Math.floor(pMaxHp() * 0.45 * healMult())));
+  const heal = Math.min(pMaxHp() - player.hp, Math.max(4, Math.floor(pMaxHp() * 0.30 * healMult())));
   player.hp = Math.min(pMaxHp(), player.hp + heal);
   player.poison = 0;
   floater(player, `+${heal}`, '#7dd87d');
@@ -3808,7 +3865,7 @@ function applyShrine() {
   npc.used = true;
   const roll = rng();
   if (roll < 0.28) {
-    const heal = Math.min(pMaxHp() - player.hp, Math.floor(pMaxHp() * 0.5 * healMult()));
+    const heal = Math.min(pMaxHp() - player.hp, Math.floor(pMaxHp() * 0.35 * healMult()));
     player.hp = Math.min(pMaxHp(), player.hp + heal);
     player.poison = 0;
     msg(ui(`神龛涌出温水，你恢复了 ${heal} 点生命。`, `Warm water flows from the shrine. You recover ${heal} HP.`), 'good');
@@ -3972,6 +4029,7 @@ function clickNav(tx, ty) {
 function equipFromBag(i) {
   const it = player.inv[i];
   if (!it || state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (!canEquipForClass(it)) {
     const required = weaponClassOf(it);
     const requiredName = required && CLASSES[required] ? CLASSES[required].name : ui('对应职业','the matching class');
@@ -3999,6 +4057,7 @@ function equipFromBag(i) {
 }
 function unequip(slot) {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const it = player.equip[slot];
   if (!it) return;
   if (player.inv.length >= BAG_CAP) { msg(ui('背包已满，无法卸下装备！','Backpack full — cannot unequip this item!')); return; }
@@ -4012,6 +4071,7 @@ function unequip(slot) {
 function discardFromBag(i) {
   const it = player.inv[i];
   if (!it || state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   dropAt(player.x, player.y, { type: 'equip', item: it, emoji: '', name: '装备' });
   player.inv.splice(i, 1);
   selectedBagIndex = -1;
@@ -4166,6 +4226,7 @@ function hideTooltip() { const t = $('tooltip'); if (t) t.classList.add('hidden'
 
 function tryMove(dx, dy) {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const nx = player.x + dx, ny = player.y + dy;
   player.facing = [dx, dy];
   let manaBonus = 0;
@@ -4200,6 +4261,7 @@ function tryMove(dx, dy) {
 
 function waitTurn() {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const brace = mechanicPower('brace');
   if (brace) {
     player.braceTurn = turns + 1;
@@ -4235,8 +4297,12 @@ function endTurn(manaBonus=0, announceFocus=false) {
   turns++;
   if (player.skillCd > 0) player.skillCd--;
   recoverMana(manaBonus, announceFocus);
-  if (turns % (player.fastRegen ? 4 : 6) === 0 && !(player.grievous > 0) && player.hp > 0 && player.hp < pMaxHp()) player.hp++;
+  if (turns % (player.fastRegen ? 4 : 9) === 0 && !(player.grievous > 0) && player.hp > 0 && player.hp < pMaxHp()) player.hp++;
   if (player.grievous > 0) player.grievous--;
+  // Capture HP after passive recovery but before hazards/enemies act. Comparing against
+  // this point means even 1 damage interrupts a return channel; passive regen can no
+  // longer mask poison or an incoming hit in the same turn.
+  const escapeTurnSafeHp = escapeChannelActive() ? Number(player.hp) || 0 : null;
   if (player.poison > 0) {
     player.poison--;
     const pd = 1 + Math.floor(depth / 8);
@@ -4249,6 +4315,16 @@ function endTurn(manaBonus=0, announceFocus=false) {
   buildFlow();
   monstersTurn();
   if (state !== 'playing') { updateHud(); return; }
+  // 回城引导结算：引导期间任何生命损失都会打断仪式（卷轴已消耗）；坚持满回合数则完成回城
+  if (player && (player.escapeChannel || 0) > 0) {
+    if (escapeTurnSafeHp !== null && (Number(player.hp) || 0) < escapeTurnSafeHp) {
+      player.escapeChannel = 0;
+      msg(ui('回城引导被打断——卷轴已经化为灰烬！', 'The return channel is broken — the scroll crumbles to ash!'), 'bad');
+    } else {
+      player.escapeChannel--;
+      if (player.escapeChannel <= 0) { completeEscape(); return; }
+    }
+  }
   computeFov();
   updateHud();
   if (turns % 4 === 0) persistRun();
@@ -4271,6 +4347,170 @@ function stepToward(m) {
   if (bx || by) { m.x += bx; m.y += by; return true; }
   return false;
 }
+// Ordinary-monster tactical movement intentionally does NOT use flowDist: that map
+// is rooted at the player's live tile and would let alerted monsters track through
+// walls after losing sight. Guardians keep the legacy flow-field behavior below.
+const ORDINARY_AI_DIRS = Object.freeze([[1,0],[-1,0],[0,1],[0,-1]]);
+function ordinaryAiDistanceMap(m, tx, ty) {
+  const dist = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(-1));
+  if (!inB(tx, ty) || map[ty][tx] === WALL) return dist;
+  const q = [[tx, ty]];
+  dist[ty][tx] = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const [x, y] = q[qi], d = dist[y][x] + 1;
+    for (const [ox, oy] of ORDINARY_AI_DIRS) {
+      const nx = x + ox, ny = y + oy;
+      if (!inB(nx, ny) || map[ny][nx] === WALL || dist[ny][nx] >= 0) continue;
+      const blocker = monsterAt(nx, ny);
+      if ((blocker && blocker !== m) || npcAt(nx, ny)) continue;
+      dist[ny][nx] = d;
+      q.push([nx, ny]);
+    }
+  }
+  return dist;
+}
+function ordinaryAiTileFree(m, x, y) {
+  if (!inB(x, y) || !walkable(x, y)) return false;
+  if (player && player.x === x && player.y === y) return false;
+  const other = monsterAt(x, y);
+  if (other && other !== m) return false;
+  return !npcAt(x, y);
+}
+function ordinaryAiOpenNeighbors(m, x, y) {
+  let n = 0;
+  for (const [ox, oy] of ORDINARY_AI_DIRS)
+    if (ordinaryAiTileFree(m, x + ox, y + oy)) n++;
+  return n;
+}
+function ordinaryStepToward(m, tx, ty, erratic=false) {
+  const dist = ordinaryAiDistanceMap(m, tx, ty);
+  const candidates = [];
+  for (let order = 0; order < ORDINARY_AI_DIRS.length; order++) {
+    const [ox, oy] = ORDINARY_AI_DIRS[order];
+    const x = m.x + ox, y = m.y + oy;
+    if (!ordinaryAiTileFree(m, x, y)) continue;
+    const d = dist[y][x];
+    if (d < 0) continue;
+    candidates.push({ x, y, d, open:ordinaryAiOpenNeighbors(m, x, y), order });
+  }
+  candidates.sort((a,b) => a.d - b.d || b.open - a.open || a.order - b.order);
+  if (!candidates.length) return false;
+  let chosen = candidates[0];
+  if (erratic) {
+    // Erratic enemies may take a near-best branch, but never abandon pursuit for
+    // arbitrary wandering while engaged.
+    const purposeful = candidates.filter(c => c.d <= candidates[0].d + 1);
+    if (purposeful.length > 1 && rng() < 0.35) {
+      chosen = purposeful[1 + Math.floor(rng() * (purposeful.length - 1))];
+    }
+  }
+  m.x = chosen.x; m.y = chosen.y;
+  return true;
+}
+function rememberPlayerTile(m) {
+  m.lastSeenX = player.x;
+  m.lastSeenY = player.y;
+  m.alert = AI_MEM;
+}
+function hasRememberedPlayerTile(m) {
+  return Number.isFinite(Number(m.lastSeenX)) && Number.isFinite(Number(m.lastSeenY));
+}
+function clearRememberedPlayerTile(m) {
+  m.lastSeenX = null; m.lastSeenY = null; m.alert = 0;
+}
+function rangedPreferredMin(m) {
+  const range = Math.max(1, Math.floor(Number(m && m.ranged) || 1));
+  return Math.min(range, Math.max(2, Math.ceil(range * 0.6)));
+}
+function tryRangedReposition(m) {
+  const range = Math.max(1, Math.floor(Number(m.ranged) || 1));
+  const preferredMin = rangedPreferredMin(m);
+  const current = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
+  if (current >= preferredMin) return false;
+  const choices = [];
+  for (let order = 0; order < ORDINARY_AI_DIRS.length; order++) {
+    const [ox, oy] = ORDINARY_AI_DIRS[order];
+    const x = m.x + ox, y = m.y + oy;
+    if (!ordinaryAiTileFree(m, x, y)) continue;
+    const d = Math.max(Math.abs(x - player.x), Math.abs(y - player.y));
+    if (d <= current) continue;
+    const lane = d <= range && los(x, y, player.x, player.y);
+    const band = lane && d >= preferredMin;
+    choices.push({ x, y, d, lane, band, open:ordinaryAiOpenNeighbors(m, x, y), order });
+  }
+  choices.sort((a,b) =>
+    Number(b.band) - Number(a.band) ||
+    Number(b.lane) - Number(a.lane) ||
+    Math.abs(a.d - preferredMin) - Math.abs(b.d - preferredMin) ||
+    b.open - a.open || a.order - b.order);
+  if (!choices.length) return false;
+  m.x = choices[0].x; m.y = choices[0].y;
+  return true;
+}
+function ordinaryMonsterAction(m) {
+  const sees = canSeePlayer(m);
+  const cheb = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
+  const adj = Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1;
+  if (sees) rememberPlayerTile(m);
+
+  if (m.ranged && sees) {
+    if (cheb < rangedPreferredMin(m) && tryRangedReposition(m)) return true;
+    if (cheb <= m.ranged) {
+      monsterRangedAttack(m);
+      return true;
+    }
+    ordinaryStepToward(m, player.x, player.y, !!m.erratic);
+    return true;
+  }
+  if (adj) {
+    monsterAttack(m);
+    return true;
+  }
+  if (sees) {
+    ordinaryStepToward(m, player.x, player.y, !!m.erratic);
+    return true;
+  }
+  if ((m.alert || 0) > 0 && hasRememberedPlayerTile(m)) {
+    const tx = Math.floor(Number(m.lastSeenX)), ty = Math.floor(Number(m.lastSeenY));
+    m.alert--;
+    if (m.x === tx && m.y === ty) clearRememberedPlayerTile(m);
+    else {
+      ordinaryStepToward(m, tx, ty, !!m.erratic);
+      if (m.x === tx && m.y === ty) clearRememberedPlayerTile(m);
+      else if ((m.alert || 0) <= 0) clearRememberedPlayerTile(m);
+    }
+    return true;
+  }
+  // Legacy saves may contain alert without the new memory coordinates. Never use
+  // that stale alert to follow the player's hidden live tile.
+  if ((m.alert || 0) > 0) clearRememberedPlayerTile(m);
+  if (rng() < 0.25) randomStep(m);
+  return true;
+}
+function guardianLegacyAction(m) {
+  const cheb = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
+  const adj = Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1;
+  if (adj) {
+    monsterAttack(m);
+    return true;
+  }
+  if (m.ranged && canSeePlayer(m) && cheb <= m.ranged) {
+    monsterRangedAttack(m);
+    return true;
+  }
+  if (canSeePlayer(m)) {
+    m.alert = AI_MEM;
+    if (m.erratic && rng() < 0.5) randomStep(m);
+    else stepToward(m) && engagementStrike(m);
+  } else if (m.alert > 0) {
+    m.alert--;
+    stepToward(m) && engagementStrike(m);
+  } else if (rng() < 0.25) {
+    randomStep(m);
+  }
+  return true;
+}
+
 function engagementStrike(m) {
   if (!m || m.hp <= 0 || state !== 'playing') return false;
   if (Math.abs(m.x - player.x) + Math.abs(m.y - player.y) !== 1) return false;
@@ -4575,26 +4815,11 @@ function monstersTurn() {
       if (m.ranged && canSeePlayer(m) && cheb <= m.ranged && beginArmorBreak(m, 'ranged')) continue;
     }
 
-    if (adj) {
-      monsterAttack(m);
-      if (state !== 'playing') return;
-      continue;
-    }
-    if (m.ranged && canSeePlayer(m) && cheb <= m.ranged) {
-      monsterRangedAttack(m);
-      if (state !== 'playing') return;
-      continue;
-    }
-    if (canSeePlayer(m)) {
-      m.alert = AI_MEM;
-      if (m.erratic && rng() < 0.5) randomStep(m);
-      else if (stepToward(m) && engagementStrike(m) && state !== 'playing') return;
-    } else if (m.alert > 0) {
-      m.alert--;
-      if (stepToward(m) && engagementStrike(m) && state !== 'playing') return;
-    } else if (rng() < 0.25) {
-      randomStep(m);
-    }
+    // Guardians/final boss preserve the previously shipped movement/attack cadence.
+    // Ordinary monsters use bounded perception memory and tactical archetype behavior.
+    if (m.boss || m.midBoss) guardianLegacyAction(m);
+    else ordinaryMonsterAction(m);
+    if (state !== 'playing') return;
   }
 }
 
@@ -5407,6 +5632,7 @@ function clearRun() {
 }
 function restoreRun(raw) {
   skillFollowup = null;
+  escapeWarnedAt = -1;
   buildSprites();
   classId = raw.classId in CLASSES ? raw.classId : 'warrior';
   setSeed(raw.seed);
@@ -5789,6 +6015,7 @@ function drinkAtTavern(rewardId = '') {
   }
   meta.gold -= cost;
   reward.apply(meta);
+  meta.hpPct = 100; // 祝酒同时把伤口彻底包扎好——这是回满血的唯一城镇途径
   meta.tavernVisits = (meta.tavernVisits || 0) + 1;
   meta.tavernLastRun = Math.max(0, Math.floor(Number(meta.runs) || 0));
   meta.tavernHistory = [...(meta.tavernHistory || []), reward.id].slice(-4);
@@ -5796,6 +6023,7 @@ function drinkAtTavern(rewardId = '') {
   saveMeta();
   sfx.levelup();
   msg(ui(`你举杯喝下【${reward.zh}】：${reward.zhEffect}。`, `You raise [${reward.en}]: ${reward.enEffect}.`), 'gold');
+  msg(ui('热酒下肚，旧伤也被仔细包扎——生命完全恢复。', 'The warm drink goes down and your wounds are dressed — HP fully restored.'), 'good');
   renderTown();
   return true;
 }
@@ -5835,6 +6063,7 @@ const TOWN_RESIDENT_VISUALS = Object.freeze({
   alchemist:{ cell:TOWN_NPC_ART.alchemist, x:.66, y:.90, face:1, scale:.70 },
 });
 let selectedTownCheckpoint = 1;
+let lastTownOutcome = null; // transient decision recap; never persisted
 let townActiveService = 'plaza';
 let townPendingHotspot = '';
 let townLastFrame = 0;
@@ -6040,7 +6269,63 @@ function selectTownContract(id) {
   meta.contractId = normalized;
   saveMeta();
   renderTown();
+  if (normalized !== 'none') guideOnce('contract',
+    '委托不是一次性固定数值：每深入一个十层区段，风险与对应奖励都会继续加码。出发页会显示当前起点的实际风险。',
+    'Contracts are not flat one-time modifiers: each deeper 10-floor segment raises both its risk and matching reward. The Depart page shows the actual pressure at your selected checkpoint.');
   return true;
+}
+function townDepartureDecisionSnapshot() {
+  if (!meta) return null;
+  const unlocked = unlockedTownCheckpoints();
+  const startDepth = unlocked.includes(selectedTownCheckpoint) ? selectedTownCheckpoint : 1;
+  const contractId = EXPEDITION_RULES.normalizeContractId(meta.contractId);
+  const contract = EXPEDITION_RULES.CONTRACTS.find(row => row.id === contractId) || EXPEDITION_RULES.CONTRACTS[0];
+  const effects = EXPEDITION_RULES.escalationEffects(contractId, startDepth);
+  let contractDetailZh = '无额外风险或奖励';
+  let contractDetailEn = 'No extra risk or reward';
+  if (contractId === 'hunt') {
+    const bounty = EXPEDITION_RULES.eliteBounty(startDepth, contractId) + effects.eliteBountyBonus;
+    contractDetailZh = `精英率 +8% · 每只精英额外赏金 ${bounty} G`;
+    contractDetailEn = `Elite chance +8% · ${bounty} G bonus per elite`;
+  } else if (contractId === 'relic') {
+    const traps = 1 + effects.trapBonus;
+    const namedPct = Math.round((0.16 + effects.namedRelicChanceBonus) * 1000) / 10;
+    contractDetailZh = `额外陷阱 +${traps}/层 · 具名遗物概率 +${namedPct}%`;
+    contractDetailEn = `+${traps} trap(s)/floor · named relic chance +${namedPct}%`;
+  } else if (contractId === 'oath') {
+    const atkPct = Math.round((1.12 * effects.monsterAtkMultiplier - 1) * 100);
+    const xpPct = Math.round((1.18 * effects.monsterXpMultiplier - 1) * 100);
+    contractDetailZh = `普通敌人攻击 +${atkPct}% · 经验 +${xpPct}%`;
+    contractDetailEn = `Normal enemy ATK +${atkPct}% · XP +${xpPct}%`;
+  }
+  const readiness = townReadinessPlan();
+  return Object.freeze({
+    startDepth,
+    hpPct:clamp(Number(meta.hpPct) || 100, 1, 100),
+    potions:Math.max(0, Number(meta.potions) || 0),
+    escapes:Math.max(0, Number(meta.escapes) || 0),
+    keys:Math.max(0, Number(meta.keys) || 0),
+    contractId, contractZh:contract.zh, contractEn:contract.en,
+    contractDetailZh, contractDetailEn,
+    ready:!!readiness.ready,
+  });
+}
+function townDepartureDecisionHtml() {
+  const row = townDepartureDecisionSnapshot();
+  if (!row) return '';
+  const hpState = row.hpPct >= 75 ? ui('状态良好','Healthy') : row.hpPct >= 50 ? ui('带伤','Wounded') : ui('重伤','Badly Wounded');
+  return `<section class="town-decision-summary" aria-live="polite"><header><b>${ui('出发风险摘要','Departure Risk Brief')}</b><small>${row.ready ? ui('基础补给齐备','Core kit ready') : ui('补给不足，仍可冒险出发','Low supplies — departure still allowed')}</small></header><div class="town-decision-grid">` +
+    `<span><small>${ui('起点','Start')}</small><strong>${ui(`第 ${row.startDepth} 层`,`Floor ${row.startDepth}`)}</strong></span>` +
+    `<span><small>${ui('伤势','Condition')}</small><strong>${hpState} · ${row.hpPct}%</strong></span>` +
+    `<span><small>${ui('补给','Supplies')}</small><strong>${ui(`药 ${row.potions} · 回城 ${row.escapes} · 钥匙 ${row.keys}`,`Potions ${row.potions} · Return ${row.escapes} · Keys ${row.keys}`)}</strong></span>` +
+    `<span><small>${ui('委托','Contract')}</small><strong>${esc(ui(row.contractZh,row.contractEn))}</strong></span></div>` +
+    `<p>${esc(ui(row.contractDetailZh,row.contractDetailEn))}</p><p class="danger">${ui('死亡：背包与随身金币丢失；穿戴装备、仓库与金库安全。回城卷轴需连续引导 2 回合，受到任何伤害都会中断并消耗卷轴。','Death: backpack loot and carried Gold are lost; equipped gear, stash and vault stay safe. A Return Scroll channels for 2 full turns; any damage interrupts it and consumes the scroll.')}</p></section>`;
+}
+function townOutcomeHtml() {
+  const row = lastTownOutcome;
+  if (!row) return '';
+  if (row.kind === 'death') return `<section class="town-outcome danger"><b>${ui('上次远征 · 阵亡结算','Last Expedition · Death')}</b><span>${ui(`第 ${row.depth} 层阵亡 · 丢失背包 ${row.lostInv} 件 · 丢失 ${row.lostGold} G`,`Fell on Floor ${row.depth} · lost ${row.lostInv} backpack item(s) · lost ${row.lostGold} G`)}</span></section>`;
+  return `<section class="town-outcome safe"><b>${ui('上次远征 · 安全回城','Last Expedition · Safe Return')}</b><span>${ui(`第 ${row.depth} 层撤离 · 入库 ${row.gold} G · 新登记遗物 ${row.relics} 件 · 新完整套装 ${row.sets} 套 · 当前生命 ${row.hpPct}%`,`Returned from Floor ${row.depth} · banked ${row.gold} G · ${row.relics} new relic(s) · ${row.sets} newly completed set(s) · current HP ${row.hpPct}%`)}</span></section>`;
 }
 function renderTownContracts() {
   const panel = $('town-contracts');
@@ -6059,7 +6344,7 @@ function renderTownContracts() {
         ? ui('永久等级已达上限；该誓约本轮不再提供成长收益。','Permanent level cap reached; this Oath no longer provides progression value.')
         : ui(row.zhDesc,row.enDesc);
       return `<button type="button" data-contract="${row.id}" class="${active ? 'active' : ''}" aria-pressed="${active}" aria-disabled="${!enabled}"${enabled ? '' : ' disabled'}><b>${ui(row.zh,row.en)}</b><small>${desc}</small></button>`;
-    }).join('')}</div>`;
+    }).join('')}</div>` + townDepartureDecisionHtml();
 }
 function renderTownCheckpoints() {
   const panel = $('town-checkpoints');
@@ -6151,12 +6436,15 @@ function syncMetaFromPlayer(died) {
     // 保险符结算：同步消耗品与穿戴，但保留背包；随身金币不入账（坠入深渊）
     meta.bag = JSON.parse(JSON.stringify(player.inv));
     meta.deaths = (meta.deaths || 0) + 1;
+    meta.hpPct = 100; // 死而复返，小镇把你从鬼门关完整捞回
   }
-  else if (died) { meta.bag = []; meta.deaths = (meta.deaths || 0) + 1; }
+  else if (died) { meta.bag = []; meta.deaths = (meta.deaths || 0) + 1; meta.hpPct = 100; }
   else {
     meta.bag = JSON.parse(JSON.stringify(player.inv));
     // 回城结算：随身金币存入金库（死亡则全部丢失，不入账）
     meta.gold = (meta.gold || 0) + (player.gold || 0);
+    // 平安归来只包扎到半血——完全恢复是城镇服务（酒馆），不再免费
+    meta.hpPct = Math.ceil(100 * TOWN_RULES.townConvalescenceHp(player.hp, pMaxHp()) / Math.max(1, pMaxHp()));
   }
 }
 // ================= 远征录：跨局档案 + 成就 =================
@@ -7343,7 +7631,7 @@ function renderTown() {
       focusActive:!!meta.relicFocusSet,
     });
     const returnNote = rumor ? ui(rumor.zh,rumor.en) : ui('镇上的人各自忙着自己的事。','Everyone in town is busy with their own work.');
-    growth.innerHTML =
+    growth.innerHTML = townOutcomeHtml() +
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
@@ -7601,6 +7889,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   const requested = Math.max(1, Math.floor(Number(targetDepth) || 1));
   const startDepth = unlocked.includes(requested) ? requested : 1;
   selectedTownCheckpoint = startDepth;
+  escapeWarnedAt = -1;
   buildSprites();
   depth = startDepth; turns = 0; state = 'playing';
   buildThemeTex(depth);
@@ -7631,7 +7920,9 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   };
   ensurePlayerMana(player, classId);
   // 注意：pMaxHp 读取全局 player，必须在 player 赋值完成之后再计算生命
-  player.hp = pMaxHp();
+  // v1.9.2：伤势跨远征持续（与法力一致）——回城不再等于免费满血
+  player.hp = clamp(Math.round(pMaxHp() * (clamp(Number(meta.hpPct) || 100, 1, 100) / 100)), 1, pMaxHp());
+  const departedWounded = player.hp < pMaxHp();
   meta.runs = (meta.runs || 0) + 1;
   recordRunStart();
   // 每次远征使用独立派生种子，保证同一次数可复现
@@ -7649,18 +7940,56 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   msg(ui(`第 ${meta.runs} 次下潜：从第 ${startDepth} 层出发。搜刮战利品，用回城卷轴（T）把一切平安带回小镇——死在这里就会失去背包和金币！`, `Descent ${meta.runs}: departing from Floor ${startDepth}. Loot what you can, then use Return Scroll (T) to bring it safely back to town — dying here loses your backpack and carried Gold!`), 'gold');
   const contract = EXPEDITION_RULES.CONTRACTS.find(row => row.id === player.contractId);
   if (contract && contract.id !== 'none') msg(ui(`本次委托：${contract.zh}。${contract.zhDesc}`, `Expedition contract: ${contract.en}. ${contract.enDesc}`), 'epic');
+  if (departedWounded) msg(ui(`旧伤未愈：你带着 ${player.hp}/${pMaxHp()} 生命出发。回镇后去酒馆祝酒可以完全恢复。`, `Old wounds linger: you depart at ${player.hp}/${pMaxHp()} HP. A tavern toast back in town restores you fully.`), 'bad');
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
   openPendingSkillEvolution();
 }
+function escapeChannelActive() { return !!(player && (player.escapeChannel || 0) > 0); }
+// 回城前风险预警（易失，不入存档）：同一回合内第二次按 T 才确认撕开卷轴
+let escapeWarnedAt = -1;
+function escapeRiskNow() {
+  const summaries = monsters
+    .filter(m => m && (Number(m.hp) || 0) > 0)
+    .map(m => ({ x: m.x, y: m.y, ranged: !!m.ranged, inSight: !!m.ranged && canSeePlayer(m) }));
+  return EXPEDITION_RULES.escapeChannelRisk(player.x, player.y, summaries);
+}
+function channelEscapeTick() {
+  // 引导期间的任何指令都等于"继续专注引导"：回合照常推进
+  msg(ui(`你正在引导回城法术——还需 ${player.escapeChannel} 回合不受到伤害。`, `Channeling the Return Scroll — ${player.escapeChannel} more turn(s) without taking damage.`), 'epic');
+  endTurn();
+}
 function useEscape() {
   if (!greedyMode || state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if ((player.escapes || 0) <= 0) {
-    msg(ui('没有回城卷轴了——地牢每个十层区段都有保底来源，商人和中层守卫也能补充。','No Return Scrolls left — every ten-floor band has a guaranteed source, and merchants/guardians provide more.'), 'bad');
+    msg(ui('没有回城卷轴了——地牢只在每隔一个十层区段才有保底来源，商人和中层守卫也能补充。','No Return Scrolls left — only every other ten-floor band has a guaranteed source, and merchants/guardians provide more.'), 'bad');
     return;
   }
+  // v1.9.3：有威胁时先预警再确认——卷轴一撕就消耗，引导被打断就白白烧毁
+  if (escapeWarnedAt !== turns) {
+    if ((player.poison || 0) > 0) {
+      escapeWarnedAt = turns;
+      msg(ui('毒素正在体内发作，必定会打断引导、烧毁卷轴！再按一次 T 执意引导。','Poison is ticking — it will break the channel and burn the scroll for sure! Press T again to channel anyway.'), 'bad');
+      return;
+    }
+    if (escapeRiskNow()) {
+      escapeWarnedAt = turns;
+      msg(ui('有敌人能在引导窗口内摸到你——仪式很可能被打断、卷轴将白白烧毁！再按一次 T 执意撕开卷轴。','Enemies can reach you inside the channel window — the ritual will likely break and burn the scroll! Press T again to commit.'), 'bad');
+      return;
+    }
+  }
+  // v1.9.3：回城卷轴改为引导制——卷轴立即消耗，引导期间受到任何伤害都会打断
   player.escapes--;
+  player.escapeChannel = EXPEDITION_RULES.escapeChannelTurns();
+  player.escapeChannelHp = Math.max(1, Number(player.hp) || 1);
+  msg(ui(`你撕开回城卷轴，开始引导回城法术——${player.escapeChannel} 个回合内受到任何伤害都会打断它！`, `You tear open a Return Scroll and begin channeling — any damage within ${player.escapeChannel} turns interrupts it!`), 'epic');
+  endTurn();
+}
+function completeEscape() {
+  if (!greedyMode || !player) return;
+  player.escapeChannel = 0;
   const banked = player.gold;
   const residentsBefore = new Set(activeTownResidents().map(resident => resident.id));
   recordSafeReturn();
@@ -7676,6 +8005,11 @@ function useEscape() {
   const newlyCompletedSets = completedRelicSets(meta.relicLedger || {}).filter(set => !completedBefore.has(set.id));
   for (const set of newlyCompletedSets) recordTownChronicle({ kind:'set', id:set.id });
   const stagedTownEvent = stageTownReturnEvent(returnedRelics.length);
+  lastTownOutcome = {
+    kind:'safe', depth:meta.lastReturnDepth, gold:banked,
+    relics:returnedRelics.length, sets:newlyCompletedSets.length,
+    hpPct:clamp(Number(meta.hpPct) || 100, 1, 100),
+  };
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
   if (arrivedResidents.length) msg(ui(
@@ -7699,6 +8033,10 @@ function useEscape() {
 }
 function greedyDeathReturn(lostInv, lostGold) {
   syncMetaFromPlayer(true);
+  lastTownOutcome = {
+    kind:'death', depth:Math.max(1, Number(depth) || 1),
+    lostInv:Math.max(0, Number(lostInv) || 0), lostGold:Math.max(0, Number(lostGold) || 0),
+  };
   enterTown();
   msg(ui(`你倒在第 ${depth} 层……失去了背包里的 ${lostInv} 件物品和随身 ${lostGold} 金币。`, `You fell on Floor ${depth} and lost ${lostInv} backpack items and ${lostGold} carried Gold.`), 'bad');
   msg(ui('好在穿在身上的装备还在。整备一番，再下去！','Your equipped gear survived. Prepare and descend again!'), 'gold');
@@ -8142,11 +8480,12 @@ if (typeof window !== 'undefined') {
     profileId: PROFILE_ID,
     get classId() { return classId; },
     validateProfile, requireProfile,
-    descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack,
+    descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack, findRangedTarget, findAssistedRangedTarget,
+    ordinaryStepToward, ordinaryMonsterAction, tryRangedReposition, rangedPreferredMin,
     quickDive, quickDiveCost, skillManaCost,
     pauseGame, resumeGame,
     pickTalent, pendingSkillEvolution, openPendingSkillEvolution, chooseEchoLeave, chooseEchoStay,
-    genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
+    genEquip, pickupHere, equipFromBag, unequip, discardFromBag, killMonster, newGame, toggleFullscreen,
     persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, monsterThreatScale, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
@@ -8160,12 +8499,14 @@ if (typeof window !== 'undefined') {
     setGreedy, getMeta: () => meta,
     get meta() { return meta; },
     useEscape, departTown, depositStash, withdrawStash, buyTown,
-    townReadinessPlan, buyTownReadiness, townMarketPrice, townMarketRestockCost, townMarketRestockAvailable, restockTownMarket,
+    townReadinessPlan, townDepartureDecisionSnapshot, buyTownReadiness, townMarketPrice, townMarketRestockCost, townMarketRestockAvailable, restockTownMarket,
     tavernCost, tavernAvailable, tavernOfferChoices, tavernRewardCount, drinkAtTavern,
     smithyCanRetemper, smithyCanMasterwork, forgeRetemperCost, completeForgeMasterwork,
     moveTownAvatar, setTownTarget, interactTown,
     TOWN_HOTSPOTS, activeTownResidents, townInteractables, townNpcLine, townRowHasNews, selectRelicFocus,
-    townPermanentLevelCapReached, townContractEnabled, get townAvatar() { return { ...townAvatar }; },
+    townPermanentLevelCapReached, townContractEnabled, selectTownContract,
+    get lastTownOutcome() { return lastTownOutcome ? { ...lastTownOutcome } : null; },
+    get townAvatar() { return { ...townAvatar }; },
     unlockedTownCheckpoints, selectTownCheckpoint, get selectedTownCheckpoint() { return selectedTownCheckpoint; },
     spinWheel, resetWheel, spinCost, resetWheelCost, applyWheelPrize, genWheelSlot,
     ACHV, checkAchv, getRecord: () => ({ ...ensureRecord(), achv:{...ensureRecord().achv} }),

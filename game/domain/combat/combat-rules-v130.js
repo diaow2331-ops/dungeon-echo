@@ -1,8 +1,13 @@
 /* Dungeon Echo production combat rules v1.3.0.
  *
  * Pure deterministic combat math extracted from the canonical core and quarantined
- * defense/combat-pressure work. This library owns only the canonical critical-damage
- * multiplier in production; all other helpers remain dormant pure exports.
+ * defense/combat-pressure work. Production ownership: the canonical critical-damage
+ * multiplier AND (since v1.9.2, atomic transfer from game/core/game.js) the
+ * ordinary-monster pressure tuning curve — threat scale, HP pressure and the flat
+ * DEF depth bonus.
+ * Guardians/final boss keep their authored profile base stats; core still owns
+ * RNG, elite rolls, spawn composition, damage application and turns.
+ * All other helpers remain dormant pure exports.
  *
  * Boundary rule: combat rules calculate from caller-supplied values only. They do not
  * consume RNG, mutate actors, advance turns, emit VFX/audio, listen to input or persist.
@@ -58,6 +63,25 @@
       grievousHealMultiplier(grievousTurns));
   }
 
+  /* Ordinary-monster pressure tuning (v1.9.2 curve, transferred from core).
+   * Boss-like actors (guardians, final boss) keep authored stats: neutral 1/0. */
+  function monsterThreatScale(depth=1, elite=false, bossLike=false) {
+    if (bossLike) return 1;
+    const d = Math.max(0, number(depth) - 1);
+    const depthThreat = 0.10 + Math.min(0.26, d * 0.002625);
+    return 1 + depthThreat + (elite ? 0.06 : 0);
+  }
+
+  function monsterHpPressure(depth=1, bossLike=false) {
+    if (bossLike) return 1;
+    const d = Math.max(0, number(depth) - 1);
+    return 1.75 + Math.min(0.42, d * 0.0042);
+  }
+
+  function monsterDefDepthBonus(depth=1) {
+    return Math.floor(Math.max(1, number(depth) || 1) / 12);
+  }
+
   const api = Object.freeze({
     version: 'v1.3.0-production',
     authority: 'critical-damage-multiplier',
@@ -73,6 +97,9 @@
     incomingRangedDamage,
     thornsDamage,
     killHeal,
+    monsterThreatScale,
+    monsterHpPressure,
+    monsterDefDepthBonus,
   });
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -271,7 +271,31 @@ button.tavern-drink:not(:disabled):hover { color:#241108; background:linear-grad
 .town-contract-grid button small { color: var(--dim); font-size: 11px; line-height: 1.35; }
 .town-contract-grid button.active { border-color: var(--accent-hi); box-shadow: inset 0 0 0 1px rgba(242,210,123,.18); }
 .town-contract-grid button.active b { color: var(--accent-hi); }
-@media (max-width: 700px) { .checkpoint-head { align-items: flex-start; flex-direction: column; gap: 3px; } .checkpoint-grid button { min-width: calc(50% - 4px); } .town-contract-grid { grid-template-columns: 1fr; } }
+.town-decision-summary {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(215,166,64,.48);
+  border-left: 3px solid var(--accent);
+  background: linear-gradient(135deg, rgba(42,29,18,.78), rgba(17,11,9,.9));
+}
+.town-decision-summary header { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:9px; }
+.town-decision-summary header b { color:#f0d49b; font-size:12px; }
+.town-decision-summary header small { color:var(--dim); font-size:10px; }
+.town-decision-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.town-decision-grid span { min-width:0; padding:7px 8px; background:rgba(10,8,7,.56); border:1px solid rgba(139,104,53,.3); }
+.town-decision-grid small, .town-decision-grid strong { display:block; }
+.town-decision-grid small { color:var(--dim); font-size:9px; margin-bottom:2px; }
+.town-decision-grid strong { color:#ead8bb; font-size:11px; line-height:1.35; }
+.town-decision-summary p { margin:8px 0 0; color:#cdbb9d; font-size:10px; line-height:1.45; }
+.town-decision-summary p.danger { color:#eaa17f; }
+.town-outcome { grid-column:1 / -1; display:grid; gap:3px; padding:10px 11px; border:1px solid rgba(139,104,53,.5); background:rgba(12,9,8,.78); }
+.town-outcome b { font-size:11px; }
+.town-outcome span { color:#c9b89f; font-size:10px; line-height:1.45; }
+.town-outcome.safe { border-left:3px solid var(--ok); }
+.town-outcome.safe b { color:#8bd5aa; }
+.town-outcome.danger { border-left:3px solid var(--danger); }
+.town-outcome.danger b { color:#ee927f; }
+@media (max-width: 700px) { .checkpoint-head { align-items: flex-start; flex-direction: column; gap: 3px; } .checkpoint-grid button { min-width: calc(50% - 4px); } .town-contract-grid, .town-decision-grid { grid-template-columns: 1fr; } .town-decision-summary header { align-items:flex-start; flex-direction:column; gap:3px; } }
 #wheel-canvas { display: block; width: min(230px, 90%); height: auto; margin: 2px auto 4px; }
 .wheel-hint { text-align: center; padding: 0 0 6px; }
 #town-wheel .row-actions { display: flex; justify-content: center; gap: 8px; }

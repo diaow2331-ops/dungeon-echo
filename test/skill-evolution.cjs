@@ -62,6 +62,7 @@ console.log('skill_evolution_core_v131=PASS');
   sb.npcAt=()=>null;
   sb.applyDamageToMonster=(m,dmg)=>{m.hp-=dmg;if(m.hp<=0)sb.monsters.splice(sb.monsters.indexOf(m),1);};
   sb.useBaseSkill=()=>{sb.turns++;sb.player.skillCd=5;};
+  sb.escapeChannelActive=()=>false; sb.channelEscapeTick=()=>{}; // v1.9.3 channel ritual is orthogonal to skill evolution
   vm.createContext(sb);
   vm.runInContext(core.slice(dataStart,dataEnd)+core.slice(castStart,castEnd)+`\n;globalThis.__evo={pendingSkillEvolution,useSkill,consumeSkillFollowup};`,sb,{filename:'skill-evolution-behavior.js'});
 
