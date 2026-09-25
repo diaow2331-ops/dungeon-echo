@@ -8957,7 +8957,11 @@ if (typeof window !== 'undefined') {
     cachedDungeonStaticLayer, cachedDungeonVisibilityLayer, cachedDungeonScene, cachedTownBackdropLayer,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
-      minimapKey:minimapStateKey(), fovRevision,
+      minimapKey:minimapPaintState ? [
+        minimapPaintState.depth, minimapPaintState.fov, minimapPaintState.x, minimapPaintState.y,
+        minimapPaintState.monsters, minimapPaintState.items, minimapPaintState.npcs,
+        minimapPaintState.width, minimapPaintState.height,
+      ].join('|') : '', fovRevision,
       townActiveMs:TOWN_ACTIVE_FRAME_MS, townIdleMs:TOWN_IDLE_FRAME_MS,
       townActive:state === 'town' ? townMotionActive() : false,
       townSceneActive:state === 'town' ? townSceneMotionActive() : false,
