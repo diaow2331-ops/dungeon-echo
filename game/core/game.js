@@ -2981,7 +2981,9 @@ function los(x0, y0, x1, y1) {
   }
   return true;
 }
+let fovRevision = 0;
 function computeFov() {
+  fovRevision++;
   visible = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
   for (let y = player.y - FOV_R; y <= player.y + FOV_R; y++) {
     for (let x = player.x - FOV_R; x <= player.x + FOV_R; x++) {
@@ -3854,10 +3856,11 @@ function applyShrine() {
   const npc = shrineTarget;
   hideUi('shrine-screen');
   shrineTarget = null;
-  if (!npc || npc.used) { state = 'playing'; return; }
+  if (!npc || npc.used) { state = 'playing'; wakeFrame(); return; }
   if (npc.type === 'event') {
     applyExpeditionEvent(npc);
     state = 'playing';
+    wakeFrame();
     if ($('btn-shrine-ok')) $('btn-shrine-ok').textContent = ui('祈祷','Pray');
     if ($('btn-shrine-leave')) $('btn-shrine-leave').textContent = ui('离开','Leave');
     persistRun(); updateHud(); return;
@@ -3902,6 +3905,7 @@ function applyShrine() {
   state = 'playing';
   persistRun();
   updateHud();
+  wakeFrame();
 }
 
 function openPendingSkillEvolution() {
@@ -3969,6 +3973,7 @@ function chooseEchoStay() {
   hideUi('echo-screen');
   player.echoMode = true;
   state = 'playing';
+  wakeFrame();
   msg(fmtText(runText('endlessArrive', ui('你踏入无尽回响。','You enter the Endless Echo.'))), 'epic');
   if (map[player.y][player.x] !== STAIRS) map[player.y][player.x] = STAIRS;
   sfx.stairs();
@@ -4328,6 +4333,7 @@ function endTurn(manaBonus=0, announceFocus=false) {
   computeFov();
   updateHud();
   if (turns % 4 === 0) persistRun();
+  wakeFrame();
 }
 function canSeePlayer(m) {
   const d = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
@@ -5090,8 +5096,16 @@ const trapPropForDepth = d => d >= 75 ? DUNGEON_PROP_ART.voidRift
 const dungeonNpcProp = type => type === 'shrine' ? DUNGEON_PROP_ART.angelShrine
   : type === 'event' ? DUNGEON_PROP_ART.voidRift
   : type === 'rest' ? DUNGEON_PROP_ART.campfire : type === 'shop' ? DUNGEON_PROP_ART.marketStall : -1;
-function drawMinimap() {
-  if (!mctx || !map || !player) return;
+let minimapPaintKey = '';
+function minimapStateKey() {
+  if (!mini || !player) return '';
+  return [depth, fovRevision, player.x, player.y, monsters.length, items.length, npcs.length, mini.width, mini.height].join('|');
+}
+function drawMinimap(force = false) {
+  if (!mctx || !map || !player) return false;
+  const paintKey = minimapStateKey();
+  if (!force && paintKey === minimapPaintKey) return false;
+  minimapPaintKey = paintKey;
   const cw = mini.width, ch = mini.height;
   const tw = cw / MAP_W, th = ch / MAP_H;
   mctx.fillStyle = '#070504';
@@ -5119,6 +5133,7 @@ function drawMinimap() {
   }
   mctx.fillStyle = '#f2d27b';
   mctx.fillRect(player.x * tw, player.y * th, tw, th);
+  return true;
 }
 function draw(now) {
   if (!player || !map) return;
@@ -5412,12 +5427,46 @@ function draw(now) {
   drawMinimap();
 }
 
-let lastT = 0, rafId = null;
-function scheduleFrame() {
-  if (rafId === null && !document.hidden) rafId = raf(frame);
+let lastT = 0, rafId = null, frameTimerId = null;
+const DUNGEON_IDLE_FRAME_MS = reducedMotion ? 160 : 66;
+function dungeonEntityAnimating(e) {
+  if (!e) return false;
+  return Math.abs((Number(e.x) || 0) - (Number(e.fx) || 0)) > .01 ||
+    Math.abs((Number(e.y) || 0) - (Number(e.fy) || 0)) > .01 ||
+    (Number(e.lungeT) || 0) > .01 || (Number(e.hurtT) || 0) > .01;
+}
+function dungeonVisualsActive() {
+  if (state !== 'playing' || !player || !map) return false;
+  if (hitstop > 0 || classSkillFxT > .01 || trauma > .01 || hurtFlash > .01 ||
+      floaters.length || particles.length || impactFx.length || arrows.length) return true;
+  if (dungeonEntityAnimating(player)) return true;
+  return (monsters || []).some(dungeonEntityAnimating) || (npcs || []).some(dungeonEntityAnimating);
+}
+function cancelFrameTimer() {
+  if (frameTimerId !== null) {
+    clearTimeout(frameTimerId);
+    frameTimerId = null;
+  }
+}
+function scheduleFrame(immediate = false) {
+  if (document.hidden || state !== 'playing' || rafId !== null || frameTimerId !== null) return false;
+  if (immediate || dungeonVisualsActive()) {
+    rafId = raf(frame);
+    return true;
+  }
+  frameTimerId = setTimeout(() => {
+    frameTimerId = null;
+    if (!document.hidden && state === 'playing' && rafId === null) rafId = raf(frame);
+  }, DUNGEON_IDLE_FRAME_MS);
+  return true;
+}
+function wakeFrame() {
+  cancelFrameTimer();
+  return state === 'playing' ? scheduleFrame(true) : false;
 }
 function frame(t) {
   rafId = null;
+  if (document.hidden || state !== 'playing') return;
   const dt = Math.min(.05, (t - lastT) / 1000 || 0);
   lastT = t;
   if (hitstop > 0) {
@@ -5464,11 +5513,12 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     if (rafId !== null) caf(rafId);
     rafId = null;
+    cancelFrameTimer();
     if (state === 'playing') persistRun();
   } else {
     lastT = 0;
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    scheduleFrame();
+    wakeFrame();
   }
 });
 
@@ -5679,6 +5729,7 @@ function restoreRun(raw) {
     return;
   }
   msg(ui('你从火堆旁醒来，记忆尚未散尽。','You wake beside the fire with your memories intact.'), 'good');
+  wakeFrame();
   openPendingSkillEvolution();
 }
 
@@ -5811,6 +5862,7 @@ function buyShop(i) {
 function closeShop() {
   hideUi('shop-screen');
   state = 'playing';
+  wakeFrame();
   persistRun();
 }
 function closeShrine() {
@@ -5819,6 +5871,7 @@ function closeShrine() {
   if ($('btn-shrine-ok')) $('btn-shrine-ok').textContent = ui('祈祷','Pray');
   if ($('btn-shrine-leave')) $('btn-shrine-leave').textContent = ui('离开','Leave');
   state = 'playing';
+  wakeFrame();
 }
 
 // ================= 贪婪远征：城镇 / 回城 / 元进度 =================
@@ -6216,6 +6269,7 @@ function setTownTarget(x, y, hotspotId = '') {
   townAvatar.ty = clamp(Number(y) || .9, .79, .93);
   if (Math.abs(townAvatar.tx - townAvatar.x) > .004) townAvatar.face = townAvatar.tx >= townAvatar.x ? 1 : -1;
   townPendingHotspot = hotspotId;
+  wakeTownFrame();
 }
 function moveTownAvatar(dx, dy) {
   if (state !== 'town') return false;
@@ -6536,7 +6590,8 @@ function showTown() {
   showUi('town-screen');
   hideTownDialogue();
   applyTownViewport();
-  townLastFrame = 0; townPromptKey = '';
+  townLastFrame = 0; townLastPaint = 0; townSceneLastPaint = 0; wheelLastPaint = 0;
+  wheelPaintRequested = true; townPromptKey = '';
   renderTown();
   renderTownFocus(false); updateTownPrompt();
   ensureTownLoop();
@@ -6747,17 +6802,22 @@ function startWheelSpin(idx) {
   const jit = (((meta.wheelTotal * 37 + meta.wheelSpins * 11) % 100) / 100 - .5) * SECTOR_A * .5;
   wheelView.anim = { t0: performance.now(), dur: 3300, from: cur, to: cur + delta + jit, idx };
   wheelBusy = true;
+  wakeTownFrame();
 }
 function startWheelKick() {
   wheelView.lastWin = -1;
   const cur = wheelView.angle;
   wheelView.anim = { t0: performance.now(), dur: 620, from: cur, to: cur + Math.PI * 1.5, idx: -1 };
   wheelBusy = true;
+  wakeTownFrame();
 }
 
 // ---- 城镇场景：夜色小镇横幅（星空/远山/五座功能建筑/灯火/篝火动画） ----
 let townStars = null;
-let townRafId = 0;
+let townRafId = 0, townTimerId = 0, townLastPaint = 0;
+let townSceneLastPaint = 0, wheelLastPaint = 0, wheelPaintRequested = true;
+const TOWN_ACTIVE_FRAME_MS = reducedMotion ? 66 : 33;
+const TOWN_IDLE_FRAME_MS = reducedMotion ? 220 : 80;
 function townTierForArt() {
   return ECONOMY_RULES.townTier(meta && meta.bestDepth);
 }
@@ -7174,15 +7234,88 @@ function drawTownFire(ctx, now, G) {
   }
 }
 const W0_FIRE = { x: 430 };
+function townSceneMotionActive() {
+  return Math.hypot(townAvatar.tx - townAvatar.x, townAvatar.ty - townAvatar.y) > .001 ||
+    !!townPendingHotspot;
+}
+function wheelMotionActive(now = performance.now()) {
+  return wheelBusy || !!wheelView.anim || now < wheelView.winUntil;
+}
+function townMotionActive(now = performance.now()) {
+  return townSceneMotionActive() || wheelMotionActive(now);
+}
+function cancelTownTimer() {
+  if (townTimerId) {
+    clearTimeout(townTimerId);
+    townTimerId = 0;
+  }
+}
+function scheduleTownFrame(immediate = false) {
+  if (document.hidden || state !== 'town' || townRafId || townTimerId) return false;
+  if (immediate) {
+    townRafId = requestAnimationFrame(townFrame);
+    return true;
+  }
+  const interval = townMotionActive() ? TOWN_ACTIVE_FRAME_MS : TOWN_IDLE_FRAME_MS;
+  const elapsed = townLastPaint ? Math.max(0, performance.now() - townLastPaint) : interval;
+  const delay = Math.max(0, interval - elapsed);
+  if (delay <= 4) {
+    townRafId = requestAnimationFrame(townFrame);
+    return true;
+  }
+  townTimerId = setTimeout(() => {
+    townTimerId = 0;
+    if (!document.hidden && state === 'town' && !townRafId) townRafId = requestAnimationFrame(townFrame);
+  }, delay);
+  return true;
+}
+function wakeTownFrame() {
+  cancelTownTimer();
+  return state === 'town' ? scheduleTownFrame(true) : false;
+}
 function townFrame(now) {
   townRafId = 0;
-  if (state !== 'town') return;
-  try { advanceTownAvatar(now || 0); drawTownScene(now || 0); drawWheel(now || 0); } catch (e) { /* 绘制异常不阻塞游戏 */ }
-  townRafId = requestAnimationFrame(townFrame);
+  if (document.hidden || state !== 'town') return;
+  const t = Number(now) || performance.now();
+  townLastPaint = t;
+  const sceneInterval = townSceneMotionActive() ? TOWN_ACTIVE_FRAME_MS : TOWN_IDLE_FRAME_MS;
+  const sceneDue = !townSceneLastPaint || t - townSceneLastPaint >= sceneInterval - 1;
+  const wheelActive = wheelMotionActive(t);
+  const wheelDue = wheelPaintRequested ||
+    (wheelActive && (!wheelLastPaint || t - wheelLastPaint >= TOWN_ACTIVE_FRAME_MS - 1));
+  try {
+    if (sceneDue) {
+      advanceTownAvatar(t);
+      drawTownScene(t);
+      townSceneLastPaint = t;
+    }
+    if (wheelDue) {
+      drawWheel(t);
+      wheelLastPaint = t;
+      wheelPaintRequested = false;
+    }
+  } catch (e) { /* 绘制异常不阻塞游戏 */ }
+  scheduleTownFrame();
 }
 function ensureTownLoop() {
-  if (!townRafId && state === 'town') townRafId = requestAnimationFrame(townFrame);
+  wheelPaintRequested = true;
+  return scheduleTownFrame(true);
 }
+document.addEventListener('visibilitychange', () => {
+  if (state !== 'town') return;
+  if (document.hidden) {
+    if (townRafId) cancelAnimationFrame(townRafId);
+    townRafId = 0;
+    cancelTownTimer();
+  } else {
+    townLastFrame = 0;
+    townLastPaint = 0;
+    townSceneLastPaint = 0;
+    wheelLastPaint = 0;
+    wheelPaintRequested = true;
+    wakeTownFrame();
+  }
+});
 
 
 let activeRefineItem = null;
@@ -7944,6 +8077,7 @@ function departTown(targetDepth = selectedTownCheckpoint) {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
+  wakeFrame();
   openPendingSkillEvolution();
 }
 function escapeChannelActive() { return !!(player && (player.escapeChannel || 0) > 0); }
@@ -8133,6 +8267,7 @@ function newGame(chosen) {
   msg(ui(`本层有 ${monsters.length} 个敌人、${items.length} 处物资。`, `This floor has ${monsters.length} enemies and ${items.length} loot spots.`), 'good');
   renderBag(); renderEquip(); updateHud();
   persistRun();
+  wakeFrame();
 }
 
 function pauseGame() {
@@ -8147,6 +8282,7 @@ function resumeGame() {
   if (state !== 'paused') return;
   hideUi('pause-screen');
   state = 'playing';
+  wakeFrame();
 }
 
 const KEYMAP = {
@@ -8493,6 +8629,15 @@ if (typeof window !== 'undefined') {
     weaponBaseForDrop, starterWeaponForClass, weaponClassOf, canEquipForClass, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,
+    visualPerfSnapshot: () => ({
+      dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
+      minimapKey:minimapStateKey(), fovRevision,
+      townActiveMs:TOWN_ACTIVE_FRAME_MS, townIdleMs:TOWN_IDLE_FRAME_MS,
+      townActive:state === 'town' ? townMotionActive() : false,
+      townSceneActive:state === 'town' ? townSceneMotionActive() : false,
+      wheelActive:state === 'town' ? wheelMotionActive() : false,
+    }),
+    drawMinimap,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
     canDescendNow, isFinalFloor,
     get greedy() { return greedyMode; },
