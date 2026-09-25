@@ -33,7 +33,13 @@ function context(kind='main'){
 function classList(){const s=new Set();return{add(...xs){xs.forEach(x=>s.add(x))},remove(...xs){xs.forEach(x=>s.delete(x))},toggle(x,f){if(f===undefined){if(s.has(x)){s.delete(x);return false}s.add(x);return true}if(f)s.add(x);else s.delete(x);return!!f},contains:x=>s.has(x)}}
 const contexts=new Map();
 function canvas(id,width=1280,height=896,kind='main'){
-  return {id,width,height,getContext:()=>{if(!contexts.has(id))contexts.set(id,context(kind));const c=contexts.get(id);c.canvas.width=width;c.canvas.height=height;return c;},toDataURL:()=>''};
+  return {
+    id,width,height,style:{},dataset:{},hidden:false,
+    getContext:()=>{if(!contexts.has(id))contexts.set(id,context(kind));const c=contexts.get(id);c.canvas.width=width;c.canvas.height=height;return c;},
+    toDataURL:()=>'',addEventListener(){},setAttribute(){},removeAttribute(){},focus(){},
+    getBoundingClientRect:()=>({left:0,top:0,width:width||1000,height:height||600}),
+    classList:classList(),querySelector:()=>null,appendChild(){},append(){},replaceChildren(){}
+  };
 }
 function elem(id){
   if(id==='game')return canvas(id,960,608,'main');
