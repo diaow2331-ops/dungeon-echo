@@ -4914,6 +4914,87 @@ function drawCrown(px, py, w) {
   ctx.closePath();
   ctx.fill(); ctx.stroke();
 }
+const renderCachePerf = {
+  textMeasureHits:0, textMeasureMisses:0,
+  dungeonGradientHits:0, dungeonGradientMisses:0,
+  townGradientHits:0, townGradientMisses:0,
+};
+let textWidthCaches = new WeakMap();
+let townGradientCaches = new WeakMap();
+let stairsGradientCache = new Map();
+let dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
+let dungeonVignetteCache = { key:'', gradient:null };
+function cachedMeasureTextWidth(context, text) {
+  let cache = textWidthCaches.get(context);
+  if (!cache) { cache = new Map(); textWidthCaches.set(context, cache); }
+  const key = context.font + '\u0000' + text;
+  if (cache.has(key)) { renderCachePerf.textMeasureHits++; return cache.get(key); }
+  const width = context.measureText(text).width;
+  cache.set(key, width);
+  renderCachePerf.textMeasureMisses++;
+  return width;
+}
+function cachedTownGradient(context, key, create) {
+  let cache = townGradientCaches.get(context);
+  if (!cache) { cache = new Map(); townGradientCaches.set(context, cache); }
+  if (cache.has(key)) { renderCachePerf.townGradientHits++; return cache.get(key); }
+  const gradient = create();
+  cache.set(key, gradient);
+  renderCachePerf.townGradientMisses++;
+  return gradient;
+}
+function cachedStairsGradient(px, py) {
+  const key = px + '|' + py;
+  if (stairsGradientCache.has(key)) {
+    renderCachePerf.dungeonGradientHits++;
+    return stairsGradientCache.get(key);
+  }
+  const gradient = ctx.createRadialGradient(px + TILE / 2, py + TILE / 2, 1, px + TILE / 2, py + TILE / 2, TILE * .55);
+  gradient.addColorStop(0, 'rgba(224,179,77,1)');
+  gradient.addColorStop(1, 'rgba(224,179,77,0)');
+  stairsGradientCache.set(key, gradient);
+  renderCachePerf.dungeonGradientMisses++;
+  return gradient;
+}
+function cachedDungeonPlayerGradients(plx, ply) {
+  const key = [plx, ply, canvas.width, canvas.height].join('|');
+  if (dungeonPlayerGradientCache.key === key) {
+    renderCachePerf.dungeonGradientHits++;
+    return dungeonPlayerGradientCache;
+  }
+  const playerGlow = ctx.createRadialGradient(plx, ply, TILE, plx, ply, TILE * 4.2);
+  playerGlow.addColorStop(0, 'rgba(255,214,150,.10)');
+  playerGlow.addColorStop(1, 'rgba(255,214,150,0)');
+  const fovShade = ctx.createRadialGradient(plx, ply, TILE * 2, plx, ply, TILE * (FOV_R + 1.6));
+  fovShade.addColorStop(0, 'rgba(0,0,0,0)');
+  fovShade.addColorStop(1, 'rgba(0,0,0,.5)');
+  dungeonPlayerGradientCache = { key, playerGlow, fovShade };
+  renderCachePerf.dungeonGradientMisses++;
+  return dungeonPlayerGradientCache;
+}
+function cachedDungeonVignette() {
+  const key = canvas.width + '|' + canvas.height;
+  if (dungeonVignetteCache.key === key && dungeonVignetteCache.gradient) {
+    renderCachePerf.dungeonGradientHits++;
+    return dungeonVignetteCache.gradient;
+  }
+  const gradient = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height * .35,
+    canvas.width / 2, canvas.height / 2, canvas.width * .62);
+  gradient.addColorStop(0, 'rgba(0,0,0,0)');
+  gradient.addColorStop(1, 'rgba(0,0,0,.42)');
+  dungeonVignetteCache = { key, gradient };
+  renderCachePerf.dungeonGradientMisses++;
+  return gradient;
+}
+function resetRenderCachePerf(clearCaches = false) {
+  for (const key of Object.keys(renderCachePerf)) renderCachePerf[key] = 0;
+  if (!clearCaches) return;
+  textWidthCaches = new WeakMap();
+  townGradientCaches = new WeakMap();
+  stairsGradientCache = new Map();
+  dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
+  dungeonVignetteCache = { key:'', gradient:null };
+}
 function drawStairs(px, py, now) {
   ctx.fillStyle = '#04060b';
   ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
@@ -4923,11 +5004,11 @@ function drawStairs(px, py, now) {
     ctx.strokeRect(px + 2 + i * 2.6, py + 2 + i * 2.6, TILE - 4 - i * 5.2, TILE - 4 - i * 5.2);
   }
   const a = .30 + .18 * Math.sin(now * 2.5);
-  const g = ctx.createRadialGradient(px + TILE / 2, py + TILE / 2, 1, px + TILE / 2, py + TILE / 2, TILE * .55);
-  g.addColorStop(0, `rgba(224,179,77,${a})`);
-  g.addColorStop(1, 'rgba(224,179,77,0)');
-  ctx.fillStyle = g;
+  const priorAlpha = ctx.globalAlpha;
+  ctx.globalAlpha = priorAlpha * a;
+  ctx.fillStyle = cachedStairsGradient(px, py);
   ctx.fillRect(px, py, TILE, TILE);
+  ctx.globalAlpha = priorAlpha;
 }
 function drawTorch(px, py, now) {
   const cx = px + TILE / 2, cy = py + TILE * .62;
@@ -5284,7 +5365,7 @@ function draw(now) {
       ctx.save();
       ctx.font = '700 11px "Segoe UI","Microsoft YaHei",sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const labelW = Math.min(108, Math.max(28, ctx.measureText(label).width + 10));
+      const labelW = Math.min(108, Math.max(28, cachedMeasureTextWidth(ctx, label) + 10));
       ctx.fillStyle = 'rgba(8,6,5,.82)'; ctx.fillRect(px - labelW / 2, py - 24, labelW, 15);
       ctx.strokeStyle = RARITIES[it.item.rarity].color; ctx.globalAlpha = .72;
       ctx.strokeRect(px - labelW / 2, py - 24, labelW, 15);
@@ -5386,17 +5467,12 @@ function draw(now) {
     ctx.fillRect(cx2 - TILE * 3, cy2 - TILE * 3, TILE * 6, TILE * 6);
   }
   const plx = player.fx * TILE + TILE / 2, ply = player.fy * TILE + TILE / 2;
-  const g3 = ctx.createRadialGradient(plx, ply, TILE, plx, ply, TILE * 4.2);
-  g3.addColorStop(0, 'rgba(255,214,150,.10)');
-  g3.addColorStop(1, 'rgba(255,214,150,0)');
-  ctx.fillStyle = g3;
+  const dungeonGradients = cachedDungeonPlayerGradients(plx, ply);
+  ctx.fillStyle = dungeonGradients.playerGlow;
   ctx.fillRect(plx - TILE * 4.5, ply - TILE * 4.5, TILE * 9, TILE * 9);
   ctx.globalCompositeOperation = 'source-over';
 
-  const lg = ctx.createRadialGradient(plx, ply, TILE * 2, plx, ply, TILE * (FOV_R + 1.6));
-  lg.addColorStop(0, 'rgba(0,0,0,0)');
-  lg.addColorStop(1, 'rgba(0,0,0,.5)');
-  ctx.fillStyle = lg;
+  ctx.fillStyle = dungeonGradients.fovShade;
   ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
 
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -5417,11 +5493,7 @@ function draw(now) {
     ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
   }
 
-  const vg = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height * .35,
-    canvas.width / 2, canvas.height / 2, canvas.width * .62);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,.42)');
-  ctx.fillStyle = vg;
+  ctx.fillStyle = cachedDungeonVignette();
   ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
   ctx.restore();
   drawMinimap();
@@ -5522,80 +5594,166 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-function updateHud() {
-  if (!player || !$('st-depth')) return;
-  $('st-depth').textContent = player && player.echoMode ? depth + '∞' : depth;
-  const themeEl = $('st-theme');
-  if (themeEl) themeEl.textContent = ' · ' + (THEMES[themeIdx(depth)] ? visibleWorldName(THEMES[themeIdx(depth)].name) : '');
-  $('st-hptext').textContent = `${Math.max(0, player.hp)}/${pMaxHp()}`;
-  $('st-hpfill').style.width = Math.max(0, player.hp / pMaxHp() * 100) + '%';
-  ensurePlayerMana();
-  if ($('st-manatext')) $('st-manatext').textContent = `${player.mana}/${player.manaMax}`;
-  if ($('st-manafill')) $('st-manafill').style.width = (player.manaMax ? player.mana / player.manaMax * 100 : 0) + '%';
-  const lowHp = state === 'playing' && player.hp > 0 && player.hp / pMaxHp() <= 0.25;
-  $('lowhp-vignette').classList.toggle('hidden', !lowHp);
-  if ($('st-potion-wrap')) {
-    $('st-potion-wrap').classList.toggle('urgent', lowHp && player.potions > 0);
-    $('st-potion-wrap').title = lowHp && player.potions > 0
-      ? ui(`生命危险：按 Q 或点击这里使用治疗药水（剩余 ${player.potions}）`, `Critical HP: press Q or click here to use a Healing Potion (${player.potions} left)`)
-      : ui('使用治疗药水（Q）', 'Use Healing Potion (Q)');
+const hudElementCache = Object.create(null);
+const hudPerf = { queries:0, writes:0, skips:0, frameSkips:0 };
+let lastHudSignature = '';
+function hudEl(id) {
+  if (Object.prototype.hasOwnProperty.call(hudElementCache, id)) return hudElementCache[id];
+  hudPerf.queries++;
+  const el = $(id) || null;
+  hudElementCache[id] = el;
+  return el;
+}
+function hudText(el, value) {
+  if (!el) return false;
+  const next = String(value);
+  if (el.textContent === next) { hudPerf.skips++; return false; }
+  el.textContent = next; hudPerf.writes++; return true;
+}
+function hudStyle(el, key, value) {
+  if (!el || !el.style) return false;
+  const next = String(value);
+  if (el.style[key] === next) { hudPerf.skips++; return false; }
+  el.style[key] = next; hudPerf.writes++; return true;
+}
+function hudProp(el, key, value) {
+  if (!el) return false;
+  if (el[key] === value) { hudPerf.skips++; return false; }
+  el[key] = value; hudPerf.writes++; return true;
+}
+function hudClass(el, name, enabled) {
+  if (!el || !el.classList) return false;
+  const next = !!enabled, current = el.classList.contains(name);
+  if (current === next) { hudPerf.skips++; return false; }
+  el.classList.toggle(name, next); hudPerf.writes++; return true;
+}
+function hudClassName(el, value) {
+  if (!el) return false;
+  const next = String(value);
+  if (el.className === next) { hudPerf.skips++; return false; }
+  el.className = next; hudPerf.writes++; return true;
+}
+function resetHudPerf(clearCache = false) {
+  hudPerf.queries = 0; hudPerf.writes = 0; hudPerf.skips = 0; hudPerf.frameSkips = 0;
+  if (clearCache) {
+    for (const key of Object.keys(hudElementCache)) delete hudElementCache[key];
+    lastHudSignature = '';
   }
-  $('st-lvl').textContent = player.lvl;
-  $('st-xp').textContent = player.lvl >= progressionLevelCap()
+}
+function updateHud() {
+  if (!player) return false;
+  const maxHp = pMaxHp();
+  const safeHp = Math.max(0, player.hp);
+  const hpRatio = maxHp > 0 ? safeHp / maxHp : 0;
+  ensurePlayerMana();
+
+  const depthText = player.echoMode ? depth + '∞' : depth;
+  const theme = THEMES[themeIdx(depth)];
+  const themeText = ' · ' + (theme ? visibleWorldName(theme.name) : '');
+  const hpText = `${safeHp}/${maxHp}`;
+  const hpWidth = Math.max(0, hpRatio * 100) + '%';
+  const manaText = `${player.mana}/${player.manaMax}`;
+  const manaWidth = (player.manaMax ? player.mana / player.manaMax * 100 : 0) + '%';
+  const lowHp = state === 'playing' && player.hp > 0 && hpRatio <= 0.25;
+  const potionUrgent = lowHp && player.potions > 0;
+  const potionTitle = potionUrgent
+    ? ui(`生命危险：按 Q 或点击这里使用治疗药水（剩余 ${player.potions}）`, `Critical HP: press Q or click here to use a Healing Potion (${player.potions} left)`)
+    : ui('使用治疗药水（Q）', 'Use Healing Potion (Q)');
+  const xpText = player.lvl >= progressionLevelCap()
     ? ui('(永久等级 MAX)','(Permanent Level MAX)')
     : `(${player.xp}/${PROGRESSION_RULES.xpThreshold(player.lvl)})`;
-  $('st-atk').textContent = pAtk();
-  $('st-def').textContent = pDef();
-  $('st-crit').textContent = pCrit() + '%';
-  $('st-gold').textContent = player.gold;
-  $('st-potion').textContent = player.potions;
-  $('st-scroll').textContent = player.scrolls;
-  if ($('st-key')) $('st-key').textContent = player.keys || 0;
-  if ($('st-escape')) $('st-escape').textContent = player.escapes || 0;
-  if ($('st-escape-wrap')) $('st-escape-wrap').style.display = greedyMode ? '' : 'none';
-  if ($('st-mobs')) {
-    const mobsEl = $('st-mobs');
-    const bossHere = monsters && monsters.some(m => m.boss || m.midBoss);
-    mobsEl.textContent = (monsters ? monsters.length : 0) + (bossHere ? ' ⚑' : '');
-    mobsEl.classList.toggle('boss-here', !!bossHere);
+  const atkText = pAtk();
+  const defText = pDef();
+  const critText = pCrit() + '%';
+  const escapeDisplay = greedyMode ? '' : 'none';
+
+  const bossHere = !!(monsters && monsters.some(m => m.boss || m.midBoss));
+  const mobsText = (monsters ? monsters.length : 0) + (bossHere ? ' ⚑' : '');
+  const manaCost = skillManaCost();
+  let skillText, skillClass;
+  if (player.skillCd > 0) {
+    skillText = ui(`${player.skillCd}回合 · ${manaCost}蓝`, `CD ${player.skillCd} · ${manaCost} MP`);
+    skillClass = 'cd';
+  } else if (player.mana < manaCost) {
+    skillText = ui(`蓝量 ${player.mana}/${manaCost}`, `Mana ${player.mana}/${manaCost}`);
+    skillClass = 'mana-low';
+  } else {
+    skillText = ui(`${classDef().skill.name} · ${manaCost}蓝`, `${classDef().skill.name} · ${manaCost} MP`);
+    skillClass = 'ready';
   }
-  const skEl = $('st-skill');
-  if (skEl) {
-    const manaCost = skillManaCost();
-    if (player.skillCd > 0) {
-      skEl.textContent = ui(`${player.skillCd}回合 · ${manaCost}蓝`, `CD ${player.skillCd} · ${manaCost} MP`);
-      skEl.className = 'cd';
-    } else if (player.mana < manaCost) {
-      skEl.textContent = ui(`蓝量 ${player.mana}/${manaCost}`, `Mana ${player.mana}/${manaCost}`);
-      skEl.className = 'mana-low';
-    } else {
-      skEl.textContent = ui(`${classDef().skill.name} · ${manaCost}蓝`, `${classDef().skill.name} · ${manaCost} MP`);
-      skEl.className = 'ready';
-    }
+
+  const onStairs = !!(map && map[player.y] && map[player.y][player.x] === STAIRS);
+  const facing = player.facing || [0,0];
+  const shopHere = npcAt(player.x + facing[0], player.y + facing[1]);
+  const shopType = shopHere ? shopHere.type : '';
+  const canDescend = onStairs && canDescendNow();
+  const hintText = onStairs
+    ? (canDescend ? ui(`> Enter 下潜 · Shift+Enter 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, `> Enter Descend · Shift+Enter Quick Dive (${quickDiveCost(depth, QUICK_DIVE_STEP)} G for ${QUICK_DIVE_STEP} floors)`) : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
+    : shopType === 'shop'
+      ? ui('> 撞向商人即可交易','> Walk into the merchant to trade')
+      : shopType === 'shrine'
+        ? ui('> 撞向神龛即可祈祷','> Walk into the shrine to pray')
+        : shopType === 'event'
+          ? ui('> 撞向异常回响，决定是否接受交易','> Walk into the echo event to consider its bargain')
+          : shopType === 'rest'
+            ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
+            : ui('> J 主动攻击 · K 技能（C 兼容）· 点击已探索地块移动','> J Basic Attack · K Skill (C alias) · click explored tiles to move');
+  const descendReady = canDescend && state === 'playing';
+
+  const signature = [
+    state, depthText, themeText, hpText, hpWidth, manaText, manaWidth,
+    lowHp ? 1 : 0, potionUrgent ? 1 : 0, potionTitle,
+    player.lvl, xpText, atkText, defText, critText,
+    player.gold, player.potions, player.scrolls, player.keys || 0, player.escapes || 0,
+    escapeDisplay, mobsText, bossHere ? 1 : 0, skillText, skillClass,
+    onStairs ? 1 : 0, shopType, hintText, descendReady ? 1 : 0,
+  ].join('\u0001');
+  if (signature === lastHudSignature) {
+    hudPerf.frameSkips++;
+    return false;
   }
-  const onStairs = map && map[player.y][player.x] === STAIRS;
+  lastHudSignature = signature;
+
+  const depthEl = hudEl('st-depth');
+  if (!depthEl) return false;
+  hudText(depthEl, depthText);
+  hudText(hudEl('st-theme'), themeText);
+  hudText(hudEl('st-hptext'), hpText);
+  hudStyle(hudEl('st-hpfill'), 'width', hpWidth);
+  hudText(hudEl('st-manatext'), manaText);
+  hudStyle(hudEl('st-manafill'), 'width', manaWidth);
+  hudClass(hudEl('lowhp-vignette'), 'hidden', !lowHp);
+  const potionWrap = hudEl('st-potion-wrap');
+  hudClass(potionWrap, 'urgent', potionUrgent);
+  hudProp(potionWrap, 'title', potionTitle);
+  hudText(hudEl('st-lvl'), player.lvl);
+  hudText(hudEl('st-xp'), xpText);
+  hudText(hudEl('st-atk'), atkText);
+  hudText(hudEl('st-def'), defText);
+  hudText(hudEl('st-crit'), critText);
+  hudText(hudEl('st-gold'), player.gold);
+  hudText(hudEl('st-potion'), player.potions);
+  hudText(hudEl('st-scroll'), player.scrolls);
+  hudText(hudEl('st-key'), player.keys || 0);
+  hudText(hudEl('st-escape'), player.escapes || 0);
+  hudStyle(hudEl('st-escape-wrap'), 'display', escapeDisplay);
+  const mobsEl = hudEl('st-mobs');
+  hudText(mobsEl, mobsText);
+  hudClass(mobsEl, 'boss-here', bossHere);
+  const skEl = hudEl('st-skill');
+  hudText(skEl, skillText);
+  hudClassName(skEl, skillClass);
+
   if (state === 'playing' && onStairs) guideOnce('stairs',
     'Enter 正常下潜；Shift+Enter 是满足条件时的付费快速下潜。J 始终是主动攻击。',
     'Enter descends normally. Shift+Enter is the paid Quick Dive when available. J always means basic attack.');
-  const shopHere = npcAt(player.x + (player.facing ? player.facing[0] : 0), player.y + (player.facing ? player.facing[1] : 0));
-  $('hint').classList.toggle('active', onStairs);
-  $('hint').textContent = onStairs
-    ? (canDescendNow() ? ui(`> Enter 下潜 · Shift+Enter 快速下潜（${quickDiveCost(depth, QUICK_DIVE_STEP)} G 直坠 ${QUICK_DIVE_STEP} 层）`, `> Enter Descend · Shift+Enter Quick Dive (${quickDiveCost(depth, QUICK_DIVE_STEP)} G for ${QUICK_DIVE_STEP} floors)`) : ui('> 击败本层首领才能离开。','> Defeat the floor guardian before leaving.'))
-    : shopHere && shopHere.type === 'shop'
-      ? ui('> 撞向商人即可交易','> Walk into the merchant to trade')
-      : shopHere && shopHere.type === 'shrine'
-        ? ui('> 撞向神龛即可祈祷','> Walk into the shrine to pray')
-        : shopHere && shopHere.type === 'event'
-          ? ui('> 撞向异常回响，决定是否接受交易','> Walk into the echo event to consider its bargain')
-          : shopHere && shopHere.type === 'rest'
-            ? ui('> 撞向营地即可包扎','> Walk into the camp to rest')
-          : ui('> J 主动攻击 · K 技能（C 兼容）· 点击已探索地块移动','> J Basic Attack · K Skill (C alias) · click explored tiles to move');
-  const fab = $('descend-fab');
-  if (fab) fab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
-  const qfab = $('quickdive-fab');
-  if (qfab) qfab.classList.toggle('hidden', !(onStairs && canDescendNow() && state === 'playing'));
+  const hint = hudEl('hint');
+  hudClass(hint, 'active', onStairs);
+  hudText(hint, hintText);
+  hudClass(hudEl('descend-fab'), 'hidden', !descendReady);
+  hudClass(hudEl('quickdive-fab'), 'hidden', !descendReady);
+  return true;
 }
-
 function loadBest() {
   try {
     const raw = JSON.parse(localStorage.getItem('de-best'));
@@ -6746,9 +6904,12 @@ function wheelSlotShort(s) {
 }
 let wheelBusy = false;
 const wheelView = { angle: -SECTOR_A / 2, anim: null, lastWin: -1, winUntil: 0 };
+let wheelCanvasCache = null, wheelContextCache = null;
 function wheelCtxOf() {
-  const cv = $('wheel-canvas');
-  return cv && cv.getContext ? cv.getContext('2d') : null;
+  if (wheelContextCache) return wheelContextCache;
+  wheelCanvasCache = $('wheel-canvas');
+  wheelContextCache = wheelCanvasCache && wheelCanvasCache.getContext ? wheelCanvasCache.getContext('2d') : null;
+  return wheelContextCache;
 }
 function drawWheel(now) {
   const ctx = wheelCtxOf();
@@ -6887,7 +7048,7 @@ function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
   ctx.save();
   ctx.font = `600 ${Math.round(10 * scale)}px "Segoe UI", "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const width = Math.ceil(ctx.measureText(label).width) + 14 * scale;
+  const width = Math.ceil(cachedMeasureTextWidth(ctx, label)) + 14 * scale;
   const height = 18 * scale, y = baseY - 65 * scale;
   ctx.fillStyle = active ? 'rgba(39,25,12,.94)' : 'rgba(7,6,8,.78)';
   ctx.strokeStyle = active ? '#f2d27b' : 'rgba(183,147,91,.56)';
@@ -7084,11 +7245,17 @@ function drawTownGrowthVisual(ctx, now, W, H, G) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f2d27b';
   ctx.fillText(ui(`回响小镇 · 阶段 ${tier}`, `Echo Town · Tier ${tier}`), 20, 23);
 }
+let townSceneCanvasCache = null, townSceneContextCache = null;
+function townSceneCtxOf() {
+  if (townSceneContextCache) return townSceneContextCache;
+  townSceneCanvasCache = $('town-scene');
+  townSceneContextCache = townSceneCanvasCache && townSceneCanvasCache.getContext ? townSceneCanvasCache.getContext('2d') : null;
+  return townSceneContextCache;
+}
 function drawTownScene(now) {
-  const cv = $('town-scene');
-  if (!cv || !cv.getContext) return;
-  const ctx = cv.getContext('2d');
-  if (!ctx) return;
+  const cv = townSceneCanvasCache || $('town-scene');
+  const ctx = townSceneCtxOf();
+  if (!cv || !ctx) return;
   const W = cv.width || 900, H = cv.height || 210;
   const G = H * .78;
   const townBackdrop = imageReady(townBackdropV190) ? townBackdropV190 : townBackdropV11;
@@ -7101,8 +7268,11 @@ function drawTownScene(now) {
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(townBackdrop, 0, sy, iw, sh, 0, 0, W, H);
-    const shade = ctx.createLinearGradient(0, 0, 0, H);
-    shade.addColorStop(0, 'rgba(5,8,20,.08)'); shade.addColorStop(.7, 'rgba(5,4,8,.03)'); shade.addColorStop(1, 'rgba(5,3,4,.36)');
+    const shade = cachedTownGradient(ctx, 'backdrop-shade|' + W + '|' + H, () => {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, 'rgba(5,8,20,.08)'); g.addColorStop(.7, 'rgba(5,4,8,.03)'); g.addColorStop(1, 'rgba(5,3,4,.36)');
+      return g;
+    });
     ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
     drawTownGrowthVisual(ctx, now, W, H, G);
     drawTownFire(ctx, now, G);
@@ -7116,8 +7286,11 @@ function drawTownScene(now) {
       r: Math.random() * 1.3 + .5, tw: Math.random() * 6,
     });
   }
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#0b0916'); sky.addColorStop(.7, '#191022'); sky.addColorStop(1, '#241724');
+  const sky = cachedTownGradient(ctx, 'fallback-sky|' + W + '|' + H, () => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b0916'); g.addColorStop(.7, '#191022'); g.addColorStop(1, '#241724');
+    return g;
+  });
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
   for (const st of townStars) {
     ctx.globalAlpha = .35 + .55 * Math.abs(Math.sin(now / 900 + st.tw));
@@ -7219,8 +7392,11 @@ function drawTownBuildings(ctx, now, W, H, G) {
 function drawTownFire(ctx, now, G) {
   // 前景篝火（市集与客栈之间）
   const fx = W0_FIRE.x, fy = G + 14;
-  const glow = ctx.createRadialGradient(fx, fy, 2, fx, fy, 46);
-  glow.addColorStop(0, 'rgba(255,150,60,.28)'); glow.addColorStop(1, 'rgba(255,150,60,0)');
+  const glow = cachedTownGradient(ctx, 'fire-glow|' + fx + '|' + fy, () => {
+    const g = ctx.createRadialGradient(fx, fy, 2, fx, fy, 46);
+    g.addColorStop(0, 'rgba(255,150,60,.28)'); g.addColorStop(1, 'rgba(255,150,60,0)');
+    return g;
+  });
   ctx.fillStyle = glow; ctx.fillRect(fx - 46, fy - 42, 92, 62);
   ctx.fillStyle = '#4a3423';
   ctx.fillRect(fx - 10, fy - 2, 20, 4); ctx.fillRect(fx - 4, fy - 6, 8, 10);
@@ -8629,6 +8805,12 @@ if (typeof window !== 'undefined') {
     weaponBaseForDrop, starterWeaponForClass, weaponClassOf, canEquipForClass, sellDungeonShopItem,
     pThorns, pKillHeal, pMaxHp, pDef, pCrit, eqScoreOf, classFitOf, itemValueScore, mechanicValueBonus, forgeCost, sellPrice, pierceChanceOf,
     audioSnapshot,
+    updateHud,
+    hudPerfSnapshot: () => ({ ...hudPerf, cached:Object.keys(hudElementCache).length }),
+    resetHudPerf,
+    draw, drawTownScene,
+    renderCacheSnapshot: () => ({ ...renderCachePerf }),
+    resetRenderCachePerf,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
       minimapKey:minimapStateKey(), fovRevision,

@@ -18,7 +18,7 @@ T.depth=35; T.persistRun(); ok(T.getRecord().bestDepth>=22,'record persists inde
 const achv=T.checkAchv(false); ok(Array.isArray(achv),'achievement evaluation works without Greedy mode');
 const src=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8'); ok(src.includes("equipmentWeaponsV13.src = 'art/equipment-weapons-v13.png'")&&src.includes('drawGroundEquipment(it.item, px, py, 31)'),'canonical Canvas uses v13 ground equipment art');
 const css=fs.readFileSync(path.join(root,'style.css'),'utf8'); ok(css.includes('*::-webkit-scrollbar-thumb')&&css.includes('#save-now-toggle { min-width: 52px'),'scrollbars and Save control are themed');
-ok(src.includes("$('st-escape-wrap').style.display = greedyMode ? '' : 'none'"),'classic HUD hides Greedy-only Return resource');
+ok(src.includes("const escapeDisplay = greedyMode ? '' : 'none'")&&src.includes("hudStyle(hudEl('st-escape-wrap'), 'display', escapeDisplay)"),'classic HUD hides Greedy-only Return resource through dirty-only HUD writes');
 ok(src.includes('Enter Descend · Shift+Enter Quick Dive'),'English stairs hint keeps the canonical Shift+Enter Quick Dive truth');
 const zh=fs.readFileSync(path.join(root,'index.html'),'utf8'), en=fs.readFileSync(path.join(root,'en/index.html'),'utf8');
 ok(zh.includes('地牢回响 · 远征录')&&en.includes('Dungeon Echo · Expedition Record'),'record is presented as a cross-run Dungeon Echo profile');
