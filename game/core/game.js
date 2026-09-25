@@ -4914,6 +4914,87 @@ function drawCrown(px, py, w) {
   ctx.closePath();
   ctx.fill(); ctx.stroke();
 }
+const renderCachePerf = {
+  textMeasureHits:0, textMeasureMisses:0,
+  dungeonGradientHits:0, dungeonGradientMisses:0,
+  townGradientHits:0, townGradientMisses:0,
+};
+let textWidthCaches = new WeakMap();
+let townGradientCaches = new WeakMap();
+let stairsGradientCache = new Map();
+let dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
+let dungeonVignetteCache = { key:'', gradient:null };
+function cachedMeasureTextWidth(context, text) {
+  let cache = textWidthCaches.get(context);
+  if (!cache) { cache = new Map(); textWidthCaches.set(context, cache); }
+  const key = context.font + '\u0000' + text;
+  if (cache.has(key)) { renderCachePerf.textMeasureHits++; return cache.get(key); }
+  const width = context.measureText(text).width;
+  cache.set(key, width);
+  renderCachePerf.textMeasureMisses++;
+  return width;
+}
+function cachedTownGradient(context, key, create) {
+  let cache = townGradientCaches.get(context);
+  if (!cache) { cache = new Map(); townGradientCaches.set(context, cache); }
+  if (cache.has(key)) { renderCachePerf.townGradientHits++; return cache.get(key); }
+  const gradient = create();
+  cache.set(key, gradient);
+  renderCachePerf.townGradientMisses++;
+  return gradient;
+}
+function cachedStairsGradient(px, py) {
+  const key = px + '|' + py;
+  if (stairsGradientCache.has(key)) {
+    renderCachePerf.dungeonGradientHits++;
+    return stairsGradientCache.get(key);
+  }
+  const gradient = ctx.createRadialGradient(px + TILE / 2, py + TILE / 2, 1, px + TILE / 2, py + TILE / 2, TILE * .55);
+  gradient.addColorStop(0, 'rgba(224,179,77,1)');
+  gradient.addColorStop(1, 'rgba(224,179,77,0)');
+  stairsGradientCache.set(key, gradient);
+  renderCachePerf.dungeonGradientMisses++;
+  return gradient;
+}
+function cachedDungeonPlayerGradients(plx, ply) {
+  const key = [plx, ply, canvas.width, canvas.height].join('|');
+  if (dungeonPlayerGradientCache.key === key) {
+    renderCachePerf.dungeonGradientHits++;
+    return dungeonPlayerGradientCache;
+  }
+  const playerGlow = ctx.createRadialGradient(plx, ply, TILE, plx, ply, TILE * 4.2);
+  playerGlow.addColorStop(0, 'rgba(255,214,150,.10)');
+  playerGlow.addColorStop(1, 'rgba(255,214,150,0)');
+  const fovShade = ctx.createRadialGradient(plx, ply, TILE * 2, plx, ply, TILE * (FOV_R + 1.6));
+  fovShade.addColorStop(0, 'rgba(0,0,0,0)');
+  fovShade.addColorStop(1, 'rgba(0,0,0,.5)');
+  dungeonPlayerGradientCache = { key, playerGlow, fovShade };
+  renderCachePerf.dungeonGradientMisses++;
+  return dungeonPlayerGradientCache;
+}
+function cachedDungeonVignette() {
+  const key = canvas.width + '|' + canvas.height;
+  if (dungeonVignetteCache.key === key && dungeonVignetteCache.gradient) {
+    renderCachePerf.dungeonGradientHits++;
+    return dungeonVignetteCache.gradient;
+  }
+  const gradient = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height * .35,
+    canvas.width / 2, canvas.height / 2, canvas.width * .62);
+  gradient.addColorStop(0, 'rgba(0,0,0,0)');
+  gradient.addColorStop(1, 'rgba(0,0,0,.42)');
+  dungeonVignetteCache = { key, gradient };
+  renderCachePerf.dungeonGradientMisses++;
+  return gradient;
+}
+function resetRenderCachePerf(clearCaches = false) {
+  for (const key of Object.keys(renderCachePerf)) renderCachePerf[key] = 0;
+  if (!clearCaches) return;
+  textWidthCaches = new WeakMap();
+  townGradientCaches = new WeakMap();
+  stairsGradientCache = new Map();
+  dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
+  dungeonVignetteCache = { key:'', gradient:null };
+}
 function drawStairs(px, py, now) {
   ctx.fillStyle = '#04060b';
   ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
@@ -4923,11 +5004,11 @@ function drawStairs(px, py, now) {
     ctx.strokeRect(px + 2 + i * 2.6, py + 2 + i * 2.6, TILE - 4 - i * 5.2, TILE - 4 - i * 5.2);
   }
   const a = .30 + .18 * Math.sin(now * 2.5);
-  const g = ctx.createRadialGradient(px + TILE / 2, py + TILE / 2, 1, px + TILE / 2, py + TILE / 2, TILE * .55);
-  g.addColorStop(0, `rgba(224,179,77,${a})`);
-  g.addColorStop(1, 'rgba(224,179,77,0)');
-  ctx.fillStyle = g;
+  const priorAlpha = ctx.globalAlpha;
+  ctx.globalAlpha = priorAlpha * a;
+  ctx.fillStyle = cachedStairsGradient(px, py);
   ctx.fillRect(px, py, TILE, TILE);
+  ctx.globalAlpha = priorAlpha;
 }
 function drawTorch(px, py, now) {
   const cx = px + TILE / 2, cy = py + TILE * .62;
@@ -5284,7 +5365,7 @@ function draw(now) {
       ctx.save();
       ctx.font = '700 11px "Segoe UI","Microsoft YaHei",sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const labelW = Math.min(108, Math.max(28, ctx.measureText(label).width + 10));
+      const labelW = Math.min(108, Math.max(28, cachedMeasureTextWidth(ctx, label) + 10));
       ctx.fillStyle = 'rgba(8,6,5,.82)'; ctx.fillRect(px - labelW / 2, py - 24, labelW, 15);
       ctx.strokeStyle = RARITIES[it.item.rarity].color; ctx.globalAlpha = .72;
       ctx.strokeRect(px - labelW / 2, py - 24, labelW, 15);
@@ -5386,17 +5467,12 @@ function draw(now) {
     ctx.fillRect(cx2 - TILE * 3, cy2 - TILE * 3, TILE * 6, TILE * 6);
   }
   const plx = player.fx * TILE + TILE / 2, ply = player.fy * TILE + TILE / 2;
-  const g3 = ctx.createRadialGradient(plx, ply, TILE, plx, ply, TILE * 4.2);
-  g3.addColorStop(0, 'rgba(255,214,150,.10)');
-  g3.addColorStop(1, 'rgba(255,214,150,0)');
-  ctx.fillStyle = g3;
+  const dungeonGradients = cachedDungeonPlayerGradients(plx, ply);
+  ctx.fillStyle = dungeonGradients.playerGlow;
   ctx.fillRect(plx - TILE * 4.5, ply - TILE * 4.5, TILE * 9, TILE * 9);
   ctx.globalCompositeOperation = 'source-over';
 
-  const lg = ctx.createRadialGradient(plx, ply, TILE * 2, plx, ply, TILE * (FOV_R + 1.6));
-  lg.addColorStop(0, 'rgba(0,0,0,0)');
-  lg.addColorStop(1, 'rgba(0,0,0,.5)');
-  ctx.fillStyle = lg;
+  ctx.fillStyle = dungeonGradients.fovShade;
   ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
 
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -5417,11 +5493,7 @@ function draw(now) {
     ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
   }
 
-  const vg = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height * .35,
-    canvas.width / 2, canvas.height / 2, canvas.width * .62);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,.42)');
-  ctx.fillStyle = vg;
+  ctx.fillStyle = cachedDungeonVignette();
   ctx.fillRect(-4, -4, canvas.width + 8, canvas.height + 8);
   ctx.restore();
   drawMinimap();
@@ -6803,9 +6875,12 @@ function wheelSlotShort(s) {
 }
 let wheelBusy = false;
 const wheelView = { angle: -SECTOR_A / 2, anim: null, lastWin: -1, winUntil: 0 };
+let wheelCanvasCache = null, wheelContextCache = null;
 function wheelCtxOf() {
-  const cv = $('wheel-canvas');
-  return cv && cv.getContext ? cv.getContext('2d') : null;
+  if (wheelContextCache) return wheelContextCache;
+  wheelCanvasCache = $('wheel-canvas');
+  wheelContextCache = wheelCanvasCache && wheelCanvasCache.getContext ? wheelCanvasCache.getContext('2d') : null;
+  return wheelContextCache;
 }
 function drawWheel(now) {
   const ctx = wheelCtxOf();
@@ -6944,7 +7019,7 @@ function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
   ctx.save();
   ctx.font = `600 ${Math.round(10 * scale)}px "Segoe UI", "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const width = Math.ceil(ctx.measureText(label).width) + 14 * scale;
+  const width = Math.ceil(cachedMeasureTextWidth(ctx, label)) + 14 * scale;
   const height = 18 * scale, y = baseY - 65 * scale;
   ctx.fillStyle = active ? 'rgba(39,25,12,.94)' : 'rgba(7,6,8,.78)';
   ctx.strokeStyle = active ? '#f2d27b' : 'rgba(183,147,91,.56)';
@@ -7141,11 +7216,17 @@ function drawTownGrowthVisual(ctx, now, W, H, G) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f2d27b';
   ctx.fillText(ui(`回响小镇 · 阶段 ${tier}`, `Echo Town · Tier ${tier}`), 20, 23);
 }
+let townSceneCanvasCache = null, townSceneContextCache = null;
+function townSceneCtxOf() {
+  if (townSceneContextCache) return townSceneContextCache;
+  townSceneCanvasCache = $('town-scene');
+  townSceneContextCache = townSceneCanvasCache && townSceneCanvasCache.getContext ? townSceneCanvasCache.getContext('2d') : null;
+  return townSceneContextCache;
+}
 function drawTownScene(now) {
-  const cv = $('town-scene');
-  if (!cv || !cv.getContext) return;
-  const ctx = cv.getContext('2d');
-  if (!ctx) return;
+  const cv = townSceneCanvasCache || $('town-scene');
+  const ctx = townSceneCtxOf();
+  if (!cv || !ctx) return;
   const W = cv.width || 900, H = cv.height || 210;
   const G = H * .78;
   const townBackdrop = imageReady(townBackdropV190) ? townBackdropV190 : townBackdropV11;
@@ -7158,8 +7239,11 @@ function drawTownScene(now) {
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(townBackdrop, 0, sy, iw, sh, 0, 0, W, H);
-    const shade = ctx.createLinearGradient(0, 0, 0, H);
-    shade.addColorStop(0, 'rgba(5,8,20,.08)'); shade.addColorStop(.7, 'rgba(5,4,8,.03)'); shade.addColorStop(1, 'rgba(5,3,4,.36)');
+    const shade = cachedTownGradient(ctx, 'backdrop-shade|' + W + '|' + H, () => {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, 'rgba(5,8,20,.08)'); g.addColorStop(.7, 'rgba(5,4,8,.03)'); g.addColorStop(1, 'rgba(5,3,4,.36)');
+      return g;
+    });
     ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
     drawTownGrowthVisual(ctx, now, W, H, G);
     drawTownFire(ctx, now, G);
@@ -7173,8 +7257,11 @@ function drawTownScene(now) {
       r: Math.random() * 1.3 + .5, tw: Math.random() * 6,
     });
   }
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#0b0916'); sky.addColorStop(.7, '#191022'); sky.addColorStop(1, '#241724');
+  const sky = cachedTownGradient(ctx, 'fallback-sky|' + W + '|' + H, () => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b0916'); g.addColorStop(.7, '#191022'); g.addColorStop(1, '#241724');
+    return g;
+  });
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
   for (const st of townStars) {
     ctx.globalAlpha = .35 + .55 * Math.abs(Math.sin(now / 900 + st.tw));
@@ -7276,8 +7363,11 @@ function drawTownBuildings(ctx, now, W, H, G) {
 function drawTownFire(ctx, now, G) {
   // 前景篝火（市集与客栈之间）
   const fx = W0_FIRE.x, fy = G + 14;
-  const glow = ctx.createRadialGradient(fx, fy, 2, fx, fy, 46);
-  glow.addColorStop(0, 'rgba(255,150,60,.28)'); glow.addColorStop(1, 'rgba(255,150,60,0)');
+  const glow = cachedTownGradient(ctx, 'fire-glow|' + fx + '|' + fy, () => {
+    const g = ctx.createRadialGradient(fx, fy, 2, fx, fy, 46);
+    g.addColorStop(0, 'rgba(255,150,60,.28)'); g.addColorStop(1, 'rgba(255,150,60,0)');
+    return g;
+  });
   ctx.fillStyle = glow; ctx.fillRect(fx - 46, fy - 42, 92, 62);
   ctx.fillStyle = '#4a3423';
   ctx.fillRect(fx - 10, fy - 2, 20, 4); ctx.fillRect(fx - 4, fy - 6, 8, 10);
@@ -8689,6 +8779,9 @@ if (typeof window !== 'undefined') {
     updateHud,
     hudPerfSnapshot: () => ({ ...hudPerf, cached:Object.keys(hudElementCache).length }),
     resetHudPerf,
+    draw, drawTownScene,
+    renderCacheSnapshot: () => ({ ...renderCachePerf }),
+    resetRenderCachePerf,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
       minimapKey:minimapStateKey(), fovRevision,
