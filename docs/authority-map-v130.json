@@ -1,6 +1,6 @@
 {
-  "version": "1.9.0",
-  "cacheGeneration": 190,
+  "version": "1.9.4",
+  "cacheGeneration": 194,
   "policy": "one-responsibility-one-production-authority",
   "authorities": {
     "gameplayState": "game/core/game.js",
