@@ -49,6 +49,7 @@ const tests = [
   'monster-tactics-v194.cjs',
   'decision-summary-v194.cjs',
   'performance-lifecycle-v195.cjs',
+  'performance-dom-v196.cjs',
   'progression-cap-runtime-v180.cjs',
   'skill-evolution-delivery-v180.cjs',
   'monster-threat-v170.cjs',
