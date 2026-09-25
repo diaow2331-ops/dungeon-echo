@@ -62,6 +62,23 @@ arena(); T.player.x=8; T.player.y=5;
 const g=T.makeMonster({ sprite:'boss', name:'Guardian Probe', color:'#fff', hp:999, atk:20, def:0, xp:0, depth:15, midBoss:true }, { x:6,y:5 });
 g.x=6; g.y=5; g.fx=6; g.fy=5; g.armorBreak=false; g.ranged=0; T.monsters.push(g); hp0=T.player.hp; T.setSeed('guardian-legacy'); T.endTurn();
 ok(g.x===7 && g.y===5 && T.player.hp<hp0, 'guardian keeps the previously shipped move-plus-pressure cadence');
+T.newGame('ranger'); T.depth=1; arena(); T.player.x=5; T.player.y=5; T.player.facing=[1,0];
+const assistTarget=monster(7,6); const assistHp=assistTarget.hp; const turnsBeforeAssist=T.turns;
+ok(T.findRangedTarget(1,0)===null, 'aim-assist probe has no exact facing-line target');
+ok(T.findAssistedRangedTarget(1,0)===assistTarget, 'aim assist selects a visible in-range target only one tile off the facing corridor');
+ok(assistTarget.hp===assistHp && T.turns===turnsBeforeAssist, 'aim selection alone never auto-attacks or spends a turn');
+ok(T.directionalAttack()===true && assistTarget.hp<assistHp && T.turns===turnsBeforeAssist+1, 'explicit J-style attack input fires once at the assisted legal target');
+
+arena(); T.player.x=5; T.player.y=5; T.player.facing=[1,0];
+const behind=monster(4,5);
+ok(T.findAssistedRangedTarget(1,0)===null, 'aim assist never targets an enemy behind the player');
+const noTargetTurn=T.turns;
+ok(T.directionalAttack()===false && T.turns===noTargetTurn && behind.hp>0, 'no legal forward target silently spends no turn');
+
+arena(); T.player.x=5; T.player.y=5; T.player.facing=[1,0];
+const blocked=monster(7,6); T.mapGrid[5][6]=0; T.mapGrid[6][6]=0;
+ok(T.findAssistedRangedTarget(1,0)===null, 'aim assist never selects a target through blocking terrain');
+
 const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
 ok(core.includes('if (m.boss || m.midBoss) guardianLegacyAction(m);') && core.includes('else ordinaryMonsterAction(m);'), 'guardian AI is gated away from the new ordinary-monster tactics path');
 console.log('\nRESULT  ' + pass + ' passed / ' + fail + ' failed');
