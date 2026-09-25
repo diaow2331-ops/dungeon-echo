@@ -39,7 +39,7 @@ function elem(id){
   if(id==='minimap')return canvas(id,160,112);
   if(id==='town-scene')return canvas(id,1120,460);
   if(id==='wheel-canvas')return canvas(id,240,240);
-  return{id,innerHTML:'',textContent:'',disabled:false,title:'',style:{},dataset:{},hidden:false,width:0,height:0,getContext:()=>context(),getBoundingClientRect:()=>({left:0,top:0,width:1000,height:600}),focus(){},classList:classList(),addEventListener(){},setAttribute(){},removeAttribute(){},replaceChildren(){},appendChild(){},append(){},querySelector:()=>null};
+  return{id,innerHTML:'',textContent:'',disabled:false,title:'',style:{},dataset:{},hidden:false,width:0,height:0,getContext:()=>context(),getBoundingClientRect:()=>({left:0,top:0,width:1000,height:600}),focus(){},classList:classList(),addEventListener(){},setAttribute(){},removeAttribute(){},replaceChildren(){},appendChild(){},append(){},querySelector:()=>elem(id+'-child')};
 }
 const elements=new Map(),el=id=>{if(!elements.has(id))elements.set(id,elem(id));return elements.get(id)};
 let offscreen=0;
