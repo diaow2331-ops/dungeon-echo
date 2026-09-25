@@ -1,27 +1,23 @@
 # Dungeon Echo v1.9.8
 
-## Dynamic gradient cache
+## Allocation-free hot cache guards
 
-- Equipment loot auras reuse native CanvasGradient objects inside rounded pixel-position buckets.
-- Amulet aura gradients reuse the same cache mechanism.
-- Torch glow keeps its visible flicker, but radius changes are quantized into nine cached buckets per torch position.
-- Cached gradients remain tied to their original Canvas context and geometry; only exact compatible states reuse them.
+- Minimap unchanged-state checks use structured primitive comparisons instead of joined-string cache keys.
+- Static dungeon-layer, visibility-layer and scene-filter caches compare primitive revision/camera/turn state directly.
+- Player-light, vignette and authored-town backdrop caches avoid composite string-key allocation on hot paths.
+- The v1.9.5–v1.9.7 render lifecycle, DOM and static-scene optimizations remain intact.
+
+## Rejected dynamic-gradient experiment
+
+- Reusable glow sprites and then native dynamic-gradient caches were prototyped during development.
+- The native gradient experiment was intentionally removed before release while the hot-cache guards were being simplified.
+- Commit `6745c83` retired its dedicated regression test.
+- The shipped v1.9.8 runtime continues to construct equipment, amulet and torch dynamic gradients normally.
 
 ## High-DPI audit
 
-- The game does not multiply Canvas backing dimensions by devicePixelRatio.
-- In the same Chrome environment at DPR 1, 2 and 3, the game Canvas stayed at 1280×896 while CSS display dimensions remained unchanged.
-- This means there is no hidden 4×/9× backing-pixel penalty from the current high-DPI path, so no DPR downscaling change is included.
-
-## Browser regression evidence
-
-Measured against v1.9.7 on verified, separate local HTTP origins:
-- idle native radial-gradient creation over 1.2s: 11–18 → 0–4
-- action native radial-gradient creation over 700ms: 7–13 → 0–4
-- dynamic-gradient cache tests cap torch flicker at nine native gradient variants for 240 sampled animation states
-- headless TaskDuration was too noisy across runs to use as a release claim, so it is intentionally excluded from the performance conclusion
-
-These figures are environment-specific regression evidence, not a device-wide performance guarantee.
+- In the same Chrome environment at DPR 1, 2 and 3, the game Canvas backing dimensions remained unchanged.
+- No hidden 4×/9× backing-pixel multiplication was found, so no DPR downscaling behavior change shipped.
 
 ## Compatibility and authority
 
