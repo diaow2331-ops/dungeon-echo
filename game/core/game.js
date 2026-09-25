@@ -6590,7 +6590,8 @@ function showTown() {
   showUi('town-screen');
   hideTownDialogue();
   applyTownViewport();
-  townLastFrame = 0; townPromptKey = '';
+  townLastFrame = 0; townLastPaint = 0; townSceneLastPaint = 0; wheelLastPaint = 0;
+  wheelPaintRequested = true; townPromptKey = '';
   renderTown();
   renderTownFocus(false); updateTownPrompt();
   ensureTownLoop();
@@ -6814,6 +6815,7 @@ function startWheelKick() {
 // ---- 城镇场景：夜色小镇横幅（星空/远山/五座功能建筑/灯火/篝火动画） ----
 let townStars = null;
 let townRafId = 0, townTimerId = 0, townLastPaint = 0;
+let townSceneLastPaint = 0, wheelLastPaint = 0, wheelPaintRequested = true;
 const TOWN_ACTIVE_FRAME_MS = reducedMotion ? 66 : 33;
 const TOWN_IDLE_FRAME_MS = reducedMotion ? 220 : 80;
 function townTierForArt() {
@@ -7232,9 +7234,15 @@ function drawTownFire(ctx, now, G) {
   }
 }
 const W0_FIRE = { x: 430 };
+function townSceneMotionActive() {
+  return Math.hypot(townAvatar.tx - townAvatar.x, townAvatar.ty - townAvatar.y) > .001 ||
+    !!townPendingHotspot;
+}
+function wheelMotionActive(now = performance.now()) {
+  return wheelBusy || !!wheelView.anim || now < wheelView.winUntil;
+}
 function townMotionActive(now = performance.now()) {
-  const movingAvatar = Math.hypot(townAvatar.tx - townAvatar.x, townAvatar.ty - townAvatar.y) > .001;
-  return movingAvatar || !!townPendingHotspot || wheelBusy || !!wheelView.anim || now < wheelView.winUntil;
+  return townSceneMotionActive() || wheelMotionActive(now);
 }
 function cancelTownTimer() {
   if (townTimerId) {
@@ -7268,11 +7276,29 @@ function wakeTownFrame() {
 function townFrame(now) {
   townRafId = 0;
   if (document.hidden || state !== 'town') return;
-  townLastPaint = Number(now) || performance.now();
-  try { advanceTownAvatar(now || 0); drawTownScene(now || 0); drawWheel(now || 0); } catch (e) { /* 绘制异常不阻塞游戏 */ }
+  const t = Number(now) || performance.now();
+  townLastPaint = t;
+  const sceneInterval = townSceneMotionActive() ? TOWN_ACTIVE_FRAME_MS : TOWN_IDLE_FRAME_MS;
+  const sceneDue = !townSceneLastPaint || t - townSceneLastPaint >= sceneInterval - 1;
+  const wheelActive = wheelMotionActive(t);
+  const wheelDue = wheelPaintRequested ||
+    (wheelActive && (!wheelLastPaint || t - wheelLastPaint >= TOWN_ACTIVE_FRAME_MS - 1));
+  try {
+    if (sceneDue) {
+      advanceTownAvatar(t);
+      drawTownScene(t);
+      townSceneLastPaint = t;
+    }
+    if (wheelDue) {
+      drawWheel(t);
+      wheelLastPaint = t;
+      wheelPaintRequested = false;
+    }
+  } catch (e) { /* 绘制异常不阻塞游戏 */ }
   scheduleTownFrame();
 }
 function ensureTownLoop() {
+  wheelPaintRequested = true;
   return scheduleTownFrame(true);
 }
 document.addEventListener('visibilitychange', () => {
@@ -7284,6 +7310,9 @@ document.addEventListener('visibilitychange', () => {
   } else {
     townLastFrame = 0;
     townLastPaint = 0;
+    townSceneLastPaint = 0;
+    wheelLastPaint = 0;
+    wheelPaintRequested = true;
     wakeTownFrame();
   }
 });
@@ -8605,6 +8634,8 @@ if (typeof window !== 'undefined') {
       minimapKey:minimapStateKey(), fovRevision,
       townActiveMs:TOWN_ACTIVE_FRAME_MS, townIdleMs:TOWN_IDLE_FRAME_MS,
       townActive:state === 'town' ? townMotionActive() : false,
+      townSceneActive:state === 'town' ? townSceneMotionActive() : false,
+      wheelActive:state === 'town' ? wheelMotionActive() : false,
     }),
     drawMinimap,
     MECHANIC_TRAITS, mechanicPower, mechanicDescription, applyDirectHitMechanic,
