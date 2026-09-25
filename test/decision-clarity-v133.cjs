@@ -17,7 +17,7 @@ ok(/const sellPrice = it => ECONOMY_RULES\.sellPrice\(itemValueScore\(it\)/.test
 ok(authority.authorities.equipmentClassFitScoring === 'game/domain/inventory/equipment-rules-v130.js', 'authority map records class-fit scoring owner');
 ok(/Class fit is presentation\/decision/.test(rulesSrc) && /must not price, generate, equip or mutate items/.test(rulesSrc), 'inventory rules lock class fit to decision information');
 
-ok(core.includes("const GUIDE_KEY = 'de-guide-v1'") && core.includes("['move', 'combat', 'gear', 'stairs', 'return']"), 'first-run guide has a bounded preference contract');
+ok(core.includes("const GUIDE_KEY = 'de-guide-v1'") && core.includes("['move', 'combat', 'gear', 'stairs', 'return', 'aim', 'contract']"), 'first-run guide has a bounded preference contract');
 ok(/function guideOnce\(id, zh, en, cls='good'\)/.test(core) && /guideSeen\.has\(id\)/.test(core), 'guide prompts are event-driven and once-only');
 ok(/guideFirstRunStart\(\);/.test(core) && /guideCombatOnce\(\);/.test(core) && /guideGearOnce\(\);/.test(core), 'movement combat and gear guidance attach to canonical events');
 ok(/guideOnce\('stairs'/.test(core) && /guideOnce\('return'/.test(core), 'stairs and return guidance attach to their real events');
