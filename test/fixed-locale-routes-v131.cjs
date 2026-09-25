@@ -30,7 +30,7 @@ for(const retired of ['stable-item-id-migration-v150.js','core-screen-owner-v153
   ok(!manifest.some(file=>file===retired||file.endsWith('/'+retired)),`${retired} is absent from release manifest`);
 }
 const expectedFollowers=[
-  "fresh('game/core/release-stamp-v195.js')",
+  "fresh('game/core/release-stamp-v196.js')",
   "fresh('game/locale/fixed-locale-entry-v130.js')",
   "fresh('game/ui/responsive-final-v154.js')",
   "fresh('game/ui/help-copy-v126.js')",
@@ -40,7 +40,7 @@ const expectedFollowers=[
 ];
 for(const token of expectedFollowers) ok(runtime.includes(token),`runtime follower present: ${token}`);
 ok(/const english = routeLang === 'en'/.test(runtime),'runtime locale identity is fixed-route derived');
-ok(/const assetVersion = '195'/.test(runtime)&&/version:'v37'/.test(runtime),'runtime bootstrap aligns with generation 195 / v37');
+ok(/const assetVersion = '196'/.test(runtime)&&/version:'v38'/.test(runtime),'runtime bootstrap aligns with generation 196 / v38');
 ok(/const chain = Object\.freeze\(\[/.test(runtime)&&/followers:'presentation-only'/.test(runtime),'runtime owns one bounded presentation follower chain');
 ok(!/MutationObserver|translateTree|setInterval/.test(localeData),'locale data remains source-level and observer-free');
 ok(!/MutationObserver|setInterval|requestAnimationFrame/.test(coreLocale),'core locale data remains one-shot and observer-free');
