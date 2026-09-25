@@ -49,7 +49,7 @@ const RECORD_VERSION = 1;
 const GREEDY_KEY = 'de-greedy-on-v1';
 const GUIDE_KEY = 'de-guide-v1';
 const GUIDE_VERSION = 1;
-const GUIDE_IDS = Object.freeze(['move', 'combat', 'gear', 'stairs', 'return']);
+const GUIDE_IDS = Object.freeze(['move', 'combat', 'gear', 'stairs', 'return', 'aim', 'contract']);
 const AUDIO_PREF_KEY = 'de-audio-v1';
 const AUDIO_PREF_VERSION = 1;
 const AUDIO_DEFAULTS = Object.freeze({ music:0.60, sfx:0.78, muted:false });
@@ -3086,6 +3086,26 @@ function findRangedTarget(dx, dy) {
   }
   return null;
 }
+function findAssistedRangedTarget(dx, dy) {
+  const range = classDef().rangedRange || 0;
+  if (!range || Math.abs(dx) + Math.abs(dy) !== 1) return null;
+  const candidates = monsters
+    .filter(m => m && m.hp > 0)
+    .map(m => {
+      const rx = m.x - player.x, ry = m.y - player.y;
+      const forward = dx ? rx * dx : ry * dy;
+      const lateral = dx ? Math.abs(ry) : Math.abs(rx);
+      const dist = Math.max(Math.abs(rx), Math.abs(ry));
+      return { m, forward, lateral, dist };
+    })
+    // Bounded aim assist: only a one-tile-wide forward corridor, never behind
+    // the player, never outside range, never through terrain.
+    .filter(row => row.forward > 0 && row.lateral <= 1 && row.dist <= range &&
+      los(player.x, player.y, row.m.x, row.m.y))
+    .sort((a,b) => a.lateral - b.lateral || a.dist - b.dist ||
+      a.m.y - b.m.y || a.m.x - b.m.x);
+  return candidates.length ? candidates[0].m : null;
+}
 function playerRangedAttack(m, attackClass=classId) {
   const arcane = attackClass === 'mage';
   fireArrow(player.x, player.y, m.x, m.y, arcane ? 'arcane' : 'arrow');
@@ -3125,7 +3145,8 @@ function directionalAttack() {
   const dx = Math.sign(Number(facing[0]) || 0), dy = Math.sign(Number(facing[1]) || 0);
   if (Math.abs(dx) + Math.abs(dy) !== 1) return false;
   const ranged = classDef().rangedRange || 0;
-  const target = ranged ? findRangedTarget(dx, dy) : monsterAt(player.x + dx, player.y + dy);
+  const directTarget = ranged ? findRangedTarget(dx, dy) : null;
+  const target = ranged ? (directTarget || findAssistedRangedTarget(dx, dy)) : monsterAt(player.x + dx, player.y + dy);
   if (!target) {
     msg(ranged
       ? ui('当前朝向的射程内没有敌人。', 'No enemy is in range along your current facing.')
@@ -3133,6 +3154,9 @@ function directionalAttack() {
     return false;
   }
   guideCombatOnce();
+  if (ranged && !directTarget) guideOnce('aim',
+    '远程普攻会在当前朝向前方一格宽的窄通道内辅助锁定；不会穿墙、不会打身后目标，也不会在没有合法目标时消耗回合。',
+    'Ranged basics can assist within a one-tile-wide corridor in front of you; they never shoot through walls, target behind you, or spend a turn without a legal target.');
   if (ranged) playerRangedAttack(target, classId);
   else playerAttack(target);
   if (state !== 'playing') { updateHud(); return true; }
@@ -8390,7 +8414,7 @@ if (typeof window !== 'undefined') {
     profileId: PROFILE_ID,
     get classId() { return classId; },
     validateProfile, requireProfile,
-    descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack,
+    descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack, findRangedTarget, findAssistedRangedTarget,
     ordinaryStepToward, ordinaryMonsterAction, tryRangedReposition, rangedPreferredMin,
     quickDive, quickDiveCost, skillManaCost,
     pauseGame, resumeGame,
