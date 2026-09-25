@@ -5,18 +5,18 @@ This package extends the existing play.91hwl.cn release tree. It preserves
 the existing /srv/91hwl-play/current symlink atomically, and rolls back on failed checks.
 
 Server usage:
-  unzip 91hwl-play-dungeon-echo-v1.9.7.zip -d /tmp/91hwl-play-dungeon-echo-v1.9.7
-  cd /tmp/91hwl-play-dungeon-echo-v1.9.7
+  unzip 91hwl-play-dungeon-echo-v1.9.8.zip -d /tmp/91hwl-play-dungeon-echo-v1.9.8
+  cd /tmp/91hwl-play-dungeon-echo-v1.9.8
   sudo ./ops/deploy.sh
 
-v1.9.7 publishes cache generation 197 as the Static Scene Layer + Visibility Filter Cache release:
-- Dungeon wall/floor geometry is composed once per generated/restored floor into a reusable static map bitmap.
-- Each visual frame crops only the active viewport from that map bitmap instead of redrawing every visible tile.
-- FOV darkness is cached as a viewport-sized overlay and rebuilt only when FOV/camera state changes.
-- Visible decals, traps, secrets, NPCs, items, monsters, stairs and torches share one turn/FOV scene-filter cache across animation frames.
-- Authored Echo Town backdrop + shade are composed once per canvas size and reused while dynamic growth/fire/NPC effects stay live.
-- Dynamic combat effects, stairs, torches, loot bobbing, monsters and town interactions remain uncached and continue to animate normally.
-- Browser A/B regression tests show large reductions in dungeon draw calls and lower action-frame main-thread work without gameplay-rule changes.
+v1.9.8 publishes cache generation 198 as the Dynamic Gradient Cache + High-DPI Audit release:
+- Equipment-drop aura gradients are reused within pixel buckets instead of recreated every animation frame.
+- Amulet aura gradients are cached by pixel position.
+- Torch-light gradients quantize flicker radius into nine buckets per torch position and reuse native CanvasGradient objects.
+- Existing v1.9.7 static-map/FOV/scene-filter caches remain intact.
+- High-DPI audit confirmed the game Canvas backing store stays at the same logical dimensions across DPR 1/2/3; CSS scaling does not multiply backing pixels.
+- Dynamic effects still pulse and flicker because alpha and radius bucket selection remain frame-driven.
+- Browser A/B showed repeated native radial-gradient construction materially reduced without gameplay-rule changes.
 - game/core/game.js remains the sole runtime owner for RNG, mutable gameplay state, turn execution,
   rewards, persistence, Canvas rendering and gameplay input.
 - Storage epoch remains v130; existing saves are preserved.
