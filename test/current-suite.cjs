@@ -51,6 +51,7 @@ const tests = [
   'performance-lifecycle-v195.cjs',
   'performance-dom-v196.cjs',
   'performance-render-cache-v196.cjs',
+  'performance-scene-cache-v197.cjs',
   'progression-cap-runtime-v180.cjs',
   'skill-evolution-delivery-v180.cjs',
   'monster-threat-v170.cjs',
