@@ -3401,8 +3401,8 @@ function pickupHere() {
       player.escapes = (player.escapes || 0) + 1;
       msg(ui('你捡起了一张回城卷轴。','Picked up a Return Scroll.'), 'gold');
       if (greedyMode) guideOnce('return',
-        '按 T 回城会把背包与随身金币安全带回小镇；死在远征里会失去未保全的背包与金币。',
-        'Press T to return safely with your backpack and carried Gold; dying on an expedition loses unsecured backpack loot and Gold.', 'gold');
+        '按 T 使用回城卷轴会先引导 2 个完整回合；期间受到任何伤害都会中断并烧毁卷轴。成功回城后背包与随身金币才会安全入镇。',
+        'Press T to channel a Return Scroll for 2 full turns; any damage interrupts it and burns the scroll. Backpack loot and carried Gold are secured only after the return completes.', 'gold');
       break;
     case 'key':
       player.keys++; msg(ui('你捡起了一把锈蚀钥匙。','Picked up a Rusty Key.'), 'gold'); break;
@@ -6344,7 +6344,7 @@ function renderTownContracts() {
         ? ui('永久等级已达上限；该誓约本轮不再提供成长收益。','Permanent level cap reached; this Oath no longer provides progression value.')
         : ui(row.zhDesc,row.enDesc);
       return `<button type="button" data-contract="${row.id}" class="${active ? 'active' : ''}" aria-pressed="${active}" aria-disabled="${!enabled}"${enabled ? '' : ' disabled'}><b>${ui(row.zh,row.en)}</b><small>${desc}</small></button>`;
-    }).join('')}</div>`;
+    }).join('')}</div>` + townDepartureDecisionHtml();
 }
 function renderTownCheckpoints() {
   const panel = $('town-checkpoints');
@@ -7631,7 +7631,7 @@ function renderTown() {
       focusActive:!!meta.relicFocusSet,
     });
     const returnNote = rumor ? ui(rumor.zh,rumor.en) : ui('镇上的人各自忙着自己的事。','Everyone in town is busy with their own work.');
-    growth.innerHTML =
+    growth.innerHTML = townOutcomeHtml() +
       `<div><b>${ui(`城镇阶段 ${tier}/10`, `Town Tier ${tier}/10`)}</b><span>${next}</span></div>` +
       `<div class="town-readiness ${ready ? 'ready' : 'warn'}"><b>${ready ? ui('远征整备完成','Expedition Ready') : ui('补给仍有缺口','Supplies Missing')}</b>` +
       `<span>${ui(`药水 ${meta.potions || 0} · 回城卷轴 ${meta.escapes || 0} · 钥匙 ${meta.keys || 0}`, `Potions ${meta.potions || 0} · Return Scrolls ${meta.escapes || 0} · Keys ${meta.keys || 0}`)}</span>${kitButton}</div>` +
@@ -8005,6 +8005,11 @@ function completeEscape() {
   const newlyCompletedSets = completedRelicSets(meta.relicLedger || {}).filter(set => !completedBefore.has(set.id));
   for (const set of newlyCompletedSets) recordTownChronicle({ kind:'set', id:set.id });
   const stagedTownEvent = stageTownReturnEvent(returnedRelics.length);
+  lastTownOutcome = {
+    kind:'safe', depth:meta.lastReturnDepth, gold:banked,
+    relics:returnedRelics.length, sets:newlyCompletedSets.length,
+    hpPct:clamp(Number(meta.hpPct) || 100, 1, 100),
+  };
   enterTown();
   msg(ui(`你撕开回城卷轴，平安回到小镇。${banked} 金币落入金库。`, `You tear open a Return Scroll and reach town safely. ${banked} Gold enters the vault.`), 'gold');
   if (arrivedResidents.length) msg(ui(
@@ -8028,6 +8033,10 @@ function completeEscape() {
 }
 function greedyDeathReturn(lostInv, lostGold) {
   syncMetaFromPlayer(true);
+  lastTownOutcome = {
+    kind:'death', depth:Math.max(1, Number(depth) || 1),
+    lostInv:Math.max(0, Number(lostInv) || 0), lostGold:Math.max(0, Number(lostGold) || 0),
+  };
   enterTown();
   msg(ui(`你倒在第 ${depth} 层……失去了背包里的 ${lostInv} 件物品和随身 ${lostGold} 金币。`, `You fell on Floor ${depth} and lost ${lostInv} backpack items and ${lostGold} carried Gold.`), 'bad');
   msg(ui('好在穿在身上的装备还在。整备一番，再下去！','Your equipped gear survived. Prepare and descend again!'), 'gold');
@@ -8490,7 +8499,7 @@ if (typeof window !== 'undefined') {
     setGreedy, getMeta: () => meta,
     get meta() { return meta; },
     useEscape, departTown, depositStash, withdrawStash, buyTown,
-    townReadinessPlan, buyTownReadiness, townMarketPrice, townMarketRestockCost, townMarketRestockAvailable, restockTownMarket,
+    townReadinessPlan, townDepartureDecisionSnapshot, buyTownReadiness, townMarketPrice, townMarketRestockCost, townMarketRestockAvailable, restockTownMarket,
     tavernCost, tavernAvailable, tavernOfferChoices, tavernRewardCount, drinkAtTavern,
     smithyCanRetemper, smithyCanMasterwork, forgeRetemperCost, completeForgeMasterwork,
     moveTownAvatar, setTownTarget, interactTown,
