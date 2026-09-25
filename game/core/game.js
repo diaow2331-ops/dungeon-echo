@@ -5044,20 +5044,25 @@ function cachedDungeonStaticLayer() {
 }
 function cachedDungeonVisibilityLayer() {
   if (!map || !explored || !visible) return null;
-  const key = [dungeonMapRevision, fovRevision].join('|');
+  const key = [dungeonMapRevision, fovRevision, view.x, view.y, view.cols, view.rows].join('|');
   if (dungeonVisibilityLayerCache.key === key && dungeonVisibilityLayerCache.canvas) {
     renderCachePerf.visibilityLayerHits++;
     return dungeonVisibilityLayerCache.canvas;
   }
-  const layer = makeRenderLayer(MAP_W * TILE, MAP_H * TILE);
+  const layer = makeRenderLayer(view.cols * TILE, view.rows * TILE);
   const g = layer.getContext('2d');
   if (!g) return null;
-  for (let y = 0; y < MAP_H; y++) {
-    for (let x = 0; x < MAP_W; x++) {
-      if (!explored[y][x]) g.fillStyle = '#000';
-      else if (!visible[y][x]) g.fillStyle = 'rgba(2,3,6,.78)';
-      else continue;
-      g.fillRect(x * TILE, y * TILE, TILE, TILE);
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, layer.width, layer.height);
+  for (let y = view.y; y < view.y + view.rows; y++) {
+    for (let x = view.x; x < view.x + view.cols; x++) {
+      if (!explored[y][x]) continue;
+      const lx = (x - view.x) * TILE, ly = (y - view.y) * TILE;
+      g.clearRect(lx, ly, TILE, TILE);
+      if (!visible[y][x]) {
+        g.fillStyle = 'rgba(2,3,6,.78)';
+        g.fillRect(lx, ly, TILE, TILE);
+      }
     }
   }
   dungeonVisibilityLayerCache = { key, canvas:layer };
@@ -5384,11 +5389,14 @@ function draw(now) {
   ctx.translate(-view.x * TILE, -view.y * TILE);
 
   const staticLayer = cachedDungeonStaticLayer();
-  if (staticLayer) ctx.drawImage(staticLayer, 0, 0);
+  if (staticLayer) {
+    const vx = view.x * TILE, vy = view.y * TILE, vw = view.cols * TILE, vh = view.rows * TILE;
+    ctx.drawImage(staticLayer, vx, vy, vw, vh, vx, vy, vw, vh);
+  }
   for (const [sx, sy] of scene.stairs) drawStairs(sx, sy, now);
   for (const [tx, ty] of scene.torches) drawTorch(tx, ty, now);
   const visibilityLayer = cachedDungeonVisibilityLayer();
-  if (visibilityLayer) ctx.drawImage(visibilityLayer, 0, 0);
+  if (visibilityLayer) ctx.drawImage(visibilityLayer, view.x * TILE, view.y * TILE);
 
   ctx.globalAlpha = .6;
   for (const d of scene.decals) {
