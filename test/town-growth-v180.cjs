@@ -71,8 +71,8 @@ assert(core.includes('SET_RULES.collectionProgress(ledger, set.id).found')&&core
 assert(css.includes('.town-work-grid')&&css.includes('.town-work-card'),'town projects need dedicated responsive presentation');
 
 for(const [name,html] of [['zh',zh],['en',en]]){
-  assert(html.includes('game/domain/town/town-growth-rules-v180.js?v=194'),name+' boots town-growth policy');
-  assert(html.indexOf('town-growth-rules-v180.js?v=194')<html.indexOf('game/core/game.js?v=194'),name+' boots town-growth policy before core');
+  assert(html.includes('game/domain/town/town-growth-rules-v180.js?v=195'),name+' boots town-growth policy');
+  assert(html.indexOf('town-growth-rules-v180.js?v=195')<html.indexOf('game/core/game.js?v=195'),name+' boots town-growth policy before core');
 }
 assert(manifest.includes('game/domain/town/town-growth-rules-v180.js'),'release allowlist must ship town-growth authority');
 assert.equal(authority.authorities.townGrowthPolicy,'game/domain/town/town-growth-rules-v180.js');
