@@ -4924,18 +4924,20 @@ const renderCachePerf = {
   visibilityLayerHits:0, visibilityLayerMisses:0,
   sceneFilterHits:0, sceneFilterMisses:0,
   townLayerHits:0, townLayerMisses:0,
-  dynamicGradientHits:0, dynamicGradientMisses:0,
 };
 let textWidthCaches = new WeakMap();
 let townGradientCaches = new WeakMap();
 let stairsGradientCache = new Map();
-let dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
-let dungeonVignetteCache = { key:'', gradient:null };
-let dungeonStaticLayerCache = { key:'', canvas:null };
-let dungeonVisibilityLayerCache = { key:'', canvas:null };
-let dungeonSceneFilterCache = { key:'', scene:null };
-let townBackdropLayerCache = { key:'', canvas:null };
-let dungeonDynamicGradientCache = new Map();
+let dungeonPlayerGradientCache = { plx:NaN, ply:NaN, width:0, height:0, playerGlow:null, fovShade:null };
+let dungeonVignetteCache = { width:0, height:0, gradient:null };
+let dungeonStaticLayerCache = { revision:-1, depth:-1, canvas:null };
+let dungeonVisibilityLayerCache = { revision:-1, fov:-1, x:-1, y:-1, cols:-1, rows:-1, canvas:null };
+let dungeonSceneFilterCache = {
+  revision:-1, fov:-1, turns:-1, depth:-1, cleared:false, px:-1, py:-1,
+  x:-1, y:-1, cols:-1, rows:-1, decals:-1, monsters:-1, items:-1, npcs:-1, traps:-1, secrets:-1,
+  scene:null,
+};
+let townBackdropLayerCache = { source:null, width:0, height:0, naturalWidth:0, naturalHeight:0, canvas:null };
 function cachedMeasureTextWidth(context, text) {
   let cache = textWidthCaches.get(context);
   if (!cache) { cache = new Map(); textWidthCaches.set(context, cache); }
@@ -4969,8 +4971,8 @@ function cachedStairsGradient(px, py) {
   return gradient;
 }
 function cachedDungeonPlayerGradients(plx, ply) {
-  const key = [plx, ply, canvas.width, canvas.height].join('|');
-  if (dungeonPlayerGradientCache.key === key) {
+  if (dungeonPlayerGradientCache.plx === plx && dungeonPlayerGradientCache.ply === ply &&
+      dungeonPlayerGradientCache.width === canvas.width && dungeonPlayerGradientCache.height === canvas.height) {
     renderCachePerf.dungeonGradientHits++;
     return dungeonPlayerGradientCache;
   }
@@ -4980,13 +4982,13 @@ function cachedDungeonPlayerGradients(plx, ply) {
   const fovShade = ctx.createRadialGradient(plx, ply, TILE * 2, plx, ply, TILE * (FOV_R + 1.6));
   fovShade.addColorStop(0, 'rgba(0,0,0,0)');
   fovShade.addColorStop(1, 'rgba(0,0,0,.5)');
-  dungeonPlayerGradientCache = { key, playerGlow, fovShade };
+  dungeonPlayerGradientCache = { plx, ply, width:canvas.width, height:canvas.height, playerGlow, fovShade };
   renderCachePerf.dungeonGradientMisses++;
   return dungeonPlayerGradientCache;
 }
 function cachedDungeonVignette() {
-  const key = canvas.width + '|' + canvas.height;
-  if (dungeonVignetteCache.key === key && dungeonVignetteCache.gradient) {
+  if (dungeonVignetteCache.width === canvas.width && dungeonVignetteCache.height === canvas.height &&
+      dungeonVignetteCache.gradient) {
     renderCachePerf.dungeonGradientHits++;
     return dungeonVignetteCache.gradient;
   }
@@ -4994,7 +4996,7 @@ function cachedDungeonVignette() {
     canvas.width / 2, canvas.height / 2, canvas.width * .62);
   gradient.addColorStop(0, 'rgba(0,0,0,0)');
   gradient.addColorStop(1, 'rgba(0,0,0,.42)');
-  dungeonVignetteCache = { key, gradient };
+  dungeonVignetteCache = { width:canvas.width, height:canvas.height, gradient };
   renderCachePerf.dungeonGradientMisses++;
   return gradient;
 }
@@ -5003,15 +5005,11 @@ function makeRenderLayer(width, height) {
   layer.width = width; layer.height = height;
   return layer;
 }
-function dungeonTextureSignature(T) {
-  const rows = [T && T.wall, ...((T && T.floors) || [])];
-  return rows.map(img => img ? [img.naturalWidth || img.width || 0, img.naturalHeight || img.height || 0].join('x') : '0x0').join(',');
-}
 function cachedDungeonStaticLayer() {
   if (!map) return null;
   const T = texFor(depth);
-  const key = [dungeonMapRevision, depth, dungeonTextureSignature(T)].join('|');
-  if (dungeonStaticLayerCache.key === key && dungeonStaticLayerCache.canvas) {
+  if (dungeonStaticLayerCache.revision === dungeonMapRevision &&
+      dungeonStaticLayerCache.depth === depth && dungeonStaticLayerCache.canvas) {
     renderCachePerf.dungeonLayerHits++;
     return dungeonStaticLayerCache.canvas;
   }
@@ -5040,14 +5038,17 @@ function cachedDungeonStaticLayer() {
       }
     }
   }
-  dungeonStaticLayerCache = { key, canvas:layer };
+  dungeonStaticLayerCache = { revision:dungeonMapRevision, depth, canvas:layer };
   renderCachePerf.dungeonLayerMisses++;
   return layer;
 }
 function cachedDungeonVisibilityLayer() {
   if (!map || !explored || !visible) return null;
-  const key = [dungeonMapRevision, fovRevision, view.x, view.y, view.cols, view.rows].join('|');
-  if (dungeonVisibilityLayerCache.key === key && dungeonVisibilityLayerCache.canvas) {
+  if (dungeonVisibilityLayerCache.revision === dungeonMapRevision &&
+      dungeonVisibilityLayerCache.fov === fovRevision &&
+      dungeonVisibilityLayerCache.x === view.x && dungeonVisibilityLayerCache.y === view.y &&
+      dungeonVisibilityLayerCache.cols === view.cols && dungeonVisibilityLayerCache.rows === view.rows &&
+      dungeonVisibilityLayerCache.canvas) {
     renderCachePerf.visibilityLayerHits++;
     return dungeonVisibilityLayerCache.canvas;
   }
@@ -5067,7 +5068,10 @@ function cachedDungeonVisibilityLayer() {
       }
     }
   }
-  dungeonVisibilityLayerCache = { key, canvas:layer };
+  dungeonVisibilityLayerCache = {
+    revision:dungeonMapRevision, fov:fovRevision, x:view.x, y:view.y,
+    cols:view.cols, rows:view.rows, canvas:layer,
+  };
   renderCachePerf.visibilityLayerMisses++;
   return layer;
 }
@@ -5076,13 +5080,15 @@ function dungeonCellInView(x, y, margin = 1) {
     x < view.x + view.cols + margin && y < view.y + view.rows + margin;
 }
 function cachedDungeonScene() {
-  const key = [
-    dungeonMapRevision, fovRevision, turns, depth, floorCleared ? 1 : 0,
-    player ? player.x : -1, player ? player.y : -1,
-    view.x, view.y, view.cols, view.rows,
-    decals.length, monsters.length, items.length, npcs.length, traps.length, secrets.length,
-  ].join('|');
-  if (dungeonSceneFilterCache.key === key && dungeonSceneFilterCache.scene) {
+  const cache = dungeonSceneFilterCache;
+  const px = player ? player.x : -1, py = player ? player.y : -1;
+  if (cache.revision === dungeonMapRevision && cache.fov === fovRevision &&
+      cache.turns === turns && cache.depth === depth && cache.cleared === !!floorCleared &&
+      cache.px === px && cache.py === py &&
+      cache.x === view.x && cache.y === view.y && cache.cols === view.cols && cache.rows === view.rows &&
+      cache.decals === decals.length && cache.monsters === monsters.length && cache.items === items.length &&
+      cache.npcs === npcs.length && cache.traps === traps.length && cache.secrets === secrets.length &&
+      cache.scene) {
     renderCachePerf.sceneFilterHits++;
     return dungeonSceneFilterCache.scene;
   }
@@ -5111,62 +5117,22 @@ function cachedDungeonScene() {
       }
     }
   }
-  dungeonSceneFilterCache = { key, scene };
+  dungeonSceneFilterCache = {
+    revision:dungeonMapRevision, fov:fovRevision, turns, depth, cleared:!!floorCleared, px, py,
+    x:view.x, y:view.y, cols:view.cols, rows:view.rows,
+    decals:decals.length, monsters:monsters.length, items:items.length, npcs:npcs.length,
+    traps:traps.length, secrets:secrets.length, scene,
+  };
   renderCachePerf.sceneFilterMisses++;
   return scene;
 }
-function cachedDungeonDynamicGradient(key, create) {
-  if (dungeonDynamicGradientCache.has(key)) {
-    renderCachePerf.dynamicGradientHits++;
-    return dungeonDynamicGradientCache.get(key);
-  }
-  const gradient = create();
-  dungeonDynamicGradientCache.set(key, gradient);
-  renderCachePerf.dynamicGradientMisses++;
-  return gradient;
-}
-function dynamicPixelBucket(value) {
-  return Math.round(Number(value) || 0);
-}
-function cachedEquipmentAuraGradient(px, py, color) {
-  const cx = dynamicPixelBucket(px), cy = dynamicPixelBucket(py + 7);
-  const key = ['equip-aura', color, cx, cy].join('|');
-  return cachedDungeonDynamicGradient(key, () => {
-    const rg = ctx.createRadialGradient(cx, cy, 1, cx, cy, 21);
-    rg.addColorStop(0, color);
-    rg.addColorStop(1, 'rgba(0,0,0,0)');
-    return rg;
-  });
-}
-function cachedAmuletAuraGradient(px, py) {
-  const cx = dynamicPixelBucket(px), cy = dynamicPixelBucket(py);
-  const key = ['amulet-aura', cx, cy].join('|');
-  return cachedDungeonDynamicGradient(key, () => {
-    const rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, TILE);
-    rg.addColorStop(0, 'rgba(255,120,90,.35)');
-    rg.addColorStop(1, 'rgba(255,120,90,0)');
-    return rg;
-  });
-}
-function torchAuraBucket(fl) {
-  return Math.max(0, Math.min(8, Math.round((fl - .8) / .025)));
-}
-function cachedTorchAuraGradient(cx, cy, fl) {
-  const bucket = torchAuraBucket(fl);
-  const scale = .8 + bucket * .025;
-  const key = ['torch-aura', cx, cy, bucket].join('|');
-  return cachedDungeonDynamicGradient(key, () => {
-    const rg = ctx.createRadialGradient(cx, cy, 4, cx, cy, TILE * 2.8 * scale);
-    rg.addColorStop(0, 'rgba(255,150,60,.16)');
-    rg.addColorStop(1, 'rgba(255,150,60,0)');
-    return rg;
-  });
-}
 function cachedTownBackdropLayer(W, H, townBackdrop) {
   if (!imageReady(townBackdrop)) return null;
-  const sourceId = townBackdrop === townBackdropV190 ? 'v190' : townBackdrop === townBackdropV11 ? 'v11' : 'other';
-  const key = [sourceId, W, H, townBackdrop.naturalWidth || 0, townBackdrop.naturalHeight || 0].join('|');
-  if (townBackdropLayerCache.key === key && townBackdropLayerCache.canvas) {
+  const nw = townBackdrop.naturalWidth || 0, nh = townBackdrop.naturalHeight || 0;
+  if (townBackdropLayerCache.source === townBackdrop &&
+      townBackdropLayerCache.width === W && townBackdropLayerCache.height === H &&
+      townBackdropLayerCache.naturalWidth === nw && townBackdropLayerCache.naturalHeight === nh &&
+      townBackdropLayerCache.canvas) {
     renderCachePerf.townLayerHits++;
     return townBackdropLayerCache.canvas;
   }
@@ -5185,7 +5151,7 @@ function cachedTownBackdropLayer(W, H, townBackdrop) {
   shade.addColorStop(.7, 'rgba(5,4,8,.03)');
   shade.addColorStop(1, 'rgba(5,3,4,.36)');
   g.fillStyle = shade; g.fillRect(0, 0, W, H);
-  townBackdropLayerCache = { key, canvas:layer };
+  townBackdropLayerCache = { source:townBackdrop, width:W, height:H, naturalWidth:nw, naturalHeight:nh, canvas:layer };
   renderCachePerf.townLayerMisses++;
   return layer;
 }
@@ -5195,13 +5161,16 @@ function resetRenderCachePerf(clearCaches = false) {
   textWidthCaches = new WeakMap();
   townGradientCaches = new WeakMap();
   stairsGradientCache = new Map();
-  dungeonPlayerGradientCache = { key:'', playerGlow:null, fovShade:null };
-  dungeonVignetteCache = { key:'', gradient:null };
-  dungeonStaticLayerCache = { key:'', canvas:null };
-  dungeonVisibilityLayerCache = { key:'', canvas:null };
-  dungeonSceneFilterCache = { key:'', scene:null };
-  townBackdropLayerCache = { key:'', canvas:null };
-  dungeonDynamicGradientCache = new Map();
+  dungeonPlayerGradientCache = { plx:NaN, ply:NaN, width:0, height:0, playerGlow:null, fovShade:null };
+  dungeonVignetteCache = { width:0, height:0, gradient:null };
+  dungeonStaticLayerCache = { revision:-1, depth:-1, canvas:null };
+  dungeonVisibilityLayerCache = { revision:-1, fov:-1, x:-1, y:-1, cols:-1, rows:-1, canvas:null };
+  dungeonSceneFilterCache = {
+    revision:-1, fov:-1, turns:-1, depth:-1, cleared:false, px:-1, py:-1,
+    x:-1, y:-1, cols:-1, rows:-1, decals:-1, monsters:-1, items:-1, npcs:-1, traps:-1, secrets:-1,
+    scene:null,
+  };
+  townBackdropLayerCache = { source:null, width:0, height:0, naturalWidth:0, naturalHeight:0, canvas:null };
 }
 function drawStairs(px, py, now) {
   ctx.fillStyle = '#04060b';
@@ -5385,16 +5354,26 @@ const trapPropForDepth = d => d >= 75 ? DUNGEON_PROP_ART.voidRift
 const dungeonNpcProp = type => type === 'shrine' ? DUNGEON_PROP_ART.angelShrine
   : type === 'event' ? DUNGEON_PROP_ART.voidRift
   : type === 'rest' ? DUNGEON_PROP_ART.campfire : type === 'shop' ? DUNGEON_PROP_ART.marketStall : -1;
-let minimapPaintKey = '';
-function minimapStateKey() {
-  if (!mini || !player) return '';
-  return [depth, fovRevision, player.x, player.y, monsters.length, items.length, npcs.length, mini.width, mini.height].join('|');
+let minimapPaintState = null;
+function minimapStateChanged() {
+  if (!mini || !player) return false;
+  const prev = minimapPaintState;
+  return !prev || prev.depth !== depth || prev.fov !== fovRevision ||
+    prev.x !== player.x || prev.y !== player.y ||
+    prev.monsters !== monsters.length || prev.items !== items.length || prev.npcs !== npcs.length ||
+    prev.width !== mini.width || prev.height !== mini.height;
+}
+function rememberMinimapState() {
+  minimapPaintState = {
+    depth, fov:fovRevision, x:player.x, y:player.y,
+    monsters:monsters.length, items:items.length, npcs:npcs.length,
+    width:mini.width, height:mini.height,
+  };
 }
 function drawMinimap(force = false) {
   if (!mctx || !map || !player) return false;
-  const paintKey = minimapStateKey();
-  if (!force && paintKey === minimapPaintKey) return false;
-  minimapPaintKey = paintKey;
+  if (!force && !minimapStateChanged()) return false;
+  rememberMinimapState();
   const cw = mini.width, ch = mini.height;
   const tw = cw / MAP_W, th = ch / MAP_H;
   mctx.fillStyle = '#070504';
@@ -5510,15 +5489,19 @@ function draw(now) {
     if (it.type === 'equip') {
       const glow = .34 + .18 * Math.sin(now * 3.5 + it.x);
       const rarityColor = RARITIES[it.item.rarity].color;
-      const aura = cachedEquipmentAuraGradient(px, py, rarityColor);
-      ctx.save();
-      ctx.globalAlpha = Math.max(.12, glow * .42);
-      ctx.fillStyle = aura; ctx.fillRect(px - 23, py - 16, 46, 46);
+      const rg = ctx.createRadialGradient(px, py + 7, 1, px, py + 7, 21);
+      rg.addColorStop(0, rarityColor);
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save(); ctx.globalAlpha = Math.max(.12, glow * .42); ctx.fillStyle = rg;
+      ctx.fillRect(px - 23, py - 16, 46, 46);
       ctx.globalAlpha = .38 + glow * .45; ctx.strokeStyle = rarityColor; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.ellipse(px, py + 12, 13, 4, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
     if (it.type === 'amulet') {
-      ctx.fillStyle = cachedAmuletAuraGradient(px, py);
+      const g2 = ctx.createRadialGradient(px, py, 2, px, py, TILE);
+      g2.addColorStop(0, 'rgba(255,120,90,.35)');
+      g2.addColorStop(1, 'rgba(255,120,90,0)');
+      ctx.fillStyle = g2;
       ctx.fillRect(px - TILE, py - TILE, TILE * 2, TILE * 2);
     }
     if (it.type === 'chest') {
@@ -5629,7 +5612,10 @@ function draw(now) {
   for (const [tx, ty, seed] of scene.torches) {
     const fl = .8 + .2 * Math.sin(now * 9 + seed * 7);
     const cx2 = tx + TILE / 2, cy2 = ty + TILE * .45;
-    ctx.fillStyle = cachedTorchAuraGradient(cx2, cy2, fl);
+    const g2 = ctx.createRadialGradient(cx2, cy2, 4, cx2, cy2, TILE * 2.8 * fl);
+    g2.addColorStop(0, 'rgba(255,150,60,.16)');
+    g2.addColorStop(1, 'rgba(255,150,60,0)');
+    ctx.fillStyle = g2;
     ctx.fillRect(cx2 - TILE * 3, cy2 - TILE * 3, TILE * 6, TILE * 6);
   }
   const plx = player.fx * TILE + TILE / 2, ply = player.fy * TILE + TILE / 2;
@@ -8969,7 +8955,6 @@ if (typeof window !== 'undefined') {
     renderCacheSnapshot: () => ({ ...renderCachePerf }),
     resetRenderCachePerf,
     cachedDungeonStaticLayer, cachedDungeonVisibilityLayer, cachedDungeonScene, cachedTownBackdropLayer,
-    cachedEquipmentAuraGradient, cachedAmuletAuraGradient, cachedTorchAuraGradient,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
       minimapKey:minimapStateKey(), fovRevision,
