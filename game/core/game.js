@@ -2590,6 +2590,8 @@ function makeMonster(base, p, options={}) {
     armorBreak: !!base.armorBreak || traits.includes('armorBreak'),
     armorBreakCharge: 0, armorBreakMode: null, armorBreakCooldown: 0,
     furyTurns: 0,
+    // Ordinary-monster perception memory. Guardians keep their legacy pursuit path.
+    lastSeenX: null, lastSeenY: null,
     alert: 0, skip: 0,
     hurtT: 0, lungeT: 0, ldx: 0, ldy: 0,
   };
@@ -4008,6 +4010,7 @@ function clickNav(tx, ty) {
 function equipFromBag(i) {
   const it = player.inv[i];
   if (!it || state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   if (!canEquipForClass(it)) {
     const required = weaponClassOf(it);
     const requiredName = required && CLASSES[required] ? CLASSES[required].name : ui('对应职业','the matching class');
@@ -4035,6 +4038,7 @@ function equipFromBag(i) {
 }
 function unequip(slot) {
   if (state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   const it = player.equip[slot];
   if (!it) return;
   if (player.inv.length >= BAG_CAP) { msg(ui('背包已满，无法卸下装备！','Backpack full — cannot unequip this item!')); return; }
@@ -4048,6 +4052,7 @@ function unequip(slot) {
 function discardFromBag(i) {
   const it = player.inv[i];
   if (!it || state !== 'playing') return;
+  if (escapeChannelActive()) { channelEscapeTick(); return; }
   dropAt(player.x, player.y, { type: 'equip', item: it, emoji: '', name: '装备' });
   player.inv.splice(i, 1);
   selectedBagIndex = -1;
@@ -4275,6 +4280,10 @@ function endTurn(manaBonus=0, announceFocus=false) {
   recoverMana(manaBonus, announceFocus);
   if (turns % (player.fastRegen ? 4 : 9) === 0 && !(player.grievous > 0) && player.hp > 0 && player.hp < pMaxHp()) player.hp++;
   if (player.grievous > 0) player.grievous--;
+  // Capture HP after passive recovery but before hazards/enemies act. Comparing against
+  // this point means even 1 damage interrupts a return channel; passive regen can no
+  // longer mask poison or an incoming hit in the same turn.
+  const escapeTurnSafeHp = escapeChannelActive() ? Number(player.hp) || 0 : null;
   if (player.poison > 0) {
     player.poison--;
     const pd = 1 + Math.floor(depth / 8);
@@ -4289,7 +4298,7 @@ function endTurn(manaBonus=0, announceFocus=false) {
   if (state !== 'playing') { updateHud(); return; }
   // 回城引导结算：引导期间任何生命损失都会打断仪式（卷轴已消耗）；坚持满回合数则完成回城
   if (player && (player.escapeChannel || 0) > 0) {
-    if ((Number(player.hp) || 0) < (Number(player.escapeChannelHp) || 0)) {
+    if (escapeTurnSafeHp !== null && (Number(player.hp) || 0) < escapeTurnSafeHp) {
       player.escapeChannel = 0;
       msg(ui('回城引导被打断——卷轴已经化为灰烬！', 'The return channel is broken — the scroll crumbles to ash!'), 'bad');
     } else {
@@ -4319,6 +4328,170 @@ function stepToward(m) {
   if (bx || by) { m.x += bx; m.y += by; return true; }
   return false;
 }
+// Ordinary-monster tactical movement intentionally does NOT use flowDist: that map
+// is rooted at the player's live tile and would let alerted monsters track through
+// walls after losing sight. Guardians keep the legacy flow-field behavior below.
+const ORDINARY_AI_DIRS = Object.freeze([[1,0],[-1,0],[0,1],[0,-1]]);
+function ordinaryAiDistanceMap(m, tx, ty) {
+  const dist = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(-1));
+  if (!inB(tx, ty) || map[ty][tx] === WALL) return dist;
+  const q = [[tx, ty]];
+  dist[ty][tx] = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const [x, y] = q[qi], d = dist[y][x] + 1;
+    for (const [ox, oy] of ORDINARY_AI_DIRS) {
+      const nx = x + ox, ny = y + oy;
+      if (!inB(nx, ny) || map[ny][nx] === WALL || dist[ny][nx] >= 0) continue;
+      const blocker = monsterAt(nx, ny);
+      if ((blocker && blocker !== m) || npcAt(nx, ny)) continue;
+      dist[ny][nx] = d;
+      q.push([nx, ny]);
+    }
+  }
+  return dist;
+}
+function ordinaryAiTileFree(m, x, y) {
+  if (!inB(x, y) || !walkable(x, y)) return false;
+  if (player && player.x === x && player.y === y) return false;
+  const other = monsterAt(x, y);
+  if (other && other !== m) return false;
+  return !npcAt(x, y);
+}
+function ordinaryAiOpenNeighbors(m, x, y) {
+  let n = 0;
+  for (const [ox, oy] of ORDINARY_AI_DIRS)
+    if (ordinaryAiTileFree(m, x + ox, y + oy)) n++;
+  return n;
+}
+function ordinaryStepToward(m, tx, ty, erratic=false) {
+  const dist = ordinaryAiDistanceMap(m, tx, ty);
+  const candidates = [];
+  for (let order = 0; order < ORDINARY_AI_DIRS.length; order++) {
+    const [ox, oy] = ORDINARY_AI_DIRS[order];
+    const x = m.x + ox, y = m.y + oy;
+    if (!ordinaryAiTileFree(m, x, y)) continue;
+    const d = dist[y][x];
+    if (d < 0) continue;
+    candidates.push({ x, y, d, open:ordinaryAiOpenNeighbors(m, x, y), order });
+  }
+  candidates.sort((a,b) => a.d - b.d || b.open - a.open || a.order - b.order);
+  if (!candidates.length) return false;
+  let chosen = candidates[0];
+  if (erratic) {
+    // Erratic enemies may take a near-best branch, but never abandon pursuit for
+    // arbitrary wandering while engaged.
+    const purposeful = candidates.filter(c => c.d <= candidates[0].d + 1);
+    if (purposeful.length > 1 && rng() < 0.35) {
+      chosen = purposeful[1 + Math.floor(rng() * (purposeful.length - 1))];
+    }
+  }
+  m.x = chosen.x; m.y = chosen.y;
+  return true;
+}
+function rememberPlayerTile(m) {
+  m.lastSeenX = player.x;
+  m.lastSeenY = player.y;
+  m.alert = AI_MEM;
+}
+function hasRememberedPlayerTile(m) {
+  return Number.isFinite(Number(m.lastSeenX)) && Number.isFinite(Number(m.lastSeenY));
+}
+function clearRememberedPlayerTile(m) {
+  m.lastSeenX = null; m.lastSeenY = null; m.alert = 0;
+}
+function rangedPreferredMin(m) {
+  const range = Math.max(1, Math.floor(Number(m && m.ranged) || 1));
+  return Math.min(range, Math.max(2, Math.ceil(range * 0.6)));
+}
+function tryRangedReposition(m) {
+  const range = Math.max(1, Math.floor(Number(m.ranged) || 1));
+  const preferredMin = rangedPreferredMin(m);
+  const current = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
+  if (current >= preferredMin) return false;
+  const choices = [];
+  for (let order = 0; order < ORDINARY_AI_DIRS.length; order++) {
+    const [ox, oy] = ORDINARY_AI_DIRS[order];
+    const x = m.x + ox, y = m.y + oy;
+    if (!ordinaryAiTileFree(m, x, y)) continue;
+    const d = Math.max(Math.abs(x - player.x), Math.abs(y - player.y));
+    if (d <= current) continue;
+    const lane = d <= range && los(x, y, player.x, player.y);
+    const band = lane && d >= preferredMin;
+    choices.push({ x, y, d, lane, band, open:ordinaryAiOpenNeighbors(m, x, y), order });
+  }
+  choices.sort((a,b) =>
+    Number(b.band) - Number(a.band) ||
+    Number(b.lane) - Number(a.lane) ||
+    Math.abs(a.d - preferredMin) - Math.abs(b.d - preferredMin) ||
+    b.open - a.open || a.order - b.order);
+  if (!choices.length) return false;
+  m.x = choices[0].x; m.y = choices[0].y;
+  return true;
+}
+function ordinaryMonsterAction(m) {
+  const sees = canSeePlayer(m);
+  const cheb = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
+  const adj = Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1;
+  if (sees) rememberPlayerTile(m);
+
+  if (m.ranged && sees) {
+    if (cheb < rangedPreferredMin(m) && tryRangedReposition(m)) return true;
+    if (cheb <= m.ranged) {
+      monsterRangedAttack(m);
+      return true;
+    }
+    ordinaryStepToward(m, player.x, player.y, !!m.erratic);
+    return true;
+  }
+  if (adj) {
+    monsterAttack(m);
+    return true;
+  }
+  if (sees) {
+    ordinaryStepToward(m, player.x, player.y, !!m.erratic);
+    return true;
+  }
+  if ((m.alert || 0) > 0 && hasRememberedPlayerTile(m)) {
+    const tx = Math.floor(Number(m.lastSeenX)), ty = Math.floor(Number(m.lastSeenY));
+    m.alert--;
+    if (m.x === tx && m.y === ty) clearRememberedPlayerTile(m);
+    else {
+      ordinaryStepToward(m, tx, ty, !!m.erratic);
+      if (m.x === tx && m.y === ty) clearRememberedPlayerTile(m);
+      else if ((m.alert || 0) <= 0) clearRememberedPlayerTile(m);
+    }
+    return true;
+  }
+  // Legacy saves may contain alert without the new memory coordinates. Never use
+  // that stale alert to follow the player's hidden live tile.
+  if ((m.alert || 0) > 0) clearRememberedPlayerTile(m);
+  if (rng() < 0.25) randomStep(m);
+  return true;
+}
+function guardianLegacyAction(m) {
+  const cheb = Math.max(Math.abs(m.x - player.x), Math.abs(m.y - player.y));
+  const adj = Math.abs(m.x - player.x) + Math.abs(m.y - player.y) === 1;
+  if (adj) {
+    monsterAttack(m);
+    return true;
+  }
+  if (m.ranged && canSeePlayer(m) && cheb <= m.ranged) {
+    monsterRangedAttack(m);
+    return true;
+  }
+  if (canSeePlayer(m)) {
+    m.alert = AI_MEM;
+    if (m.erratic && rng() < 0.5) randomStep(m);
+    else stepToward(m) && engagementStrike(m);
+  } else if (m.alert > 0) {
+    m.alert--;
+    stepToward(m) && engagementStrike(m);
+  } else if (rng() < 0.25) {
+    randomStep(m);
+  }
+  return true;
+}
+
 function engagementStrike(m) {
   if (!m || m.hp <= 0 || state !== 'playing') return false;
   if (Math.abs(m.x - player.x) + Math.abs(m.y - player.y) !== 1) return false;
@@ -4637,26 +4810,11 @@ function monstersTurn() {
       if (m.ranged && canSeePlayer(m) && cheb <= m.ranged && beginArmorBreak(m, 'ranged')) continue;
     }
 
-    if (adj) {
-      monsterAttack(m);
-      if (state !== 'playing') return;
-      continue;
-    }
-    if (m.ranged && canSeePlayer(m) && cheb <= m.ranged) {
-      monsterRangedAttack(m);
-      if (state !== 'playing') return;
-      continue;
-    }
-    if (canSeePlayer(m)) {
-      m.alert = AI_MEM;
-      if (m.erratic && rng() < 0.5) randomStep(m);
-      else if (stepToward(m) && engagementStrike(m) && state !== 'playing') return;
-    } else if (m.alert > 0) {
-      m.alert--;
-      if (stepToward(m) && engagementStrike(m) && state !== 'playing') return;
-    } else if (rng() < 0.25) {
-      randomStep(m);
-    }
+    // Guardians/final boss preserve the previously shipped movement/attack cadence.
+    // Ordinary monsters use bounded perception memory and tactical archetype behavior.
+    if (m.boss || m.midBoss) guardianLegacyAction(m);
+    else ordinaryMonsterAction(m);
+    if (state !== 'playing') return;
   }
 }
 
@@ -8252,10 +8410,11 @@ if (typeof window !== 'undefined') {
     get classId() { return classId; },
     validateProfile, requireProfile,
     descend, usePotion, useScroll, useSkill, waitTurn, tryMove, directionalAttack,
+    ordinaryStepToward, ordinaryMonsterAction, tryRangedReposition, rangedPreferredMin,
     quickDive, quickDiveCost, skillManaCost,
     pauseGame, resumeGame,
     pickTalent, pendingSkillEvolution, openPendingSkillEvolution, chooseEchoLeave, chooseEchoStay,
-    genEquip, pickupHere, equipFromBag, discardFromBag, killMonster, newGame, toggleFullscreen,
+    genEquip, pickupHere, equipFromBag, unequip, discardFromBag, killMonster, newGame, toggleFullscreen,
     persistRun, manualSaveNow, peekRun, restoreRun, CLASSES, TALENTS,
     genLevel, monsterPoolFor, pickSpawn, ensureFloorContent,
     makeMonster, monsterThreatScale, applyDamageToMonster, monsterRangedAttack, monsterAttack, monstersTurn, beginArmorBreak, spawnCasks, endTurn,
