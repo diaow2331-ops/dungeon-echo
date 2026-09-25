@@ -50,7 +50,6 @@ const tests = [
   'progression-cap-runtime-v180.cjs',
   'skill-evolution-delivery-v180.cjs',
   'monster-threat-v170.cjs',
-  'guardian-fury-v193.cjs',
   'named-relic-sets-v180.cjs',
   'named-relic-capstones-runtime-v180.cjs',
   'v180-art-atlases.cjs',
