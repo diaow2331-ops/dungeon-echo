@@ -5,6 +5,8 @@ const root=path.resolve(__dirname,'..');
 const core=fs.readFileSync(path.join(root,'game/core/game.js'),'utf8');
 
 assert(core.includes('const hudElementCache = Object.create(null);'));
+assert(core.includes("let lastHudSignature = '';"));
+assert(core.includes('if (signature === lastHudSignature) {'));
 assert(core.includes('if (el.textContent === next) { hudPerf.skips++; return false; }'));
 assert(core.includes('if (el.style[key] === next) { hudPerf.skips++; return false; }'));
 assert(core.includes('if (current === next) { hudPerf.skips++; return false; }'));
@@ -62,7 +64,8 @@ T.updateHud();
 const stable=T.hudPerfSnapshot();
 assert.equal(stable.queries,0,'stable HUD pass must not repeat getElementById lookups');
 assert.equal(stable.writes,0,'stable HUD pass must produce zero DOM writes');
-assert(stable.skips>=20,'stable HUD pass should explicitly skip unchanged fields');
+assert.equal(stable.frameSkips,1,'stable HUD pass should exit once at the whole-frame signature guard');
+assert.equal(stable.skips,0,'whole-frame early exit should avoid per-field dirty comparisons');
 
 T.resetHudPerf(false);
 T.player.mana=Math.max(0,T.player.mana-1);
