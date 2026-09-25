@@ -16,7 +16,8 @@ assert(core.includes('function townSceneMotionActive()'));
 assert(core.includes('function wheelMotionActive('));
 assert(core.includes('if (sceneDue) {') && core.includes('if (wheelDue) {'));
 assert(core.includes('wakeTownFrame();'));
-assert(core.includes('let minimapPaintKey ='));
+assert(core.includes('let minimapPaintState = null;'));
+assert(core.includes('function minimapStateChanged()'));
 assert(core.includes('function minimapStateKey()'));
 assert(core.includes('if (!force && paintKey === minimapPaintKey) return false'));
 
