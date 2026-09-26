@@ -1358,10 +1358,45 @@ function playerImpactCue(severe=false) {
 }
 
 // ================= 消息 =================
+const uiScenePerf = {
+  logNodeCreates:0, logNodeMoves:0, logNodeWrites:0,
+  townRosterHits:0, townRosterMisses:0,
+  townActorHits:0, townActorMisses:0,
+};
+function resetUiScenePerf() {
+  for (const key of Object.keys(uiScenePerf)) uiScenePerf[key] = 0;
+}
 function renderLog() {
-  const logEl = $('log');
-  if (logEl) logEl.innerHTML = logLines
-    .map(l => `<div${l.cls ? ` class="${esc(l.cls)}"` : ''}>${esc(l.text)}</div>`).join('');
+  const logEl = renderLog._el || (renderLog._el = $('log'));
+  if (!logEl) return false;
+  const nodes = renderLog._nodes || (renderLog._nodes = new WeakMap());
+  for (let i = 0; i < logLines.length; i++) {
+    const entry = logLines[i];
+    let node = nodes.get(entry);
+    if (!node) {
+      const doc = logEl.ownerDocument || document;
+      node = doc.createElement('div');
+      nodes.set(entry, node);
+      uiScenePerf.logNodeCreates++;
+    }
+    const nextClass = entry.cls ? String(entry.cls) : '';
+    const nextText = String(entry.text == null ? '' : entry.text);
+    if (node.className !== nextClass) {
+      node.className = nextClass;
+      uiScenePerf.logNodeWrites++;
+    }
+    if (node.textContent !== nextText) {
+      node.textContent = nextText;
+      uiScenePerf.logNodeWrites++;
+    }
+    const current = logEl.children[i] || null;
+    if (current !== node) {
+      logEl.insertBefore(node, current);
+      uiScenePerf.logNodeMoves++;
+    }
+  }
+  while (logEl.children.length > logLines.length) logEl.lastElementChild.remove();
+  return true;
 }
 function msg(text, cls, meta=null) {
   logLines.unshift({ text, cls, ...(meta || {}) });
@@ -6433,17 +6468,49 @@ let townPendingHotspot = '';
 let townLastFrame = 0;
 let townPromptKey = '';
 const townAvatar = { x:.5, y:.90, tx:.5, ty:.90, face:1 };
-function activeTownResidents() {
-  if (!meta) return [];
-  const roster = TOWN_GROWTH_RULES.residentRoster({
-    tier:townTierForArt(), works:meta.townWorks || {},
-  });
-  return roster.map(row => {
+const EMPTY_TOWN_RESIDENTS = Object.freeze([]);
+let townRosterCache = {
+  meta:null, tier:-1, smithy:-1, market:-1, tavern:-1, relics:-1,
+  residents:EMPTY_TOWN_RESIDENTS, interactables:TOWN_HOTSPOTS,
+};
+function refreshTownRosterCache() {
+  if (!meta) {
+    if (townRosterCache.meta === null && townRosterCache.interactables === TOWN_HOTSPOTS) {
+      uiScenePerf.townRosterHits++;
+      return townRosterCache;
+    }
+    townRosterCache = {
+      meta:null, tier:-1, smithy:-1, market:-1, tavern:-1, relics:-1,
+      residents:EMPTY_TOWN_RESIDENTS, interactables:TOWN_HOTSPOTS,
+    };
+    uiScenePerf.townRosterMisses++;
+    return townRosterCache;
+  }
+  const tier = townTierForArt(), works = meta.townWorks || {};
+  const smithy = TOWN_GROWTH_RULES.level(works, 'smithy');
+  const market = TOWN_GROWTH_RULES.level(works, 'market');
+  const tavern = TOWN_GROWTH_RULES.level(works, 'tavern');
+  const relics = TOWN_GROWTH_RULES.level(works, 'relics');
+  if (townRosterCache.meta === meta && townRosterCache.tier === tier &&
+      townRosterCache.smithy === smithy && townRosterCache.market === market &&
+      townRosterCache.tavern === tavern && townRosterCache.relics === relics) {
+    uiScenePerf.townRosterHits++;
+    return townRosterCache;
+  }
+  const roster = TOWN_GROWTH_RULES.residentRoster({ tier, works });
+  const residents = roster.map(row => {
     const visual = TOWN_RESIDENT_VISUALS[row.id];
     return visual ? { ...row, ...visual, kind:'resident' } : null;
   }).filter(Boolean);
+  townRosterCache = {
+    meta, tier, smithy, market, tavern, relics, residents,
+    interactables:TOWN_HOTSPOTS.concat(residents),
+  };
+  uiScenePerf.townRosterMisses++;
+  return townRosterCache;
 }
-function townInteractables() { return [...TOWN_HOTSPOTS, ...activeTownResidents()]; }
+function activeTownResidents() { return refreshTownRosterCache().residents; }
+function townInteractables() { return refreshTownRosterCache().interactables; }
 function townHotspotById(id) { return townInteractables().find(row => row.id === id) || null; }
 function nearestTownHotspot(maxDistance = Infinity) {
   let best = null, bestDistance = Infinity;
@@ -7212,23 +7279,42 @@ function drawTownNameplate(ctx, row, x, baseY, active, scale = 1) {
   ctx.fillText(label, x, y + height / 2);
   ctx.restore();
 }
-function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
-  const near = nearestTownHotspot(.105);
-  const artScale = clamp(H / 300, 1, 1.34);
-  const actors = townInteractables().map(row => ({ type:row.kind === 'resident' ? 'resident' : 'hotspot', row, x:W * row.x, baseY:H * row.y }));
+let townActorLayoutCache = { interactables:null, tier:-1, W:-1, H:-1, actors:null };
+function cachedTownStaticActors(W, H, tier) {
+  const interactables = townInteractables();
+  if (townActorLayoutCache.interactables === interactables &&
+      townActorLayoutCache.tier === tier && townActorLayoutCache.W === W &&
+      townActorLayoutCache.H === H && townActorLayoutCache.actors) {
+    uiScenePerf.townActorHits++;
+    return townActorLayoutCache.actors;
+  }
+  const actors = interactables.map(row => ({
+    type:row.kind === 'resident' ? 'resident' : 'hotspot',
+    row, x:W * row.x, baseY:H * row.y,
+  }));
   const extras = [
     { min:6, cell:TOWN_NPC_ART.townWatch, x:.19, y:.91, face:-1, scale:.70 },
     { min:9, cell:TOWN_NPC_ART.provisionerCrate, x:.50, y:.92, face:-1, scale:.68 },
   ];
   for (const row of extras) if (tier >= row.min)
     actors.push({ type:'extra', row, x:W * row.x, baseY:H * row.y });
-  actors.push({ type:'hero', x:W * townAvatar.x, baseY:H * townAvatar.y });
   actors.sort((a, b) => a.baseY - b.baseY);
+  townActorLayoutCache = { interactables, tier, W, H, actors };
+  uiScenePerf.townActorMisses++;
+  return actors;
+}
+function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
+  const near = nearestTownHotspot(.105);
+  const artScale = clamp(H / 300, 1, 1.34);
+  const actors = cachedTownStaticActors(W, H, tier);
+  const heroX = W * townAvatar.x, heroBaseY = H * townAvatar.y;
+  let heroDrawn = false;
+  const drawHero = () => {
+    drawTownHeroFigure(ctx, heroX, heroBaseY, now, townAvatar.face, artScale);
+    heroDrawn = true;
+  };
   for (const actor of actors) {
-    if (actor.type === 'hero') {
-      drawTownHeroFigure(ctx, actor.x, actor.baseY, now, townAvatar.face, artScale);
-      continue;
-    }
+    if (!heroDrawn && heroBaseY < actor.baseY) drawHero();
     if (actor.type === 'extra') {
       drawTownNpcFigure(ctx, actor.row.cell, actor.x, actor.baseY, now, actor.row.face, actor.row.scale * artScale);
       continue;
@@ -7251,6 +7337,7 @@ function drawTownNpcPopulation(ctx, now, W, H, G, tier) {
     drawTownNpcFigure(ctx, pulse ? row.activeCell : row.cell, actor.x, actor.baseY, now, row.face, figureScale * artScale);
     drawTownNameplate(ctx, row, actor.x, actor.baseY, selected || nearby || hasNews, (row.kind === 'resident' ? Math.max(.78, Number(row.scale) || .74) : 1) * artScale);
   }
+  if (!heroDrawn) drawHero();
 }
 function drawTownProjectLandmarks(ctx, now, W, H) {
   const smithy=townWorkLevel('smithy'), market=townWorkLevel('market'), tavern=townWorkLevel('tavern'), relics=townWorkLevel('relics');
@@ -8954,6 +9041,8 @@ if (typeof window !== 'undefined') {
     draw, drawTownScene,
     renderCacheSnapshot: () => ({ ...renderCachePerf }),
     resetRenderCachePerf,
+    uiScenePerfSnapshot: () => ({ ...uiScenePerf }),
+    resetUiScenePerf, renderLog, townInteractables, cachedTownStaticActors,
     cachedDungeonStaticLayer, cachedDungeonVisibilityLayer, cachedDungeonScene, cachedTownBackdropLayer,
     visualPerfSnapshot: () => ({
       dungeonIdleMs:DUNGEON_IDLE_FRAME_MS, dungeonActive:dungeonVisualsActive(),
