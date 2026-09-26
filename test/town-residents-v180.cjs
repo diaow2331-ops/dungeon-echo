@@ -19,7 +19,7 @@ assert(growth.residentLine('scout',{tier:5,lastReturnDepth:47,eventId:'scout_cac
 
 assert(core.includes('const TOWN_RESIDENT_VISUALS = Object.freeze'),'core must own resident art/positions');
 assert(core.includes('function activeTownResidents()'),'core must materialize policy residents into runtime actors');
-assert(core.includes('function townInteractables() { return [...TOWN_HOTSPOTS, ...activeTownResidents()]; }'),'resident interactions must join the canonical town interaction list');
+assert(core.includes('function townInteractables() { return refreshTownRosterCache().interactables; }')&&core.includes('interactables:TOWN_HOTSPOTS.concat(residents)'),'resident interactions must join the canonical town interaction list through the stable roster cache');
 assert(core.includes("row.kind === 'resident'")&&core.includes('TOWN_GROWTH_RULES.residentLine(row.id, context)'),'resident interaction must use policy-owned state-aware copy');
 assert(core.includes('for (const row of townInteractables())'),'pointer targeting must include residents');
 assert(core.includes('const residentCount = TOWN_HOTSPOTS.length + activeTownResidents().length'),'town ledger must report visible resident growth');
