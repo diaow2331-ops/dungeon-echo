@@ -15,3 +15,5 @@ body.page-home.site-v1120{background:radial-gradient(ellipse at 20% 8%,rgba(120,
 
 .page-home.site-v1120 .quick-result{grid-template-columns:minmax(0,1fr) auto}.page-home.site-v1120 .principles,.page-home.site-v1120 .records-grid{background:transparent}
 @media(max-width:720px){.page-home.site-v1120 .quick-result{grid-template-columns:1fr}}
+/* Keep the full homepage readable immediately, without scroll-dependent reveals. */
+.page-home.site-v1120 .reveal{opacity:1;transform:none;transition:none}

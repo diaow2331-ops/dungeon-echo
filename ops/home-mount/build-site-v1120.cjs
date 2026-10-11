@@ -17,12 +17,13 @@ const panel = `<section id="downloads" class="download-hero" aria-labelledby="do
     <div class="panel-topline"><span class="kicker">${w('软件下载 / 更新', 'DOWNLOAD / UPDATE')}</span><span class="release-badge" id="milkfrog-release" aria-live="polite">Windows x64</span></div>
     <h2 id="download-panel-title">${w('领取你的奶蛙', 'Get your MilkFrog')}</h2>
     <p>${w('粘贴卖家发给你的完整卡密，即可获取最新版。', 'Paste the complete code from your seller to get the latest release.')}</p>
-    <form id="milkfrog-code-form">
+    <form id="milkfrog-code-form" method="post" action="/api/milkfrog/verify">
       <label for="milkfrog-code">${w('交付卡密', 'Delivery code')}</label>
       <div class="code-input-row"><input id="milkfrog-code" name="code" type="text" maxlength="2048" required autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="MF-XXXXX-XXXXX-XXXXX-XXXXX" aria-describedby="milkfrog-code-hint milkfrog-status"><button id="milkfrog-paste" class="paste-button" type="button">${w('粘贴', 'Paste')}</button></div>
       <button class="btn primary" type="submit" id="milkfrog-verify">${w('验证卡密 · 获取下载 →', 'Verify code · Get downloads →')}</button>
       <p id="milkfrog-code-hint" class="download-note">${w('同一张卡密可再次下载、领取后续更新。', 'Keep your code for repeat downloads and future updates.')}</p>
     </form>
+    <noscript><p>${w('请启用 JavaScript 后领取下载，或通过原订单联系卖家。','Enable JavaScript to claim downloads, or contact your seller through the original order.')}</p><style>#milkfrog-code-form{display:none}</style></noscript>
     <p id="milkfrog-status" class="download-status" role="status" aria-live="polite" aria-atomic="true"></p>
     <div id="milkfrog-downloads" hidden><div id="milkfrog-file-links"></div><p class="download-note">${w('链接 15 分钟内可开始下载；过期后点击“获取最新版本”。', 'Start within 15 minutes. Get fresh links below if they expire.')}</p><div class="download-actions"><button type="button" id="milkfrog-refresh">${w('获取最新版本', 'Get latest version')}</button><button type="button" id="milkfrog-logout">${w('退出领取', 'Sign out')}</button></div><a class="after-download-play" href="#games">${w('已开始下载？去玩个小游戏 ↗', 'Download started? Play a game ↗')}</a></div>
     <div class="download-mobile-note">${w('手机领取后，请在 Windows 电脑上下载并使用。', 'Using a phone? Download and run the app on a Windows PC.')}</div>
@@ -61,6 +62,7 @@ for (let i=0;i<pages.length;i++) {
     s=s.replace(quick[0],'');
     s=s.replace('<section class="section" aria-labelledby="principles-title">',quick[0]+help+'<section class="section" aria-labelledby="principles-title">');
     s=s.replaceAll(/(<a[^>]*href="https:\/\/play\.91hwl\.cn\/[^"<>]+"[^>]*)(>)/g,'$1 target="_blank" rel="noopener"$2');
+    s=s.replace('<button type="button" data-game-choice="board">方寸棋局</button>', `<button type="button" data-game-choice="board">${w('方寸棋局','Board Trio')}</button>`);
     s=s.replaceAll('/assets/site-v1118/board-go.webp', '/assets/site-v1118/board-xiangqi.webp');
     s=s.replace('<div class="nav-links">',`<div class="nav-links"><a href="#milkfrog-help">${w('帮助','Help')}</a>`);
     // Keep language/theme controls visible on phones, outside the collapsed directory.
