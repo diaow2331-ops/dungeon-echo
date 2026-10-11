@@ -19,8 +19,8 @@ for(let i=0;i<pages.length;i++){
   s=s.replace(marker,panel+marker).replace('<h1 id="hero-title">','<h2 id="hero-title">').replace('</em>。</span><span class="i18n-en">Browser games.<br><em>Ready to play.</em></span></h1>','</em>。</span><span class="i18n-en">Browser games.<br><em>Ready to play.</em></span></h2>').replaceAll('.hero h1','.hero :is(h1,h2)');
   // Restrict the heading replacement to the existing game hero, regardless of translated wording.
   s=s.replace(/(<h2 id="hero-title">[\s\S]*?)<\/h1>/,'$1</h2>');
-  const nav='<a href="#games">';if(!s.includes(nav))throw new Error('homepage games navigation missing');
-  s=s.replace(nav,`<a href="#downloads">${words('软件下载','Downloads')}</a>`+nav);
+  const nav=/<div class="nav"[^>]*>/;if(!nav.test(s))throw new Error('homepage navigation missing');
+  s=s.replace(nav,match=>match+`<a href="#downloads">${words('软件下载','Downloads')}</a>`);
   s=s.replace('</head>',css+'</head>').replace('</body>','<script defer src="/assets/milkfrog/downloads.js?v=1.11.9"></script></body>');
   s=s.replace('<title>91hwl · Browser Games</title>','<title>91hwl · 奶蛙下载与浏览器游戏</title>');
   s=s.replace('91hwl — 三款独立浏览器游戏打开即玩：百层地牢、办公室跑酷与三合一棋局。','91hwl — 奶蛙磁盘清理软件下载与更新；下载期间畅玩百层地牢、办公室跑酷与三合一棋局。');
