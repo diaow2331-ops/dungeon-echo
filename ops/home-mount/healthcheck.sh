@@ -39,7 +39,7 @@ version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
 expected_de="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/DUNGEON_VERSION")"
 expected_moyu="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/MOYU_VERSION")"
 expected_board="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/BOARD_VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v1119-health.XXXXXX)"
+work_dir="$(mktemp -d /tmp/web-toys-home-v1120-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
@@ -84,6 +84,8 @@ check_home(){
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
   require_fixed "$file" 'id="milkfrog-code-form"' 'homepage delivery-code input' || return 1
   require_fixed "$file" 'id="downloads"' 'homepage download section' || return 1
+  require_fixed "$file" 'id="milkfrog-help"' 'homepage download help' || return 1
+  require_fixed "$file" 'milkfrog/home.css?v=1.12.0' 'homepage product design' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
   require_fixed "$file" '方寸棋局 · Board Trio' 'homepage Board Trio card' || return 1
@@ -94,7 +96,7 @@ check_home(){
   require_fixed "$file" '公开开发' 'homepage public-development copy' || return 1
   require_fixed "$file" 'site-v1110/style.css' 'homepage shared design' || return 1
   require_fixed "$file" 'quick-pick' 'homepage quick pick' || return 1
-  require_fixed "$file" 'hero-showcase' 'homepage game-art hero' || return 1
+  require_fixed "$file" 'games-grid' 'homepage game gallery' || return 1
   require_fixed "$file" '浏览器游戏' 'homepage Chinese hero copy' || return 1
   require_fixed "$file" 'game-card-board' 'homepage Board Trio visual card' || return 1
   require_fixed "$file" 'https://play.91hwl.cn/board-games/' 'homepage Board Trio play link' || return 1
@@ -108,7 +110,7 @@ check_home(){
   require_fixed "$file" 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' 'homepage private security route' || return 1
   require_fixed "$file" '游戏界面本身不放广告' 'homepage ad-surface disclosure' || return 1
   grep -Eq 'Browser games|浏览器游戏' "$file" || { echo 'HEALTH_CONTRACT_MISS: homepage direct game headline' >&2; return 1; }
-  check_social_contract "$file" 'https://91hwl.cn/' '91hwl · Browser Games' || return 1
+  check_social_contract "$file" 'https://91hwl.cn/' '91hwl · MilkFrog & Browser Games' || return 1
   check_pref_contract "$file" || return 1
   check_adsense_surface "$file" 'homepage' || return 1
 }
