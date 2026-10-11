@@ -22,7 +22,7 @@ command -v bash >/dev/null
 command -v node >/dev/null
 
 semver(){ [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
-test "$site_version" = '1.11.8' || { echo "unexpected site version: $site_version" >&2; exit 2; }
+test "$site_version" = '1.11.9' || { echo "unexpected site version: $site_version" >&2; exit 2; }
 semver "$game_version" || { echo "invalid Dungeon Echo version: $game_version" >&2; exit 2; }
 semver "$moyu_version" || { echo "invalid Moyu version: $moyu_version" >&2; exit 2; }
 semver "$board_version" || { echo "invalid Board Trio version: $board_version" >&2; exit 2; }
@@ -52,6 +52,9 @@ for file in \
   "$source_root/build-site-v1116.cjs" \
   "$source_root/build-site-v1117.cjs" \
   "$source_root/build-site-v1118.cjs" \
+  "$source_root/build-site-v1119.cjs" \
+  "$source_root/public/assets/milkfrog/downloads.js" \
+  "$source_root/public/assets/milkfrog/work-atlas.png" \
   "$source_root/public/assets/site-v1110/style.css" \
   "$source_root/public/assets/site-v1110/site.js" \
   "$source_root/public/assets/site-v1100/wang-jian-landscape-1668.jpg" \
@@ -223,6 +226,17 @@ node "$source_root/build-site-v1118.cjs" \
   "$stage_root/site/public/privacy/index.html" \
   "$stage_root/site/public/contact/index.html"
 
+node "$source_root/build-site-v1119.cjs" \
+  "$stage_root/site/public/index.html" \
+  "$stage_root/site/public/toys/dungeon-echo/index.html" \
+  "$stage_root/site/public/toys/moyu/index.html" \
+  "$stage_root/site/public/toys/board-games/index.html" \
+  "$stage_root/site/public/about/index.html" \
+  "$stage_root/site/public/privacy/index.html" \
+  "$stage_root/site/public/contact/index.html"
+mkdir -p "$stage_root/site/public/assets/milkfrog"
+cp -a "$source_root/public/assets/milkfrog/." "$stage_root/site/public/assets/milkfrog/"
+
 home="$stage_root/site/public/index.html"
 de_detail="$stage_root/site/public/toys/dungeon-echo/index.html"
 moyu_detail="$stage_root/site/public/toys/moyu/index.html"
@@ -234,7 +248,7 @@ ads_txt="$stage_root/site/public/ads.txt"
 robots_txt="$stage_root/site/public/robots.txt"
 sitemap_xml="$stage_root/site/public/sitemap.xml"
 
-grep -Fq 'data-site-version="1.11.8"' "$home"
+grep -Fq 'data-site-version="1.11.9"' "$home"
 grep -Fq 'name="google" content="notranslate"' "$home"
 grep -Fq 'window.__91HWL_PREFS' "$home"
 grep -Fq -- '--fs-body:16px' "$home"
@@ -271,7 +285,7 @@ grep -Fq '浏览器游戏' "$home"
 grep -Fq 'dungeon-roster.webp' "$home"
 grep -Fq 'game-media-moyu' "$home"
 grep -Fq 'quick-result' "$home"
-grep -Fq 'data-site-version="1.11.8"' "$de_detail"
+grep -Fq 'data-site-version="1.11.9"' "$de_detail"
 grep -Fq "softwareVersion\":\"$game_version\"" "$de_detail"
 grep -Fq "v$game_version 为当前公开版本" "$de_detail"
 grep -Fq 'dungeon-guardians.webp' "$de_detail"
@@ -280,14 +294,14 @@ grep -Fq 'name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguel
 grep -Fq 'GitHub / Source' "$de_detail"
 grep -Fq 'MIT · OPEN SOURCE' "$de_detail"
 grep -Fq 'ca-pub-2648680835467283' "$de_detail"
-grep -Fq 'data-site-version="1.11.8"' "$moyu_detail"
+grep -Fq 'data-site-version="1.11.9"' "$moyu_detail"
 grep -Fq "softwareVersion\":\"$moyu_version\"" "$moyu_detail"
 grep -Fq '画面与信息都更清楚' "$moyu_detail"
 grep -Fq 'Clearer world, readable UI' "$moyu_detail"
 grep -Fq 'moyu-scenes.webp' "$moyu_detail"
 grep -Fq 'detail-moyu-hero' "$moyu_detail"
 grep -Fq 'ca-pub-2648680835467283' "$moyu_detail"
-grep -Fq 'data-site-version="1.11.8"' "$board_detail"
+grep -Fq 'data-site-version="1.11.9"' "$board_detail"
 grep -Fq "softwareVersion\":\"$board_version\"" "$board_detail"
 grep -Fq '三种棋，一张桌' "$board_detail"
 grep -Fq 'board-gomoku.webp' "$board_detail"
@@ -327,13 +341,13 @@ grep -Fq '<loc>https://91hwl.cn/toys/board-games/</loc>' "$sitemap_xml"
 
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
-grep -Fq "test \"\$version\" = '1.11.8'" "$source_root/deploy.sh"
+grep -Fq "test \"\$version\" = '1.11.9'" "$source_root/deploy.sh"
 grep -Fq 'expected_de=' "$source_root/deploy.sh"
 grep -Fq 'expected_moyu=' "$source_root/deploy.sh"
 grep -Fq 'site-v1110/style.css' "$source_root/deploy.sh"
 grep -Fq 'homepage Board Trio card missing' "$source_root/deploy.sh"
 grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$source_root/deploy.sh"
-grep -Fq 'web-toys-v1118' "$source_root/deploy.sh"
+grep -Fq 'web-toys-v1119' "$source_root/deploy.sh"
 grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$source_root/deploy.sh"
 grep -Fq 'previous_home_sha256=' "$source_root/deploy.sh"
 ! grep -Fq 'EXPECTED_INDEX_SHA256' "$source_root/deploy.sh"
@@ -373,6 +387,7 @@ install -m 0644 "$stage_root/site/public/assets/site-v1110/moyu-run-v1265.jpg" "
 install -m 0644 "$stage_root/site/public/assets/site-v1110/dungeon-roster.webp" "$bundle/public/assets/site-v1110/dungeon-roster.webp"
 cp -a "$stage_root/site/public/assets/site-v1118/." "$bundle/public/assets/site-v1118/"
 install -m 0755 "$source_root/deploy.sh" "$bundle/ops/deploy.sh"
+cp -a "$stage_root/site/public/assets/milkfrog" "$bundle/public/assets/milkfrog"
 install -m 0755 "$source_root/healthcheck.sh" "$bundle/ops/healthcheck.sh"
 install -m 0644 "$source_root/README.txt" "$bundle/README.txt"
 

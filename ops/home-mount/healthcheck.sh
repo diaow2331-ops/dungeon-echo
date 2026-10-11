@@ -39,7 +39,7 @@ version="$(tr -d '\r\n' < "$BUNDLE_ROOT/VERSION")"
 expected_de="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/DUNGEON_VERSION")"
 expected_moyu="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/MOYU_VERSION")"
 expected_board="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/BOARD_VERSION")"
-work_dir="$(mktemp -d /tmp/web-toys-home-v1118-health.XXXXXX)"
+work_dir="$(mktemp -d /tmp/web-toys-home-v1119-health.XXXXXX)"
 trap 'rm -rf -- "$work_dir"' EXIT
 
 fetch(){ output="$1"; shift; curl --fail --silent --show-error --location --noproxy '*' --output "$output" "$@"; }
@@ -82,6 +82,8 @@ check_home(){
   file="$1"
   require_fixed "$file" "data-site-version=\"$version\"" 'homepage site version' || return 1
   require_fixed "$file" 'data-theme="dark"' 'homepage default theme' || return 1
+  require_fixed "$file" 'id="milkfrog-code-form"' 'homepage delivery-code input' || return 1
+  require_fixed "$file" 'id="downloads"' 'homepage download section' || return 1
   require_fixed "$file" 'Dungeon Echo' 'homepage Dungeon Echo card' || return 1
   require_fixed "$file" 'Clock Out Alive' 'homepage Moyu card' || return 1
   require_fixed "$file" '方寸棋局 · Board Trio' 'homepage Board Trio card' || return 1
@@ -116,6 +118,8 @@ check_de_detail(){
   require_fixed "$file" "data-site-version=\"$version\"" 'Dungeon Echo detail site version' || return 1
   require_fixed "$file" "softwareVersion\":\"$expected_de\"" 'Dungeon Echo detail software version' || return 1
   require_fixed "$file" "v$expected_de 为当前公开版本" 'Dungeon Echo current release copy' || return 1
+  require_fixed "$file" 'id="milkfrog-code-form"' 'homepage delivery-code input' || return 1
+  require_fixed "$file" 'id="downloads"' 'homepage download section' || return 1
   require_fixed "$file" 'Dungeon Echo' 'Dungeon Echo detail title' || return 1
   require_fixed "$file" 'class-roster.webp' 'Dungeon Echo roster art' || return 1
   require_fixed "$file" 'dungeon-town.webp' 'Dungeon Echo town art' || return 1

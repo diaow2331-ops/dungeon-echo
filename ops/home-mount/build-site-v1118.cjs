@@ -8,7 +8,7 @@ const repo=path.resolve(__dirname,'../..');
 const readVersion=rel=>fs.readFileSync(path.join(repo,rel),'utf8').trim();
 const versions=Object.freeze({dungeon:readVersion('VERSION'),moyu:readVersion('moyu/VERSION'),board:readVersion('board-games/VERSION'),site:readVersion('ops/home-mount/SITE_VERSION')});
 for(const [name,value] of Object.entries(versions))if(!/^\d+\.\d+\.\d+$/.test(value))throw new Error(`${name} version is not semantic: ${value}`);
-if(versions.site!=='1.11.8')throw new Error(`unexpected v1118 site version: ${versions.site}`);
+if(!['1.11.8','1.11.9'].includes(versions.site))throw new Error(`unexpected v1118 site version: ${versions.site}`);
 function upgrade(file){
   let s=fs.readFileSync(file,'utf8');
   if(!s.includes('data-site-version="1.11.7"'))throw new Error(`site v1.11.7 marker missing: ${file}`);
