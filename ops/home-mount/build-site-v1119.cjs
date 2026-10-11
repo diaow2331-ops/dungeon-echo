@@ -19,12 +19,16 @@ for(let i=0;i<pages.length;i++){
   s=s.replace(marker,panel+marker).replace('<h1 id="hero-title">','<h2 id="hero-title">').replace('</em>。</span><span class="i18n-en">Browser games.<br><em>Ready to play.</em></span></h1>','</em>。</span><span class="i18n-en">Browser games.<br><em>Ready to play.</em></span></h2>').replaceAll('.hero h1','.hero :is(h1,h2)');
   // Restrict the heading replacement to the existing game hero, regardless of translated wording.
   s=s.replace(/(<h2 id="hero-title">[\s\S]*?)<\/h1>/,'$1</h2>');
-  const nav=/<div class="nav"[^>]*>/;if(!nav.test(s))throw new Error('homepage navigation missing');
+  const nav=/<div class="nav-links"[^>]*>/;if(!nav.test(s))throw new Error('homepage navigation missing');
   s=s.replace(nav,match=>match+`<a href="#downloads">${words('软件下载','Downloads')}</a>`);
   s=s.replace('</head>',css+'</head>').replace('</body>','<script defer src="/assets/milkfrog/downloads.js?v=1.11.9"></script></body>');
   s=s.replace('<title>91hwl · Browser Games</title>','<title>91hwl · 奶蛙下载与浏览器游戏</title>');
   s=s.replace('91hwl — 三款独立浏览器游戏打开即玩：百层地牢、办公室跑酷与三合一棋局。','91hwl — 奶蛙磁盘清理软件下载与更新；下载期间畅玩百层地牢、办公室跑酷与三合一棋局。');
   if(!(s.indexOf('id="downloads"')<s.indexOf('class="hero"')))throw new Error('downloads must precede games');
+ }
+ if(i===5){
+  const privacy=`<section class="section"><h2>${words('软件下载与领取资格','Software downloads and access')}</h2><p>${words('输入交付卡密后，服务器核对对应交付记录。领取资格保存在 Secure、HttpOnly 的必要 cookie 中，有效期 90 天；可在下载区退出领取。卡密不放入网页地址或本地存储，也不作为广告追踪标识。','After you enter a delivery code, the server checks its delivery record. A necessary Secure, HttpOnly cookie remembers access for 90 days; sign out in the download section. Your code is not placed in URLs or localStorage and is not an advertising identifier.')}</p><p>${words('下载链接有效期为 15 分钟；失效后可以重复领取。关闭或退款订单的卡密不再领取下载，已安装软件的使用不受卡密限制。','Download links expire after 15 minutes and can be requested again. Closed or refunded orders lose download access. Installed software has no code-based usage restriction.')}</p></section>`;
+  s=s.replace('</main>',privacy+'</main>');
  }
  fs.writeFileSync(pages[i],s);
 }
