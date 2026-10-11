@@ -15,6 +15,7 @@ const tests = [
   'public-repo-safety.cjs',
   'play-release-root-policy.cjs',
   'current-site-governance.cjs',
+  'site-download-health-scope.cjs',
   'games-catalog.cjs',
   'games-boundaries.cjs',
   'board-games-rules.cjs',
