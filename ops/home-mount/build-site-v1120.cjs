@@ -64,7 +64,7 @@ for (let i=0;i<pages.length;i++) {
     s=s.replaceAll('/assets/site-v1118/board-go.webp', '/assets/site-v1118/board-xiangqi.webp');
     s=s.replace('<div class="nav-links">',`<div class="nav-links"><a href="#milkfrog-help">${w('帮助','Help')}</a>`);
     // Keep language/theme controls visible on phones, outside the collapsed directory.
-    const prefs=s.match(/<div class="prefs">[\s\S]*?<\/button><\/div>/);
+    const prefs=s.match(/<div class="prefs">[\s\S]*?id="themeToggle"[\s\S]*?<\/button><\/div>/);
     if(!prefs) throw new Error('site preferences missing');
     s=s.replace(prefs[0],'').replace('</header>',prefs[0]+'</header>');
     s=s.replace('<span class="brand-word">91hwl</span>','<span class="brand-word">91hwl<span class="brand-caption">'+w('软件与小游戏','SOFTWARE & PLAY')+'</span></span>');
