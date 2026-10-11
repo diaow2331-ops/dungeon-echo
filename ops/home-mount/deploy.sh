@@ -13,6 +13,7 @@ PRIVACY_REL=privacy
 CONTACT_REL=contact
 ASSET_REL=assets/site-v1110
 PROJECT_ART_REL=assets/site-v1118
+DOWNLOAD_ART_REL=assets/milkfrog
 ADS_REL=ads.txt
 ROBOTS_REL=robots.txt
 SITEMAP_REL=sitemap.xml
@@ -49,6 +50,8 @@ for file in \
   "$PUBLIC_ROOT/$ADS_REL" \
   "$PUBLIC_ROOT/$ROBOTS_REL" \
   "$PUBLIC_ROOT/$SITEMAP_REL" \
+  "$PUBLIC_ROOT/assets/milkfrog/downloads.js" \
+  "$PUBLIC_ROOT/assets/milkfrog/work-atlas.png" \
   "$BUNDLE_ROOT/VERSION" \
   "$BUNDLE_ROOT/DUNGEON_VERSION" \
   "$BUNDLE_ROOT/MOYU_VERSION" \
@@ -63,7 +66,7 @@ version="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/VERSION")"
 expected_de="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/DUNGEON_VERSION")"
 expected_moyu="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/MOYU_VERSION")"
 expected_board="$(tr -d '\r\n[:space:]' < "$BUNDLE_ROOT/BOARD_VERSION")"
-test "$version" = '1.11.8' || fail "unexpected site version: $version"
+test "$version" = '1.11.9' || fail "unexpected site version: $version"
 grep -Fq "data-site-version=\"$version\"" "$PUBLIC_ROOT/index.html" || fail 'homepage site version marker missing'
 grep -Fq 'data-theme="dark"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme system missing'
 grep -Fq 'id="themeToggle"' "$PUBLIC_ROOT/index.html" || fail 'homepage theme control missing'
@@ -112,7 +115,7 @@ live_sha="$(sha256sum "$SITE_ROOT/index.html" | awk '{print $1}')"
 new_sha="$(sha256sum "$PUBLIC_ROOT/index.html" | awk '{print $1}')"
 
 mkdir -p "$BACKUP_ROOT"
-backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1118.XXXXXX")"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/web-toys-v1119.XXXXXX")"
 cp -a "$SITE_ROOT/index.html" "$backup_dir/index.html"
 printf '%s\n' "$live_sha" > "$backup_dir/LIVE_INDEX_SHA256"
 
@@ -127,6 +130,7 @@ project_art_existed=false
 ads_existed=false
 robots_existed=false
 sitemap_existed=false
+download_art_existed=false
 if test -e "$SITE_ROOT/$DE_REL"; then cp -a "$SITE_ROOT/$DE_REL" "$backup_dir/dungeon-echo"; de_existed=true; fi
 if test -e "$SITE_ROOT/$MOYU_REL"; then cp -a "$SITE_ROOT/$MOYU_REL" "$backup_dir/moyu"; moyu_existed=true; fi
 if test -e "$SITE_ROOT/$BOARD_REL"; then cp -a "$SITE_ROOT/$BOARD_REL" "$backup_dir/board-games"; board_existed=true; fi
@@ -135,6 +139,7 @@ if test -e "$SITE_ROOT/$PRIVACY_REL"; then cp -a "$SITE_ROOT/$PRIVACY_REL" "$bac
 if test -e "$SITE_ROOT/$CONTACT_REL"; then cp -a "$SITE_ROOT/$CONTACT_REL" "$backup_dir/contact"; contact_existed=true; fi
 if test -e "$SITE_ROOT/$ASSET_REL"; then cp -a "$SITE_ROOT/$ASSET_REL" "$backup_dir/site-v1110"; assets_existed=true; fi
 if test -e "$SITE_ROOT/$PROJECT_ART_REL"; then cp -a "$SITE_ROOT/$PROJECT_ART_REL" "$backup_dir/site-v1118"; project_art_existed=true; fi
+if test -e "$SITE_ROOT/$DOWNLOAD_ART_REL"; then cp -a "$SITE_ROOT/$DOWNLOAD_ART_REL" "$backup_dir/milkfrog"; download_art_existed=true; fi
 if test -e "$SITE_ROOT/$ADS_REL"; then cp -a "$SITE_ROOT/$ADS_REL" "$backup_dir/ads.txt"; ads_existed=true; fi
 if test -e "$SITE_ROOT/$ROBOTS_REL"; then cp -a "$SITE_ROOT/$ROBOTS_REL" "$backup_dir/robots.txt"; robots_existed=true; fi
 if test -e "$SITE_ROOT/$SITEMAP_REL"; then cp -a "$SITE_ROOT/$SITEMAP_REL" "$backup_dir/sitemap.xml"; sitemap_existed=true; fi
@@ -166,6 +171,7 @@ rollback(){
     restore_dir "$CONTACT_REL" "$backup_dir/contact" "$contact_existed"
     restore_dir "$ASSET_REL" "$backup_dir/site-v1110" "$assets_existed"
     restore_dir "$PROJECT_ART_REL" "$backup_dir/site-v1118" "$project_art_existed"
+    restore_dir "$DOWNLOAD_ART_REL" "$backup_dir/milkfrog" "$download_art_existed"
     restore_file "$ADS_REL" "$backup_dir/ads.txt" "$ads_existed"
     restore_file "$ROBOTS_REL" "$backup_dir/robots.txt" "$robots_existed"
     restore_file "$SITEMAP_REL" "$backup_dir/sitemap.xml" "$sitemap_existed"
@@ -176,7 +182,11 @@ rollback(){
 }
 trap rollback EXIT
 
-index_tmp="$SITE_ROOT/.index.web-toys-v1118.tmp"
+# Versioned download UI assets only; binaries remain outside the public webroot.
+mkdir -p "$SITE_ROOT/assets/milkfrog"
+cp -a "$PUBLIC_ROOT/assets/milkfrog/." "$SITE_ROOT/assets/milkfrog/"
+
+index_tmp="$SITE_ROOT/.index.web-toys-v1119.tmp"
 install -m 0644 "$PUBLIC_ROOT/index.html" "$index_tmp"
 chown --reference="$SITE_ROOT/index.html" "$index_tmp"
 mv -Tf "$index_tmp" "$SITE_ROOT/index.html"
@@ -204,15 +214,15 @@ rm -rf -- "$SITE_ROOT/$PROJECT_ART_REL"
 cp -a "$PUBLIC_ROOT/$PROJECT_ART_REL" "$SITE_ROOT/$PROJECT_ART_REL"
 chown -R --reference="$SITE_ROOT/index.html" "$SITE_ROOT/$PROJECT_ART_REL"
 
-ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1118.tmp"
+ads_tmp="$SITE_ROOT/.ads.txt.web-toys-v1119.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ADS_REL" "$ads_tmp"
 chown --reference="$SITE_ROOT/index.html" "$ads_tmp"
 mv -Tf "$ads_tmp" "$SITE_ROOT/$ADS_REL"
-robots_tmp="$SITE_ROOT/.robots.txt.web-toys-v1118.tmp"
+robots_tmp="$SITE_ROOT/.robots.txt.web-toys-v1119.tmp"
 install -m 0644 "$PUBLIC_ROOT/$ROBOTS_REL" "$robots_tmp"
 chown --reference="$SITE_ROOT/index.html" "$robots_tmp"
 mv -Tf "$robots_tmp" "$SITE_ROOT/$ROBOTS_REL"
-sitemap_tmp="$SITE_ROOT/.sitemap.xml.web-toys-v1118.tmp"
+sitemap_tmp="$SITE_ROOT/.sitemap.xml.web-toys-v1119.tmp"
 install -m 0644 "$PUBLIC_ROOT/$SITEMAP_REL" "$sitemap_tmp"
 chown --reference="$SITE_ROOT/index.html" "$sitemap_tmp"
 mv -Tf "$sitemap_tmp" "$SITE_ROOT/$SITEMAP_REL"
