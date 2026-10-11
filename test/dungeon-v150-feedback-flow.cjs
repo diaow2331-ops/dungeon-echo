@@ -27,7 +27,7 @@ ok(/grid-template-columns: 140px minmax\(0, 1fr\)/.test(css) && /repeat\(3, minm
 ok(zh.includes('id="audio-haptics"') && en.includes('id="audio-haptics"'), 'both fixed locales expose the haptics toggle');
 ok(zh.includes('?v=198') && en.includes('?v=198'), 'both fixed locales publish cache generation 198');
 ok(authority.version==='1.9.8' && authority.cacheGeneration===198, 'v1.9.8 release authority is version/cache coherent');
-ok(siteVersion==='1.11.9' && homeBuilder.includes('build-site-v1112.cjs') && homeBuilder.includes('build-site-v1113.cjs') && homeBuilder.includes('build-site-v1114.cjs') && homeBuilder.includes('build-site-v1115.cjs') && homeBuilder.includes('build-site-v1116.cjs') && homeBuilder.includes('build-site-v1117.cjs') && homeBuilder.includes('build-site-v1118.cjs') && homeBuilder.includes('build-site-v1119.cjs'), 'Dungeon v1.5 companion stage remains in the immutable site chain through current v1.11.9');
+ok(siteVersion==='1.12.0' && homeBuilder.includes('build-site-v1112.cjs') && homeBuilder.includes('build-site-v1113.cjs') && homeBuilder.includes('build-site-v1114.cjs') && homeBuilder.includes('build-site-v1115.cjs') && homeBuilder.includes('build-site-v1116.cjs') && homeBuilder.includes('build-site-v1117.cjs') && homeBuilder.includes('build-site-v1118.cjs') && homeBuilder.includes('build-site-v1119.cjs') && homeBuilder.includes('build-site-v1120.cjs'), 'Dungeon v1.5 companion stage remains in the immutable site chain through current v1.12.0');
 
 console.log(`\nRESULT  ${pass} passed / ${fail} failed`);
 process.exit(fail ? 1 : 0);

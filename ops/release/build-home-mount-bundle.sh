@@ -22,7 +22,7 @@ command -v bash >/dev/null
 command -v node >/dev/null
 
 semver(){ [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
-test "$site_version" = '1.11.9' || { echo "unexpected site version: $site_version" >&2; exit 2; }
+test "$site_version" = '1.12.0' || { echo "unexpected site version: $site_version" >&2; exit 2; }
 semver "$game_version" || { echo "invalid Dungeon Echo version: $game_version" >&2; exit 2; }
 semver "$moyu_version" || { echo "invalid Moyu version: $moyu_version" >&2; exit 2; }
 semver "$board_version" || { echo "invalid Board Trio version: $board_version" >&2; exit 2; }
@@ -53,6 +53,8 @@ for file in \
   "$source_root/build-site-v1117.cjs" \
   "$source_root/build-site-v1118.cjs" \
   "$source_root/build-site-v1119.cjs" \
+  "$source_root/build-site-v1120.cjs" \
+  "$source_root/public/assets/milkfrog/home.css" \
   "$source_root/public/assets/milkfrog/downloads.js" \
   "$source_root/public/assets/milkfrog/work-atlas.png" \
   "$source_root/public/assets/site-v1110/style.css" \
@@ -234,6 +236,14 @@ node "$source_root/build-site-v1119.cjs" \
   "$stage_root/site/public/about/index.html" \
   "$stage_root/site/public/privacy/index.html" \
   "$stage_root/site/public/contact/index.html"
+node "$source_root/build-site-v1120.cjs" \
+  "$stage_root/site/public/index.html" \
+  "$stage_root/site/public/toys/dungeon-echo/index.html" \
+  "$stage_root/site/public/toys/moyu/index.html" \
+  "$stage_root/site/public/toys/board-games/index.html" \
+  "$stage_root/site/public/about/index.html" \
+  "$stage_root/site/public/privacy/index.html" \
+  "$stage_root/site/public/contact/index.html"
 mkdir -p "$stage_root/site/public/assets/milkfrog"
 cp -a "$source_root/public/assets/milkfrog/." "$stage_root/site/public/assets/milkfrog/"
 
@@ -248,7 +258,7 @@ ads_txt="$stage_root/site/public/ads.txt"
 robots_txt="$stage_root/site/public/robots.txt"
 sitemap_xml="$stage_root/site/public/sitemap.xml"
 
-grep -Fq 'data-site-version="1.11.9"' "$home"
+grep -Fq 'data-site-version="1.12.0"' "$home"
 grep -Fq 'name="google" content="notranslate"' "$home"
 grep -Fq 'window.__91HWL_PREFS' "$home"
 grep -Fq -- '--fs-body:16px' "$home"
@@ -263,14 +273,14 @@ grep -Fq "03 / v$board_version" "$home"
 grep -Fq '三档本地 AI、双人同屏、逐手棋谱、复盘、棋钟与全屏模式' "$home"
 grep -Fq 'https://play.91hwl.cn/board-games/' "$home"
 ! grep -Fq '下一款开发中' "$home"
-grep -Fq 'Browser games.' "$home"
+grep -Fq 'Three browser games.' "$home"
 grep -Fq '关于、隐私与联系。' "$home"
 ! grep -Fq 'site-home-v140' "$home"
 ! grep -Fq 'site-trust-hub-v135' "$home"
 grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$home"
 grep -Fq '游戏界面本身不放广告' "$home"
 grep -Fq 'property="og:url" content="https://91hwl.cn/"' "$home"
-grep -Fq 'name="twitter:title" content="91hwl · Browser Games"' "$home"
+grep -Fq 'name="twitter:title" content="91hwl · MilkFrog & Browser Games"' "$home"
 grep -Fq 'name="twitter:image" content="https://play.91hwl.cn/dungeon-echo/art/title-backdrop.webp"' "$home"
 grep -Fq 'ca-pub-2648680835467283' "$home"
 grep -Fq 'href="/privacy/"' "$home"
@@ -279,13 +289,13 @@ grep -Fq 'moyu-run-v1265.jpg' "$home"
 grep -Fq 'site-v1110/style.css' "$home"
 grep -Fq 'site-v1110/site.js' "$home"
 grep -Fq 'id="navToggle"' "$home"
-grep -Fq 'hero-showcase' "$home"
+grep -Fq 'games-grid' "$home"
 grep -Fq 'quick-pick' "$home"
 grep -Fq '浏览器游戏' "$home"
 grep -Fq 'dungeon-roster.webp' "$home"
 grep -Fq 'game-media-moyu' "$home"
 grep -Fq 'quick-result' "$home"
-grep -Fq 'data-site-version="1.11.9"' "$de_detail"
+grep -Fq 'data-site-version="1.12.0"' "$de_detail"
 grep -Fq "softwareVersion\":\"$game_version\"" "$de_detail"
 grep -Fq "v$game_version 为当前公开版本" "$de_detail"
 grep -Fq 'dungeon-guardians.webp' "$de_detail"
@@ -294,14 +304,14 @@ grep -Fq 'name="twitter:title" content="Dungeon Echo · 100-Floor Browser Roguel
 grep -Fq 'GitHub / Source' "$de_detail"
 grep -Fq 'MIT · OPEN SOURCE' "$de_detail"
 grep -Fq 'ca-pub-2648680835467283' "$de_detail"
-grep -Fq 'data-site-version="1.11.9"' "$moyu_detail"
+grep -Fq 'data-site-version="1.12.0"' "$moyu_detail"
 grep -Fq "softwareVersion\":\"$moyu_version\"" "$moyu_detail"
 grep -Fq '画面与信息都更清楚' "$moyu_detail"
 grep -Fq 'Clearer world, readable UI' "$moyu_detail"
 grep -Fq 'moyu-scenes.webp' "$moyu_detail"
 grep -Fq 'detail-moyu-hero' "$moyu_detail"
 grep -Fq 'ca-pub-2648680835467283' "$moyu_detail"
-grep -Fq 'data-site-version="1.11.9"' "$board_detail"
+grep -Fq 'data-site-version="1.12.0"' "$board_detail"
 grep -Fq "softwareVersion\":\"$board_version\"" "$board_detail"
 grep -Fq '三种棋，一张桌' "$board_detail"
 grep -Fq 'board-gomoku.webp' "$board_detail"
@@ -341,13 +351,13 @@ grep -Fq '<loc>https://91hwl.cn/toys/board-games/</loc>' "$sitemap_xml"
 
 bash -n "$source_root/deploy.sh"
 bash -n "$source_root/healthcheck.sh"
-grep -Fq "test \"\$version\" = '1.11.9'" "$source_root/deploy.sh"
+grep -Fq "test \"\$version\" = '1.12.0'" "$source_root/deploy.sh"
 grep -Fq 'expected_de=' "$source_root/deploy.sh"
 grep -Fq 'expected_moyu=' "$source_root/deploy.sh"
 grep -Fq 'site-v1110/style.css' "$source_root/deploy.sh"
 grep -Fq 'homepage Board Trio card missing' "$source_root/deploy.sh"
 grep -Fq 'https://github.com/diaow2331-ops/dungeon-echo/security/policy' "$source_root/deploy.sh"
-grep -Fq 'web-toys-v1119' "$source_root/deploy.sh"
+grep -Fq 'web-toys-v1120' "$source_root/deploy.sh"
 grep -Fq 'web_toys_home_mount=ROLLED_BACK' "$source_root/deploy.sh"
 grep -Fq 'previous_home_sha256=' "$source_root/deploy.sh"
 ! grep -Fq 'EXPECTED_INDEX_SHA256' "$source_root/deploy.sh"

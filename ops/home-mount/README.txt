@@ -1,4 +1,4 @@
-91hwl home mount · site v1.11.9
+91hwl home mount · site v1.12.0
 
 Download-first homepage: MilkFrog delivery-code form precedes the three browser games. Existing ZH/EN, themes and game routes are preserved. The browser verifies codes through /api/milkfrog/; it contains no stock, keys or static binary links. Installer/portable files are served by a separate private gateway after order/code validation. Software itself needs no activation.
 
